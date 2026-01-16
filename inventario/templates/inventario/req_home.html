@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REQ - Telecable Almacén</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'inventario/scan.css' %}">
+</head>
+<body>
+  <div class="card">
+    <h2>🧾 REQ (Borrador) - {{ ubicacion }}</h2>
+    <p class="muted">Escanea productos (o escribe el código) y presiona Enter. Esto funciona como carrito.</p>
+
+    <!-- Input de escaneo -->
+    <form method="post" action="{% url 'req_scan_add' %}">
+      {% csrf_token %}
+      <input type="hidden" name="ubicacion_id" value="{{ ubicacion.id }}">
+
+      <div class="row">
+        <input id="scanInput" name="code" placeholder="Escanea o escribe código..."
+               autocomplete="off" autofocus />
+        <button type="submit">Agregar</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Tip: acepta <b>barcode</b> (ONU alfanumérico) o <b>TC-ALM-000001</b>.
+      </div>
+    </form>
+
+    {% if error %}
+      <p class="error">⚠ {{ error }}</p>
+    {% endif %}
+
+    <hr>
+
+    <!-- Items / carrito -->
+    <h3>Items</h3>
+    <ul>
+      {% for it in items %}
+        <li style="display:flex; justify-content:space-between; gap:12px;">
+          <span><b>{{ it.producto.nombre }}</b> <span class="muted">({{ it.producto.codigo_interno }})</span></span>
+          <span><b>x{{ it.cantidad }}</b></span>
+        </li>
+      {% empty %}
+        <li class="muted">Sin ítems.</li>
+      {% endfor %}
+    </ul>
+
+    <hr>
+
+    <!-- Convertir -->
+    <form method="post" action="/req/{{ req.id }}/to-sal/">
+      {% csrf_token %}
+      <button type="submit">Convertir a SAL</button>
+    </form>
+  </div>
+
+  <script src="{% static 'inventario/scan.js' %}"></script>
+</body>
+</html>

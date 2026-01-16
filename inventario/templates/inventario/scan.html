@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escanear - Telecable Almacén</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'inventario/scan.css' %}">
+</head>
+<body>
+  <div class="card">
+    <h2>📦 Escanear producto</h2>
+    <p class="muted">Pasa el lector y presiona Enter.</p>
+
+    <form method="get" action="/scan/">
+      <div class="row">
+        <input id="scanInput" name="q" placeholder="Escanea o escribe código..."
+               value="{{ q|default:'' }}" autofocus />
+        <button type="submit">Buscar</button>
+      </div>
+    </form>
+
+    {% if error %}
+      <p class="error">⚠ {{ error }}</p>
+    {% endif %}
+
+    {% if producto %}
+      <div class="box">
+        <h3>{{ producto.nombre }}</h3>
+        <div class="muted">Código: {{ producto.codigo_interno }} | Barcode: {{ producto.barcode }}</div>
+        <div class="muted">Categoría: {{ producto.categoria.nombre }}</div>
+      </div>
+
+      <h3>Stock por ubicación</h3>
+      {% if stocks %}
+        <table>
+          <thead>
+            <tr><th>Ubicación</th><th>Stock</th></tr>
+          </thead>
+          <tbody>
+            {% for s in stocks %}
+              <tr>
+                <td>{{ s.ubicacion.nombre }}</td>
+                <td>{{ s.cantidad }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="muted">No hay registros de stock para este producto.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <script src="{% static 'inventario/scan.js' %}"></script>
+</body>
+</html>

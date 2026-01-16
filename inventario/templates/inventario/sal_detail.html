@@ -1,0 +1,16 @@
+<h2>SAL (Borrador) - {{ sal.ubicacion }}</h2>
+<p>Número: {{ sal.numero|default:"(sin número aún)" }}</p>
+
+<h3>Items</h3>
+<ul>
+  {% for it in items %}
+    <li>{{ it.producto.nombre }} | {{ it.cantidad }}</li>
+  {% empty %}
+    <li>Sin ítems.</li>
+  {% endfor %}
+</ul>
+
+<form method="post" action="/sal/{{ sal.id }}/confirmar/">
+  {% csrf_token %}
+  <button type="submit">Confirmar SAL (descontar stock)</button>
+</form>
