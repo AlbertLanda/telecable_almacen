@@ -1,9 +1,455 @@
-<h2>Panel Técnico</h2>
-<p>Hola, {{ request.user.username }}</p>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Técnico | Telecable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<ul>
-  <li><a href="/req/">Solicitar Material</a></li>
-  <li><a href="/tecnico/mis-reqs/">Mi Historial (REQ)</a></li>
-  <li><a href="/tecnico/mis-entregas/">Mis Entregas (SAL)</a></li>
-  <li><a href="/logout/">Cerrar sesión</a></li>
-</ul>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg-body:#1e1e2e;
+      --bg-sidebar:#181824;
+      --bg-panel:#27293d;
+
+      --primary-grad:linear-gradient(45deg,#FF512F 0%,#DD2476 100%);
+      --primary-solid:#ff6b6b;
+
+      --accent:#4facfe;
+      --text-main:#ffffff;
+      --text-muted:#9a9a9a;
+      --grid: rgba(255,255,255,0.03);
+      --line: rgba(255,255,255,0.08);
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:'Poppins',sans-serif;
+      background-color:var(--bg-body);
+      color:var(--text-main);
+      display:flex;
+      height:100vh;
+      overflow:hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar{
+      width:260px;
+      background-color:var(--bg-sidebar);
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      border-right:1px solid rgba(255,255,255,0.05);
+      box-shadow:5px 0 15px rgba(0,0,0,0.2);
+      z-index:10;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:15px;
+      margin-bottom:40px;
+      padding-bottom:20px;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+    }
+    .brand img{width:40px;height:40px;border-radius:8px;object-fit:contain;background:#fff;padding:3px;}
+    .brand span{font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;text-transform:uppercase;}
+
+    .menu-btn{
+      background:transparent;
+      border:none;
+      width:100%;
+      padding:14px 16px;
+      text-align:left;
+      color:var(--text-muted);
+      font-size:14px;
+      cursor:pointer;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      transition:all 0.25s ease;
+      margin-bottom:8px;
+      font-weight:500;
+      text-decoration:none;
+    }
+    .menu-btn i{font-size:20px;}
+    .menu-btn:hover{background:rgba(255,255,255,0.05);color:#fff;padding-left:20px;}
+    .menu-btn.active{background:var(--primary-grad);color:#fff;box-shadow:0 4px 15px rgba(221,36,118,0.35);}
+
+    .logout-btn{margin-top:auto;color:#ff4757;border:1px solid rgba(255,71,87,0.2);}
+    .logout-btn:hover{background:rgba(255,71,87,0.10);color:#fff;}
+
+    /* MAIN */
+    .main-content{
+      flex:1;
+      padding:30px;
+      overflow-y:auto;
+      background-image:radial-gradient(var(--grid) 1px, transparent 1px);
+      background-size:30px 30px;
+    }
+    .header{
+      margin-bottom:26px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .header h2{font-weight:600;font-size:28px;}
+    .header p{color:var(--text-muted);font-size:14px;}
+
+    .user-badge{
+      background:var(--bg-panel);
+      padding:8px 14px;
+      border-radius:30px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .user-badge i{font-size:20px;color:var(--primary-solid);}
+
+    .section-view{display:none;animation:fadeIn .35s;}
+    .section-view.active{display:block;}
+
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(8px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+
+    /* KPIs */
+    .kpi-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:18px;
+      margin-bottom:22px;
+    }
+    .card{
+      background:var(--bg-panel);
+      padding:22px;
+      border-radius:16px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.12);
+      border:1px solid rgba(255,255,255,0.05);
+      transition:transform .25s ease;
+    }
+    .card:hover{transform:translateY(-4px);}
+    .kpi-icon{
+      width:50px;height:50px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;margin-bottom:12px;
+      box-shadow:0 5px 15px rgba(0,0,0,0.20);
+    }
+    .card h3{font-size:32px;font-weight:700;margin-bottom:4px;color:#fff;}
+    .card span{color:var(--text-muted);font-size:13px;text-transform:uppercase;letter-spacing:.5px;}
+
+    /* QUICK ACTIONS */
+    .actions-row{display:flex;gap:12px;flex-wrap:wrap;}
+    .action-btn{
+      background:var(--primary-grad);
+      color:#fff;
+      border:none;
+      padding:13px 18px;
+      border-radius:14px;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      box-shadow:0 4px 15px rgba(221,36,118,0.30);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .action-btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(221,36,118,0.35);}
+    .action-btn.alt{background:linear-gradient(45deg,#4facfe 0%,#00f2fe 100%);box-shadow:0 4px 15px rgba(79,172,254,0.25);}
+
+    /* CHARTS */
+    .charts-grid{
+      display:grid;
+      grid-template-columns:2fr 1fr;
+      gap:18px;
+      margin-bottom:22px;
+    }
+    .chart-container{
+      background:var(--bg-panel);
+      padding:22px;
+      border-radius:16px;
+      height:360px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.12);
+      border:1px solid rgba(255,255,255,0.05);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .chart-container h4{margin-bottom:14px;color:#fff;font-weight:600;font-size:14px;}
+    .chart-wrap{flex:1;position:relative;}
+
+    /* TABLE */
+    .table-container{
+      background:var(--bg-panel);
+      padding:22px;
+      border-radius:16px;
+      overflow-x:auto;
+      margin-bottom:18px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.12);
+      border:1px solid rgba(255,255,255,0.05);
+    }
+    table{width:100%;border-collapse:collapse;margin-top:12px;}
+    th{
+      text-align:left;color:var(--primary-solid);
+      padding:12px;border-bottom:2px solid rgba(255,255,255,0.06);
+      font-size:12px;text-transform:uppercase;font-weight:700;
+      letter-spacing:.4px;
+    }
+    td{
+      padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);
+      font-size:14px;color:#ddd;
+    }
+    tr:hover td{background:rgba(255,255,255,0.02);}
+
+    .pill{
+      display:inline-flex;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .pill.borrador{color:#ffa502;}
+    .pill.pendiente{color:#ff6b6b;}
+    .pill.atendido{color:#2ed573;}
+    .pill.other{color:#9a9a9a;}
+
+    @media (max-width: 980px){
+      .charts-grid{grid-template-columns:1fr;}
+    }
+    @media (max-width: 900px){
+      .sidebar{width:220px;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
+      <span>TELECABLE</span>
+    </div>
+
+    <button class="menu-btn active" data-tab="dashboard">
+      <i class='bx bxs-dashboard'></i> Panel Técnico
+    </button>
+
+    <a href="{% url 'req_home' %}" class="menu-btn">
+      <i class='bx bx-plus-circle'></i> Solicitar Material
+    </a>
+
+    <a href="{% url 'tecnico_mis_reqs' %}" class="menu-btn">
+      <i class='bx bx-history'></i> Mis Requerimientos
+    </a>
+
+    <a href="{% url 'tecnico_mis_entregas' %}" class="menu-btn">
+      <i class='bx bx-package'></i> Mis Entregas
+    </a>
+
+    <a href="{% url 'scan' %}" class="menu-btn">
+      <i class='bx bx-scan'></i> Escanear
+    </a>
+
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
+      <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+    </a>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <div>
+        <h2 id="welcomeText">Panel Técnico</h2>
+        <p>
+          Bienvenido, <b>{{ request.user.username }}</b>
+          {% if sede %}
+            <span style="color:var(--text-muted);"> · Sede: <b style="color:#fff;">{{ sede.nombre }}</b></span>
+          {% endif %}
+        </p>
+      </div>
+      <div class="user-badge">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ request.user.username }}</span>
+      </div>
+    </div>
+
+    <div id="dashboard" class="section-view active">
+
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(255, 107, 107, 0.15); color: #ff6b6b;">
+            <i class='bx bx-file'></i>
+          </div>
+          <span>REQ Activos</span>
+          <h3>{{ kpis.reqs_activos|default:0 }}</h3>
+        </div>
+
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(79, 172, 254, 0.15); color: #4facfe;">
+            <i class='bx bx-package'></i>
+          </div>
+          <span>Entregas</span>
+          <h3>{{ kpis.entregas|default:0 }}</h3>
+        </div>
+
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(46, 213, 115, 0.15); color: #2ed573;">
+            <i class='bx bx-check-circle'></i>
+          </div>
+          <span>REQ Atendidos</span>
+          <h3>{{ kpis.reqs_atendidos|default:0 }}</h3>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:22px;">
+        <h4 style="margin-bottom:14px;color:#fff;font-weight:700;">🚀 Acciones rápidas</h4>
+        <div class="actions-row">
+          <a href="{% url 'req_home' %}" class="action-btn">
+            <i class='bx bx-plus-circle'></i> Nuevo requerimiento
+          </a>
+          <a href="{% url 'scan' %}" class="action-btn alt">
+            <i class='bx bx-scan'></i> Escanear código
+          </a>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-container">
+          <h4>Mis requerimientos (últimos 7 días)</h4>
+          <div class="chart-wrap">
+            <canvas id="reqChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h4>Estado de REQs</h4>
+          <div class="chart-wrap">
+            <canvas id="estadoChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <h4 style="font-size:16px;margin-bottom:10px;">📋 Mis últimos requerimientos</h4>
+
+        <table>
+          <thead>
+            <tr>
+              <th>REQ</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reqs_recientes %}
+              <tr>
+                <td>{{ r.numero|default:"(sin número)" }}</td>
+                <td>{{ r.fecha|date:"Y-m-d H:i" }}</td>
+                <td>
+                  {% if r.estado == "REQ_BORRADOR" %}
+                    <span class="pill borrador">Borrador</span>
+                  {% elif r.estado == "REQ_PENDIENTE" %}
+                    <span class="pill pendiente">Pendiente</span>
+                  {% elif r.estado == "REQ_ATENDIDO" %}
+                    <span class="pill atendido">Atendido</span>
+                  {% else %}
+                    <span class="pill other">{{ r.get_estado_display }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{% url 'tecnico_mis_reqs' %}" style="color: var(--accent); text-decoration:none; font-weight:600;">
+                    <i class='bx bx-eye'></i> Ver
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" style="color:var(--text-muted);text-align:center;padding:18px;">
+                  No hay requerimientos recientes.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- JSON data para Chart.js -->
+      {{ chart.req_labels|json_script:"reqLabels" }}
+      {{ chart.req_data|json_script:"reqData" }}
+      {{ chart.estado_labels|json_script:"estadoLabels" }}
+      {{ chart.estado_data|json_script:"estadoData" }}
+
+    </div>
+  </div>
+
+  <script>
+    const reqLabels = JSON.parse(document.getElementById('reqLabels')?.textContent || "[]");
+    const reqData   = JSON.parse(document.getElementById('reqData')?.textContent || "[]");
+    const estadoLabels = JSON.parse(document.getElementById('estadoLabels')?.textContent || "[]");
+    const estadoData   = JSON.parse(document.getElementById('estadoData')?.textContent || "[]");
+
+    let charts = {};
+
+    function renderCharts(){
+      if (charts.req) charts.req.destroy();
+      if (charts.estado) charts.estado.destroy();
+
+      const ctxReq = document.getElementById('reqChart').getContext('2d');
+      charts.req = new Chart(ctxReq, {
+        type: 'line',
+        data: {
+          labels: reqLabels,
+          datasets: [{
+            data: reqData,
+            borderColor: '#ff6b6b',
+            backgroundColor: 'rgba(255,107,107,0.10)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: '#ff6b6b'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#3d3d5c' }, ticks: { color: '#ddd', stepSize: 1 } },
+            x: { grid: { display: false }, ticks: { color: '#ddd' } }
+          }
+        }
+      });
+
+      const ctxEstado = document.getElementById('estadoChart').getContext('2d');
+      charts.estado = new Chart(ctxEstado, {
+        type: 'doughnut',
+        data: {
+          labels: estadoLabels,
+          datasets: [{
+            data: estadoData,
+            backgroundColor: ['#ffa502', '#ff6b6b', '#2ed573', '#4facfe'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#fff', boxWidth: 10, padding: 10 } } }
+        }
+      });
+    }
+
+    renderCharts();
+  </script>
+</body>
+</html>

@@ -1,2 +1,519 @@
-<h2>Dashboard Admin</h2>
-<p><a href="/admin/">Ir al Admin</a> | <a href="/dashboard/">Dashboard</a> | <a href="/logout/">Salir</a></p>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard | Telecable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b0f1a;
+      --bg2: #0f172a;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --border: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.62);
+
+      --accent: #4facfe;
+      --accent2: #00d4ff;
+      --danger: #ff4757;
+      --success: #2ed573;
+
+      --radius: 18px;
+      --shadow: 0 18px 45px rgba(0,0,0,0.45);
+    }
+
+    *{ margin:0; padding:0; box-sizing:border-box; }
+
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text",
+                   "Segoe UI", Roboto, Arial, "Poppins", sans-serif;
+      background:
+        radial-gradient(1000px 500px at 20% 0%, rgba(79,172,254,0.18), transparent 60%),
+        radial-gradient(900px 450px at 90% 10%, rgba(0,212,255,0.12), transparent 60%),
+        radial-gradient(900px 500px at 50% 100%, rgba(255,71,87,0.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      display:flex;
+      height:100vh;
+      overflow:hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar{
+      width: 270px;
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      box-shadow: 10px 0 45px rgba(0,0,0,0.25);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 8px;
+    }
+
+    .brand img{
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: rgba(255,255,255,0.08);
+      padding: 6px;
+    }
+
+    .brand .title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+    .brand .title b{ letter-spacing: .6px; }
+    .brand .title span{ font-size: 12px; color: var(--muted); }
+
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .menu-btn{
+      width: 100%;
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      text-decoration:none;
+      color: var(--muted);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+      user-select:none;
+    }
+    .menu-btn i{ font-size: 20px; }
+    .menu-btn:hover{
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.08);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+    .menu-btn.active{
+      background: linear-gradient(135deg, rgba(79,172,254,0.22), rgba(0,212,255,0.12));
+      border-color: rgba(79,172,254,0.22);
+      color: var(--text);
+    }
+
+    .menu-btn.primary{
+      color: rgba(255,255,255,0.92);
+      background: linear-gradient(135deg, rgba(79,172,254,0.35), rgba(0,212,255,0.18));
+      border: 1px solid rgba(79,172,254,0.25);
+    }
+    .menu-btn.primary:hover{ transform: translateY(-1px); }
+
+    .menu-btn.danger{
+      margin-top:auto;
+      color: rgba(255,255,255,0.90);
+      background: rgba(255,71,87,0.10);
+      border: 1px solid rgba(255,71,87,0.20);
+    }
+    .menu-btn.danger:hover{ background: rgba(255,71,87,0.16); }
+
+    /* MAIN */
+    .main{
+      flex:1;
+      padding: 26px;
+      overflow-y:auto;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      flex-wrap:wrap;
+      margin-bottom: 18px;
+    }
+
+    .topbar h2{
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .topbar p{
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .user-pill{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .user-pill i{ font-size: 20px; color: var(--accent2); }
+    .user-pill span{ color: rgba(255,255,255,0.88); font-weight: 600; font-size: 13px; }
+
+    /* CARDS */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .kpi{
+      grid-column: span 3;
+      min-height: 128px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .kpi .icon{
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .kpi .icon i{ font-size: 22px; }
+    .kpi .label{ color: var(--muted); font-size: 12px; letter-spacing: .5px; text-transform: uppercase; }
+    .kpi .value{ font-size: 28px; font-weight: 800; }
+
+    .kpi.actions{
+      grid-column: span 3;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .btn-row{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .btn{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      text-decoration:none;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .btn.scan{
+      background: linear-gradient(135deg, rgba(79,172,254,0.55), rgba(0,212,255,0.25));
+      color: rgba(255,255,255,0.92);
+      border-color: rgba(79,172,254,0.30);
+    }
+    .btn.inv{
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
+    }
+
+    /* CONTENT GRID */
+    .content{
+      display:grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card h4{
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .chart-wrap{
+      height: 320px;
+      position: relative;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border-radius: 14px;
+    }
+    thead th{
+      text-align:left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: rgba(255,255,255,0.70);
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+    tbody td{
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.86);
+      font-size: 13px;
+    }
+    tbody tr:hover td{
+      background: rgba(255,255,255,0.04);
+    }
+    tbody tr:last-child td{ border-bottom:none; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 11px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+    }
+    .tag.in{ color: var(--success); border-color: rgba(46,213,115,0.25); }
+    .tag.out{ color: var(--danger); border-color: rgba(255,71,87,0.25); }
+
+    /* RESPONSIVE */
+    @media (max-width: 1100px){
+      .kpi{ grid-column: span 6; }
+      .kpi.actions{ grid-column: span 6; }
+      .content{ grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px){
+      body{ overflow:auto; height:auto; }
+      .sidebar{
+        position: sticky;
+        top: 0;
+        width: 100%;
+        flex-direction:row;
+        align-items:center;
+        justify-content:space-between;
+        border-right:none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .menu{
+        flex-direction:row;
+        flex-wrap:wrap;
+        justify-content:flex-end;
+      }
+      .menu-btn{ width:auto; }
+      .menu-btn span{ display:none; }
+      .main{ padding: 18px; }
+      .brand .title span{ display:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo Telecable" onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <div class="title">
+        <b>TELECABLE</b>
+        <span>Admin · Almacén</span>
+      </div>
+    </div>
+
+    <nav class="menu">
+      <a href="{% url 'dash_admin' %}" class="menu-btn active">
+        <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
+      </a>
+
+      {# OJO: esto requiere que exista la ruta inventory_list en urls.py #}
+      <a href="{% url 'inventory_list' %}" class="menu-btn">
+        <i class='bx bx-box'></i> <span>Inventario</span>
+      </a>
+
+      <a href="{% url 'scan' %}" class="menu-btn primary">
+        <i class='bx bx-barcode-reader'></i> <span>Escanear</span>
+      </a>
+
+      <a href="/admin/" class="menu-btn">
+        <i class='bx bxs-cog'></i> <span>Admin Django</span>
+      </a>
+
+      <a href="{% url 'logout' %}" class="menu-btn danger">
+        <i class='bx bx-log-out-circle'></i> <span>Salir</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2>Panel de Administración</h2>
+        <p>Sede operativa: <b style="color:rgba(255,255,255,0.92);">{{ sede.nombre }}</b></p>
+      </div>
+      <div class="user-pill">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ user.username }}</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="card kpi">
+        <div class="icon"><i class='bx bxs-server' style="color: var(--accent2);"></i></div>
+        <div class="label">Total equipos</div>
+        <div class="value">{{ total_equipos }}</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="icon"><i class='bx bx-git-commit' style="color: var(--accent);"></i></div>
+        <div class="label">Metros cable</div>
+        <div class="value">{{ total_cables }}</div>
+      </div>
+
+      <div class="card kpi">
+        <div class="icon"><i class='bx bxs-alarm-exclamation' style="color: var(--danger);"></i></div>
+        <div class="label">Stock bajo</div>
+        <div class="value">{{ low_stock }}</div>
+      </div>
+
+      <div class="card kpi actions">
+        <div>
+          <div class="label" style="margin-bottom:6px;">Acciones rápidas</div>
+          <div style="color: var(--muted); font-size: 13px;">Operaciones del día</div>
+        </div>
+        <div class="btn-row">
+          <a class="btn scan" href="{% url 'scan' %}">
+            <i class='bx bx-scan'></i> Escanear
+          </a>
+          <a class="btn inv" href="{% url 'inventory_list' %}">
+            <i class='bx bx-list-ul'></i> Ver inventario
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="card">
+        <h4>Distribución (vista rápida)</h4>
+        <div class="chart-wrap">
+          <canvas id="inventoryChart"></canvas>
+        </div>
+        <div style="color: var(--muted); font-size: 12px; margin-top: 10px;">
+          Nota: “Metros cable” es un subconjunto del stock (según nombre contenga “cable”).
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Últimos movimientos</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Cant.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for mov in ult_movs %}
+              <tr>
+                <td>{{ mov.producto.nombre }}</td>
+                <td>
+                  {% if mov.tipo_movimiento == 'ENTRADA' %}
+                    <span class="tag in"><i class='bx bx-up-arrow-alt'></i> IN</span>
+                  {% else %}
+                    <span class="tag out"><i class='bx bx-down-arrow-alt'></i> OUT</span>
+                  {% endif %}
+                </td>
+                <td>{{ mov.cantidad }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" style="text-align:center; color: var(--muted); padding: 16px;">
+                  Sin movimientos
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {{ total_equipos|default:0|json_script:"totalEquipos" }}
+    {{ total_cables|default:0|json_script:"totalCables" }}
+    {{ low_stock|default:0|json_script:"lowStock" }}
+
+    <script>
+        const totalEquipos = JSON.parse(
+            document.getElementById('totalEquipos').textContent
+        );
+
+        const totalCables = JSON.parse(
+            document.getElementById('totalCables').textContent
+        );
+
+        const lowStock = JSON.parse(
+            document.getElementById('lowStock').textContent
+        );
+
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+            labels: ['Total equipos', 'Metros cable', 'Stock bajo'],
+            datasets: [{
+                data: [totalEquipos, totalCables, lowStock],
+                backgroundColor: [
+                'rgba(0,212,255,0.7)',
+                'rgba(0,102,204,0.7)',
+                'rgba(255,71,87,0.7)'
+                ]
+            }]
+            },
+            options: {
+            responsive: true,
+            maintainAspectRatio: false
+            }
+        });
+    </script>
+
+  </main>
+</body>
+</html>
