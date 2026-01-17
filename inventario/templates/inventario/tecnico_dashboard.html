@@ -1,9 +1,454 @@
-<h2>Panel Técnico</h2>
-<p>Hola, {{ request.user.username }}</p>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Técnico | Telecable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<ul>
-  <li><a href="/req/">Solicitar Material</a></li>
-  <li><a href="/tecnico/mis-reqs/">Mi Historial (REQ)</a></li>
-  <li><a href="/tecnico/mis-entregas/">Mis Entregas (SAL)</a></li>
-  <li><a href="/logout/">Cerrar sesión</a></li>
-</ul>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-body: #1e1e2e;
+      --bg-sidebar: #181824;
+      --bg-panel: #27293d;
+
+      --primary-grad: linear-gradient(45deg, #FF512F 0%, #DD2476 100%);
+      --primary-solid: #ff6b6b;
+
+      --accent: #4facfe;
+      --text-main: #ffffff;
+      --text-muted: #9a9a9a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 260px;
+      background-color: var(--bg-sidebar);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 50px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .brand span { font-size: 20px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      width: 100%;
+      padding: 16px 20px;
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      transition: all 0.3s ease;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .menu-btn i { font-size: 20px; }
+    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
+    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(221, 36, 118, 0.4); }
+
+    .logout-btn { margin-top: auto; color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.2); }
+    .logout-btn:hover { background: rgba(255, 71, 87, 0.1); color: white; }
+
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    .header {
+      margin-bottom: 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header h2 { font-weight: 600; font-size: 28px; }
+    .header p { color: var(--text-muted); font-size: 14px; }
+
+    .user-badge {
+      background: var(--bg-panel);
+      padding: 8px 15px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .user-badge i { font-size: 20px; color: var(--primary-solid); }
+
+    .section-view { display: none; animation: fadeIn 0.4s; }
+    .section-view.active { display: block; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      padding: 25px;
+      border-radius: 16px;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: transform 0.3s;
+    }
+    .card:hover { transform: translateY(-5px); }
+
+    .kpi-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .card h3 { font-size: 32px; font-weight: 700; margin-bottom: 5px; color: white; }
+    .card span { color: var(--text-muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .action-btn {
+      background: var(--primary-grad);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(221, 36, 118, 0.3);
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(221, 36, 118, 0.4);
+    }
+
+    .table-container {
+      background: var(--bg-panel);
+      padding: 25px;
+      border-radius: 16px;
+      overflow-x: auto;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; font-weight: 600; }
+    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 900px){
+      .kpi-grid{grid-template-columns:1fr;}
+      .sidebar{width:220px;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
+      <span>TELECABLE</span>
+    </div>
+
+    <button class="menu-btn active" data-tab="dashboard">
+      <i class='bx bxs-dashboard'></i> Panel Técnico
+    </button>
+    <a href="{% url 'req_home' %}" class="menu-btn">
+      <i class='bx bx-plus-circle'></i> Solicitar Material
+    </a>
+    <a href="{% url 'tecnico_mis_reqs' %}" class="menu-btn">
+      <i class='bx bx-history'></i> Mis Requerimientos
+    </a>
+    <a href="{% url 'tecnico_mis_entregas' %}" class="menu-btn">
+      <i class='bx bx-package'></i> Mis Entregas
+    </a>
+    <a href="{% url 'scan' %}" class="menu-btn">
+      <i class='bx bx-scan'></i> Escanear
+    </a>
+
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
+      <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+    </a>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <div>
+        <h2 id="welcomeText">Panel Técnico</h2>
+        <p>Bienvenido, <b>{{ request.user.username }}</b></p>
+      </div>
+      <div class="user-badge">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ request.user.username }}</span>
+      </div>
+    </div>
+
+    <div id="dashboard" class="section-view active">
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(255, 107, 107, 0.15); color: #ff6b6b;">
+            <i class='bx bx-file'></i>
+          </div>
+          <span>REQ Activos</span>
+          <h3 id="kpiReqsActivos">0</h3>
+        </div>
+
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(79, 172, 254, 0.15); color: #4facfe;">
+            <i class='bx bx-package'></i>
+          </div>
+          <span>Entregas Recibidas</span>
+          <h3 id="kpiEntregas">0</h3>
+        </div>
+
+        <div class="card">
+          <div class="kpi-icon" style="background: rgba(46, 213, 115, 0.15); color: #2ed573;">
+            <i class='bx bx-check-circle'></i>
+          </div>
+          <span>REQ Atendidos</span>
+          <h3 id="kpiAtendidos">0</h3>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 30px;">
+        <h4 style="margin-bottom: 20px; color: #fff;">🚀 Acciones Rápidas</h4>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <a href="{% url 'req_home' %}" class="action-btn">
+            <i class='bx bx-plus-circle'></i>
+            Nuevo Requerimiento
+          </a>
+          <a href="{% url 'scan' %}" class="action-btn" style="background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);">
+            <i class='bx bx-scan'></i>
+            Escanear Código
+          </a>
+        </div>
+      </div>
+
+      <div class="charts-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px;">
+        <div class="chart-container" style="background: var(--bg-panel); padding: 25px; border-radius: 16px; height: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <h4 style="margin-bottom:20px; color:#fff;">Mis Requerimientos (Últimos 7 días)</h4>
+          <canvas id="reqChart"></canvas>
+        </div>
+
+        <div class="chart-container" style="background: var(--bg-panel); padding: 25px; border-radius: 16px; height: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <h4 style="margin-bottom:20px; color:#fff;">Estado de REQs</h4>
+          <canvas id="estadoChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <h4 style="font-size:16px; margin-bottom:15px;">📋 Mis Últimos Requerimientos</h4>
+        <table id="recentReqsTable">
+          <thead>
+            <tr>
+              <th>REQ</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" style="color:#9a9a9a; text-align: center;">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tabs
+    document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.getAttribute('data-tab');
+
+        document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.menu-btn[data-tab]').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+      });
+    });
+
+    let charts = {};
+
+    function renderCharts(reqLabels, reqData, estadoLabels, estadoData) {
+      if (charts.req) charts.req.destroy();
+      if (charts.estado) charts.estado.destroy();
+
+      // REQ Chart
+      const ctxReq = document.getElementById('reqChart').getContext('2d');
+      charts.req = new Chart(ctxReq, {
+        type: 'line',
+        data: {
+          labels: reqLabels,
+          datasets: [{
+            label: 'REQs',
+            data: reqData,
+            borderColor: '#ff6b6b',
+            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#ff6b6b'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { display: false }
+          },
+          scales: {
+            y: { 
+              grid: { color: '#3d3d5c' }, 
+              ticks: { color: '#ddd', stepSize: 1 },
+              beginAtZero: true
+            },
+            x: { grid: { display: false }, ticks: { color: '#ddd' } }
+          }
+        }
+      });
+
+      // Estado Chart
+      const ctxEstado = document.getElementById('estadoChart').getContext('2d');
+      charts.estado = new Chart(ctxEstado, {
+        type: 'doughnut',
+        data: {
+          labels: estadoLabels,
+          datasets: [{
+            data: estadoData,
+            backgroundColor: ['#ff6b6b', '#4facfe', '#2ed573', '#ffa502'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { position: 'bottom', labels: { color: '#fff', boxWidth: 10, padding: 10 } }
+          }
+        }
+      });
+    }
+
+    function updateRecentReqs(reqs) {
+      const tbody = document.querySelector('#recentReqsTable tbody');
+      tbody.innerHTML = '';
+      
+      reqs.forEach(req => {
+        const estadoColor = {
+          'REQ_BORRADOR': '#ffa502',
+          'REQ_PENDIENTE': '#ff6b6b',
+          'REQ_ATENDIDO': '#2ed573'
+        }[req.estado] || '#9a9a9a';
+
+        tbody.innerHTML += `<tr>
+          <td>${req.numero || '(sin número)'}</td>
+          <td>${req.fecha}</td>
+          <td><span style="color: ${estadoColor}; font-weight: bold;">${req.estado_display}</span></td>
+          <td>
+            <a href="/tecnico/mis-reqs/" style="color: #4facfe; text-decoration: none;">
+              <i class='bx bx-eye'></i> Ver
+            </a>
+          </td>
+        </tr>`;
+      });
+
+      if (reqs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#9a9a9a; text-align: center;">No hay requerimientos recientes.</td></tr>';
+      }
+    }
+
+    async function loadDashboardData() {
+      try {
+        const response = await fetch('/api/tecnico/dashboard/', {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+
+        const data = await response.json();
+
+        // Update KPIs
+        document.getElementById('kpiReqsActivos').innerText = data.kpis.reqs_activos || 0;
+        document.getElementById('kpiEntregas').innerText = data.kpis.entregas_recibidas || 0;
+        document.getElementById('kpiAtendidos').innerText = data.kpis.reqs_atendidos || 0;
+
+        // Render charts
+        renderCharts(
+          data.charts.req_labels || [],
+          data.charts.req_data || [],
+          data.charts.estado_labels || [],
+          data.charts.estado_data || []
+        );
+
+        // Update recent REQs table
+        updateRecentReqs(data.reqs_recientes || []);
+
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        // Fallback: show empty state
+        document.querySelector('#recentReqsTable tbody').innerHTML = 
+          '<tr><td colspan="4" style="color:#9a9a9a; text-align: center;">No se pudieron cargar los datos.</td></tr>';
+      }
+    }
+
+    // Load data on page load
+    loadDashboardData();
+    
+    // Refresh data every 30 seconds
+    setInterval(loadDashboardData, 30000);
+  </script>
+</body>
+</html>
