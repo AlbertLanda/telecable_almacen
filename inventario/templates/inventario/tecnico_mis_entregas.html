@@ -1,16 +1,245 @@
-<h2>Mis Entregas (SAL)</h2>
-<a href="/tecnico/">← Volver</a>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mis Entregas | Telecable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<ul>
-  {% for s in sals %}
-    <li>
-      <a href="/sal/{{ s.id }}/">
-        <b>{{ s.numero|default:"(sin número)" }}</b>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-body: #1e1e2e;
+      --bg-sidebar: #181824;
+      --bg-panel: #27293d;
+      --primary-grad: linear-gradient(45deg, #FF512F 0%, #DD2476 100%);
+      --primary-solid: #ff6b6b;
+      --accent: #4facfe;
+      --text-main: #ffffff;
+      --text-muted: #9a9a9a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 260px;
+      background-color: var(--bg-sidebar);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 50px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .brand span { font-size: 20px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      width: 100%;
+      padding: 16px 20px;
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      transition: all 0.3s ease;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .menu-btn i { font-size: 20px; }
+    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
+    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(221, 36, 118, 0.4); }
+
+    .logout-btn { margin-top: auto; color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.2); }
+    .logout-btn:hover { background: rgba(255, 71, 87, 0.1); color: white; }
+
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    .header {
+      margin-bottom: 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header h2 { font-weight: 600; font-size: 28px; }
+    .header p { color: var(--text-muted); font-size: 14px; }
+
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); }
+
+    .table-container {
+      background: var(--bg-panel);
+      padding: 25px;
+      border-radius: 16px;
+      overflow-x: auto;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; font-weight: 600; }
+    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .estado-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .estado-borrador { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
+    .estado-confirmado { background: rgba(79, 172, 254, 0.2); color: #4facfe; }
+    .estado-anulado { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+
+    .sal-link {
+      color: #4facfe;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .sal-link:hover { color: #00d2ff; text-decoration: underline; }
+
+    @media (max-width: 900px){
+      .sidebar{width:220px;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
+      <span>TELECABLE</span>
+    </div>
+
+    <a href="{% url 'tecnico_dashboard' %}" class="menu-btn">
+      <i class='bx bxs-dashboard'></i> Panel Técnico
+    </a>
+    <a href="{% url 'req_home' %}" class="menu-btn">
+      <i class='bx bx-plus-circle'></i> Solicitar Material
+    </a>
+    <a href="{% url 'tecnico_mis_reqs' %}" class="menu-btn">
+      <i class='bx bx-history'></i> Mis Requerimientos
+    </a>
+    <a href="{% url 'tecnico_mis_entregas' %}" class="menu-btn active">
+      <i class='bx bx-package'></i> Mis Entregas
+    </a>
+    <a href="{% url 'scan' %}" class="menu-btn">
+      <i class='bx bx-scan'></i> Escanear
+    </a>
+
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
+      <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+    </a>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <div>
+        <h2>Mis Entregas</h2>
+        <p>Historial de entregas de material recibidas</p>
+      </div>
+      <a href="{% url 'tecnico_dashboard' %}" class="back-btn">
+        <i class='bx bx-arrow-back'></i> Volver
       </a>
-      - {{ s.estado }} - {{ s.fecha }}
-      {% if s.origen %} | desde: {{ s.origen.numero|default:"REQ sin número" }}{% endif %}
-    </li>
-  {% empty %}
-    <li>No tienes SALs aún.</li>
-  {% endfor %}
-</ul>
+    </div>
+
+    <div class="table-container">
+      <h4 style="font-size:16px; margin-bottom:15px;">📦 Lista de Entregas (SAL)</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>SAL</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Origen</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sals %}
+            <tr>
+              <td>
+                <a href="{% url 'sal_detail' s.id %}" class="sal-link">
+                  {{ s.numero|default:"(sin número)" }}
+                </a>
+              </td>
+              <td>{{ s.fecha|date:"Y-m-d H:i" }}</td>
+              <td>
+                <span class="estado-badge estado-{{ s.estado|lower }}">
+                  {{ s.get_estado_display }}
+                </span>
+              </td>
+              <td>
+                {% if s.origen %}
+                  <span style="color: #ffa502;">
+                    {{ s.origen.numero|default:"REQ sin número" }}
+                  </span>
+                {% else %}
+                  <span style="color: #9a9a9a;">Directo</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'sal_detail' s.id %}" style="color: #4facfe; text-decoration: none;">
+                  <i class='bx bx-eye'></i> Ver
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" style="color:#9a9a9a; text-align: center; padding: 30px;">
+                <i class='bx bx-package' style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
+                No tienes entregas registradas.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

@@ -3,7 +3,8 @@ from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F
+from django.db.models import F, Count
+from django.db import models
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -162,3 +163,135 @@ def api_dashboard_almacen(request):
             },
         }
     )
+
+
+def _require_tecnico(user):
+    """Verifica que el usuario sea técnico/solicitante"""
+    profile = getattr(user, "profile", None)
+    if not profile:
+        raise PermissionDenied("Usuario sin perfil (UserProfile).")
+    
+    if profile.rol not in (UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA):
+        raise PermissionDenied("No autorizado para dashboard técnico.")
+    
+    return profile
+
+
+@login_required
+def api_dashboard_tecnico(request):
+    """
+    API para dashboard del técnico (solicitante)
+    """
+    profile = _require_tecnico(request.user)
+    
+    # =========================
+    # KPIs del técnico
+    # =========================
+    reqs_activos = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.REQ,
+        responsable=request.user,
+        estado__in=[EstadoDocumento.REQ_BORRADOR, EstadoDocumento.REQ_PENDIENTE]
+    ).count()
+    
+    reqs_atendidos = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.REQ,
+        responsable=request.user,
+        estado=EstadoDocumento.REQ_ATENDIDO
+    ).count()
+    
+    # Entregas recibidas (SAL donde él es responsable o viene de su REQ)
+    entregas_recibidas = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.SAL
+    ).filter(
+        models.Q(responsable=request.user) |
+        models.Q(origen__tipo=TipoDocumento.REQ, origen__responsable=request.user)
+    ).distinct().count()
+    
+    # =========================
+    # Gráfica: REQs últimos 7 días
+    # =========================
+    now = timezone.now()
+    dias_7 = now - timedelta(days=7)
+    
+    reqs_por_dia = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.REQ,
+            responsable=request.user,
+            fecha__gte=dias_7
+        )
+        .extra({'date': 'date(creado_en)'})
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+    
+    # Generar labels y data para los últimos 7 días
+    req_labels = []
+    req_data = []
+    
+    for i in range(7):
+        dia = (dias_7 + timedelta(days=i)).date()
+        req_labels.append(dia.strftime('%d/%m'))
+        
+        count = 0
+        for r in reqs_por_dia:
+            if r['date'].date() == dia:
+                count = r['count']
+                break
+        req_data.append(count)
+    
+    # =========================
+    # Gráfica: Estados de REQs
+    # =========================
+    estados_counts = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.REQ,
+            responsable=request.user
+        )
+        .values('estado')
+        .annotate(count=Count('id'))
+        .order_by('estado')
+    )
+    
+    estado_labels = []
+    estado_data = []
+    
+    for estado_dict in estados_counts:
+        estado_display = dict(EstadoDocumento.choices).get(estado_dict['estado'], estado_dict['estado'])
+        estado_labels.append(estado_display.replace('REQ - ', ''))
+        estado_data.append(estado_dict['count'])
+    
+    # =========================
+    # REQs recientes
+    # =========================
+    reqs_recientes = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.REQ,
+            responsable=request.user
+        )
+        .order_by('-fecha')[:10]
+    )
+    
+    reqs_data = []
+    for req in reqs_recientes:
+        reqs_data.append({
+            'numero': req.numero,
+            'fecha': req.fecha.strftime('%Y-%m-%d %H:%M'),
+            'estado': req.estado,
+            'estado_display': req.get_estado_display().replace('REQ - ', ''),
+        })
+    
+    return JsonResponse({
+        'kpis': {
+            'reqs_activos': reqs_activos,
+            'reqs_atendidos': reqs_atendidos,
+            'entregas_recibidas': entregas_recibidas,
+        },
+        'charts': {
+            'req_labels': req_labels,
+            'req_data': req_data,
+            'estado_labels': estado_labels,
+            'estado_data': estado_data,
+        },
+        'reqs_recientes': reqs_data,
+    })
