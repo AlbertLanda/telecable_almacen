@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 
 from inventario.models import DocumentoInventario, TipoDocumento, UserProfile
 
@@ -27,7 +28,11 @@ def _sede_operativa(user):
 
 @login_required
 def sal_detail(request, sal_id: int):
-    sal = get_object_or_404(DocumentoInventario, id=sal_id, tipo=TipoDocumento.SAL)
+    sal = get_object_or_404(
+        DocumentoInventario.objects.select_related("sede", "responsable", "origen"),
+        id=sal_id,
+        tipo=TipoDocumento.SAL,
+    )
     items = sal.items.select_related("producto").order_by("producto__nombre")
 
     try:
@@ -39,6 +44,10 @@ def sal_detail(request, sal_id: int):
         if profile.rol == UserProfile.Rol.JEFA:
             return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
+        # ✅ ADMIN: por ahora ve todo (si quieres lo restringimos luego)
+        if profile.rol == UserProfile.Rol.ADMIN:
+            return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+
         # ✅ ALMACÉN solo ve SAL de su sede
         if profile.rol == UserProfile.Rol.ALMACEN:
             sede = _sede_operativa(request.user)
@@ -46,30 +55,31 @@ def sal_detail(request, sal_id: int):
                 raise PermissionDenied("No puedes ver SAL de otra sede.")
             return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
-        # ✅ SOLICITANTE: solo si él es responsable (o si la SAL viene de su REQ)
+        # ✅ SOLICITANTE: solo si él es responsable o si la SAL viene de su REQ
         if profile.rol == UserProfile.Rol.SOLICITANTE:
             if sal.responsable_id == request.user.id:
                 return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
-            if sal.origen_id and sal.origen.responsable_id == request.user.id:
+
+            if sal.origen_id and sal.origen and sal.origen.responsable_id == request.user.id:
                 return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+
             raise PermissionDenied("No puedes ver una SAL que no es tuya.")
 
-        # ADMIN: tú decides si ve todo; aquí lo dejo como “ver todo”
-        if profile.rol == UserProfile.Rol.ADMIN:
-            return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
-
         raise PermissionDenied("Rol no autorizado.")
+
     except PermissionDenied as e:
         messages.error(request, str(e))
         return redirect("/")
 
 
+@require_POST
 @login_required
 def sal_confirmar(request, sal_id: int):
-    if request.method != "POST":
-        return redirect(f"/sal/{sal_id}/")
-
-    sal = get_object_or_404(DocumentoInventario, id=sal_id, tipo=TipoDocumento.SAL)
+    sal = get_object_or_404(
+        DocumentoInventario.objects.select_related("sede"),
+        id=sal_id,
+        tipo=TipoDocumento.SAL,
+    )
 
     try:
         profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
@@ -80,8 +90,7 @@ def sal_confirmar(request, sal_id: int):
             if sal.sede_id != sede.id:
                 raise PermissionDenied("No puedes confirmar SAL de otra sede.")
 
-        # Confirmar SAL (descuenta stock y crea movimientos)
-        # Si tu models permite entregado_por:
+        # ✅ Confirmar SAL (tu models.py soporta entregado_por)
         sal.confirmar(entregado_por=request.user)
 
         messages.success(request, f"SAL confirmada: {sal.numero}")

@@ -4,12 +4,12 @@ import re
 from decimal import Decimal
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Max
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -31,6 +31,7 @@ class Sede(TimeStampedModel):
     Sede = almacén.
     Modelo multi-sede con una CENTRAL (Jauja) y varias secundarias.
     """
+
     CENTRAL = "CENTRAL"
     SECUNDARIO = "SECUNDARIO"
     TIPO_CHOICES = [(CENTRAL, "Central"), (SECUNDARIO, "Secundario")]
@@ -49,7 +50,7 @@ class Sede(TimeStampedModel):
         return self.nombre
 
     def clean(self):
-        # Solo 1 sede CENTRAL (Jauja)
+        # Solo 1 sede CENTRAL
         if self.tipo == self.CENTRAL:
             qs = Sede.objects.filter(tipo=self.CENTRAL)
             if self.pk:
@@ -75,6 +76,7 @@ class Ubicacion(TimeStampedModel):
     Ubicación interna tipo RACK-1A, REPISA-02, etc.
     IMPORTANTE: es INFORMATIVE ONLY (no controla stock).
     """
+
     nombre = models.CharField(max_length=100)
     descripcion = models.CharField(max_length=200, blank=True, default="")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="ubicaciones")
@@ -103,12 +105,12 @@ class Producto(TimeStampedModel):
     # Código interno (si no tiene barcode). Ej: TC-ALM-000001
     codigo_interno = models.CharField(max_length=20, unique=True, blank=True)
 
-    # Código externo: puede ser EAN/UPC o serial alfanumérico (ONU/Router)
+    # Código externo: puede ser EAN/UPC o serial alfanumérico
     barcode = models.CharField(max_length=32, unique=True, null=True, blank=True)
 
     unidad = models.CharField(max_length=20, default="UND")  # UND, M, CAJA, etc.
 
-    # ✅ costo único por producto (catálogo)
+    # costo único por producto (catálogo)
     costo_unitario = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -179,9 +181,10 @@ class Producto(TimeStampedModel):
 
 class ProductoSedeInfo(TimeStampedModel):
     """
-    ✅ Ubicación referencial por sede (opción 1).
+    Ubicación referencial por sede.
     NO afecta stock. Solo para saber dónde está normalmente el producto en esa sede.
     """
+
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="info_por_sede")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="productos_info")
     ubicacion_referencial = models.ForeignKey(
@@ -202,9 +205,9 @@ class ProductoSedeInfo(TimeStampedModel):
 
 class Stock(TimeStampedModel):
     """
-    ✅ Stock por producto y SEDE (almacén).
-    Ubicación queda como informativa por separado.
+    Stock por producto y SEDE (almacén).
     """
+
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="stocks")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="stocks")
 
@@ -228,9 +231,10 @@ class Stock(TimeStampedModel):
 class MovimientoInventario(TimeStampedModel):
     """
     Kardex: cada entrada/salida/ajuste queda registrado.
-    ✅ Afecta stock por SEDE.
-    ✅ Ubicación es opcional (informativa).
+    Afecta stock por SEDE.
+    Ubicación es opcional (informativa).
     """
+
     TIPO_IN = "IN"
     TIPO_OUT = "OUT"
     TIPO_ADJ = "ADJ"
@@ -386,6 +390,7 @@ class ItemSerializado(TimeStampedModel):
 # Documentos: REQ/SAL/ING/MER
 # ==========================
 
+
 class TipoDocumento(models.TextChoices):
     REQ = "REQ", "Requerimiento"
     SAL = "SAL", "Salida"
@@ -414,18 +419,6 @@ class Correlativo(models.Model):
 
 
 class DocumentoInventario(models.Model):
-    """
-    Cabecera de documento: REQ / SAL / ING / MER
-
-    ✅ Stock se afecta por SEDE (almacén).
-    ✅ Ubicación es opcional (solo referencial).
-    ✅ Multi-sede:
-       - REQ normal: sede = solicitante; sede_destino opcional.
-       - REQ inter-almacén: sede = solicitante; sede_destino = CENTRAL (Jauja).
-       - SAL inter-almacén: sede = CENTRAL (Jauja), sede_destino = sede solicitante.
-       - Al confirmar SAL inter-almacén: crea ING (borrador) en sede_destino para recepción.
-       - Al confirmar ING destino: marca SAL origen como RECIBIDA.
-    """
     tipo = models.CharField(max_length=3, choices=TipoDocumento.choices)
 
     numero = models.CharField(max_length=32, unique=True, null=True, blank=True)
@@ -476,18 +469,20 @@ class DocumentoInventario(models.Model):
         blank=True,
     )
 
+    # ✅ default correcto para arrancar con REQ
     estado = models.CharField(
         max_length=20,
         choices=EstadoDocumento.choices,
-        default=EstadoDocumento.REQ_BORRADOR
+        default=EstadoDocumento.REQ_BORRADOR,
     )
+
     observaciones = models.TextField(blank=True, default="")
 
     origen = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="derivados"
     )
 
-    # ✅ Upgrade final: control de recepción (principalmente para SAL inter-almacén)
+    # control de recepción (para SAL inter-almacén)
     recibido = models.BooleanField(default=False)
     recibido_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -523,10 +518,12 @@ class DocumentoInventario(models.Model):
         if self.ubicacion_id and self.sede_id and self.ubicacion.sede_id != self.sede_id:
             raise ValidationError({"ubicacion": "La ubicación no pertenece a la sede seleccionada."})
 
-        # ✅ REQ inter-almacén: si define sede_destino, debe ser CENTRAL (Jauja)
+        # REQ inter-almacén: si define sede_destino, debe ser CENTRAL
         if self.tipo == TipoDocumento.REQ and self.sede_destino_id:
             if self.sede_destino.tipo != Sede.CENTRAL:
-                raise ValidationError({"sede_destino": "El destino de un REQ inter-almacén debe ser la sede CENTRAL (Jauja)."})
+                raise ValidationError(
+                    {"sede_destino": "El destino de un REQ inter-almacén debe ser la sede CENTRAL (Jauja)."}
+                )
 
     def _formatear_numero(self, correlativo: int) -> str:
         return f"{self.tipo}-{correlativo:010d}"
@@ -559,8 +556,7 @@ class DocumentoInventario(models.Model):
 
     def _get_usuario_almacen_de_sede(self, sede: Sede):
         perfil = (
-            UserProfile.objects
-            .select_related("user", "sede_principal")
+            UserProfile.objects.select_related("user", "sede_principal")
             .filter(rol=UserProfile.Rol.ALMACEN, sede_principal=sede)
             .order_by("creado_en")
             .first()
@@ -607,14 +603,14 @@ class DocumentoInventario(models.Model):
         self.estado = EstadoDocumento.CONFIRMADO
         self.save(update_fields=["estado", "entregado_por"])
 
-        # ✅ Upgrade 1: Si esta SAL viene de un REQ, marcar el REQ como atendido
+        # Si esta SAL viene de un REQ, marcar el REQ como atendido
         if self.tipo == TipoDocumento.SAL and self.origen_id:
             req = self.origen
             if req and req.tipo == TipoDocumento.REQ and req.estado == EstadoDocumento.REQ_PENDIENTE:
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save(update_fields=["estado"])
 
-        # ✅ Upgrade 2: SAL inter-almacén (CENTRAL -> sede_destino) => generar ING (borrador) en destino
+        # SAL inter-almacén (CENTRAL -> sede_destino) => generar ING (borrador) en destino
         if (
             self.tipo == TipoDocumento.SAL
             and self.sede_id
@@ -655,8 +651,7 @@ class DocumentoInventario(models.Model):
                         observacion=f"Recepción de {self.numero}",
                     )
 
-        # ✅ Upgrade 3: Si se confirma un ING que proviene de una SAL inter-almacén,
-        # marcar la SAL origen como RECIBIDA.
+        # Si se confirma un ING que proviene de una SAL inter-almacén, marcar la SAL origen como RECIBIDA.
         if self.tipo == TipoDocumento.ING and self.origen_id:
             sal = self.origen
             if (
@@ -675,10 +670,10 @@ class DocumentoInventario(models.Model):
     def generar_salida_desde_req(self, *, responsable=None, sede_salida: Sede, ubicacion: Ubicacion | None = None):
         if self.tipo != TipoDocumento.REQ:
             raise ValidationError("Solo un REQ puede generar una SAL.")
-        if self.estado not in (EstadoDocumento.REQ_PENDIENTE, EstadoDocumento.REQ_BORRADOR):
-            raise ValidationError("El REQ no está en un estado convertible a SAL.")
-        if self.estado == EstadoDocumento.ANULADO:
-            raise ValidationError("No puedes generar SAL desde un REQ anulado.")
+
+        # ✅ Solo desde REQ_PENDIENTE (flujo correcto)
+        if self.estado != EstadoDocumento.REQ_PENDIENTE:
+            raise ValidationError("Solo un REQ en estado PENDIENTE puede convertirse en SAL.")
 
         if ubicacion and ubicacion.sede_id != sede_salida.id:
             raise ValidationError("La ubicación seleccionada no pertenece a la sede de salida.")
@@ -720,7 +715,9 @@ class DocumentoItem(models.Model):
     observacion = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
-        unique_together = [("documento", "producto")]
+        constraints = [
+            models.UniqueConstraint(fields=["documento", "producto"], name="uq_doc_item_producto"),
+        ]
         indexes = [
             models.Index(fields=["documento", "producto"]),
         ]

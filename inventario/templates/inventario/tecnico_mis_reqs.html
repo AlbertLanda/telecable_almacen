@@ -1,0 +1,12 @@
+<h2>Mi Historial de REQ</h2>
+<a href="/tecnico/">← Volver</a>
+
+<ul>
+  {% for r in reqs %}
+    <li>
+      <b>{{ r.numero|default:"(sin número)" }}</b> - {{ r.estado }} - {{ r.fecha }}
+    </li>
+  {% empty %}
+    <li>No tienes REQs.</li>
+  {% endfor %}
+</ul>

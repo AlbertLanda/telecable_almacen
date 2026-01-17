@@ -1,19 +1,18 @@
-from decimal import Decimal
-
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
 from django.core.exceptions import PermissionDenied
 from django.db.models import F
+from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from inventario.models import (
-    UserProfile,
     DocumentoInventario,
-    TipoDocumento,
     EstadoDocumento,
-    Stock,
     MovimientoInventario,
+    Stock,
+    TipoDocumento,
+    UserProfile,
 )
+
 
 def _require_roles(user, *roles):
     profile = getattr(user, "profile", None)
@@ -23,11 +22,13 @@ def _require_roles(user, *roles):
         raise PermissionDenied("No tienes permisos para esta acción.")
     return profile
 
+
 def _require_sede(profile: UserProfile):
     sede = profile.get_sede_operativa()
     if not sede:
         raise PermissionDenied("No tienes sede operativa asignada.")
     return sede
+
 
 @login_required
 def dashboard_redirect(request):
@@ -39,14 +40,17 @@ def dashboard_redirect(request):
         UserProfile.Rol.ADMIN,
     )
 
+    # ✅ Técnico (SOLICITANTE) => dashboard técnico
     if profile.rol == UserProfile.Rol.SOLICITANTE:
-        return redirect("dash_solicitante")
+        return redirect("tecnico_dashboard")
 
+    # ✅ Almacén
     if profile.rol == UserProfile.Rol.ALMACEN:
         return redirect("dash_almacen")
 
-    # JEFA / ADMIN
+    # ✅ JEFA / ADMIN
     return redirect("dash_admin")
+
 
 @login_required
 def dash_almacen(request):
@@ -111,8 +115,14 @@ def dash_almacen(request):
         },
     )
 
+
 @login_required
 def dash_solicitante(request):
+    """
+    Si aún quieres mantener esta vista, ok.
+    Pero el técnico ya no caerá aquí, porque lo mandamos a tecnico_dashboard.
+    (JEFA puede entrar manualmente si quieres.)
+    """
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     sede = profile.get_sede_operativa()
 
@@ -133,6 +143,7 @@ def dash_solicitante(request):
             "mis_reqs": mis_reqs,
         },
     )
+
 
 @login_required
 def dash_admin(request):

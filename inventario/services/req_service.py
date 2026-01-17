@@ -64,7 +64,7 @@ def get_or_create_req_borrador(
         .first()
     )
     if doc:
-        # si te mandan ubicación, la guardamos como informativa para UI
+        # Si te mandan ubicación, la guardamos como informativa para UI
         if ubicacion and doc.ubicacion_id != ubicacion.id:
             doc.ubicacion = ubicacion
             doc.save(update_fields=["ubicacion"])
@@ -106,11 +106,16 @@ def add_item_to_req(
         producto=producto,
         defaults={"cantidad": cantidad, "observacion": observacion},
     )
+
     if not created:
         item.cantidad += cantidad
+
+        fields = ["cantidad"]
         if observacion:
             item.observacion = observacion
-        item.save(update_fields=["cantidad", "observacion"])
+            fields.append("observacion")
+
+        item.save(update_fields=fields)
 
     return item
 
@@ -141,7 +146,11 @@ def set_item_qty(*, user, req: DocumentoInventario, producto: Producto, cantidad
     if cantidad <= 0:
         raise ValidationError("La cantidad debe ser mayor a 0.")
 
-    item = DocumentoItem.objects.select_for_update().get(documento=req, producto=producto)
+    try:
+        item = DocumentoItem.objects.select_for_update().get(documento=req, producto=producto)
+    except DocumentoItem.DoesNotExist:
+        raise ValidationError("Ese producto no está en el REQ.")
+
     item.cantidad = cantidad
     item.save(update_fields=["cantidad"])
     return item

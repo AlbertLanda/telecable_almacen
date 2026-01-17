@@ -227,6 +227,55 @@
           <h3 id="kpiOrders">0</h3>
         </div>
 
+        <div class="table-container">
+          <h4 style="font-size:16px; margin-bottom:15px;">🧾 REQ Pendientes (Acciones)</h4>
+
+          {% if messages %}
+            <div style="margin-bottom:12px;">
+              {% for message in messages %}
+                <p style="margin:6px 0;">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <table>
+            <thead>
+              <tr>
+                <th>REQ</th>
+                <th>Solicitante</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in ult_reqs %}
+                <tr>
+                  <td>{{ r.numero|default:"(sin número)" }}</td>
+                  <td>{{ r.responsable.username }}</td>
+                  <td>{{ r.fecha|date:"Y-m-d H:i" }}</td>
+                  <td>{{ r.get_estado_display }}</td>
+                  <td>
+                    <form method="post" action="{% url 'req_to_sal' r.id %}">
+                      {% csrf_token %}
+                      <button type="submit" style="
+                        padding:10px 14px; border:none; border-radius:10px;
+                        cursor:pointer; background:rgba(79,172,254,.2);
+                        color:#fff; font-weight:600;
+                      ">
+                        Convertir a SAL
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" style="color:#9a9a9a;">No hay REQs pendientes.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+
         <div class="card">
           <div class="kpi-icon" style="background: rgba(255, 71, 87, 0.15); color: #ff4757;">
             <i class='bx bxs-bell-ring'></i>

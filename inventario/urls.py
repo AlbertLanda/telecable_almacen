@@ -7,6 +7,7 @@ from .views_api import api_dashboard_almacen
 from .views import scan_view
 from .views_req import req_home, req_add_item, req_scan_add, req_enviar, req_convert_to_sal
 from .views_sal import sal_detail, sal_confirmar
+from .views_tecnico import tecnico_dashboard, tecnico_mis_reqs, tecnico_mis_entregas
 
 urlpatterns = [
     # AUTH
@@ -38,4 +39,9 @@ urlpatterns = [
 
     # API
     path("api/dashboard/almacen/", api_dashboard_almacen, name="api_dashboard_almacen"),
+
+    # TECNICO (SOLICITANTE)
+    path("tecnico/", tecnico_dashboard, name="tecnico_dashboard"),
+    path("tecnico/mis-reqs/", tecnico_mis_reqs, name="tecnico_mis_reqs"),
+    path("tecnico/mis-entregas/", tecnico_mis_entregas, name="tecnico_mis_entregas"),
 ]
