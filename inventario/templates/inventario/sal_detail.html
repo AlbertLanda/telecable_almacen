@@ -1,0 +1,43 @@
+<h2>
+  SAL -
+  {{ sal.numero|default:"(sin número aún)" }}
+</h2>
+
+<p><b>Sede:</b> {{ sal.sede.nombre }}</p>
+
+<p>
+  <b>Ubicación:</b>
+  {% if sal.ubicacion %}
+    {{ sal.ubicacion.nombre }}
+  {% else %}
+    (sin ubicación)
+  {% endif %}
+</p>
+
+<p><b>Estado:</b> {{ sal.get_estado_display }}</p>
+
+{% if sal.recibido %}
+  <p><b>Recibido:</b> Sí</p>
+  <p><b>Recibido por:</b> {{ sal.recibido_por.username }}</p>
+  <p><b>Recibido en:</b> {{ sal.recibido_en }}</p>
+{% endif %}
+
+<hr>
+
+<h3>Items</h3>
+<ul>
+  {% for it in items %}
+    <li>{{ it.producto.nombre }} | {{ it.cantidad }}</li>
+  {% empty %}
+    <li>Sin ítems.</li>
+  {% endfor %}
+</ul>
+
+{% if sal.estado == "BORRADOR" %}
+  <form method="post" action="{% url 'sal_confirmar' sal.id %}">
+    {% csrf_token %}
+    <button type="submit">Confirmar SAL (descontar stock)</button>
+  </form>
+{% else %}
+  <p style="color: #2ed573; font-weight: 600;">✅ SAL ya confirmada.</p>
+{% endif %}

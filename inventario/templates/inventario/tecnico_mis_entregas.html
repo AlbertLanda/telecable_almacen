@@ -1,0 +1,16 @@
+<h2>Mis Entregas (SAL)</h2>
+<a href="/tecnico/">← Volver</a>
+
+<ul>
+  {% for s in sals %}
+    <li>
+      <a href="/sal/{{ s.id }}/">
+        <b>{{ s.numero|default:"(sin número)" }}</b>
+      </a>
+      - {{ s.estado }} - {{ s.fecha }}
+      {% if s.origen %} | desde: {{ s.origen.numero|default:"REQ sin número" }}{% endif %}
+    </li>
+  {% empty %}
+    <li>No tienes SALs aún.</li>
+  {% endfor %}
+</ul>

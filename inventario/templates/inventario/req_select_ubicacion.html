@@ -1,0 +1,8 @@
+<h2>Selecciona Ubicación</h2>
+<ul>
+  {% for u in ubicaciones %}
+    <li>
+      <a href="/req/?ubicacion_id={{u.id}}">{{u.sede.nombre}} - {{u.nombre}}</a>
+    </li>
+  {% endfor %}
+</ul>
