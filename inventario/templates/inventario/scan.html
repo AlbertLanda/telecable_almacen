@@ -1,57 +1,229 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Escanear - Telecable Almacén</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'inventario/scan.css' %}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear Producto - Telecable</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        /* --- Estilo Base Telecom/Dark --- */
+        :root {
+            --primary: #0066cc;     /* Azul corporativo */
+            --accent: #00d4ff;      /* Cian brillante */
+            --dark-bg: #0b1221;     /* Fondo principal */
+            --card-bg: #162032;     /* Fondo tarjetas */
+            --input-bg: #0f1623;    /* Fondo inputs */
+            --text: #e6eefc;        /* Texto claro */
+            --success: #00cc66;     /* Verde éxito */
+            --danger: #ff4d4d;      /* Rojo error */
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        /* --- Header y Título --- */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 { margin: 0; font-size: 1.8rem; }
+        .header p { color: #8da2c0; margin-top: 5px; }
+
+        /* --- Caja de Búsqueda (Input Grande) --- */
+        .search-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #2a3b55;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: var(--input-bg);
+            border: 2px solid #2a3b55;
+            color: white;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .search-btn:hover { opacity: 0.9; }
+
+        /* --- Resultados --- */
+        .result-card {
+            background: var(--card-bg);
+            border: 1px solid #2a3b55;
+            border-radius: 12px;
+            overflow: hidden;
+            animation: slideUp 0.4s ease;
+        }
+
+        .result-header {
+            background: rgba(0, 102, 204, 0.15);
+            padding: 20px;
+            border-bottom: 1px solid #2a3b55;
+        }
+
+        .product-name {
+            margin: 0;
+            font-size: 1.3rem;
+            color: var(--accent);
+        }
+        
+        .product-code {
+            display: inline-block;
+            margin-top: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+
+        .stock-list {
+            padding: 20px;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #2a3b55;
+        }
+        .stock-item:last-child { border-bottom: none; }
+
+        .stock-qty {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        /* --- Mensajes de Error --- */
+        .error-msg {
+            background: rgba(255, 77, 77, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .back-link {
+            text-align: center;
+            display: block;
+            margin-top: 20px;
+            color: #8da2c0;
+            text-decoration: none;
+        }
+        .back-link:hover { color: white; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h2>📦 Escanear producto</h2>
-    <p class="muted">Pasa el lector y presiona Enter.</p>
 
-    <form method="get" action="/scan/">
-      <div class="row">
-        <input id="scanInput" name="q" placeholder="Escanea o escribe código..."
-               value="{{ q|default:'' }}" autofocus />
-        <button type="submit">Buscar</button>
-      </div>
-    </form>
+    <div class="scanner-container">
+        <div class="header">
+            <h1><i class="ri-barcode-box-line"></i> Consultar Stock</h1>
+            <p>Escanea el código de barras o escribe el serial</p>
+        </div>
 
-    {% if error %}
-      <p class="error">⚠ {{ error }}</p>
-    {% endif %}
+        <div class="search-card">
+            <form method="GET" class="search-form">
+                <input type="text" name="q" class="search-input" 
+                       placeholder="Código..." value="{{ q }}" 
+                       autofocus autocomplete="off">
+                <button type="submit" class="search-btn">
+                    <i class="ri-search-line"></i>
+                </button>
+            </form>
+        </div>
 
-    {% if producto %}
-      <div class="box">
-        <h3>{{ producto.nombre }}</h3>
-        <div class="muted">Código: {{ producto.codigo_interno }} | Barcode: {{ producto.barcode }}</div>
-        <div class="muted">Categoría: {{ producto.categoria.nombre }}</div>
-      </div>
+        {% if error %}
+            <div class="error-msg">
+                <i class="ri-error-warning-fill"></i> {{ error }}
+            </div>
+        {% endif %}
 
-      <h3>Stock por ubicación</h3>
-      {% if stocks %}
-        <table>
-          <thead>
-            <tr><th>Ubicación</th><th>Stock</th></tr>
-          </thead>
-          <tbody>
-            {% for s in stocks %}
-              <tr>
-                <td>{{ s.ubicacion.nombre }}</td>
-                <td>{{ s.cantidad }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p class="muted">No hay registros de stock para este producto.</p>
-      {% endif %}
-    {% endif %}
-  </div>
+        {% if producto %}
+            <div class="result-card">
+                <div class="result-header">
+                    <h2 class="product-name">{{ producto.nombre }}</h2>
+                    <span class="product-code">{{ producto.codigo }}</span>
+                </div>
+                
+                <div class="stock-list">
+                    <p style="color: #8da2c0; margin-top:0;">Disponibilidad por Sede:</p>
+                    
+                    {% for st in stocks %}
+                        <div class="stock-item">
+                            <div>
+                                <i class="ri-building-line"></i> 
+                                <strong>{{ st.sede.nombre }}</strong>
+                            </div>
+                            <div class="stock-qty">
+                                {{ st.cantidad }} <span style="font-size:0.9rem; font-weight:normal;">unid.</span>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p style="text-align:center; padding:10px;">No hay stock registrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
 
-  <script src="{% static 'inventario/scan.js' %}"></script>
+        <a href="/dashboard/" class="back-link">
+            <i class="ri-arrow-left-line"></i> Volver al Dashboard
+        </a>
+    </div>
+
 </body>
 </html>

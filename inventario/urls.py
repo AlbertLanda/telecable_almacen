@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from inventario.views_auth import RoleBasedLoginView
-from .views_dashboard import dashboard_redirect, dash_almacen, dash_solicitante, dash_admin
+from .views_dashboard import dashboard_redirect, dash_almacen, dash_solicitante, dash_admin,inventory_list
 from .views_api import api_dashboard_almacen
 
 from .views import scan_view
@@ -36,6 +36,7 @@ urlpatterns = [
     path("dashboard/almacen/", dash_almacen, name="dash_almacen"),
     path("dashboard/solicitante/", dash_solicitante, name="dash_solicitante"),
     path("dashboard/admin/", dash_admin, name="dash_admin"),
+    path('dashboard/inventario/', inventory_list, name='inventory_list'),
 
     # API
     path("api/dashboard/almacen/", api_dashboard_almacen, name="api_dashboard_almacen"),

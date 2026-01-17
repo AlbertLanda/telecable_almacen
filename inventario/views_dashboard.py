@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F
+from django.db.models import F, Sum
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -13,6 +13,7 @@ from inventario.models import (
     UserProfile,
 )
 
+# --- HELPERS ---
 
 def _require_roles(user, *roles):
     profile = getattr(user, "profile", None)
@@ -22,13 +23,14 @@ def _require_roles(user, *roles):
         raise PermissionDenied("No tienes permisos para esta acción.")
     return profile
 
-
 def _require_sede(profile: UserProfile):
     sede = profile.get_sede_operativa()
     if not sede:
         raise PermissionDenied("No tienes sede operativa asignada.")
     return sede
 
+
+# --- VISTAS ---
 
 @login_required
 def dashboard_redirect(request):
@@ -40,16 +42,58 @@ def dashboard_redirect(request):
         UserProfile.Rol.ADMIN,
     )
 
-    # ✅ Técnico (SOLICITANTE) => dashboard técnico
     if profile.rol == UserProfile.Rol.SOLICITANTE:
         return redirect("tecnico_dashboard")
 
-    # ✅ Almacén
     if profile.rol == UserProfile.Rol.ALMACEN:
         return redirect("dash_almacen")
 
-    # ✅ JEFA / ADMIN
     return redirect("dash_admin")
+
+
+@login_required
+def dash_admin(request):
+    """Dashboard principal para Administradores y Jefes."""
+    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
+    sede = profile.get_sede_operativa()
+
+    # 1. Total Equipos
+    total_equipos = Stock.objects.filter(sede=sede).aggregate(total=Sum('cantidad'))['total'] or 0
+
+    # 2. Cables
+    total_cables = Stock.objects.filter(
+        sede=sede, 
+        producto__nombre__icontains="cable"
+    ).aggregate(total=Sum('cantidad'))['total'] or 0
+
+    # 3. Stock Bajo
+    low_stock = Stock.objects.filter(
+        sede=sede,
+        producto__activo=True,
+        cantidad__lt=F("producto__stock_minimo"),
+    ).count()
+
+    # 4. Tabla: Últimos Movimientos
+    # CORRECCIÓN AQUÍ: Quitamos "usuario" porque tu modelo no lo tiene como FK directa
+    ult_movs = (
+        MovimientoInventario.objects.filter(sede=sede)
+        .select_related("producto") 
+        .order_by("-creado_en")[:10]
+    )
+
+    return render(
+        request,
+        "inventario/dash_admin.html",
+        {
+            "profile": profile,
+            "sede": sede,
+            "total_equipos": total_equipos,
+            "total_cables": total_cables,
+            "low_stock": low_stock,
+            "ult_movs": ult_movs,
+            "user": request.user,
+        },
+    )
 
 
 @login_required
@@ -118,11 +162,6 @@ def dash_almacen(request):
 
 @login_required
 def dash_solicitante(request):
-    """
-    Si aún quieres mantener esta vista, ok.
-    Pero el técnico ya no caerá aquí, porque lo mandamos a tecnico_dashboard.
-    (JEFA puede entrar manualmente si quieres.)
-    """
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     sede = profile.get_sede_operativa()
 
@@ -146,15 +185,23 @@ def dash_solicitante(request):
 
 
 @login_required
-def dash_admin(request):
-    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
+def inventory_list(request):
+    """Muestra el inventario dentro del sistema con el mismo diseño"""
+    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA, UserProfile.Rol.ALMACEN)
     sede = profile.get_sede_operativa()
+    
+    # Obtener todo el stock de la sede
+    stocks = Stock.objects.filter(sede=sede).select_related('producto').order_by('producto__nombre')
 
-    return render(
-        request,
-        "inventario/dash_admin.html",
-        {
-            "profile": profile,
-            "sede": sede,
-        },
-    )
+    # Lógica de Búsqueda (Search)
+    query = request.GET.get('q')
+    if query:
+        stocks = stocks.filter(producto__nombre__icontains=query)
+
+    context = {
+        "profile": profile,
+        "sede": sede,
+        "stocks": stocks,
+        "query": query or ""
+    }
+    return render(request, "inventario/inventory_list.html", context)
