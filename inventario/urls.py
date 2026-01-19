@@ -19,7 +19,7 @@ from .views_req import (
     req_set_qty, req_remove_producto
 )
 
-from .views_sal import sal_detail, sal_confirmar
+from .views_sal import sal_detail, sal_confirmar, sal_print
 from .views_tecnico import tecnico_dashboard, tecnico_mis_reqs, tecnico_mis_entregas
 
 from .views_req import (
@@ -71,4 +71,9 @@ urlpatterns = [
     path("tecnico/", tecnico_dashboard, name="tecnico_dashboard"),
     path("tecnico/mis-reqs/", tecnico_mis_reqs, name="tecnico_mis_reqs"),
     path("tecnico/mis-entregas/", tecnico_mis_entregas, name="tecnico_mis_entregas"),
+
+    # SALIDAS IMPRESION
+    path("sal/<int:sal_id>/", sal_detail, name="sal_detail"),
+    path("sal/<int:sal_id>/confirmar/", sal_confirmar, name="sal_confirmar"),
+    path("sal/<int:sal_id>/print/", sal_print, name="sal_print"),
 ]

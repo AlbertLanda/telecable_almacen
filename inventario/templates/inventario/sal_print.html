@@ -1,0 +1,200 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>NOTA DE SALIDA {{ sal.numero|default:"(sin número)" }}</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    body{ font-family: Arial, sans-serif; color:#111; }
+    .top{
+      display:flex; justify-content:space-between; align-items:flex-start;
+      margin-bottom:10px;
+    }
+    .empresa{ font-size:20px; font-weight:800; }
+    .doc-title{ text-align:center; margin:8px 0 6px; }
+    .doc-title .t1{ font-size:18px; font-weight:800; letter-spacing:.3px; }
+    .doc-title .t2{ font-size:13px; font-weight:700; margin-top:2px; }
+
+    .box{
+      border:1px solid #222; border-radius:10px;
+      padding:10px; margin-top:10px;
+    }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:8px 18px; }
+    .row{ display:flex; gap:10px; }
+    .lbl{ font-size:11px; font-weight:800; width:150px; }
+    .val{ font-size:11px; flex:1; border-bottom:1px dotted #888; padding-bottom:2px; }
+
+    table{ width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td{ border:1px solid #222; padding:7px; font-size:11px; }
+    th{ background:#f2f2f2; text-transform:uppercase; font-size:10px; letter-spacing:.4px; }
+    .right{ text-align:right; }
+    .center{ text-align:center; }
+
+    .obs{ margin-top:12px; }
+    .obs .ttl{ font-weight:800; margin-bottom:6px; }
+    .obs .txt{ min-height:70px; border:1px solid #222; border-radius:8px; padding:10px; font-size:11px; }
+
+    .signs{
+      margin-top:22px;
+      display:flex; justify-content:space-between; gap:18px;
+    }
+    .sign{ flex:1; text-align:center; }
+    .line{ border-top:1px solid #111; margin:38px 24px 6px; }
+    .hint{ font-size:10px; color:#444; }
+
+    .print-actions{ margin-top:12px; }
+    .btn{
+      display:inline-block; padding:8px 12px; border:1px solid #222;
+      border-radius:8px; text-decoration:none; color:#111;
+      font-size:12px; margin-right:8px;
+    }
+    @media print{
+      .print-actions{ display:none; }
+    }
+  </style>
+</head>
+<body>
+
+    <div class="top">
+        <div style="display:flex; align-items:center; gap:14px;">
+            <img
+                src="{% static 'inventario/img/logo.png' %}"
+                alt="TeleCable"
+                style="height:55px; object-fit:contain;"
+            >
+            <div>
+                <div class="empresa">TELECABLE</div>
+                <div class="hint">Documento interno</div>
+            </div>
+        </div>
+
+        <div style="font-size:11px; text-align:right;">
+            <div><b>Fecha:</b> {{ sal.fecha|date:"d/m/Y" }}</div>
+            <div><b>Hora:</b> {{ sal.fecha|date:"H:i:s" }}</div>
+            <div><b>Página:</b> 1</div>
+        </div>
+    </div>
+
+  <div class="doc-title">
+    <div class="t1">NOTA DE SALIDA N° {{ sal.numero|default:"(sin número aún)" }}</div>
+    <div class="t2">REQUERIMIENTOS</div>
+  </div>
+
+  <div class="box">
+    <div class="grid2">
+      <div class="row">
+        <div class="lbl">FECHA</div>
+        <div class="val">{{ sal.fecha|date:"d/m/Y" }}</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">NÚMERO DE DOCUMENTO</div>
+        <div class="val">{{ sal.numero|default:"(sin número)" }}</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">TIPO DE MOVIMIENTO</div>
+        <div class="val">REQUERIMIENTO</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">RESPONSABLE</div>
+        <div class="val">
+          {% if sal.origen and sal.origen.responsable %}
+            {{ sal.origen.responsable.username }}
+          {% else %}
+            {{ sal.responsable.username }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">ALMACÉN</div>
+        <div class="val">{{ sal.sede.nombre }}</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">CENTRO DE COSTO</div>
+        <div class="val">{{ sal.centro_costo|default:"" }}</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">UBICACIÓN</div>
+        <div class="val">{% if sal.ubicacion %}{{ sal.ubicacion.nombre }}{% else %}(sin ubicación){% endif %}</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">ORIGEN (REQ)</div>
+        <div class="val">{% if sal.origen %}{{ sal.origen.numero|default:sal.origen.id }}{% else %}—{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:18%;">CÓDIGO</th>
+        <th>DESCRIPCIÓN</th>
+        <th style="width:12%;">U.M</th>
+        <th style="width:14%;">CANTIDAD</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+        <tr>
+          <td>
+            {% if it.producto.codigo_interno %}
+              {{ it.producto.codigo_interno }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ it.producto.nombre }}</td>
+          <td class="center">{{ it.producto.unidad|default:"UND" }}</td>
+          <td class="center">{{ it.cantidad }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="center">Sin ítems</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" class="right"><b>TOTAL</b></td>
+            <td class="center"><b>{{ total_cantidad }}</b></td>
+        </tr>
+    </tfoot>
+  </table>
+
+  <div class="obs">
+    <div class="ttl">OBSERVACIONES</div>
+    <div class="txt">
+      Técnico / solicitante:
+      {% if sal.origen and sal.origen.responsable %}
+        {{ sal.origen.responsable.username }}
+      {% else %}
+        {{ sal.responsable.username }}
+      {% endif %}<br>
+      Requerimiento: {% if sal.origen %}{{ sal.origen.numero|default:sal.origen.id }}{% else %}—{% endif %}<br>
+      Estado: {{ sal.get_estado_display }}<br>
+    </div>
+  </div>
+
+  <div class="signs">
+    <div class="sign">
+      <div class="line"></div>
+      <div style="font-size:11px;"><b>FIRMA DEL SOLICITANTE</b></div>
+    </div>
+    <div class="sign">
+      <div class="line"></div>
+      <div style="font-size:11px;"><b>FIRMA ENCARGADO DE ALMACÉN</b></div>
+    </div>
+  </div>
+
+  <div class="print-actions">
+    <a class="btn" href="{% url 'sal_detail' sal.id %}">← Volver</a>
+    <a class="btn" href="#" onclick="window.print();return false;">Imprimir</a>
+  </div>
+
+</body>
+</html>

@@ -1,43 +1,385 @@
-<h2>
-  SAL -
-  {{ sal.numero|default:"(sin número aún)" }}
-</h2>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ sal.numero|default:"(sin número)" }} | Telecable</title>
 
-<p><b>Sede:</b> {{ sal.sede.nombre }}</p>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<p>
-  <b>Ubicación:</b>
-  {% if sal.ubicacion %}
-    {{ sal.ubicacion.nombre }}
-  {% else %}
-    (sin ubicación)
-  {% endif %}
-</p>
+  <style>
+    :root{
+      --bg:#0f1220;
+      --panel:#161a2b;
+      --panel2:#1b2035;
+      --line:rgba(255,255,255,.08);
+      --muted:rgba(255,255,255,.62);
+      --text:#fff;
+      --accent:#4facfe;
+      --accent2:#00f2fe;
+      --danger:#ff4757;
+      --success:#2ed573;
+      --primaryGrad:linear-gradient(45deg,#FF512F 0%,#DD2476 100%);
+      --glass:rgba(255,255,255,.04);
+      --shadow:0 14px 40px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Poppins',sans-serif;
+      background:
+        radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0/26px 26px,
+        linear-gradient(180deg,#0f1220 0%, #0b0e18 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      overflow:hidden;
+    }
 
-<p><b>Estado:</b> {{ sal.get_estado_display }}</p>
+    .sidebar{
+      width:260px;
+      background:rgba(10,12,22,.55);
+      backdrop-filter: blur(10px);
+      border-right:1px solid var(--line);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+      padding:12px;border-radius:16px;
+      background:var(--glass);
+      border:1px solid var(--line);
+      margin-bottom:6px;
+    }
+    .brand img{
+      width:42px;height:42px;border-radius:12px;
+      background:#fff;object-fit:contain;padding:4px;
+    }
+    .brand .t1{font-weight:800;letter-spacing:.6px}
+    .brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
 
-{% if sal.recibido %}
-  <p><b>Recibido:</b> Sí</p>
-  <p><b>Recibido por:</b> {{ sal.recibido_por.username }}</p>
-  <p><b>Recibido en:</b> {{ sal.recibido_en }}</p>
-{% endif %}
+    .menu{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+    .menu a{
+      display:flex;align-items:center;gap:12px;
+      text-decoration:none;
+      color:rgba(255,255,255,.70);
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid transparent;
+      transition:.2s ease;
+    }
+    .menu a i{font-size:20px}
+    .menu a:hover{
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      border-color:rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+    .logout{
+      margin-top:auto;
+      border:1px solid rgba(255,71,87,.25) !important;
+      color:rgba(255,71,87,.95) !important;
+    }
+    .logout:hover{
+      background:rgba(255,71,87,.10) !important;
+      color:#fff !important;
+    }
 
-<hr>
+    .main{flex:1;padding:24px;overflow:auto;}
+    .topbar{
+      display:flex;align-items:flex-start;justify-content:space-between;
+      gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    }
+    .title h1{font-size:26px;font-weight:750;letter-spacing:.2px}
+    .title p{color:var(--muted);font-size:13px;margin-top:4px}
+    .userpill{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 14px;border-radius:999px;
+      background:var(--glass);
+      border:1px solid var(--line);
+    }
+    .userpill i{font-size:20px;color:#ff6b6b}
 
-<h3>Items</h3>
-<ul>
-  {% for it in items %}
-    <li>{{ it.producto.nombre }} | {{ it.cantidad }}</li>
-  {% empty %}
-    <li>Sin ítems.</li>
-  {% endfor %}
-</ul>
+    .card{
+      background:rgba(22,26,43,.76);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:16px 16px 12px 16px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;flex-wrap:wrap;
+    }
+    .card .hd h2{
+      font-size:15px;font-weight:700;
+      display:flex;align-items:center;gap:10px;
+    }
+    .card .hd h2 i{color:var(--accent)}
+    .card .bd{padding:16px}
 
-{% if sal.estado == "BORRADOR" %}
-  <form method="post" action="{% url 'sal_confirmar' sal.id %}">
-    {% csrf_token %}
-    <button type="submit">Confirmar SAL (descontar stock)</button>
-  </form>
-{% else %}
-  <p style="color: #2ed573; font-weight: 600;">✅ SAL ya confirmada.</p>
-{% endif %}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      padding:12px 14px;border-radius:14px;border:0;cursor:pointer;
+      font-weight:700;color:#fff;
+      background:linear-gradient(45deg,var(--accent) 0%, var(--accent2) 100%);
+      transition:.2s ease;
+      display:inline-flex;align-items:center;gap:10px;
+      text-decoration:none;white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
+    .btn.primary{background:var(--primaryGrad)}
+    .btn.ghost{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color:#fff;
+    }
+    .btn.danger{
+      background:rgba(255,71,87,.14);
+      border:1px solid rgba(255,71,87,.28);
+      color:#fff;
+    }
+
+    .badge{
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      font-weight:800;
+      font-size:12px;
+    }
+    .badge.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.08); color:#d9ffe8;}
+    .badge.warn{border-color:rgba(255,165,2,.25); background:rgba(255,165,2,.08); color:#ffe7c7;}
+    .badge.err{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.08); color:#ffd0d5;}
+
+    .gridinfo{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    .ibox{
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    .ibox .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .ibox .v{font-weight:750}
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.02);
+      margin-top:10px;
+    }
+    thead th{
+      text-align:left;
+      padding:12px;
+      font-size:12px;
+      color:rgba(255,255,255,.75);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    tbody td{
+      padding:12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      vertical-align:top;
+    }
+    tbody tr:last-child td{border-bottom:0}
+    .qty{font-weight:900}
+    .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
+
+    /* ✅ Print */
+    @media print{
+      body{background:#fff !important;color:#111 !important; display:block; overflow:visible;}
+      .sidebar, .top-actions, .no-print{display:none !important;}
+      .main{padding:0 !important;}
+      .card{box-shadow:none !important; border:0 !important; background:#fff !important;}
+      .card .hd{border-bottom:1px solid #ddd !important;}
+      .muted{color:#333 !important}
+      .ibox{border:1px solid #ddd !important; background:#fff !important;}
+      table{border:1px solid #ddd !important; background:#fff !important;}
+      thead th{background:#f4f4f4 !important; color:#111 !important; border-bottom:1px solid #ddd !important;}
+      tbody td{border-bottom:1px solid #eee !important;}
+      .badge{border:1px solid #ddd !important; background:#f7f7f7 !important; color:#111 !important;}
+    }
+
+    @media (max-width: 1020px){
+      body{overflow:auto}
+      .sidebar{display:none}
+      .main{padding:16px}
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <div>
+        <div class="t1">TELECABLE</div>
+        <div class="t2">Técnico · Entregas</div>
+      </div>
+    </div>
+
+    <nav class="menu">
+      <a href="{% url 'tecnico_dashboard' %}"><i class='bx bxs-dashboard'></i> Panel Técnico</a>
+      <a href="{% url 'req_home' %}"><i class='bx bx-plus-circle'></i> Solicitar Material</a>
+      <a href="{% url 'tecnico_mis_reqs' %}"><i class='bx bx-history'></i> Mis Requerimientos</a>
+      <a class="active" href="{% url 'tecnico_mis_entregas' %}"><i class='bx bx-package'></i> Mis Entregas</a>
+      <a href="{% url 'scan' %}"><i class='bx bx-scan'></i> Escanear</a>
+
+      <a class="logout" href="{% url 'logout' %}">
+        <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="title">
+        <h1>{{ sal.numero|default:"(sin número)" }}</h1>
+        <p class="muted">
+          {% if sal.origen %}Origen: <b style="color:#fff">{{ sal.origen.numero|default:"REQ" }}</b> · {% endif %}
+          Sede: <b style="color:#fff">{{ sal.sede.nombre }}</b>
+          · Estado: <b style="color:#fff">{{ sal.get_estado_display }}</b>
+        </p>
+      </div>
+
+      <div class="top-actions row no-print">
+        <a class="btn ghost" href="{% url 'tecnico_mis_entregas' %}">
+          <i class='bx bx-left-arrow-alt'></i> Volver
+        </a>
+        <a class="btn ghost" href="{% url 'sal_print' sal.id %}" target="_blank">
+          <i class='bx bx-printer'></i> Imprimir
+        </a>
+      </div>
+
+      <div class="userpill">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ request.user.username }}</span>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="card" style="margin-bottom:12px;">
+          <div class="bd">
+            <div class="muted">{{ message }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <section class="card">
+      <div class="hd">
+        <h2><i class='bx bx-receipt'></i> Detalle de entrega</h2>
+
+        {# Badge simple (ajústalo si tus estados no son BORRADOR/CONFIRMADO) #}
+        {% if sal.estado == "CONFIRMADO" %}
+          <span class="badge ok">CONFIRMADO</span>
+        {% elif sal.estado == "BORRADOR" %}
+          <span class="badge warn">BORRADOR</span>
+        {% else %}
+          <span class="badge">{{ sal.get_estado_display }}</span>
+        {% endif %}
+      </div>
+
+      <div class="bd">
+        <div class="gridinfo">
+          <div class="ibox">
+            <div class="k">Sede</div>
+            <div class="v">{{ sal.sede.nombre }}</div>
+          </div>
+
+          <div class="ibox">
+            <div class="k">Ubicación</div>
+            <div class="v">
+              {% if sal.ubicacion %}{{ sal.ubicacion.nombre }}{% else %}(sin ubicación){% endif %}
+            </div>
+          </div>
+
+          <div class="ibox">
+            <div class="k">Responsable</div>
+            <div class="v">
+              {% if sal.responsable %}{{ sal.responsable.username }}{% else %}-{% endif %}
+            </div>
+          </div>
+
+          <div class="ibox">
+            <div class="k">Transferencia entre almacenes</div>
+            <div class="v">
+              {% if sal.recibido %}
+                Sí · {{ sal.recibido_por.username }} · {{ sal.recibido_en }}
+              {% else %}
+                No
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h2 style="font-size:15px;font-weight:800;display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+          <i class='bx bx-list-ul' style="color:var(--accent)"></i> Ítems entregados
+        </h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:52%">Material</th>
+              <th style="width:28%">Código</th>
+              <th style="width:20%">Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+              <tr>
+                <td><b>{{ it.producto.nombre }}</b></td>
+                <td class="muted">
+                  {% if it.producto.codigo_interno %}{{ it.producto.codigo_interno }}{% endif %}
+                  {% if it.producto.codigo %}{% if it.producto.codigo_interno %} · {% endif %}{{ it.producto.codigo }}{% endif %}
+                </td>
+                <td class="qty">{{ it.cantidad }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="muted">Sin ítems.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="divider no-print"></div>
+
+        {# Confirmar (solo visible pantalla) #}
+        {% if sal.estado == "BORRADOR" %}
+          <form class="no-print" method="post" action="{% url 'sal_confirmar' sal.id %}">
+            {% csrf_token %}
+            <button class="btn primary" type="submit">
+              <i class='bx bx-check-circle'></i> Confirmar SAL (descontar stock)
+            </button>
+          </form>
+        {% else %}
+          <div class="no-print" style="margin-top:10px;">
+            <span class="badge ok">✅ Salida ya confirmada</span>
+          </div>
+        {% endif %}
+
+      </div>
+    </section>
+  </main>
+</body>
+</html>
