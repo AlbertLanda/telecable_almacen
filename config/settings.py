@@ -14,29 +14,22 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Cargar variables de entorno desde .env
 load_dotenv(BASE_DIR / ".env")
 
-
 # Quick-start development settings - unsuitable for production
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-dev-only-change-me"
-)
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-dev-only-change-me")
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes", "y")
 
-# Hosts permitidos (para local normalmente 127.0.0.1, localhost)
 ALLOWED_HOSTS = [
-    h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()
+    h.strip()
+    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if h.strip()
 ]
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -47,6 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+
+    # ✅ SOLO UNA VEZ (no agregues "inventario" adicionalmente)
     "inventario.apps.InventarioConfig",
 ]
 
@@ -65,7 +60,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "templates"],  # si no usas templates globales, puede quedar así igual
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -80,8 +75,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
-# Database
+# Database (Neon / PostgreSQL)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -96,7 +90,6 @@ DATABASES = {
     }
 }
 
-
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -105,30 +98,28 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
 # Internationalization
 LANGUAGE_CODE = "es-pe"
 TIME_ZONE = "America/Lima"
 USE_I18N = True
 USE_TZ = True
 
-
 # Auth redirects
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
 
-
 # Static files (CSS, JavaScript, Images)
+# ✅ IMPORTANTE: con slash inicial, Django sirve /static/...
 STATIC_URL = "/static/"
 
 # Para producción (cuando uses collectstatic)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Para desarrollo (tus estáticos del app)
-static_dir = BASE_DIR / "inventario" / "static"
-STATICFILES_DIRS = [static_dir] if static_dir.exists() else []
+# ✅ NO metas BASE_DIR/inventario/static aquí.
+# Django ya encuentra inventario/static por APP_DIRS.
+# Solo agrega un folder global si existe: BASE_DIR/static/
+global_static = BASE_DIR / "static"
+STATICFILES_DIRS = [global_static] if global_static.exists() else []
 
-
-# Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

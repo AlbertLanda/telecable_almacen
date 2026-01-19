@@ -100,6 +100,13 @@ def add_item_to_req(
 
     if cantidad <= 0:
         raise ValidationError("La cantidad debe ser mayor a 0.")
+    
+    if hasattr(producto, "activo") and not producto.activo:
+        raise ValidationError("Este producto está inactivo.")
+    
+    MAX_QTY = 9999
+    if cantidad > MAX_QTY:
+        raise ValidationError(f"La cantidad máxima permitida es {MAX_QTY}.")
 
     item, created = DocumentoItem.objects.select_for_update().get_or_create(
         documento=req,
@@ -145,11 +152,18 @@ def set_item_qty(*, user, req: DocumentoInventario, producto: Producto, cantidad
 
     if cantidad <= 0:
         raise ValidationError("La cantidad debe ser mayor a 0.")
+    
+    if hasattr(producto, "activo") and not producto.activo:
+        raise ValidationError("Este producto está inactivo.")
 
     try:
         item = DocumentoItem.objects.select_for_update().get(documento=req, producto=producto)
     except DocumentoItem.DoesNotExist:
         raise ValidationError("Ese producto no está en el REQ.")
+
+    MAX_QTY = 9999
+    if cantidad > MAX_QTY:
+        raise ValidationError(f"La cantidad máxima permitida es {MAX_QTY}.")
 
     item.cantidad = cantidad
     item.save(update_fields=["cantidad"])
