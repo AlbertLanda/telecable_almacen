@@ -7,9 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     /* --- VARIABLES --- */
     :root{
@@ -19,13 +20,15 @@
       --border: rgba(255,255,255,0.10);
       --text: rgba(255,255,255,0.92);
       --muted: rgba(255,255,255,0.62);
+      
       --accent: #4facfe;
       --accent2: #00d4ff;
-      --danger: #ff4757;
-      --warning: #f1c40f; /* Amarillo para Stock Bajo */
-      --success: #2ed573;
+      
+      --danger: #ff4757;      /* Rojo para Agotado */
+      --warning: #f1c40f;     /* Amarillo para Bajo */
+      --success: #2ed573;     /* Verde para Normal */
+      
       --radius: 18px;
-      --shadow: 0 18px 45px rgba(0,0,0,0.45);
     }
 
     *{ margin:0; padding:0; box-sizing:border-box; }
@@ -97,7 +100,6 @@
         display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
     }
 
-    /* Pestañas */
     .tabs { display: flex; gap: 8px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
     .tab-link {
         padding: 8px 16px; border-radius: 8px; text-decoration: none; color: var(--muted);
@@ -105,7 +107,6 @@
     }
     .tab-link.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4); }
 
-    /* Acciones Derecha */
     .actions-right { display: flex; gap: 15px; align-items: center; }
 
     .search-box { position: relative; }
@@ -116,7 +117,6 @@
     .search-box input:focus { border-color: var(--accent); }
     .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 
-    /* BOTÓN SCAN & ADD */
     .btn-scan-add {
         background: linear-gradient(135deg, var(--accent), var(--accent2));
         color: white; border: none; padding: 10px 20px; border-radius: 12px;
@@ -141,10 +141,9 @@
 
     .badge { display:inline-flex; align-items:center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; }
     
-    /* Estados de la Badge */
     .bg-ok { color: var(--success); background: rgba(46,213,115,0.15); }
-    .bg-low { color: var(--warning); background: rgba(241, 196, 15, 0.15); } /* Amarillo */
-    .bg-critical { color: var(--danger); background: rgba(255, 71, 87, 0.15); } /* Rojo Agotado */
+    .bg-low { color: var(--warning); background: rgba(241, 196, 15, 0.15); } 
+    .bg-critical { color: var(--danger); background: rgba(255, 71, 87, 0.15); }
 
     .btn-icon {
         width: 32px; height: 32px; border-radius: 10px;
@@ -267,6 +266,9 @@
             </thead>
             <tbody>
                 {% for s in stocks %}
+                {% with minimo_real=s.producto.stock_minimo|default:0 %}
+                {% with minimo_seguro=minimo_real|add:"0" %} {% with umbral=minimo_seguro|default:5 %} 
+                
                 <tr>
                     <td style="font-family: monospace; color: var(--muted);">{{ s.producto.codigo_interno }}</td>
                     
@@ -277,11 +279,15 @@
                     <td>
                         <span style="font-size: 1.1em; font-weight: 700;
                             {% if s.cantidad == 0 %} color: var(--danger);
-                            {% elif s.cantidad <= s.producto.stock_minimo %} color: var(--warning);
+                            {% elif s.cantidad <= umbral %} color: var(--warning);
                             {% else %} color: var(--success); {% endif %}">
                             {{ s.cantidad }}
                         </span>
                         <span style="font-size: 0.85em; color: var(--muted);">{{ s.producto.unidad }}</span>
+                        
+                        <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">
+                            (Mín: {{ umbral }})
+                        </div>
                     </td>
                     
                     <td>
@@ -289,7 +295,7 @@
                             <span class="badge bg-critical">
                                 <i class='bx bxs-x-circle'></i> Agotado
                             </span>
-                        {% elif s.cantidad <= s.producto.stock_minimo %}
+                        {% elif s.cantidad <= umbral %}
                             <span class="badge bg-low">
                                 <i class='bx bxs-error-circle'></i> Bajo
                             </span>
@@ -306,6 +312,11 @@
                         </button>
                     </td>
                 </tr>
+                
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                
                 {% empty %}
                 <tr>
                     <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted);">
