@@ -2,288 +2,442 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Admin Dashboard | Telecable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    :root {
-      --bg-body: #1e1e2e;
-      --bg-sidebar: #181824;
-      --bg-panel: #27293d;
-      --primary-grad: linear-gradient(45deg, #0066cc 0%, #00d4ff 100%);
-      --primary-solid: #00d4ff;
+    :root{
+      --bg: #0b0f1a;
+      --bg2: #0f172a;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --border: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.62);
+
       --accent: #4facfe;
-      --text-main: #ffffff;
-      --text-muted: #9a9a9a;
+      --accent2: #00d4ff;
       --danger: #ff4757;
       --success: #2ed573;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
+
+      --radius: 18px;
+      --shadow: 0 18px 45px rgba(0,0,0,0.45);
     }
 
-    /* --- SIDEBAR --- */
-    .sidebar {
-      width: 260px;
-      background-color: var(--bg-sidebar);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid rgba(255,255,255,0.05);
-      box-shadow: 5px 0 15px rgba(0,0,0,0.2);
-      z-index: 10;
-    }
-    
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    /* LOGO */
-    .brand img {
-        width: 50px;
-        height: 50px;
-        object-fit: contain;
-        background: rgba(255,255,255,0.05); 
-        padding: 5px;
-        border-radius: 10px;
-    }
-    .brand span { font-size: 18px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
+    *{ margin:0; padding:0; box-sizing:border-box; }
 
-    .menu-btn {
-      background: transparent;
-      border: none;
-      width: 100%;
-      padding: 16px 20px;
-      text-align: left;
-      color: var(--text-muted);
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      transition: all 0.3s ease;
-      margin-bottom: 8px;
-      font-weight: 500;
-      text-decoration: none;
-    }
-    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
-    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4); }
-
-    .logout-btn { margin-top: auto; color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.2); }
-    .logout-btn:hover { background: rgba(255, 71, 87, 0.1); color: white; }
-
-    /* --- MAIN --- */
-    .main-content {
-      flex: 1;
-      padding: 30px;
-      overflow-y: auto;
-      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 30px 30px;
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text",
+                   "Segoe UI", Roboto, Arial, "Poppins", sans-serif;
+      background:
+        radial-gradient(1000px 500px at 20% 0%, rgba(79,172,254,0.18), transparent 60%),
+        radial-gradient(900px 450px at 90% 10%, rgba(0,212,255,0.12), transparent 60%),
+        radial-gradient(900px 500px at 50% 100%, rgba(255,71,87,0.10), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      display:flex;
+      height:100vh;
+      overflow:hidden;
     }
 
-    .header {
-      margin-bottom: 35px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .header h2 { font-weight: 600; font-size: 28px; }
-    .header p { color: var(--text-muted); font-size: 14px; }
-
-    .user-badge {
-      background: var(--bg-panel);
-      padding: 8px 15px;
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
+    /* SIDEBAR */
+    .sidebar{
+      width: 270px;
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display:flex;
+      flex-direction:column;
       gap: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .user-badge i { font-size: 20px; color: var(--primary-solid); }
-
-    /* --- DASHBOARD GRID --- */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 25px;
-      margin-bottom: 30px;
+      box-shadow: 10px 0 45px rgba(0,0,0,0.25);
     }
 
-    .card {
-      background: var(--bg-panel);
-      padding: 25px;
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 12px;
       border-radius: 16px;
-      position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      transition: transform 0.3s;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 8px;
     }
-    .card:hover { transform: translateY(-5px); }
 
-    .kpi-icon {
-      width: 50px;
-      height: 50px;
+    .brand img{
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 15px;
+      object-fit: contain;
+      background: rgba(255,255,255,0.08);
+      padding: 6px;
     }
 
-    .card h3 { font-size: 28px; font-weight: 700; margin-bottom: 5px; color: white; }
-    .card span { color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    /* Botones de Acción Rápida */
-    .btn-action {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 12px;
-        border-radius: 10px;
-        text-decoration: none;
-        font-weight: 600;
-        margin-top: auto;
-        transition: opacity 0.3s;
+    .brand .title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
     }
-    .btn-scan { background: var(--primary-grad); color: white; }
-    .btn-inv { background: rgba(255, 255, 255, 0.1); color: var(--accent); border: 1px solid var(--accent); }
-    .btn-action:hover { opacity: 0.9; }
+    .brand .title b{ letter-spacing: .6px; }
+    .brand .title span{ font-size: 12px; color: var(--muted); }
 
-    /* --- CHARTS & TABLES --- */
-    .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px; }
-    
-    .chart-container, .table-container {
-      background: var(--bg-panel);
-      padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      margin-top: 6px;
     }
-    
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; font-weight: 600; }
-    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .menu-btn{
+      width: 100%;
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      text-decoration:none;
+      color: var(--muted);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+      user-select:none;
+    }
+    .menu-btn i{ font-size: 20px; }
+    .menu-btn:hover{
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.08);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+    .menu-btn.active{
+      background: linear-gradient(135deg, rgba(79,172,254,0.22), rgba(0,212,255,0.12));
+      border-color: rgba(79,172,254,0.22);
+      color: var(--text);
+    }
+
+    .menu-btn.primary{
+      color: rgba(255,255,255,0.92);
+      background: linear-gradient(135deg, rgba(79,172,254,0.35), rgba(0,212,255,0.18));
+      border: 1px solid rgba(79,172,254,0.25);
+    }
+    .menu-btn.primary:hover{ transform: translateY(-1px); }
+
+    .menu-btn.danger{
+      margin-top:auto;
+      color: rgba(255,255,255,0.90);
+      background: rgba(255,71,87,0.10);
+      border: 1px solid rgba(255,71,87,0.20);
+    }
+    .menu-btn.danger:hover{ background: rgba(255,71,87,0.16); }
+
+    /* MAIN */
+    .main{
+      flex:1;
+      padding: 26px;
+      overflow-y:auto;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      flex-wrap:wrap;
+      margin-bottom: 18px;
+    }
+
+    .topbar h2{
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .topbar p{
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .user-pill{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .user-pill i{ font-size: 20px; color: var(--accent2); }
+    .user-pill span{ color: rgba(255,255,255,0.88); font-weight: 600; font-size: 13px; }
+
+    /* CARDS */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .kpi{
+      grid-column: span 3;
+      min-height: 128px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .kpi .icon{
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .kpi .icon i{ font-size: 22px; }
+    .kpi .label{ color: var(--muted); font-size: 12px; letter-spacing: .5px; text-transform: uppercase; }
+    .kpi .value{ font-size: 28px; font-weight: 800; }
+
+    .kpi.actions{
+      grid-column: span 3;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .btn-row{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .btn{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      text-decoration:none;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .btn.scan{
+      background: linear-gradient(135deg, rgba(79,172,254,0.55), rgba(0,212,255,0.25));
+      color: rgba(255,255,255,0.92);
+      border-color: rgba(79,172,254,0.30);
+    }
+    .btn.inv{
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
+    }
+
+    /* CONTENT GRID */
+    .content{
+      display:grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card h4{
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .chart-wrap{
+      height: 320px;
+      position: relative;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border-radius: 14px;
+    }
+    thead th{
+      text-align:left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: rgba(255,255,255,0.70);
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+    tbody td{
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.86);
+      font-size: 13px;
+    }
+    tbody tr:hover td{
+      background: rgba(255,255,255,0.04);
+    }
+    tbody tr:last-child td{ border-bottom:none; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 11px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+    }
+    .tag.in{ color: var(--success); border-color: rgba(46,213,115,0.25); }
+    .tag.out{ color: var(--danger); border-color: rgba(255,71,87,0.25); }
+
+    /* RESPONSIVE */
+    @media (max-width: 1100px){
+      .kpi{ grid-column: span 6; }
+      .kpi.actions{ grid-column: span 6; }
+      .content{ grid-template-columns: 1fr; }
+    }
 
     @media (max-width: 900px){
-      .content-grid { grid-template-columns: 1fr; }
-      .sidebar { width: 80px; padding: 10px; }
-      .brand span, .menu-btn span { display: none; }
-      .menu-btn { justify-content: center; padding: 15px; }
-      .brand { justify-content: center; }
+      body{ overflow:auto; height:auto; }
+      .sidebar{
+        position: sticky;
+        top: 0;
+        width: 100%;
+        flex-direction:row;
+        align-items:center;
+        justify-content:space-between;
+        border-right:none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .menu{
+        flex-direction:row;
+        flex-wrap:wrap;
+        justify-content:flex-end;
+      }
+      .menu-btn{ width:auto; }
+      .menu-btn span{ display:none; }
+      .main{ padding: 18px; }
+      .brand .title span{ display:none; }
     }
   </style>
 </head>
 
 <body>
-  <div class="sidebar">
+  <aside class="sidebar">
     <div class="brand">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s" alt="Logo Telecable">
-      <span>TELECABLE</span>
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo Telecable" onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <div class="title">
+        <b>TELECABLE</b>
+        <span>Admin · Almacén</span>
+      </div>
     </div>
 
-    <a href="{% url 'dash_admin' %}" class="menu-btn active">
-      <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
-    </a>
-    
-    <a href="{% url 'inventory_list' %}" class="menu-btn">
-      <i class='bx bx-box'></i> <span>Ver Inventario</span>
-    </a>
+    <nav class="menu">
+      <a href="{% url 'dash_admin' %}" class="menu-btn active">
+        <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
+      </a>
 
-    <a href="{% url 'scan' %}" class="menu-btn" style="color: var(--primary-solid);">
-      <i class='bx bx-barcode-reader'></i> <span>Escanear</span>
-    </a>
+      {# OJO: esto requiere que exista la ruta inventory_list en urls.py #}
+      <a href="{% url 'inventory_list' %}" class="menu-btn">
+        <i class='bx bx-box'></i> <span>Inventario</span>
+      </a>
 
-    <a href="/admin/" class="menu-btn">
-      <i class='bx bxs-cog'></i> <span>Admin Django</span>
-    </a>
+      <a href="/admin/" class="menu-btn">
+        <i class='bx bxs-cog'></i> <span>Admin Django</span>
+      </a>
 
-    <a class="menu-btn logout-btn" href="/logout/">
-      <i class='bx bx-log-out-circle'></i> <span>Salir</span>
-    </a>
-  </div>
+      <a href="{% url 'logout' %}" class="menu-btn danger">
+        <i class='bx bx-log-out-circle'></i> <span>Salir</span>
+      </a>
+    </nav>
+  </aside>
 
-  <div class="main-content">
-    <div class="header">
+  <main class="main">
+    <header class="topbar">
       <div>
         <h2>Panel de Administración</h2>
-        <p>Sede Operativa: <b>{{ sede.nombre }}</b></p>
+        <p>Sede operativa: <b style="color:rgba(255,255,255,0.92);">{{ sede.nombre }}</b></p>
       </div>
-      <div class="user-badge">
+      <div class="user-pill">
         <i class='bx bxs-user-circle'></i>
         <span>{{ user.username }}</span>
       </div>
-    </div>
+    </header>
 
-    <div class="kpi-grid">
-      <div class="card">
-        <div class="kpi-icon" style="background: rgba(0, 102, 204, 0.2); color: #4facfe;">
-          <i class='bx bxs-server'></i>
-        </div>
-        <span>Total Equipos</span>
-        <h3>{{ total_equipos }}</h3>
+    <section class="grid">
+      <div class="card kpi">
+        <div class="icon"><i class='bx bxs-server' style="color: var(--accent2);"></i></div>
+        <div class="label">Total equipos</div>
+        <div class="value">{{ total_equipos }}</div>
       </div>
 
-      <div class="card">
-        <div class="kpi-icon" style="background: rgba(0, 212, 255, 0.2); color: #00d4ff;">
-          <i class='bx bx-git-commit'></i>
-        </div>
-        <span>Metros Cable</span>
-        <h3>{{ total_cables }}</h3>
+      <div class="card kpi">
+        <div class="icon"><i class='bx bx-git-commit' style="color: var(--accent);"></i></div>
+        <div class="label">Metros cable</div>
+        <div class="value">{{ total_cables }}</div>
       </div>
 
-      <div class="card">
-        <div class="kpi-icon" style="background: rgba(255, 71, 87, 0.15); color: #ff4757;">
-          <i class='bx bxs-alarm-exclamation'></i>
-        </div>
-        <span>Stock Bajo</span>
-        <h3>{{ low_stock }}</h3>
+      <div class="card kpi">
+        <div class="icon"><i class='bx bxs-alarm-exclamation' style="color: var(--danger);"></i></div>
+        <div class="label">Stock bajo</div>
+        <div class="value">{{ low_stock }}</div>
       </div>
-      
-      <div class="card" style="align-items: stretch;">
-          <a href="{% url 'scan' %}" class="btn-action btn-scan">
-              <i class='bx bx-scan'></i> ESCANEAR
+
+      <div class="card kpi actions">
+        <div>
+          <div class="label" style="margin-bottom:6px;">Acciones rápidas</div>
+          <div style="color: var(--muted); font-size: 13px;">Operaciones del día</div>
+        </div>
+        <div class="btn-row">
+          <a class="btn scan" href="{% url 'scan' %}">
+            <i class='bx bx-scan'></i> Escanear
           </a>
-          <div style="height: 10px;"></div>
-          <a href="{% url 'inventory_list' %}" class="btn-action btn-inv">
-              <i class='bx bx-list-ul'></i> VER TODO
+          <a class="btn inv" href="{% url 'inventory_list' %}">
+            <i class='bx bx-list-ul'></i> Ver inventario
           </a>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="content-grid">
-      <div class="chart-container">
-        <h4 style="margin-bottom:20px; color:#fff;">Distribución de Inventario</h4>
-        <div style="height: 300px;">
-             <canvas id="inventoryChart"></canvas>
+    <section class="content">
+      <div class="card">
+        <h4>Distribución (vista rápida)</h4>
+        <div class="chart-wrap">
+          <canvas id="inventoryChart"></canvas>
+        </div>
+        <div style="color: var(--muted); font-size: 12px; margin-top: 10px;">
+          Nota: “Metros cable” es un subconjunto del stock (según nombre contenga “cable”).
         </div>
       </div>
 
-      <div class="table-container">
-        <h4 style="margin-bottom:20px; color:#fff;">Últimos Movimientos</h4>
+      <div class="card">
+        <h4>Últimos movimientos</h4>
         <table>
           <thead>
             <tr>
@@ -294,70 +448,68 @@
           </thead>
           <tbody>
             {% for mov in ult_movs %}
-            <tr>
-              <td>{{ mov.producto.nombre }}</td>
-              <td>
-                {% if mov.tipo_movimiento == 'ENTRADA' %}
-                    <span style="color: var(--success);"><i class='bx bx-up-arrow-alt'></i> IN</span>
-                {% else %}
-                    <span style="color: var(--danger);"><i class='bx bx-down-arrow-alt'></i> OUT</span>
-                {% endif %}
-              </td>
-              <td>{{ mov.cantidad }}</td>
-            </tr>
+              <tr>
+                <td>{{ mov.producto.nombre }}</td>
+                <td>
+                  {% if mov.tipo_movimiento == 'ENTRADA' %}
+                    <span class="tag in"><i class='bx bx-up-arrow-alt'></i> IN</span>
+                  {% else %}
+                    <span class="tag out"><i class='bx bx-down-arrow-alt'></i> OUT</span>
+                  {% endif %}
+                </td>
+                <td>{{ mov.cantidad }}</td>
+              </tr>
             {% empty %}
-            <tr>
-                <td colspan="3" style="text-align:center;">Sin movimientos</td>
-            </tr>
+              <tr>
+                <td colspan="3" style="text-align:center; color: var(--muted); padding: 16px;">
+                  Sin movimientos
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
-  </div>
+    {{ total_equipos|default:0|json_script:"totalEquipos" }}
+    {{ total_cables|default:0|json_script:"totalCables" }}
+    {{ low_stock|default:0|json_script:"lowStock" }}
 
-  <script>
-    const ctx = document.getElementById('inventoryChart').getContext('2d');
-    
-    // NOTA: Si tu editor marca error aquí, IGNÓRALO. Es correcto en Django.
-    const chartData = {
-        labels: ['Equipos', 'Cables', 'Otros'],
-        datasets: [{
-            label: 'Cantidad',
-            data: [
-                {{ total_equipos|default:0 }}, 
-                {{ total_cables|default:0 }}, 
-                10
-            ], 
-            backgroundColor: [
-                'rgba(0, 212, 255, 0.7)',
-                'rgba(0, 102, 204, 0.7)',
-                'rgba(142, 68, 173, 0.7)'
-            ],
-            borderColor: [
-                'rgba(0, 212, 255, 1)',
-                'rgba(0, 102, 204, 1)',
-                'rgba(142, 68, 173, 1)'
-            ],
-            borderWidth: 1
-        }]
-    };
+    <script>
+        const totalEquipos = JSON.parse(
+            document.getElementById('totalEquipos').textContent
+        );
 
-    const myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: chartData,
-        options: {
+        const totalCables = JSON.parse(
+            document.getElementById('totalCables').textContent
+        );
+
+        const lowStock = JSON.parse(
+            document.getElementById('lowStock').textContent
+        );
+
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+            labels: ['Total equipos', 'Metros cable', 'Stock bajo'],
+            datasets: [{
+                data: [totalEquipos, totalCables, lowStock],
+                backgroundColor: [
+                'rgba(0,212,255,0.7)',
+                'rgba(0,102,204,0.7)',
+                'rgba(255,71,87,0.7)'
+                ]
+            }]
+            },
+            options: {
             responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { color: 'white' }
-                }
+            maintainAspectRatio: false
             }
-        }
-    });
-  </script>
+        });
+    </script>
+
+  </main>
 </body>
 </html>

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.db import transaction
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
@@ -28,6 +31,7 @@ def _sede_operativa(user):
 
 @login_required
 def sal_detail(request, sal_id: int):
+    # Importante: aquí NO hacemos select_for_update, solo mostrar
     sal = get_object_or_404(
         DocumentoInventario.objects.select_related("sede", "responsable", "origen"),
         id=sal_id,
@@ -44,7 +48,7 @@ def sal_detail(request, sal_id: int):
         if profile.rol == UserProfile.Rol.JEFA:
             return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
-        # ✅ ADMIN: por ahora ve todo (si quieres lo restringimos luego)
+        # ✅ ADMIN (por ahora ve todo)
         if profile.rol == UserProfile.Rol.ADMIN:
             return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
@@ -74,15 +78,22 @@ def sal_detail(request, sal_id: int):
 
 @require_POST
 @login_required
+@transaction.atomic
 def sal_confirmar(request, sal_id: int):
-    sal = get_object_or_404(
-        DocumentoInventario.objects.select_related("sede"),
-        id=sal_id,
-        tipo=TipoDocumento.SAL,
-    )
-
+    """
+    Confirma una SAL:
+    - bloquea la SAL (sin joins) para evitar problemas de DB
+    - llama sal.confirmar() que descuenta stock y crea movimientos
+    """
     try:
         profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
+
+        # 🔒 Re-lee y BLOQUEA la SAL sin select_related (sin outer joins)
+        sal = (
+            DocumentoInventario.objects
+            .select_for_update()
+            .get(id=sal_id, tipo=TipoDocumento.SAL)
+        )
 
         # ✅ ALMACÉN solo confirma SAL de su sede
         if profile.rol != UserProfile.Rol.JEFA:
@@ -90,11 +101,18 @@ def sal_confirmar(request, sal_id: int):
             if sal.sede_id != sede.id:
                 raise PermissionDenied("No puedes confirmar SAL de otra sede.")
 
-        # ✅ Confirmar SAL (tu models.py soporta entregado_por)
+        # Opcional: si ya está confirmada, no hacer nada
+        if sal.estado == "CONFIRMADO":
+            messages.info(request, f"Esta SAL ya estaba confirmada: {sal.numero}")
+            return redirect(f"/sal/{sal_id}/")
+
+        # ✅ Confirmar SAL (descuenta stock y crea kardex)
         sal.confirmar(entregado_por=request.user)
 
         messages.success(request, f"SAL confirmada: {sal.numero}")
 
+    except DocumentoInventario.DoesNotExist:
+        messages.error(request, "SAL no encontrada.")
     except (ValidationError, PermissionDenied) as e:
         messages.error(request, str(e))
     except Exception as e:

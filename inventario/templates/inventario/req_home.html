@@ -1,70 +1,616 @@
-  <!doctype html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>REQ - Telecable Almacén</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'inventario/scan.css' %}">
-  </head>
-  <body>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitar Material | Telecable</title>
 
-    {% if messages %}
-      <div style="margin-top:12px;">
-        {% for message in messages %}
-          <p>{{ message }}</p>
-        {% endfor %}
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0f1220;
+      --panel:#161a2b;
+      --panel2:#1b2035;
+      --line:rgba(255,255,255,.08);
+      --muted:rgba(255,255,255,.62);
+      --text:#fff;
+      --accent:#4facfe;
+      --accent2:#00f2fe;
+      --danger:#ff4757;
+      --success:#2ed573;
+      --primaryGrad:linear-gradient(45deg,#FF512F 0%,#DD2476 100%);
+      --glass:rgba(255,255,255,.04);
+      --shadow:0 14px 40px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Poppins',sans-serif;
+      background:
+        radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0/26px 26px,
+        linear-gradient(180deg,#0f1220 0%, #0b0e18 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      overflow:hidden;
+    }
+
+    .sidebar{
+      width:260px;
+      background:rgba(10,12,22,.55);
+      backdrop-filter: blur(10px);
+      border-right:1px solid var(--line);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+      padding:12px;
+      border-radius:16px;
+      background:var(--glass);
+      border:1px solid var(--line);
+      margin-bottom:6px;
+    }
+    .brand img{
+      width:42px;height:42px;border-radius:12px;
+      background:#fff;object-fit:contain;padding:4px;
+    }
+    .brand .t1{font-weight:800;letter-spacing:.6px}
+    .brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .menu{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+    .menu a{
+      display:flex;align-items:center;gap:12px;
+      text-decoration:none;
+      color:rgba(255,255,255,.70);
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid transparent;
+      transition:.2s ease;
+    }
+    .menu a i{font-size:20px}
+    .menu a:hover{
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      border-color:rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+    .menu a.active{
+      background:var(--primaryGrad);
+      color:#fff;
+      box-shadow:0 10px 24px rgba(221,36,118,.25);
+    }
+    .logout{
+      margin-top:auto;
+      border:1px solid rgba(255,71,87,.25) !important;
+      color:rgba(255,71,87,.95) !important;
+    }
+    .logout:hover{
+      background:rgba(255,71,87,.10) !important;
+      color:#fff !important;
+    }
+
+    .main{flex:1;padding:24px;overflow:auto;}
+    .topbar{
+      display:flex;align-items:flex-start;justify-content:space-between;
+      gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    }
+    .title h1{font-size:26px;font-weight:750;letter-spacing:.2px}
+    .title p{color:var(--muted);font-size:13px;margin-top:4px}
+    .userpill{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 14px;border-radius:999px;
+      background:var(--glass);
+      border:1px solid var(--line);
+    }
+    .userpill i{font-size:20px;color:#ff6b6b}
+
+    .wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;}
+
+    .card{
+      background:rgba(22,26,43,.76);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:16px 16px 12px 16px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;flex-wrap:wrap;
+    }
+    .card .hd h2{
+      font-size:15px;font-weight:700;
+      display:flex;align-items:center;gap:10px;
+    }
+    .card .hd h2 i{color:var(--accent)}
+    .card .bd{padding:16px}
+
+    .msg{
+      padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(79,172,254,.22);
+      background:rgba(79,172,254,.10);
+      color:#cfe8ff;margin-bottom:10px;font-size:13px;
+    }
+    .msg.err{
+      border-color:rgba(255,71,87,.22);
+      background:rgba(255,71,87,.08);
+      color:#ffd0d5;
+    }
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;}
+    .input{
+      flex:1;min-width:220px;padding:12px 14px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:#fff;outline:none;
+    }
+    .input:focus{border-color:rgba(79,172,254,.55); box-shadow:0 0 0 4px rgba(79,172,254,.10)}
+    .btn{
+      padding:12px 14px;border-radius:14px;border:0;cursor:pointer;
+      font-weight:700;color:#fff;
+      background:linear-gradient(45deg,var(--accent) 0%, var(--accent2) 100%);
+      transition:.2s ease;
+      display:inline-flex;align-items:center;gap:10px;
+      text-decoration:none;white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
+    .btn.primary{background:var(--primaryGrad)}
+    .btn.ghost{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color:#fff;
+    }
+    .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none !important; filter:none !important;}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+    .p{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;padding:14px;
+      display:flex;flex-direction:column;gap:10px;min-height:150px;
+    }
+    .p .name{font-weight:750}
+    .p .code{font-size:12px;color:var(--muted)}
+    .p .meta{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);
+    }
+    .badge{
+      padding:5px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      font-weight:700;color:#fff;
+    }
+    .badge.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.08); color:#d9ffe8;}
+    .badge.low{border-color:rgba(255,165,2,.25); background:rgba(255,165,2,.08); color:#ffe7c7;}
+    .badge.zero{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.08); color:#ffd0d5;}
+
+    .qtyrow{display:flex;gap:8px;align-items:center;}
+    .qty{
+      width:92px;padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:#fff;outline:none;
+    }
+
+    .list{display:flex;flex-direction:column;gap:10px;}
+    .li{
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+      padding:12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    .li .left{min-width:0}
+    .li .left b{display:block}
+    .li .left span{font-size:12px;color:var(--muted)}
+    .li .right{font-weight:800}
+    .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
+    .foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+
+    @media (max-width: 1020px){
+      body{overflow:auto}
+      .wrap{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .main{padding:16px}
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <div>
+        <div class="t1">TELECABLE</div>
+        <div class="t2">Técnico · Requerimientos</div>
       </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>🧾 REQ (Borrador) - {{ ubicacion }}</h2>
-      <p class="muted">Escanea productos (o escribe el código) y presiona Enter. Esto funciona como carrito.</p>
-
-      <!-- Input de escaneo -->
-      <form method="post" action="{% url 'req_scan_add' %}">
-        {% csrf_token %}
-        <input type="hidden" name="ubicacion_id" value="{{ ubicacion.id }}">
-
-        <div class="row">
-          <input id="scanInput" name="code" placeholder="Escanea o escribe código..."
-                autocomplete="off" autofocus />
-          <button type="submit">Agregar</button>
-        </div>
-
-        <div class="muted" style="margin-top:8px;">
-          Tip: acepta <b>barcode</b> (ONU alfanumérico) o <b>TC-ALM-000001</b>.
-        </div>
-      </form>
-
-      {% if error %}
-        <p class="error">⚠ {{ error }}</p>
-      {% endif %}
-
-      <hr>
-
-      <!-- Items / carrito -->
-      <h3>Items</h3>
-      <ul>
-        {% for it in items %}
-          <li style="display:flex; justify-content:space-between; gap:12px;">
-            <span><b>{{ it.producto.nombre }}</b> <span class="muted">({{ it.producto.codigo_interno }})</span></span>
-            <span><b>x{{ it.cantidad }}</b></span>
-          </li>
-        {% empty %}
-          <li class="muted">Sin ítems.</li>
-        {% endfor %}
-      </ul>
-
-      <hr>
-
-      <!-- Enviar REQ -->
-      <form method="post" action="{% url 'req_enviar' req.id %}">
-        {% csrf_token %}
-        <button type="submit">Enviar REQ</button>
-      </form>
     </div>
 
-    <script src="{% static 'inventario/scan.js' %}"></script>
-  </body>
-  </html>
+    <nav class="menu">
+      <a href="{% url 'tecnico_dashboard' %}">
+        <i class='bx bxs-dashboard'></i> Panel Técnico
+      </a>
+      <a class="active" href="{% url 'req_home' %}">
+        <i class='bx bx-plus-circle'></i> Solicitar Material
+      </a>
+      <a href="{% url 'tecnico_mis_reqs' %}">
+        <i class='bx bx-history'></i> Mis Requerimientos
+      </a>
+      <a href="{% url 'tecnico_mis_entregas' %}">
+        <i class='bx bx-package'></i> Mis Entregas
+      </a>
+      <a href="{% url 'scan' %}">
+        <i class='bx bx-scan'></i> Escanear
+      </a>
+
+      <a class="logout" href="{% url 'logout' %}">
+        <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="title">
+        <h1>Solicitar Material</h1>
+        <p>
+          Carrito REQ (Borrador){% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
+          {% if sede %} · Sede: <b style="color:#fff">{{ sede.nombre }}</b>{% endif %}
+        </p>
+      </div>
+
+      <div class="userpill">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ request.user.username }}</span>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="wrap">
+      <!-- LEFT -->
+      <section class="card">
+        <div class="hd">
+          <h2><i class='bx bx-store'></i> Materiales disponibles</h2>
+          <span class="muted">Selecciona producto y cantidad</span>
+        </div>
+
+        <div class="bd">
+          <form id="catalogSearchForm" class="row" style="margin-bottom:12px;">
+            <input id="catalogQuery" class="input" name="q" placeholder="Buscar por nombre o código...">
+            <button class="btn ghost" type="submit"><i class='bx bx-search'></i> Buscar</button>
+          </form>
+
+          <div id="catalogMsg" class="msg" style="display:none;"></div>
+
+          <div id="catalogGrid" class="grid">
+            <div class="msg">Cargando catálogo por sede...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <aside class="card">
+        <div class="hd">
+          <h2><i class='bx bx-basket'></i> Carrito</h2>
+          <span class="muted">REQ borrador</span>
+        </div>
+        <div class="bd">
+          <div id="cartList" class="list">
+            {% for it in items %}
+              <div class="li">
+                <div class="left">
+                  <b>{{ it.producto.nombre }}</b>
+                  <span>
+                    {% if it.producto.codigo_interno %}{{ it.producto.codigo_interno }}{% endif %}
+                    {% if it.producto.codigo %} · {{ it.producto.codigo }}{% endif %}
+                  </span>
+                </div>
+                <div class="right">x{{ it.cantidad }}</div>
+              </div>
+            {% empty %}
+              <div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>
+            {% endfor %}
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="foot">
+            <div class="muted" style="font-size:12px;">
+              Al enviar, pasa a <b>PENDIENTE</b> y Almacén podrá atenderlo.
+            </div>
+
+            {% if req %}
+              <form method="post" action="{% url 'req_enviar' req.id %}">
+                {% csrf_token %}
+                <button class="btn primary" type="submit">
+                  <i class='bx bx-send'></i> Enviar REQ
+                </button>
+              </form>
+            {% else %}
+              <a class="btn ghost" href="{% url 'req_home' %}">
+                <i class='bx bx-refresh'></i> Recargar
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const URL_CATALOGO = "{% url 'req_catalogo' %}";
+    const URL_ADD_PRODUCTO = "{% url 'req_add_producto' %}";
+    const URL_CARRITO = "{% url 'req_carrito' %}";
+    const URL_SET_QTY = "{% url 'req_set_qty' %}";
+    const URL_REMOVE_PRODUCTO = "{% url 'req_remove_producto' %}";
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return "";
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    function escapeHtml(str){
+      return (str || "").replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    const gridEl = document.getElementById("catalogGrid");
+    const msgEl = document.getElementById("catalogMsg");
+    const formEl = document.getElementById("catalogSearchForm");
+    const qEl = document.getElementById("catalogQuery");
+
+    const cartListEl = document.getElementById("cartList");
+
+    function showMsg(text, isError=false){
+      msgEl.style.display = "block";
+      msgEl.className = isError ? "msg err" : "msg";
+      msgEl.textContent = text;
+    }
+    function hideMsg(){
+      msgEl.style.display = "none";
+      msgEl.textContent = "";
+    }
+
+    function badge(disponible){
+      if (disponible <= 0) return `<span class="badge zero">0</span>`;
+      if (disponible <= 10) return `<span class="badge low">${disponible}</span>`;
+      return `<span class="badge ok">${disponible}</span>`;
+    }
+
+    function renderCatalog(items){
+      if (!items || items.length === 0){
+        gridEl.innerHTML = `<div class="msg err">No hay stock disponible en tu sede (o no coincide la búsqueda).</div>`;
+        return;
+      }
+
+      gridEl.innerHTML = items.map(p => {
+        const nombre = escapeHtml(p.nombre);
+        const codigo = escapeHtml(p.codigo || "");
+        const disp = Number(p.disponible || 0);
+
+        return `
+          <div class="p">
+            <div>
+              <div class="name">${nombre}</div>
+              <div class="code">${codigo ? codigo : ""}</div>
+            </div>
+
+            <div class="meta">
+              <span class="muted">Disponible:</span>
+              ${badge(disp)}
+            </div>
+
+            <form class="qtyrow" data-action="add-producto">
+              <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
+              <input type="hidden" name="producto_id" value="${p.producto_id}">
+              <input class="qty" type="number" name="cantidad" min="1" step="1" value="1" ${disp<=0 ? "disabled" : ""}>
+              <button class="btn" type="submit" ${disp<=0 ? "disabled" : ""}>
+                <i class='bx bx-cart-add'></i> Agregar
+              </button>
+            </form>
+
+            <div class="muted" style="font-size:12px;">
+              * El stock se descuenta cuando Almacén confirma la SAL.
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadCatalog(q=""){
+      hideMsg();
+      gridEl.innerHTML = `<div class="msg">Cargando catálogo...</div>`;
+
+      const url = new URL(URL_CATALOGO, window.location.origin);
+      if (q) url.searchParams.set("q", q);
+
+      try{
+        const res = await fetch(url.toString(), { headers: { "Accept":"application/json" }});
+        const data = await res.json();
+
+        if (!res.ok || !data.ok){
+          renderCatalog([]);
+          showMsg(data && data.error ? data.error : "No se pudo cargar el catálogo.", true);
+          return;
+        }
+
+        renderCatalog(data.results || []);
+      }catch(e){
+        renderCatalog([]);
+        showMsg("Error de red al cargar el catálogo.", true);
+      }
+    }
+
+    function renderCart(items){
+      if (!items || items.length === 0){
+        cartListEl.innerHTML = `<div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>`;
+        return;
+      }
+
+      cartListEl.innerHTML = items.map(it => `
+        <div class="li" data-producto-id="${it.producto_id}">
+          <div class="left">
+            <b>${escapeHtml(it.nombre)}</b>
+            <span>${escapeHtml(it.codigo || "")}</span>
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input class="qty cart-qty"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="${Number(it.cantidad || 1)}"
+                  style="width:82px;">
+            <button class="btn ghost cart-remove" type="button" title="Quitar">
+              ✕
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function postForm(url, payloadObj){
+      const fd = new FormData();
+      for (const [k,v] of Object.entries(payloadObj)) fd.append(k, String(v));
+      fd.append("csrfmiddlewaretoken", csrftoken);
+
+      return fetch(url, {
+        method: "POST",
+        body: fd,
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+    }
+
+    // Debounce por producto (para no spamear requests al tipear)
+    const qtyTimers = new Map();
+
+    cartListEl.addEventListener("input", (ev) => {
+      const inp = ev.target;
+      if (!inp.classList.contains("cart-qty")) return;
+
+      const li = inp.closest(".li");
+      const productoId = li?.dataset?.productoId;
+      if (!productoId) return;
+
+      const val = Number(inp.value || 0);
+
+      // debounce 350ms
+      if (qtyTimers.has(productoId)) clearTimeout(qtyTimers.get(productoId));
+      qtyTimers.set(productoId, setTimeout(async () => {
+        if (val <= 0) return;
+
+        try{
+          const res = await postForm(URL_SET_QTY, { producto_id: productoId, cantidad: val });
+          const data = await res.json();
+
+          if (!res.ok || !data.ok){
+            showMsg(data?.error || "No se pudo actualizar cantidad.", true);
+            await refreshCart(); // volver al valor real
+            return;
+          }
+
+          hideMsg();
+          await refreshCart();
+        }catch(e){
+          showMsg("Error de red al actualizar cantidad.", true);
+          await refreshCart();
+        }
+      }, 350));
+    });
+
+cartListEl.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest(".cart-remove");
+  if (!btn) return;
+
+  const li = btn.closest(".li");
+  const productoId = li?.dataset?.productoId;
+  if (!productoId) return;
+
+  try{
+    const res = await postForm(URL_REMOVE_PRODUCTO, { producto_id: productoId });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok){
+      showMsg(data?.error || "No se pudo quitar el item.", true);
+      return;
+    }
+
+    hideMsg();
+    await refreshCart();
+  }catch(e){
+    showMsg("Error de red al quitar item.", true);
+  }
+});
+
+
+
+    async function refreshCart(){
+      try{
+        const res = await fetch(URL_CARRITO, { headers: { "Accept":"application/json" }});
+        const data = await res.json();
+        if (!res.ok || !data.ok) return;
+        renderCart(data.items || []);
+      }catch(e){}
+    }
+
+    // Buscar catálogo sin recargar
+    formEl.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      loadCatalog((qEl.value || "").trim());
+    });
+
+    // ✅ Interceptar "Agregar" del catálogo sin recargar
+    document.addEventListener("submit", async (ev) => {
+      const form = ev.target;
+      if (!form.classList.contains("qtyrow")) return;
+      if (form.dataset.action !== "add-producto") return;
+
+      ev.preventDefault();
+
+      const fd = new FormData(form);
+
+      try{
+        const res = await fetch(URL_ADD_PRODUCTO, {
+          method: "POST",
+          body: fd,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data || !data.ok){
+          // opcional: mostrar error arriba
+          if (data && data.error) showMsg(data.error, true);
+          return;
+        }
+
+        // ✅ backend ya devuelve items actualizados
+        renderCart(data.items || []);
+      }catch(e){}
+    });
+
+    // Inicial
+    loadCatalog("");
+    refreshCart();
+  </script>
+</body>
+</html>
