@@ -1,46 +1,117 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F, Sum, Q  # <--- IMPORTANTE: Q es necesario para la lógica
+from django.db.models import F, Sum, Q
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from django.contrib import messages # <--- IMPORTANTE PARA LAS NOTIFICACIONES
 
-# Importamos los modelos
 from inventario.models import (
-    DocumentoInventario,
-    EstadoDocumento,
-    MovimientoInventario,
-    Stock,
-    TipoDocumento,
-    UserProfile,
-    Sede,
-    Producto,
-    Categoria
+    DocumentoInventario, EstadoDocumento, MovimientoInventario,
+    Stock, TipoDocumento, UserProfile, Sede, Producto, Categoria
 )
 
-# --------------------
-# HELPERS
-# --------------------
+# --- HELPERS ---
 def _require_roles(user, *roles):
-    """Verifica permisos de rol del usuario."""
     profile = getattr(user, "profile", None)
-    if not profile:
-        raise PermissionDenied("Usuario sin perfil (UserProfile).")
-    if profile.rol not in roles:
-        raise PermissionDenied("No tienes permisos para esta acción.")
+    if not profile: raise PermissionDenied("Usuario sin perfil.")
+    if profile.rol not in roles: raise PermissionDenied("No tienes permisos.")
     return profile
 
 def _require_sede(profile: UserProfile):
-    """Verifica que el usuario tenga sede asignada."""
     sede = profile.get_sede_operativa()
-    if not sede:
-        raise PermissionDenied("No tienes sede operativa asignada.")
+    if not sede: raise PermissionDenied("No tienes sede operativa asignada.")
     return sede
 
-# --------------------
-# VISTAS DASHBOARD
-# --------------------
+# --- DASHBOARD ADMIN ---
+@login_required
+def dash_admin(request):
+    """Dashboard con Filtro de Sedes Permitidas"""
+    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
+    
+    # 1. OBTENER SOLO LAS SEDES PERMITIDAS DEL PERFIL
+    # Esto asegura que AAALANDA solo vea Huancayo, y admin_almacen vea las 3.
+    sedes_disponibles = profile.sedes_permitidas.all().order_by('id')
+    
+    # Si por alguna razón la lista está vacía, usamos su sede principal como fallback
+    if not sedes_disponibles.exists():
+        sedes_disponibles = Sede.objects.filter(id=profile.sede_principal.id)
+
+    # 2. DETERMINAR LA SEDE ACTIVA
+    sede_id_param = request.GET.get('sede_id')
+    sede = profile.get_sede_operativa() # Por defecto, la sede actual del usuario
+
+    if sede_id_param:
+        try:
+            sede_solicitada = Sede.objects.get(id=sede_id_param)
+            
+            # VERIFICACIÓN DE SEGURIDAD: ¿El usuario tiene permiso para esta sede?
+            if sede_solicitada in sedes_disponibles:
+                sede = sede_solicitada
+            else:
+                # Si intenta entrar a una sede no permitida, lanzamos error y nos quedamos en la actual
+                messages.error(request, f"⛔ Acceso Denegado: No tienes permisos para ver la sede {sede_solicitada.nombre}.")
+        except Sede.DoesNotExist:
+            pass
+    
+    # 3. CÁLCULOS (Usando la 'sede' validada)
+    total_equipos = Stock.objects.filter(sede=sede).aggregate(total=Sum("cantidad"))["total"] or 0
+    total_cables = Stock.objects.filter(sede=sede, producto__nombre__icontains="cable").aggregate(total=Sum("cantidad"))["total"] or 0
+    
+    low_stock = Stock.objects.filter(sede=sede, producto__activo=True).filter(
+        Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo")) |
+        Q(producto__stock_minimo=0, cantidad__lte=5)
+    ).count()
+
+    ult_movs = MovimientoInventario.objects.filter(sede=sede).select_related("producto", "sede").order_by("-creado_en")[:10]
+    
+    return render(request, "inventario/dash_admin.html", {
+        "profile": profile, "sede": sede, 
+        "sedes": sedes_disponibles, # Enviamos solo las permitidas al HTML
+        "total_equipos": total_equipos, "total_cables": total_cables, 
+        "low_stock": low_stock, "ult_movs": ult_movs, "user": request.user,
+    })
+
+# --- INVENTARIO LIST (Misma lógica de seguridad) ---
+@login_required
+def inventory_list(request):
+    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA, UserProfile.Rol.ALMACEN)
+    
+    # 1. Filtrar sedes permitidas
+    if profile.rol in [UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA]:
+        sedes_disponibles = profile.sedes_permitidas.all().order_by('id')
+        if not sedes_disponibles.exists():
+             sedes_disponibles = Sede.objects.filter(id=profile.sede_principal.id)
+    else:
+        sedes_disponibles = [profile.get_sede_operativa()]
+
+    # 2. Validar cambio de sede
+    sede_id_param = request.GET.get('sede_id')
+    sede_actual = profile.get_sede_operativa()
+    
+    if sede_id_param and profile.rol in [UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA]:
+        try:
+            sede_solicitada = Sede.objects.get(id=sede_id_param)
+            # Verificación de permiso
+            if sede_solicitada in sedes_disponibles:
+                sede_actual = sede_solicitada
+            else:
+                messages.error(request, f"⛔ No tienes acceso a {sede_solicitada.nombre}")
+        except Sede.DoesNotExist:
+            pass 
+
+    stocks = Stock.objects.filter(sede=sede_actual).select_related("producto", "producto__categoria").order_by("producto__nombre")
+    query = (request.GET.get("q") or "").strip()
+    if query: stocks = stocks.filter(producto__nombre__icontains=query)
+    
+    return render(request, "inventario/inventory_list.html", {
+        "profile": profile, "sede_actual": sede_actual, "sedes": sedes_disponibles, "stocks": stocks, "query": query,
+    })
+
+# ... (El resto de funciones: dashboard_redirect, dash_almacen, dash_solicitante, 
+# update_stock_simple, get_product_by_code, add_stock_simple, create_product_simple 
+# SE MANTIENEN IGUAL QUE EN TU VERSIÓN ANTERIOR) ...
 @login_required
 def dashboard_redirect(request):
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
@@ -49,71 +120,17 @@ def dashboard_redirect(request):
     return redirect("dash_admin")
 
 @login_required
-def dash_admin(request):
-    """Dashboard Principal con selector de Sede"""
-    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
-    
-    # 1. Lógica para cambiar de Sede (Igual que en inventory_list)
-    sedes_disponibles = Sede.objects.all().order_by('id')
-    sede_id_param = request.GET.get('sede_id')
-    
-    # Por defecto usamos la sede del usuario
-    sede = profile.get_sede_operativa()
-    
-    # Si selecciona otra pestaña, cambiamos la sede activa
-    if sede_id_param:
-        try:
-            sede = Sede.objects.get(id=sede_id_param)
-        except Sede.DoesNotExist:
-            pass
-    
-    # 2. Cálculos (Se hacen sobre la 'sede' seleccionada arriba)
-    total_equipos = Stock.objects.filter(sede=sede).aggregate(total=Sum("cantidad"))["total"] or 0
-    total_cables = Stock.objects.filter(sede=sede, producto__nombre__icontains="cable").aggregate(total=Sum("cantidad"))["total"] or 0
-    
-    # Stock Bajo Inteligente
-    low_stock = Stock.objects.filter(sede=sede, producto__activo=True).filter(
-        Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo")) |
-        Q(producto__stock_minimo=0, cantidad__lte=5)
-    ).count()
-
-    # Movimientos
-    ult_movs = MovimientoInventario.objects.filter(sede=sede).select_related("producto", "sede").order_by("-creado_en")[:10]
-    
-    return render(request, "inventario/dash_admin.html", {
-        "profile": profile, 
-        "sede": sede, # Sede activa
-        "sedes": sedes_disponibles, # Lista para las pestañas
-        "total_equipos": total_equipos,
-        "total_cables": total_cables, 
-        "low_stock": low_stock, 
-        "ult_movs": ult_movs, 
-        "user": request.user,
-    })
-
-@login_required
 def dash_almacen(request):
     profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
     sede = _require_sede(profile)
     hoy = timezone.localdate()
-    
     req_pendientes = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, estado=EstadoDocumento.REQ_PENDIENTE, sede=sede).count()
     sal_hoy = DocumentoInventario.objects.filter(tipo=TipoDocumento.SAL, estado=EstadoDocumento.CONFIRMADO, sede=sede, fecha__date=hoy).count()
     ing_pendientes = DocumentoInventario.objects.filter(tipo=TipoDocumento.ING, estado=EstadoDocumento.BORRADOR, sede=sede).count()
-    
-    # Misma lógica inteligente para almacén
-    stock_bajo = Stock.objects.filter(sede=sede, producto__activo=True).filter(
-        Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo")) |
-        Q(producto__stock_minimo=0, cantidad__lte=5)
-    ).count()
-    
+    stock_bajo = Stock.objects.filter(sede=sede, producto__activo=True).filter(Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo")) | Q(producto__stock_minimo=0, cantidad__lte=5)).count()
     ult_movs = MovimientoInventario.objects.filter(sede=sede).select_related("producto", "sede").order_by("-creado_en")[:12]
     ult_reqs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, estado=EstadoDocumento.REQ_PENDIENTE, sede=sede).select_related("responsable").order_by("-fecha")[:10]
-    
-    return render(request, "inventario/dash_almacen.html", {
-        "profile": profile, "sede": sede, "req_pendientes": req_pendientes, "sal_hoy": sal_hoy,
-        "ing_pendientes": ing_pendientes, "stock_bajo": stock_bajo, "ult_movs": ult_movs, "ult_reqs": ult_reqs,
-    })
+    return render(request, "inventario/dash_almacen.html", {"profile": profile, "sede": sede, "req_pendientes": req_pendientes, "sal_hoy": sal_hoy, "ing_pendientes": ing_pendientes, "stock_bajo": stock_bajo, "ult_movs": ult_movs, "ult_reqs": ult_reqs})
 
 @login_required
 def dash_solicitante(request):
@@ -121,22 +138,6 @@ def dash_solicitante(request):
     sede = _require_sede(profile)
     mis_reqs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, responsable=request.user).order_by("-fecha")[:12]
     return render(request, "inventario/dash_solicitante.html", {"profile": profile, "sede": sede, "mis_reqs": mis_reqs})
-
-@login_required
-def inventory_list(request):
-    profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA, UserProfile.Rol.ALMACEN)
-    sedes_disponibles = Sede.objects.all().order_by('id') if profile.rol in [UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA] else [profile.get_sede_operativa()]
-    sede_id_param = request.GET.get('sede_id')
-    sede_actual = profile.get_sede_operativa()
-    if sede_id_param and profile.rol in [UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA]:
-        try: sede_actual = Sede.objects.get(id=sede_id_param)
-        except Sede.DoesNotExist: pass 
-    stocks = Stock.objects.filter(sede=sede_actual).select_related("producto", "producto__categoria").order_by("producto__nombre")
-    query = (request.GET.get("q") or "").strip()
-    if query: stocks = stocks.filter(producto__nombre__icontains=query)
-    return render(request, "inventario/inventory_list.html", {
-        "profile": profile, "sede_actual": sede_actual, "sedes": sedes_disponibles, "stocks": stocks, "query": query,
-    })
 
 @require_POST
 @login_required
@@ -147,7 +148,6 @@ def update_stock_simple(request):
         stock.save()
     return redirect(f"/dashboard/inventario/?sede_id={request.POST.get('sede_id_redirect')}")
 
-# --- ESCÁNER ---
 @login_required
 def get_product_by_code(request):
     codigo = request.GET.get('codigo', '').strip().upper()

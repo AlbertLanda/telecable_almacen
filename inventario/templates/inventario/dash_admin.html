@@ -8,6 +8,7 @@
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     :root{ --bg: #0b0f1a; --bg2: #0f172a; --panel: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.10); --text: rgba(255,255,255,0.92); --muted: rgba(255,255,255,0.62); --accent: #4facfe; --accent2: #00d4ff; --danger: #ff4757; --success: #2ed573; --radius: 18px; --shadow: 0 18px 45px rgba(0,0,0,0.45); }
@@ -26,7 +27,7 @@
     .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; }
     .user-pill { display:flex; align-items:center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
 
-    /* ESTILOS PARA LAS PESTAÑAS (NUEVO) */
+    /* PESTAÑAS DINÁMICAS */
     .tabs-container { margin-bottom: 20px; display: flex; gap: 10px; }
     .tab-btn { padding: 10px 20px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; transition: 0.2s; border: 1px solid var(--border); }
     .tab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
@@ -62,7 +63,8 @@
   <aside class="sidebar">
     <div class="brand">
       <img src="{% static 'inventario/img/logo.png' %}" alt="Logo" onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
-      <div class="title"><b>TELECABLE</b><span>Admin · Almacén</span></div>
+      <div class="title"><b>TELECABLE</b>
+      <span>Admin·Almacén</span></div>
     </div>
     <nav class="menu">
       <a href="{% url 'dash_admin' %}" class="menu-btn active"><i class='bx bxs-dashboard'></i> <span>Dashboard</span></a>
@@ -83,6 +85,8 @@
             <a href="?sede_id={{ s.id }}" class="tab-btn {% if s.id == sede.id %}active{% endif %}">
                 {{ s.nombre }}
             </a>
+        {% empty %}
+            <a href="#" class="tab-btn active">{{ sede.nombre }}</a>
         {% endfor %}
     </div>
 
@@ -168,6 +172,22 @@
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } } }
         });
+
+        // ALERTA DE ACCESO DENEGADO SI EL BACKEND LO ENVÍA
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Acceso Denegado',
+                        text: '{{ message }}',
+                        background: '#131a28',
+                        color: '#fff',
+                        confirmButtonColor: '#4facfe'
+                    });
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     </script>
   </main>
 </body>
