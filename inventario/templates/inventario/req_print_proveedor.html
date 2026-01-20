@@ -1,0 +1,300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>REQ Proveedor - {{ req.numero }}</title>
+  <style>
+    :root{
+      --ink:#111827;
+      --muted:#6b7280;
+      --line:#d1d5db;
+      --soft:#f3f4f6;
+      --brand:#0b3a78;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      color:var(--ink);
+      background:#fff;
+    }
+    .page{
+      width:210mm;
+      min-height:297mm;
+      margin:0 auto;
+      padding:14mm 12mm;
+    }
+
+    /* Header */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:2px solid var(--brand);
+      padding-bottom:10px;
+      margin-bottom:12px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      min-width:260px;
+    }
+    .brand .logo{
+      width:44px; height:44px; border-radius:10px;
+      border:1px solid var(--line);
+      object-fit:contain; padding:4px;
+    }
+    .brand .name{
+      line-height:1.15;
+    }
+    .brand .name b{ display:block; font-size:14px; letter-spacing:.4px; }
+    .brand .name span{ display:block; font-size:12px; color:var(--muted); }
+
+    .doc-title{
+      text-align:right;
+    }
+    .doc-title h1{
+      margin:0;
+      font-size:16px;
+      letter-spacing:.4px;
+    }
+    .doc-title .sub{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* Info blocks */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .box{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+    }
+    .box h3{
+      margin:0 0 8px 0;
+      font-size:12px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      color:var(--brand);
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap:6px 10px;
+      font-size:12px;
+    }
+    .k{ color:var(--muted); }
+    .v{ font-weight:600; }
+
+    /* Table */
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      margin-top:10px;
+    }
+    thead th{
+      background:var(--soft);
+      border:1px solid var(--line);
+      padding:8px;
+      text-align:left;
+      font-size:11px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+    }
+    tbody td{
+      border:1px solid var(--line);
+      padding:8px;
+      vertical-align:top;
+    }
+    .num{ text-align:right; white-space:nowrap; }
+    .center{ text-align:center; }
+
+    /* Footer / signatures */
+    .footer{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .sig{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      height:86px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+    }
+    .sig .line{
+      border-top:1px solid var(--line);
+      padding-top:6px;
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .notes{
+      margin-top:10px;
+      border:1px dashed var(--line);
+      border-radius:10px;
+      padding:10px;
+      font-size:12px;
+      color:var(--ink);
+    }
+    .notes b{ color:var(--brand); }
+
+    /* Print */
+    .actions{
+      width:210mm;
+      margin:10px auto 0;
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    .btn{
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+      font-size:12px;
+    }
+    .btn.primary{
+      background:var(--brand);
+      color:#fff;
+      border-color:var(--brand);
+    }
+    @media print{
+      .actions{ display:none; }
+      .page{ padding:10mm; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="actions">
+    <button class="btn" onclick="history.back()">Volver</button>
+    <button class="btn primary" onclick="window.print()">Imprimir</button>
+  </div>
+
+  <div class="page">
+    <div class="top">
+      <div class="brand">
+        <img class="logo" src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+             onerror="this.style.display='none'">
+        <div class="name">
+          <b>TELECABLE</b>
+          <span>Requerimiento a Proveedor</span>
+        </div>
+      </div>
+
+      <div class="doc-title">
+        <h1>REQ PROVEEDOR</h1>
+        <div class="sub">
+          N°: <b>{{ req.numero|default:"(sin número)" }}</b> &nbsp;|&nbsp;
+          Fecha: <b>{{ req.fecha|date:"d/m/Y H:i" }}</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Datos del solicitante</h3>
+        <div class="kv">
+          <div class="k">Solicitante</div>
+          <div class="v">
+            {% if req.responsable.get_full_name %}
+              {{ req.responsable.get_full_name }}
+            {% else %}
+              {{ req.responsable.username }}
+            {% endif %}
+          </div>
+
+          <div class="k">Sede</div>
+          <div class="v">{{ req.sede.nombre }}</div>
+
+          <div class="k">Ubicación</div>
+          <div class="v">{{ req.ubicacion|default:"-" }}</div>
+
+          <div class="k">Centro de costo</div>
+          <div class="v">{{ req.centro_costo|default:"-" }}</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Proveedor</h3>
+        <div class="kv">
+          <div class="k">Tipo</div>
+          <div class="v">PROVEEDOR</div>
+
+          <div class="k">Proveedor</div>
+          <div class="v">______________________________</div>
+
+          <div class="k">Contacto</div>
+          <div class="v">______________________________</div>
+
+          <div class="k">Fecha requerida</div>
+          <div class="v">____ / ____ / ______</div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:14%">Código</th>
+          <th>Descripción</th>
+          <th style="width:10%" class="center">Unidad</th>
+          <th style="width:10%" class="num">Cantidad</th>
+          <th style="width:26%">Observación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.producto.codigo_interno|default:"-" }}</td>
+          <td><b>{{ it.producto.nombre }}</b></td>
+          <td class="center">{{ it.producto.unidad|default:"UND" }}</td>
+          <td class="num">{{ it.cantidad }}</td>
+          <td>{{ it.observacion|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="center" style="color:var(--muted); padding:14px;">
+            No hay ítems en este requerimiento.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="num" style="font-weight:800;">TOTAL</td>
+          <td class="num" style="font-weight:800;">{{ total_cantidad }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="notes">
+      <b>Observaciones generales:</b><br>
+      {{ req.observaciones|default:"-" }}
+    </div>
+
+    <div class="footer">
+      <div class="sig"><div class="line">Solicitante</div></div>
+      <div class="sig"><div class="line">Aprobación</div></div>
+      <div class="sig"><div class="line">Recepción / Conformidad</div></div>
+    </div>
+  </div>
+</body>
+</html>

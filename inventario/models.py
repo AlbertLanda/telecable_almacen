@@ -108,7 +108,8 @@ class Producto(TimeStampedModel):
     # Código externo: puede ser EAN/UPC o serial alfanumérico
     barcode = models.CharField(max_length=32, unique=True, null=True, blank=True)
 
-    unidad = models.CharField(max_length=20, default="UND")  # UND, M, CAJA, etc.
+    # UND, M, CAJA, etc.
+    unidad = models.CharField(max_length=20, default="UND")
 
     # costo único por producto (catálogo)
     costo_unitario = models.DecimalField(
@@ -140,6 +141,11 @@ class Producto(TimeStampedModel):
     def __str__(self):
         ci = self.codigo_interno or "SIN-COD"
         return f"{self.nombre} ({ci})"
+
+    # ✅ Para compatibilidad con templates que usan producto.unidad_medida
+    @property
+    def unidad_medida(self):
+        return self.unidad
 
     def clean(self):
         # Barcode: permitir alfanumérico con guiones, sin espacios
@@ -292,12 +298,10 @@ class MovimientoInventario(TimeStampedModel):
 
         if self.tipo == self.TIPO_IN:
             stock.cantidad += self.qty
-
         elif self.tipo == self.TIPO_OUT:
             stock.cantidad -= self.qty
             if stock.cantidad < 0:
                 raise ValidationError("No hay stock suficiente para esta salida.")
-
         elif self.tipo == self.TIPO_ADJ:
             stock.cantidad += self.qty
 
@@ -390,7 +394,6 @@ class ItemSerializado(TimeStampedModel):
 # Documentos: REQ/SAL/ING/MER
 # ==========================
 
-
 class TipoDocumento(models.TextChoices):
     REQ = "REQ", "Requerimiento"
     SAL = "SAL", "Salida"
@@ -408,6 +411,12 @@ class EstadoDocumento(models.TextChoices):
     BORRADOR = "BORRADOR", "Borrador"
     CONFIRMADO = "CONFIRMADO", "Confirmado"
     ANULADO = "ANULADO", "Anulado"
+
+
+# ✅ AQUÍ VA (afuera del modelo, para poder importarlo como inventario.models.TipoRequerimiento)
+class TipoRequerimiento(models.TextChoices):
+    PROVEEDOR = "PROVEEDOR", "Proveedor"
+    ENTRE_SEDES = "ENTRE_SEDES", "Entre sedes"
 
 
 class Correlativo(models.Model):
@@ -492,6 +501,13 @@ class DocumentoInventario(models.Model):
         blank=True,
     )
     recibido_en = models.DateTimeField(null=True, blank=True)
+
+    # ✅ ESTE CAMPO YA USA EL ENUM CORRECTO (importable)
+    tipo_requerimiento = models.CharField(
+        max_length=20,
+        choices=TipoRequerimiento.choices,
+        default=TipoRequerimiento.ENTRE_SEDES,
+    )
 
     class Meta:
         ordering = ["-fecha"]

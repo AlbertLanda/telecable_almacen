@@ -146,7 +146,7 @@
     .topbar{
       display:flex;
       justify-content:space-between;
-      align-items:center;
+      align-items:flex-start;
       gap: 12px;
       flex-wrap:wrap;
       margin-bottom: 18px;
@@ -174,9 +174,53 @@
       border: 1px solid rgba(255,255,255,0.10);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      height: fit-content;
     }
     .user-pill i{ font-size: 20px; color: var(--accent2); }
     .user-pill span{ color: rgba(255,255,255,0.88); font-weight: 600; font-size: 13px; }
+
+    /* Sede selector */
+    .sede-form{
+      margin-top: 10px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .select{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
+      outline: none;
+    }
+    .select option{ color:#111; } /* para que en algunos browsers se lea bien */
+    .btn-mini{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.92);
+      cursor:pointer;
+      font-weight: 700;
+    }
+    .btn-mini:hover{ filter: brightness(1.08); }
+
+    .msg{
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(79,172,254,0.22);
+      background: rgba(79,172,254,0.10);
+      color: #cfe8ff;
+      font-size: 13px;
+    }
+    .msg.err{
+      border-color: rgba(255,71,87,0.22);
+      background: rgba(255,71,87,0.08);
+      color: #ffd0d5;
+    }
 
     /* CARDS */
     .grid{
@@ -315,6 +359,7 @@
     }
     .tag.in{ color: var(--success); border-color: rgba(46,213,115,0.25); }
     .tag.out{ color: var(--danger); border-color: rgba(255,71,87,0.25); }
+    .tag.adj{ color: #ffd36b; border-color: rgba(255,211,107,0.25); }
 
     /* RESPONSIVE */
     @media (max-width: 1100px){
@@ -351,7 +396,8 @@
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo Telecable" onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo Telecable"
+           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
       <div class="title">
         <b>TELECABLE</b>
         <span>Admin · Almacén</span>
@@ -363,7 +409,6 @@
         <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
       </a>
 
-      {# OJO: esto requiere que exista la ruta inventory_list en urls.py #}
       <a href="{% url 'inventory_list' %}" class="menu-btn">
         <i class='bx bx-box'></i> <span>Inventario</span>
       </a>
@@ -386,8 +431,34 @@
     <header class="topbar">
       <div>
         <h2>Panel de Administración</h2>
-        <p>Sede operativa: <b style="color:rgba(255,255,255,0.92);">{{ sede.nombre }}</b></p>
+
+        <p>
+          Sede operativa:
+          <b style="color:rgba(255,255,255,0.92);">{{ sede.nombre }}</b>
+        </p>
+
+        {# ✅ Selector de sedes (solo si el backend manda "sedes") #}
+        {% if sedes %}
+          <form class="sede-form" method="get" action="{% url 'dash_admin' %}">
+            <select class="select" name="sede_id">
+              {% for s in sedes %}
+                <option value="{{ s.id }}" {% if sede and s.id == sede.id %}selected{% endif %}>
+                  {{ s.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+            <button class="btn-mini" type="submit">Cambiar</button>
+          </form>
+        {% endif %}
+
+        {# ✅ Mensajes (por ejemplo: “no tienes acceso a esa sede”) #}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
       </div>
+
       <div class="user-pill">
         <i class='bx bxs-user-circle'></i>
         <span>{{ user.username }}</span>
@@ -422,7 +493,7 @@
           <a class="btn scan" href="{% url 'scan' %}">
             <i class='bx bx-scan'></i> Escanear
           </a>
-          <a class="btn inv" href="{% url 'inventory_list' %}">
+          <a class="btn inv" href="{% url 'inventory_list' %}{% if sede %}?sede_id={{ sede.id }}{% endif %}">
             <i class='bx bx-list-ul'></i> Ver inventario
           </a>
         </div>
@@ -455,13 +526,15 @@
               <tr>
                 <td>{{ mov.producto.nombre }}</td>
                 <td>
-                  {% if mov.tipo_movimiento == 'ENTRADA' %}
+                  {% if mov.tipo == 'IN' %}
                     <span class="tag in"><i class='bx bx-up-arrow-alt'></i> IN</span>
-                  {% else %}
+                  {% elif mov.tipo == 'OUT' %}
                     <span class="tag out"><i class='bx bx-down-arrow-alt'></i> OUT</span>
+                  {% else %}
+                    <span class="tag adj"><i class='bx bx-transfer-alt'></i> ADJ</span>
                   {% endif %}
                 </td>
-                <td>{{ mov.cantidad }}</td>
+                <td>{{ mov.qty }}</td>
               </tr>
             {% empty %}
               <tr>
@@ -480,38 +553,30 @@
     {{ low_stock|default:0|json_script:"lowStock" }}
 
     <script>
-        const totalEquipos = JSON.parse(
-            document.getElementById('totalEquipos').textContent
-        );
+      const totalEquipos = JSON.parse(document.getElementById('totalEquipos').textContent);
+      const totalCables = JSON.parse(document.getElementById('totalCables').textContent);
+      const lowStock = JSON.parse(document.getElementById('lowStock').textContent);
 
-        const totalCables = JSON.parse(
-            document.getElementById('totalCables').textContent
-        );
+      const ctx = document.getElementById('inventoryChart').getContext('2d');
 
-        const lowStock = JSON.parse(
-            document.getElementById('lowStock').textContent
-        );
-
-        const ctx = document.getElementById('inventoryChart').getContext('2d');
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-            labels: ['Total equipos', 'Metros cable', 'Stock bajo'],
-            datasets: [{
-                data: [totalEquipos, totalCables, lowStock],
-                backgroundColor: [
-                'rgba(0,212,255,0.7)',
-                'rgba(0,102,204,0.7)',
-                'rgba(255,71,87,0.7)'
-                ]
-            }]
-            },
-            options: {
-            responsive: true,
-            maintainAspectRatio: false
-            }
-        });
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Total equipos', 'Metros cable', 'Stock bajo'],
+          datasets: [{
+            data: [totalEquipos, totalCables, lowStock],
+            backgroundColor: [
+              'rgba(0,212,255,0.7)',
+              'rgba(0,102,204,0.7)',
+              'rgba(255,71,87,0.7)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
     </script>
 
   </main>

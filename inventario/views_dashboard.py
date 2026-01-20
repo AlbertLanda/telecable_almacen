@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import F, Sum
-from django.shortcuts import redirect, render
+from django.db.models import F, Sum, Q
+from django.http import JsonResponse
+from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+from inventario.models import Sede
 
 from inventario.models import (
     DocumentoInventario,
@@ -11,6 +17,9 @@ from inventario.models import (
     Stock,
     TipoDocumento,
     UserProfile,
+    Sede,
+    Producto,
+    Categoria,
 )
 
 # --------------------
@@ -24,16 +33,62 @@ def _require_roles(user, *roles):
         raise PermissionDenied("No tienes permisos para esta acción.")
     return profile
 
-
 def _require_sede(profile: UserProfile):
     sede = profile.get_sede_operativa()
     if not sede:
         raise PermissionDenied("No tienes sede operativa asignada.")
     return sede
 
+def _sedes_disponibles_para_admin(profile: UserProfile):
+    """
+    Para ADMIN/JEFA: devolver sedes permitidas (si existen).
+    Fallback seguro:
+      - sede operativa si existe
+      - si no, todas (especialmente útil para JEFA / casos raros)
+    """
+    qs = profile.sedes_permitidas.all().order_by("id")
+
+    if qs.exists():
+        return qs
+
+    sede_op = profile.get_sede_operativa()
+    if sede_op:
+        return Sede.objects.filter(id=sede_op.id).order_by("id")
+
+    # último fallback (no debería pasar si profile bien configurado)
+    return Sede.objects.all().order_by("id")
+
+def _resolve_sede_activa(request, profile: UserProfile, sedes_disponibles):
+    """
+    Decide la sede activa:
+    - por defecto: profile.get_sede_operativa()
+    - si viene ?sede_id= y está dentro de sedes_disponibles => usarla
+    """
+    sede = profile.get_sede_operativa()
+    sede_id_param = request.GET.get("sede_id")
+
+    if sede_id_param:
+        try:
+            sede_solicitada = Sede.objects.get(id=sede_id_param)
+            if sede_solicitada in sedes_disponibles:
+                sede = sede_solicitada
+            else:
+                messages.error(
+                    request,
+                    f"⛔ Acceso Denegado: No tienes permisos para ver la sede {sede_solicitada.nombre}.",
+                )
+        except Sede.DoesNotExist:
+            pass
+
+    # si por algún motivo sede quedó None, usamos la primera disponible
+    if not sede and hasattr(sedes_disponibles, "first"):
+        sede = sedes_disponibles.first()
+
+    return sede
+
 
 # --------------------
-# VISTAS
+# REDIRECT POR ROL
 # --------------------
 @login_required
 def dashboard_redirect(request):
@@ -52,16 +107,18 @@ def dashboard_redirect(request):
     return redirect("dash_admin")
 
 
+# --------------------
+# DASH ADMIN (ADMIN/JEFA)
+# --------------------
 @login_required
 def dash_admin(request):
-    """Dashboard principal para Administradores y Jefes."""
     profile = _require_roles(request.user, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
-    sede = _require_sede(profile)
+
+    sedes_disponibles = _sedes_disponibles_para_admin(profile)
+    sede = _resolve_sede_activa(request, profile, sedes_disponibles)
 
     # 1) Total equipos (sum de stock)
-    total_equipos = (
-        Stock.objects.filter(sede=sede).aggregate(total=Sum("cantidad"))["total"] or 0
-    )
+    total_equipos = Stock.objects.filter(sede=sede).aggregate(total=Sum("cantidad"))["total"] or 0
 
     # 2) Cables (por nombre contiene "cable")
     total_cables = (
@@ -70,17 +127,20 @@ def dash_admin(request):
         or 0
     )
 
-    # 3) Stock bajo
-    low_stock = Stock.objects.filter(
-        sede=sede,
-        producto__activo=True,
-        cantidad__lt=F("producto__stock_minimo"),
-    ).count()
+    # 3) Stock bajo (regla como la de Diego: stock_minimo>0 vs default <=5)
+    low_stock = (
+        Stock.objects.filter(sede=sede, producto__activo=True)
+        .filter(
+            Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
+            | Q(producto__stock_minimo=0, cantidad__lte=5)
+        )
+        .count()
+    )
 
-    # 4) Últimos movimientos (ojo: sin "usuario" si tu modelo no lo tiene como FK)
+    # 4) Últimos movimientos
     ult_movs = (
         MovimientoInventario.objects.filter(sede=sede)
-        .select_related("producto")
+        .select_related("producto", "sede")
         .order_by("-creado_en")[:10]
     )
 
@@ -90,6 +150,7 @@ def dash_admin(request):
         {
             "profile": profile,
             "sede": sede,
+            "sedes": sedes_disponibles,  # 👈 para el combo
             "total_equipos": total_equipos,
             "total_cables": total_cables,
             "low_stock": low_stock,
@@ -99,12 +160,58 @@ def dash_admin(request):
     )
 
 
+# --------------------
+# INVENTORY LIST (ADMIN/JEFA/ALMACEN)
+# --------------------
+@login_required
+def inventory_list(request):
+    profile = _require_roles(
+        request.user,
+        UserProfile.Rol.ADMIN,
+        UserProfile.Rol.JEFA,
+        UserProfile.Rol.ALMACEN,
+    )
+
+    # sedes disponibles según rol
+    if profile.rol in (UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA):
+        sedes_disponibles = _sedes_disponibles_para_admin(profile)
+        sede_actual = _resolve_sede_activa(request, profile, sedes_disponibles)
+    else:
+        sede_actual = _require_sede(profile)
+        sedes_disponibles = [sede_actual]  # para que el template no reviente si lo usa
+
+    stocks = (
+        Stock.objects.filter(sede=sede_actual)
+        .select_related("producto", "producto__categoria")
+        .order_by("producto__nombre")
+    )
+
+    query = (request.GET.get("q") or "").strip()
+    if query:
+        stocks = stocks.filter(producto__nombre__icontains=query)
+
+    return render(
+        request,
+        "inventario/inventory_list.html",
+        {
+            "profile": profile,
+            "sede_actual": sede_actual,
+            "sedes": sedes_disponibles,
+            "stocks": stocks,
+            "query": query,
+        },
+    )
+
+
+# --------------------
+# DASH ALMACEN (ALMACEN/JEFA)
+# --------------------
 @login_required
 def dash_almacen(request):
     profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
     sede = _require_sede(profile)
-
     hoy = timezone.localdate()
+    sedes_central = Sede.objects.filter(tipo=Sede.CENTRAL, activo=True).order_by("nombre")
 
     req_pendientes = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.REQ,
@@ -125,16 +232,18 @@ def dash_almacen(request):
         sede=sede,
     ).count()
 
-    stock_bajo = Stock.objects.filter(
-        sede=sede,
-        producto__activo=True,
-        producto__stock_minimo__gt=0,
-        cantidad__lt=F("producto__stock_minimo"),
-    ).count()
+    stock_bajo = (
+        Stock.objects.filter(sede=sede, producto__activo=True)
+        .filter(
+            Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
+            | Q(producto__stock_minimo=0, cantidad__lte=5)
+        )
+        .count()
+    )
 
     ult_movs = (
         MovimientoInventario.objects.filter(sede=sede)
-        .select_related("producto")
+        .select_related("producto", "sede")
         .order_by("-creado_en")[:12]
     )
 
@@ -160,10 +269,14 @@ def dash_almacen(request):
             "stock_bajo": stock_bajo,
             "ult_movs": ult_movs,
             "ult_reqs": ult_reqs,
+            "sedes_central": sedes_central,
         },
     )
 
 
+# --------------------
+# DASH SOLICITANTE (SOLICITANTE/JEFA)
+# --------------------
 @login_required
 def dash_solicitante(request):
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
@@ -180,45 +293,111 @@ def dash_solicitante(request):
     return render(
         request,
         "inventario/dash_solicitante.html",
-        {
-            "profile": profile,
-            "sede": sede,
-            "mis_reqs": mis_reqs,
-        },
+        {"profile": profile, "sede": sede, "mis_reqs": mis_reqs},
     )
+
+
+# --------------------
+# ENDPOINTS SIMPLES (SI LOS USAS EN TU UI)
+# --------------------
+@require_POST
+@login_required
+def update_stock_simple(request):
+    stock = get_object_or_404(Stock, id=request.POST.get("stock_id"))
+
+    cantidad_raw = request.POST.get("cantidad", "").strip()
+    if cantidad_raw:
+        stock.cantidad = int(cantidad_raw)
+        stock.save(update_fields=["cantidad"])
+
+    sede_id_redirect = request.POST.get("sede_id_redirect")
+    if sede_id_redirect:
+        return redirect(f"/dashboard/inventario/?sede_id={sede_id_redirect}")
+
+    return redirect("inventory_list")
 
 
 @login_required
-def inventory_list(request):
-    """
-    Inventario con el mismo diseño.
-    Roles: ADMIN / JEFA / ALMACEN
-    """
-    profile = _require_roles(
-        request.user,
-        UserProfile.Rol.ADMIN,
-        UserProfile.Rol.JEFA,
-        UserProfile.Rol.ALMACEN,
-    )
-    sede = _require_sede(profile)
+def get_product_by_code(request):
+    codigo = request.GET.get("codigo", "").strip().upper()
+    sede_id = request.GET.get("sede_id")
 
-    stocks = (
-        Stock.objects.filter(sede=sede)
-        .select_related("producto")
-        .order_by("producto__nombre")
-    )
+    if not codigo or not sede_id:
+        return JsonResponse({"found": False, "error": "Faltan datos"})
 
-    query = (request.GET.get("q") or "").strip()
-    if query:
-        stocks = stocks.filter(producto__nombre__icontains=query)
+    try:
+        stock = Stock.objects.select_related("producto").get(
+            sede_id=sede_id,
+            producto__codigo_interno=codigo,
+        )
+        return JsonResponse(
+            {
+                "found": True,
+                "type": "existente",
+                "stock_id": stock.id,
+                "nombre": stock.producto.nombre,
+                "cantidad_actual": stock.cantidad,
+                "medida": stock.producto.unidad,
+            }
+        )
+    except Stock.DoesNotExist:
+        try:
+            prod = Producto.objects.get(codigo_interno=codigo)
+            return JsonResponse(
+                {
+                    "found": True,
+                    "type": "nuevo_en_sede",
+                    "producto_id": prod.id,
+                    "nombre": prod.nombre,
+                    "cantidad_actual": 0,
+                    "medida": prod.unidad,
+                }
+            )
+        except Producto.DoesNotExist:
+            return JsonResponse({"found": False, "code_searched": codigo})
 
-    return render(
-        request,
-        "inventario/inventory_list.html",
-        {
-            "profile": profile,
-            "sede": sede,
-            "stocks": stocks,
-            "query": query,
+
+@require_POST
+@login_required
+def add_stock_simple(request):
+    prod = get_object_or_404(Producto, id=request.POST.get("producto_id"))
+    sede = get_object_or_404(Sede, id=request.POST.get("target_sede_id"))
+
+    stock, _ = Stock.objects.get_or_create(sede=sede, producto=prod, defaults={"cantidad": 0})
+    stock.cantidad += int(request.POST.get("cantidad", 0) or 0)
+    stock.save(update_fields=["cantidad"])
+
+    if request.POST.get("origen") == "scan":
+        return redirect("scan")
+
+    return redirect(f"/dashboard/inventario/?sede_id={sede.id}")
+
+
+@require_POST
+@login_required
+def create_product_simple(request):
+    cat = get_object_or_404(Categoria, id=request.POST.get("categoria_id"))
+
+    codigo = (request.POST.get("codigo") or "").strip().upper()
+    nombre = (request.POST.get("nombre") or "").strip().upper()
+    unidad = (request.POST.get("unidad_medida") or "UND").strip().upper()
+
+    prod, _ = Producto.objects.get_or_create(
+        codigo_interno=codigo,
+        defaults={
+            "nombre": nombre,
+            "categoria": cat,
+            "unidad": unidad,
+            "activo": True,
+            "stock_minimo": 5,
         },
     )
+
+    sede = get_object_or_404(Sede, id=(request.POST.get("target_sede_id") or request.POST.get("sede_id_redirect")))
+    Stock.objects.get_or_create(
+        sede=sede,
+        producto=prod,
+        defaults={"cantidad": int(request.POST.get("cantidad", 0) or 0)},
+    )
+
+    return redirect("scan")

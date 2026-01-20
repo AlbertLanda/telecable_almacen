@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* --- MISMOS ESTILOS QUE EL DASHBOARD --- */
     :root {
       --bg-body: #1e1e2e;
       --bg-sidebar: #181824;
@@ -25,58 +24,85 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-    /* SIDEBAR */
     .sidebar { width: 260px; background-color: var(--bg-sidebar); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
     .brand { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .brand img { width: 50px; height: 50px; object-fit: contain; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 10px; }
     .brand span { font-size: 18px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
-    
+
     .menu-btn { background: transparent; border: none; width: 100%; padding: 16px 20px; text-align: left; color: var(--text-muted); font-size: 14px; cursor: pointer; border-radius: 12px; display: flex; align-items: center; gap: 15px; transition: all 0.3s ease; margin-bottom: 8px; text-decoration: none; font-weight: 500;}
     .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
     .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4); }
     .logout-btn { margin-top: auto; color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.2); }
 
-    /* MAIN CONTENT */
     .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-    
-    .header-page { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+
+    .header-page { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
     .header-page h2 { font-size: 28px; font-weight: 600; }
 
-    /* BUSCADOR */
-    .search-bar { background: var(--bg-panel); display: flex; align-items: center; padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 400px; }
+    .search-bar { background: var(--bg-panel); display: flex; align-items: center; padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 420px; }
     .search-bar input { background: transparent; border: none; color: white; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
     .search-bar i { color: var(--text-muted); }
 
-    /* TABLA */
+    .filters { margin-top: 10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .select {
+      background: var(--bg-panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .select option { color: #111; }
+    .btn-mini{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
     .table-container { background: var(--bg-panel); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; }
     td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; vertical-align: middle; }
     tr:hover td { background: rgba(255,255,255,0.02); }
 
-    /* BADGES */
     .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .bg-ok { background: rgba(46, 213, 115, 0.15); color: #2ed573; }
     .bg-low { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
-    
-    /* BOTON EDITAR (Opcional) */
-    .btn-icon { color: var(--text-muted); font-size: 18px; cursor: pointer; transition: 0.3s; }
-    .btn-icon:hover { color: white; }
+
+    .msg{
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(79,172,254,0.22);
+      background: rgba(79,172,254,0.10);
+      color: #cfe8ff;
+      font-size: 13px;
+    }
+    .msg.err{
+      border-color: rgba(255,71,87,0.22);
+      background: rgba(255,71,87,0.08);
+      color: #ffd0d5;
+    }
   </style>
 </head>
 <body>
 
   <div class="sidebar">
     <div class="brand">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s" alt="Logo">
-        <span>TELECABLE</span>
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <span>TELECABLE</span>
     </div>
-    
+
     <a href="{% url 'dash_admin' %}" class="menu-btn">
       <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
     </a>
-    
-    <a href="#" class="menu-btn active">
+
+    <a href="{% url 'inventory_list' %}" class="menu-btn active">
       <i class='bx bx-box'></i> <span>Ver Inventario</span>
     </a>
 
@@ -88,72 +114,110 @@
       <i class='bx bxs-cog'></i> <span>Admin Avanzado</span>
     </a>
 
-    <a class="menu-btn logout-btn" href="/logout/">
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
       <i class='bx bx-log-out-circle'></i> <span>Salir</span>
     </a>
   </div>
 
   <div class="main-content">
-    
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
     <div class="header-page">
-        <div>
-            <h2>Inventario General</h2>
-            <p style="color: var(--text-muted);">Sede: <b>{{ sede.nombre }}</b></p>
-        </div>
-        
-        <form method="GET" class="search-bar">
-            <i class='bx bx-search'></i>
-            <input type="text" name="q" placeholder="Buscar producto..." value="{{ query }}">
-        </form>
+      <div>
+        <h2>Inventario General</h2>
+        <p style="color: var(--text-muted);">
+          Sede: <b>{{ sede_actual.nombre }}</b>
+        </p>
+
+        {# ✅ Selector de sedes permitidas #}
+        {% if sedes %}
+          <form class="filters" method="get" action="{% url 'inventory_list' %}">
+            <select class="select" name="sede_id">
+              {% for s in sedes %}
+                <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
+                  {{ s.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+
+            {# Mantener el search al cambiar sede #}
+            <input type="hidden" name="q" value="{{ query|default:'' }}">
+
+            <button class="btn-mini" type="submit">Cambiar sede</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <form method="GET" class="search-bar" action="{% url 'inventory_list' %}">
+        {# Mantener sede_id cuando buscas #}
+        {% if sede_actual %}
+          <input type="hidden" name="sede_id" value="{{ sede_actual.id }}">
+        {% endif %}
+        <i class='bx bx-search'></i>
+        <input type="text" name="q" placeholder="Buscar producto..." value="{{ query }}">
+      </form>
     </div>
 
     <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Stock Actual</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for stock in stocks %}
-                <tr>
-                    <td style="font-family: monospace; color: var(--text-muted);">{{ stock.producto.codigo }}</td>
-                    <td style="font-weight: 500; color: white;">{{ stock.producto.nombre }}</td>
-                    <td>{{ stock.producto.categoria|default:"--" }}</td>
-                    
-                    <td style="font-size: 16px;">
-                        {{ stock.cantidad }} 
-                        <span style="font-size: 12px; color: var(--text-muted);">{{ stock.producto.unidad_medida }}</span>
-                    </td>
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Stock Actual</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in stocks %}
+            <tr>
+              <td style="font-family: monospace; color: var(--text-muted);">
+                {# En tu modelo: codigo_interno / barcode #}
+                {% if stock.producto.codigo_interno %}
+                  {{ stock.producto.codigo_interno }}
+                {% elif stock.producto.barcode %}
+                  {{ stock.producto.barcode }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
 
-                    <td>
-                        {% if stock.cantidad <= stock.producto.stock_minimo %}
-                            <span class="badge bg-low">Bajo Stock</span>
-                        {% else %}
-                            <span class="badge bg-ok">Normal</span>
-                        {% endif %}
-                    </td>
-                    
-                    <td>
-                        <a href="/admin/inventario/stock/{{ stock.id }}/change/" target="_blank" class="btn-icon" title="Editar en Admin">
-                            <i class='bx bxs-edit'></i>
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px;">
-                        No se encontraron productos con ese nombre.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+              <td style="font-weight: 500; color: white;">
+                {{ stock.producto.nombre }}
+              </td>
+
+              <td>{{ stock.producto.categoria|default:"--" }}</td>
+
+              <td style="font-size: 16px;">
+                {{ stock.cantidad }}
+                <span style="font-size: 12px; color: var(--text-muted);">
+                  {{ stock.producto.unidad|default:"" }}
+                </span>
+              </td>
+
+              <td>
+                {% if stock.cantidad <= stock.producto.stock_minimo %}
+                  <span class="badge bg-low">Bajo Stock</span>
+                {% else %}
+                  <span class="badge bg-ok">Normal</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 30px;">
+                No se encontraron productos con ese nombre.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
   </div>

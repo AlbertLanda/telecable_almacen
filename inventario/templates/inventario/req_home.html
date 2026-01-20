@@ -13,7 +13,6 @@
     :root{
       --bg:#0f1220;
       --panel:#161a2b;
-      --panel2:#1b2035;
       --line:rgba(255,255,255,.08);
       --muted:rgba(255,255,255,.62);
       --text:#fff;
@@ -312,7 +311,8 @@
       <div class="title">
         <h1>Solicitar Material</h1>
         <p>
-          Carrito REQ (Borrador){% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
+          Carrito REQ (Borrador)
+          {% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
           {% if sede %} · Sede: <b style="color:#fff">{{ sede.nombre }}</b>{% endif %}
         </p>
       </div>
@@ -359,20 +359,7 @@
         </div>
         <div class="bd">
           <div id="cartList" class="list">
-            {% for it in items %}
-              <div class="li">
-                <div class="left">
-                  <b>{{ it.producto.nombre }}</b>
-                  <span>
-                    {% if it.producto.codigo_interno %}{{ it.producto.codigo_interno }}{% endif %}
-                    {% if it.producto.codigo %} · {{ it.producto.codigo }}{% endif %}
-                  </span>
-                </div>
-                <div style="font-weight:800;">x{{ it.cantidad }}</div>
-              </div>
-            {% empty %}
-              <div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>
-            {% endfor %}
+            <div class="msg">Cargando carrito...</div>
           </div>
 
           <div class="divider"></div>
@@ -588,11 +575,11 @@
 
           <div style="display:flex; gap:8px; align-items:center;">
             <input class="qty cart-qty"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value="${Number(it.cantidad || 1)}"
-                  style="width:82px;">
+                   type="number"
+                   min="1"
+                   step="1"
+                   value="${Number(it.cantidad || 1)}"
+                   style="width:82px;">
             <button class="btn ghost cart-remove" type="button" title="Quitar">
               ✕
             </button>
@@ -663,7 +650,6 @@
           return;
         }
 
-        // backend devuelve items actualizados
         renderCart(data.items || []);
         toast("Agregado al carrito ✅", "ok");
       }catch(e){
@@ -681,7 +667,7 @@
       if (!inp.classList.contains("cart-qty")) return;
 
       const li = inp.closest(".li");
-      const productoId = li?.dataset?.productoId;
+      const productoId = li?.dataset?.productoId; // data-producto-id -> dataset.productoId
       if (!productoId) return;
 
       const val = Number(inp.value || 0);
