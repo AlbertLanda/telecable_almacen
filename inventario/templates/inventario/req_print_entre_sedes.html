@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>REQ Entre Sedes - {{ req.numero }}</title>
+  <style>
+    :root{
+      --ink:#111827;
+      --muted:#6b7280;
+      --line:#d1d5db;
+      --soft:#f3f4f6;
+      --brand:#0b3a78;
+      --accent:#0ea5e9;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--ink); background:#fff; }
+    .page{ width:210mm; min-height:297mm; margin:0 auto; padding:14mm 12mm; }
+
+    .top{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      border-bottom:2px solid var(--brand);
+      padding-bottom:10px; margin-bottom:12px;
+    }
+    .brand{ display:flex; align-items:center; gap:10px; min-width:260px; }
+    .logo{
+      width:44px; height:44px; border-radius:10px;
+      border:1px solid var(--line);
+      object-fit:contain; padding:4px;
+    }
+    .brand b{ display:block; font-size:14px; letter-spacing:.4px; }
+    .brand span{ display:block; font-size:12px; color:var(--muted); margin-top:2px; }
+
+    .doc-title{ text-align:right; }
+    .doc-title h1{ margin:0; font-size:16px; letter-spacing:.4px; }
+    .doc-title .sub{ margin-top:4px; font-size:12px; color:var(--muted); }
+
+    .ribbon{
+      margin:10px 0 12px 0;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: linear-gradient(90deg, rgba(14,165,233,.10), rgba(11,58,120,.06));
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .ribbon b{ color:var(--brand); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .box{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+    }
+    .box h3{
+      margin:0 0 8px 0;
+      font-size:12px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      color:var(--brand);
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap:6px 10px;
+      font-size:12px;
+    }
+    .k{ color:var(--muted); }
+    .v{ font-weight:600; }
+
+    table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+    thead th{
+      background:var(--soft);
+      border:1px solid var(--line);
+      padding:8px;
+      text-align:left;
+      font-size:11px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+    }
+    tbody td{
+      border:1px solid var(--line);
+      padding:8px;
+      vertical-align:top;
+    }
+    .num{ text-align:right; white-space:nowrap; }
+    .center{ text-align:center; }
+
+    .footer{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:10px;
+    }
+    .sig{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      height:86px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+    }
+    .sig .line{
+      border-top:1px solid var(--line);
+      padding-top:6px;
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .actions{
+      width:210mm;
+      margin:10px auto 0;
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    .btn{
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+      font-size:12px;
+    }
+    .btn.primary{
+      background:var(--brand);
+      color:#fff;
+      border-color:var(--brand);
+    }
+    @media print{
+      .actions{ display:none; }
+      .page{ padding:10mm; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="actions">
+    <button class="btn" onclick="history.back()">Volver</button>
+    <button class="btn primary" onclick="window.print()">Imprimir</button>
+  </div>
+
+  <div class="page">
+    <div class="top">
+      <div class="brand">
+        <img class="logo" src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+             onerror="this.style.display='none'">
+        <div>
+          <b>TELECABLE</b>
+          <span>Requerimiento entre sedes</span>
+        </div>
+      </div>
+
+      <div class="doc-title">
+        <h1>REQ ENTRE SEDES</h1>
+        <div class="sub">
+          N°: <b>{{ req.numero|default:"(sin número)" }}</b> &nbsp;|&nbsp;
+          Fecha: <b>{{ req.fecha|date:"d/m/Y H:i" }}</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="ribbon">
+      <div><b>Origen:</b> {{ req.sede.nombre }}</div>
+      <div><b>Destino (Central):</b> {{ req.sede_destino.nombre|default:"(no seleccionado)" }}</div>
+      <div><b>Estado:</b> {{ req.get_estado_display }}</div>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Solicitante</h3>
+        <div class="kv">
+          <div class="k">Responsable</div>
+          <div class="v">
+            {% if req.responsable.get_full_name %}
+              {{ req.responsable.get_full_name }}
+            {% else %}
+              {{ req.responsable.username }}
+            {% endif %}
+          </div>
+
+          <div class="k">Centro de costo</div>
+          <div class="v">{{ req.centro_costo|default:"-" }}</div>
+
+          <div class="k">Ubicación</div>
+          <div class="v">{{ req.ubicacion|default:"-" }}</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>Recepción (llenado por destino)</h3>
+        <div class="kv">
+          <div class="k">Recibido</div>
+          <div class="v">{% if req.recibido %}SI{% else %}NO{% endif %}</div>
+
+          <div class="k">Recibido por</div>
+          <div class="v">
+            {% if req.recibido_por %}
+              {% if req.recibido_por.get_full_name %}{{ req.recibido_por.get_full_name }}{% else %}{{ req.recibido_por.username }}{% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+
+          <div class="k">Recibido en</div>
+          <div class="v">{% if req.recibido_en %}{{ req.recibido_en|date:"d/m/Y H:i" }}{% else %}-{% endif %}</div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:14%">Código</th>
+          <th>Descripción</th>
+          <th style="width:10%" class="center">Unidad</th>
+          <th style="width:10%" class="num">Cantidad</th>
+          <th style="width:26%">Observación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.producto.codigo_interno|default:"-" }}</td>
+          <td><b>{{ it.producto.nombre }}</b></td>
+          <td class="center">{{ it.producto.unidad|default:"UND" }}</td>
+          <td class="num">{{ it.cantidad }}</td>
+          <td>{{ it.observacion|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="center" style="color:var(--muted); padding:14px;">
+            No hay ítems en este requerimiento.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="num" style="font-weight:800;">TOTAL</td>
+          <td class="num" style="font-weight:800;">{{ total_cantidad }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div style="margin-top:10px; font-size:12px;">
+      <b style="color:var(--brand);">Observaciones generales:</b><br>
+      {{ req.observaciones|default:"-" }}
+    </div>
+
+    <div class="footer">
+      <div class="sig"><div class="line">Solicitante (Sede Origen)</div></div>
+      <div class="sig"><div class="line">Despacho (Central)</div></div>
+      <div class="sig"><div class="line">Recepción (Sede Destino)</div></div>
+    </div>
+  </div>
+</body>
+</html>

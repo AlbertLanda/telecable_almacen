@@ -13,7 +13,6 @@
     :root{
       --bg:#0f1220;
       --panel:#161a2b;
-      --panel2:#1b2035;
       --line:rgba(255,255,255,.08);
       --muted:rgba(255,255,255,.62);
       --text:#fff;
@@ -167,6 +166,11 @@
       border:1px solid rgba(255,255,255,.10);
       color:#fff;
     }
+    .btn.danger{
+      background:rgba(255,71,87,.14);
+      border:1px solid rgba(255,71,87,.28);
+      color:#fff;
+    }
     .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none !important; filter:none !important;}
 
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
@@ -210,7 +214,6 @@
     .li .left{min-width:0}
     .li .left b{display:block}
     .li .left span{font-size:12px;color:var(--muted)}
-    .li .right{font-weight:800}
     .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
     .foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
 
@@ -220,6 +223,55 @@
       .sidebar{display:none}
       .main{padding:16px}
     }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      display:flex; align-items:center; justify-content:center;
+      z-index:9999;
+    }
+    .modal{
+      width:min(420px, 92vw);
+      background:rgba(22,26,43,.92);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      box-shadow:0 18px 50px rgba(0,0,0,.45);
+      padding:16px;
+    }
+    .modal-title{font-weight:800; font-size:16px; margin-bottom:6px;}
+    .modal-text{color:rgba(255,255,255,.70); font-size:13px; line-height:1.35; margin-bottom:14px;}
+    .modal-actions{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;}
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      right:16px; bottom:16px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(22,26,43,.92);
+      color:#fff;
+      box-shadow:0 14px 40px rgba(0,0,0,.35);
+      z-index:10000;
+      font-size:13px;
+      display:none;
+      max-width:min(360px, 92vw);
+    }
+    .toast.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.12);}
+    .toast.err{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.12);}
+
+    /* Spinner */
+    .spin{
+      width:14px;height:14px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,.25);
+      border-top-color:#fff;
+      display:inline-block;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 
@@ -247,9 +299,6 @@
       <a href="{% url 'tecnico_mis_entregas' %}">
         <i class='bx bx-package'></i> Mis Entregas
       </a>
-      <a href="{% url 'scan' %}">
-        <i class='bx bx-scan'></i> Escanear
-      </a>
 
       <a class="logout" href="{% url 'logout' %}">
         <i class='bx bx-log-out-circle'></i> Cerrar Sesión
@@ -262,7 +311,8 @@
       <div class="title">
         <h1>Solicitar Material</h1>
         <p>
-          Carrito REQ (Borrador){% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
+          Carrito REQ (Borrador)
+          {% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
           {% if sede %} · Sede: <b style="color:#fff">{{ sede.nombre }}</b>{% endif %}
         </p>
       </div>
@@ -309,20 +359,7 @@
         </div>
         <div class="bd">
           <div id="cartList" class="list">
-            {% for it in items %}
-              <div class="li">
-                <div class="left">
-                  <b>{{ it.producto.nombre }}</b>
-                  <span>
-                    {% if it.producto.codigo_interno %}{{ it.producto.codigo_interno }}{% endif %}
-                    {% if it.producto.codigo %} · {{ it.producto.codigo }}{% endif %}
-                  </span>
-                </div>
-                <div class="right">x{{ it.cantidad }}</div>
-              </div>
-            {% empty %}
-              <div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>
-            {% endfor %}
+            <div class="msg">Cargando carrito...</div>
           </div>
 
           <div class="divider"></div>
@@ -350,6 +387,24 @@
     </div>
   </main>
 
+  <!-- Modal confirmación -->
+  <div id="confirmModal" class="modal-backdrop" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">Confirmar acción</div>
+      <div id="confirmText" class="modal-text">¿Seguro?</div>
+
+      <div class="modal-actions">
+        <button id="confirmCancel" class="btn ghost" type="button">Cancelar</button>
+        <button id="confirmOk" class="btn danger" type="button">
+          <i class='bx bx-trash'></i> Quitar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
   <script>
     const URL_CATALOGO = "{% url 'req_catalogo' %}";
     const URL_ADD_PRODUCTO = "{% url 'req_add_producto' %}";
@@ -371,11 +426,46 @@
       }[m]));
     }
 
+    // Toast
+    const toastEl = document.getElementById("toast");
+    let toastTimer = null;
+    function toast(text, type="ok"){
+      toastEl.className = `toast ${type}`;
+      toastEl.textContent = text || "";
+      toastEl.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.style.display = "none", 2200);
+    }
+
+    // Modal
+    const modalEl = document.getElementById("confirmModal");
+    const confirmTextEl = document.getElementById("confirmText");
+    const btnCancel = document.getElementById("confirmCancel");
+    const btnOk = document.getElementById("confirmOk");
+    let modalResolve = null;
+
+    function confirmModal(text){
+      return new Promise((resolve) => {
+        modalResolve = resolve;
+        confirmTextEl.textContent = text || "¿Seguro?";
+        modalEl.style.display = "flex";
+      });
+    }
+    function closeModal(result){
+      modalEl.style.display = "none";
+      if (modalResolve) modalResolve(result);
+      modalResolve = null;
+    }
+    btnCancel.addEventListener("click", () => closeModal(false));
+    btnOk.addEventListener("click", () => closeModal(true));
+    modalEl.addEventListener("click", (e) => { if (e.target === modalEl) closeModal(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalEl.style.display !== "none") closeModal(false); });
+
+    // UI refs
     const gridEl = document.getElementById("catalogGrid");
     const msgEl = document.getElementById("catalogMsg");
     const formEl = document.getElementById("catalogSearchForm");
     const qEl = document.getElementById("catalogQuery");
-
     const cartListEl = document.getElementById("cartList");
 
     function showMsg(text, isError=false){
@@ -392,6 +482,18 @@
       if (disponible <= 0) return `<span class="badge zero">0</span>`;
       if (disponible <= 10) return `<span class="badge low">${disponible}</span>`;
       return `<span class="badge ok">${disponible}</span>`;
+    }
+
+    function setBtnLoading(btn, loading){
+      if (!btn) return;
+      if (loading){
+        btn.dataset._old = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spin"></span> Procesando...`;
+      }else{
+        btn.disabled = false;
+        if (btn.dataset._old) btn.innerHTML = btn.dataset._old;
+      }
     }
 
     function renderCatalog(items){
@@ -473,17 +575,21 @@
 
           <div style="display:flex; gap:8px; align-items:center;">
             <input class="qty cart-qty"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value="${Number(it.cantidad || 1)}"
-                  style="width:82px;">
+                   type="number"
+                   min="1"
+                   step="1"
+                   value="${Number(it.cantidad || 1)}"
+                   style="width:82px;">
             <button class="btn ghost cart-remove" type="button" title="Quitar">
               ✕
             </button>
           </div>
         </div>
       `).join("");
+    }
+
+    async function safeJson(res){
+      try { return await res.json(); } catch(e){ return null; }
     }
 
     function postForm(url, payloadObj){
@@ -494,78 +600,17 @@
       return fetch(url, {
         method: "POST",
         body: fd,
-        headers: { "X-Requested-With": "XMLHttpRequest" },
+        headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
       });
     }
 
-    // Debounce por producto (para no spamear requests al tipear)
-    const qtyTimers = new Map();
-
-    cartListEl.addEventListener("input", (ev) => {
-      const inp = ev.target;
-      if (!inp.classList.contains("cart-qty")) return;
-
-      const li = inp.closest(".li");
-      const productoId = li?.dataset?.productoId;
-      if (!productoId) return;
-
-      const val = Number(inp.value || 0);
-
-      // debounce 350ms
-      if (qtyTimers.has(productoId)) clearTimeout(qtyTimers.get(productoId));
-      qtyTimers.set(productoId, setTimeout(async () => {
-        if (val <= 0) return;
-
-        try{
-          const res = await postForm(URL_SET_QTY, { producto_id: productoId, cantidad: val });
-          const data = await res.json();
-
-          if (!res.ok || !data.ok){
-            showMsg(data?.error || "No se pudo actualizar cantidad.", true);
-            await refreshCart(); // volver al valor real
-            return;
-          }
-
-          hideMsg();
-          await refreshCart();
-        }catch(e){
-          showMsg("Error de red al actualizar cantidad.", true);
-          await refreshCart();
-        }
-      }, 350));
-    });
-
-cartListEl.addEventListener("click", async (ev) => {
-  const btn = ev.target.closest(".cart-remove");
-  if (!btn) return;
-
-  const li = btn.closest(".li");
-  const productoId = li?.dataset?.productoId;
-  if (!productoId) return;
-
-  try{
-    const res = await postForm(URL_REMOVE_PRODUCTO, { producto_id: productoId });
-    const data = await res.json();
-
-    if (!res.ok || !data.ok){
-      showMsg(data?.error || "No se pudo quitar el item.", true);
-      return;
-    }
-
-    hideMsg();
-    await refreshCart();
-  }catch(e){
-    showMsg("Error de red al quitar item.", true);
-  }
-});
-
-
-
     async function refreshCart(){
       try{
-        const res = await fetch(URL_CARRITO, { headers: { "Accept":"application/json" }});
-        const data = await res.json();
-        if (!res.ok || !data.ok) return;
+        const res = await fetch(URL_CARRITO, {
+          headers: { "Accept":"application/json", "X-Requested-With":"XMLHttpRequest" }
+        });
+        const data = await safeJson(res);
+        if (!res.ok || !data || !data.ok) return;
         renderCart(data.items || []);
       }catch(e){}
     }
@@ -576,7 +621,7 @@ cartListEl.addEventListener("click", async (ev) => {
       loadCatalog((qEl.value || "").trim());
     });
 
-    // ✅ Interceptar "Agregar" del catálogo sin recargar
+    // Agregar desde catálogo (sin recargar + toast)
     document.addEventListener("submit", async (ev) => {
       const form = ev.target;
       if (!form.classList.contains("qtyrow")) return;
@@ -584,28 +629,108 @@ cartListEl.addEventListener("click", async (ev) => {
 
       ev.preventDefault();
 
+      const btn = form.querySelector("button[type='submit']");
+      setBtnLoading(btn, true);
+
       const fd = new FormData(form);
 
       try{
         const res = await fetch(URL_ADD_PRODUCTO, {
           method: "POST",
           body: fd,
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-          },
+          headers: { "X-Requested-With": "XMLHttpRequest", "Accept":"application/json" },
         });
 
-        const data = await res.json().catch(() => null);
+        const data = await safeJson(res);
 
         if (!res.ok || !data || !data.ok){
-          // opcional: mostrar error arriba
-          if (data && data.error) showMsg(data.error, true);
+          const err = (data && data.error) ? data.error : "No se pudo agregar.";
+          toast(err, "err");
+          setBtnLoading(btn, false);
           return;
         }
 
-        // ✅ backend ya devuelve items actualizados
         renderCart(data.items || []);
-      }catch(e){}
+        toast("Agregado al carrito ✅", "ok");
+      }catch(e){
+        toast("Error de red al agregar.", "err");
+      }finally{
+        setBtnLoading(btn, false);
+      }
+    });
+
+    // Debounce por producto para set qty
+    const qtyTimers = new Map();
+
+    cartListEl.addEventListener("input", (ev) => {
+      const inp = ev.target;
+      if (!inp.classList.contains("cart-qty")) return;
+
+      const li = inp.closest(".li");
+      const productoId = li?.dataset?.productoId; // data-producto-id -> dataset.productoId
+      if (!productoId) return;
+
+      const val = Number(inp.value || 0);
+
+      if (qtyTimers.has(productoId)) clearTimeout(qtyTimers.get(productoId));
+      qtyTimers.set(productoId, setTimeout(async () => {
+        if (val <= 0){
+          toast("Cantidad inválida.", "err");
+          await refreshCart();
+          return;
+        }
+
+        try{
+          const res = await postForm(URL_SET_QTY, { producto_id: productoId, cantidad: val });
+          const data = await safeJson(res);
+
+          if (!res.ok || !data || !data.ok){
+            toast((data && data.error) ? data.error : "No se pudo actualizar cantidad.", "err");
+            await refreshCart();
+            return;
+          }
+
+          toast("Cantidad actualizada ✅", "ok");
+          await refreshCart();
+        }catch(e){
+          toast("Error de red al actualizar cantidad.", "err");
+          await refreshCart();
+        }
+      }, 350));
+    });
+
+    // Quitar con confirmación + toast
+    cartListEl.addEventListener("click", async (ev) => {
+      const btn = ev.target.closest(".cart-remove");
+      if (!btn) return;
+
+      const li = btn.closest(".li");
+      const productoId = li?.dataset?.productoId;
+      if (!productoId) return;
+
+      const nombre = li.querySelector(".left b")?.textContent?.trim() || "este item";
+      const ok = await confirmModal(`¿Seguro que deseas quitar "${nombre}" del carrito?`);
+      if (!ok) return;
+
+      setBtnLoading(btn, true);
+
+      try{
+        const res = await postForm(URL_REMOVE_PRODUCTO, { producto_id: productoId });
+        const data = await safeJson(res);
+
+        if (!res.ok || !data || !data.ok){
+          toast((data && data.error) ? data.error : "No se pudo quitar el item.", "err");
+          setBtnLoading(btn, false);
+          return;
+        }
+
+        toast("Item quitado 🗑️", "ok");
+        await refreshCart();
+      }catch(e){
+        toast("Error de red al quitar item.", "err");
+      }finally{
+        setBtnLoading(btn, false);
+      }
     });
 
     // Inicial

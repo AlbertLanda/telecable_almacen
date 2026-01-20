@@ -164,9 +164,6 @@
     <a href="{% url 'tecnico_mis_entregas' %}" class="menu-btn">
       <i class='bx bx-package'></i> Mis Entregas
     </a>
-    <a href="{% url 'scan' %}" class="menu-btn">
-      <i class='bx bx-scan'></i> Escanear
-    </a>
 
     <a class="menu-btn logout-btn" href="{% url 'logout' %}">
       <i class='bx bx-log-out-circle'></i> Cerrar Sesión
@@ -193,7 +190,6 @@
             <th>REQ</th>
             <th>Fecha</th>
             <th>Estado</th>
-            <th>Acciones</th>
           </tr>
         </thead>
 
@@ -217,15 +213,6 @@
                 {% endif %}
               </td>
 
-              <td>
-                {% if r.estado == "REQ_BORRADOR" %}
-                  <a href="{% url 'req_home' %}" class="link-action">
-                    <i class='bx bx-edit'></i> Editar (borrador)
-                  </a>
-                {% else %}
-                  <span style="color:#9a9a9a;">—</span>
-                {% endif %}
-              </td>
             </tr>
           {% empty %}
             <tr>

@@ -2,376 +2,229 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Inventario | Telecable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* --- VARIABLES --- */
-    :root{
-      --bg: #0b0f1a;
-      --bg2: #0f172a;
-      --panel: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.10);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.62);
-      
-      --accent: #4facfe;
-      --accent2: #00d4ff;
-      
-      --danger: #ff4757;      /* Rojo para Agotado */
-      --warning: #f1c40f;     /* Amarillo para Bajo */
-      --success: #2ed573;     /* Verde para Normal */
-      
-      --radius: 18px;
+    :root {
+      --bg-body: #1e1e2e;
+      --bg-sidebar: #181824;
+      --bg-panel: #27293d;
+      --primary-grad: linear-gradient(45deg, #0066cc 0%, #00d4ff 100%);
+      --primary-solid: #00d4ff;
+      --text-main: #ffffff;
+      --text-muted: #9a9a9a;
+      --danger: #ff4757;
+      --success: #2ed573;
+      --warning: #ffa502;
     }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-    *{ margin:0; padding:0; box-sizing:border-box; }
+    .sidebar { width: 260px; background-color: var(--bg-sidebar); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
+    .brand { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .brand img { width: 50px; height: 50px; object-fit: contain; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 10px; }
+    .brand span { font-size: 18px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
 
-    body{
-      font-family: 'Poppins', sans-serif;
-      background:
-        radial-gradient(1000px 500px at 20% 0%, rgba(79,172,254,0.18), transparent 60%),
-        radial-gradient(900px 450px at 90% 10%, rgba(0,212,255,0.12), transparent 60%),
-        linear-gradient(180deg, var(--bg), var(--bg2));
-      color: var(--text);
-      display:flex;
-      height:100vh;
-      overflow:hidden;
+    .menu-btn { background: transparent; border: none; width: 100%; padding: 16px 20px; text-align: left; color: var(--text-muted); font-size: 14px; cursor: pointer; border-radius: 12px; display: flex; align-items: center; gap: 15px; transition: all 0.3s ease; margin-bottom: 8px; text-decoration: none; font-weight: 500;}
+    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
+    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4); }
+    .logout-btn { margin-top: auto; color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.2); }
+
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+
+    .header-page { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+    .header-page h2 { font-size: 28px; font-weight: 600; }
+
+    .search-bar { background: var(--bg-panel); display: flex; align-items: center; padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 420px; }
+    .search-bar input { background: transparent; border: none; color: white; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
+    .search-bar i { color: var(--text-muted); }
+
+    .filters { margin-top: 10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .select {
+      background: var(--bg-panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
     }
-
-    /* --- SIDEBAR --- */
-    .sidebar{
-      width: 270px;
-      padding: 18px;
-      background: rgba(255,255,255,0.04);
-      border-right: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(12px);
-      display:flex; flex-direction:column; gap: 10px;
-      z-index: 10;
-    }
-
-    .brand{
-      display:flex; align-items:center; gap: 12px; padding: 12px;
-      border-radius: 16px; background: rgba(255,255,255,0.05); margin-bottom: 8px;
-    }
-    .brand img{ width: 44px; border-radius: 12px; background: rgba(255,255,255,0.08); padding: 6px; }
-    .brand .title{ display:flex; flex-direction:column; line-height:1.1; }
-    .brand .title b{ letter-spacing: .6px; }
-    .brand .title span{ font-size: 12px; color: var(--muted); }
-
-    .menu-btn{
-      width: 100%; display:flex; align-items:center; gap: 12px;
-      text-decoration:none; color: var(--muted); padding: 12px 14px;
-      border-radius: 14px; border: 1px solid transparent;
-      transition: all .2s ease;
-    }
-    .menu-btn:hover{ background: rgba(255,255,255,0.06); color: var(--text); transform: translateY(-1px); }
-    
-    .menu-btn.active{
-      background: linear-gradient(135deg, rgba(79,172,254,0.22), rgba(0,212,255,0.12));
-      border-color: rgba(79,172,254,0.22); color: var(--text);
-    }
-
-    .menu-btn.danger{ margin-top:auto; color: rgba(255,255,255,0.90); background: rgba(255,71,87,0.10); }
-
-    /* --- MAIN --- */
-    .main{ flex:1; padding: 26px; overflow-y:auto; }
-
-    .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; }
-    .topbar h2{ font-size: 26px; font-weight: 700; }
-    .topbar p{ color: var(--muted); margin-top: 4px; font-size: 13px; }
-
-    .user-pill{
-      display:flex; align-items:center; gap: 10px; padding: 10px 14px;
-      border-radius: 999px; background: rgba(255,255,255,0.06);
+    .select option { color: #111; }
+    .btn-mini{
+      background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.10);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:700;
     }
 
-    /* --- CONTROLES --- */
-    .controls-container {
-        background: var(--panel); border: 1px solid var(--border);
-        border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
-        display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
-    }
+    .table-container { background: var(--bg-panel); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; }
+    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
 
-    .tabs { display: flex; gap: 8px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px; }
-    .tab-link {
-        padding: 8px 16px; border-radius: 8px; text-decoration: none; color: var(--muted);
-        font-size: 13px; font-weight: 600; transition: all 0.2s;
-    }
-    .tab-link.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4); }
+    .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .bg-ok { background: rgba(46, 213, 115, 0.15); color: #2ed573; }
+    .bg-low { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
 
-    .actions-right { display: flex; gap: 15px; align-items: center; }
-
-    .search-box { position: relative; }
-    .search-box input {
-        background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text);
-        padding: 10px 10px 10px 38px; border-radius: 12px; outline: none; width: 240px;
+    .msg{
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(79,172,254,0.22);
+      background: rgba(79,172,254,0.10);
+      color: #cfe8ff;
+      font-size: 13px;
     }
-    .search-box input:focus { border-color: var(--accent); }
-    .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-
-    .btn-scan-add {
-        background: linear-gradient(135deg, var(--accent), var(--accent2));
-        color: white; border: none; padding: 10px 20px; border-radius: 12px;
-        font-weight: 700; font-size: 13px; cursor: pointer; text-decoration: none;
-        display: flex; align-items: center; gap: 8px;
-        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3); transition: 0.2s;
-    }
-    .btn-scan-add:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5); }
-
-    /* TABLA */
-    .card-table { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    table { width:100%; border-collapse:collapse; }
-    thead th {
-        text-align:left; font-size: 11px; text-transform: uppercase; color: rgba(255,255,255,0.70);
-        padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.10);
-    }
-    tbody td {
-        padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
-        color: rgba(255,255,255,0.86); font-size: 13px; vertical-align: middle;
-    }
-    tbody tr:hover td { background: rgba(255,255,255,0.04); }
-
-    .badge { display:inline-flex; align-items:center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; }
-    
-    .bg-ok { color: var(--success); background: rgba(46,213,115,0.15); }
-    .bg-low { color: var(--warning); background: rgba(241, 196, 15, 0.15); } 
-    .bg-critical { color: var(--danger); background: rgba(255, 71, 87, 0.15); }
-
-    .btn-icon {
-        width: 32px; height: 32px; border-radius: 10px;
-        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-        color: var(--muted); display: inline-flex; justify-content: center; align-items: center;
-        cursor: pointer; transition: 0.2s;
-    }
-    .btn-icon:hover { background: var(--accent); color: #fff; }
-
-    /* MODAL */
-    .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-        display: flex; justify-content: center; align-items: center; z-index: 100;
-        visibility: hidden; opacity: 0; transition: 0.3s;
-    }
-    .modal-overlay.open { visibility: visible; opacity: 1; }
-    .modal-card {
-        background: #131a28; border: 1px solid var(--border); width: 400px;
-        padding: 30px; border-radius: 24px; box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-        transform: scale(0.9); transition: 0.3s;
-    }
-    .modal-overlay.open .modal-card { transform: scale(1); }
-
-    .form-control { 
-        width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); 
-        color: #fff; border-radius: 12px; font-size: 16px; outline: none; margin-bottom: 15px;
-    }
-    .btn-block { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-
-    @media (max-width: 900px){
-      .sidebar{ display: none; }
-      .controls-container { flex-direction: column-reverse; align-items: stretch; }
-      .search-box input { width: 100%; }
+    .msg.err{
+      border-color: rgba(255,71,87,0.22);
+      background: rgba(255,71,87,0.08);
+      color: #ffd0d5;
     }
   </style>
 </head>
-
 <body>
 
-  <aside class="sidebar">
+  <div class="sidebar">
     <div class="brand">
-      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo" onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
-      <div class="title">
-        <b>TELECABLE</b>
-        <span>Admin · Almacén</span>
-      </div>
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
+           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
+      <span>TELECABLE</span>
     </div>
 
-    <nav class="menu">
-      <a href="{% url 'dash_admin' %}" class="menu-btn">
-        <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
-      </a>
-      <a href="#" class="menu-btn active">
-        <i class='bx bx-box'></i> <span>Inventario</span>
-      </a>
-      <a href="{% url 'scan' %}" class="menu-btn">
-        <i class='bx bx-barcode-reader'></i> <span>Escanear</span>
-      </a>
-      <a href="/admin/" class="menu-btn">
-        <i class='bx bxs-cog'></i> <span>Admin Django</span>
-      </a>
-      <a href="{% url 'logout' %}" class="menu-btn danger">
-        <i class='bx bx-log-out-circle'></i> <span>Salir</span>
-      </a>
-    </nav>
-  </aside>
+    <a href="{% url 'dash_admin' %}" class="menu-btn">
+      <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
+    </a>
 
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <h2>Gestión de Inventario</h2>
-        <p>Sede Actual: <b style="color:var(--accent2);">{{ sede_actual.nombre }}</b></p>
-      </div>
-      <div class="user-pill">
-        <i class='bx bxs-user-circle'></i>
-        <span>{{ user.username }}</span>
-      </div>
-    </header>
+    <a href="{% url 'inventory_list' %}" class="menu-btn active">
+      <i class='bx bx-box'></i> <span>Ver Inventario</span>
+    </a>
 
-    <div class="controls-container">
-        <div class="tabs">
-            {% if sedes|length > 1 %}
-                {% for s in sedes %}
-                <a href="?sede_id={{ s.id }}" class="tab-link {% if s.id == sede_actual.id %}active{% endif %}">
-                    {{ s.nombre }}
-                </a>
-                {% endfor %}
-            {% else %}
-                <span style="padding: 8px 16px; font-size:13px; color:#fff;">Vista Única</span>
-            {% endif %}
-        </div>
+    <a href="{% url 'scan' %}" class="menu-btn" style="color: var(--primary-solid);">
+      <i class='bx bx-barcode-reader'></i> <span>Escanear</span>
+    </a>
 
-        <div class="actions-right">
-            <form class="search-box">
-                <input type="hidden" name="sede_id" value="{{ sede_actual.id }}">
-                <i class='bx bx-search'></i>
-                <input type="text" name="q" placeholder="Buscar producto..." value="{{ query }}">
-            </form>
+     <a href="{% url 'usuarios_list' %}" class="menu-btn">
+    <i class='bx bxs-group'></i> <span>Usuarios</span>
+</a>
 
-            <a href="{% url 'scan' %}" class="btn-scan-add">
-                <i class='bx bx-qr-scan'></i> SCAN & ADD
-            </a>
-        </div>
-    </div>
+    <a href="/admin/" class="menu-btn">
+      <i class='bx bxs-cog'></i> <span>Admin Avanzado</span>
+    </a>
 
-    <div class="card-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Stock</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in stocks %}
-                {% with minimo_real=s.producto.stock_minimo|default:0 %}
-                {% with minimo_seguro=minimo_real|add:"0" %} {% with umbral=minimo_seguro|default:5 %} 
-                
-                <tr>
-                    <td style="font-family: monospace; color: var(--muted);">{{ s.producto.codigo_interno }}</td>
-                    
-                    <td style="font-weight: 600; color: #fff;">{{ s.producto.nombre }}</td>
-                    
-                    <td>{{ s.producto.categoria.nombre|default:"--" }}</td>
-                    
-                    <td>
-                        <span style="font-size: 1.1em; font-weight: 700;
-                            {% if s.cantidad == 0 %} color: var(--danger);
-                            {% elif s.cantidad <= umbral %} color: var(--warning);
-                            {% else %} color: var(--success); {% endif %}">
-                            {{ s.cantidad }}
-                        </span>
-                        <span style="font-size: 0.85em; color: var(--muted);">{{ s.producto.unidad }}</span>
-                        
-                        <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">
-                            (Mín: {{ umbral }})
-                        </div>
-                    </td>
-                    
-                    <td>
-                        {% if s.cantidad == 0 %}
-                            <span class="badge bg-critical">
-                                <i class='bx bxs-x-circle'></i> Agotado
-                            </span>
-                        {% elif s.cantidad <= umbral %}
-                            <span class="badge bg-low">
-                                <i class='bx bxs-error-circle'></i> Bajo
-                            </span>
-                        {% else %}
-                            <span class="badge bg-ok">
-                                <i class='bx bxs-check-circle'></i> Normal
-                            </span>
-                        {% endif %}
-                    </td>
-                    
-                    <td>
-                        <button class="btn-icon" onclick="openEditModal('{{ s.id }}', '{{ s.producto.nombre }}', '{{ s.cantidad }}')" title="Editar Manual">
-                            <i class='bx bxs-edit'></i>
-                        </button>
-                    </td>
-                </tr>
-                
-                {% endwith %}
-                {% endwith %}
-                {% endwith %}
-                
-                {% empty %}
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted);">
-                        <i class='bx bx-ghost' style="font-size: 32px; margin-bottom: 10px;"></i><br>
-                        No se encontraron productos en esta sede.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-  </main>
-
-  <div class="modal-overlay" id="editModal">
-      <div class="modal-card">
-          <h3 style="color:#fff; margin-bottom:20px; margin-top:0;">Corregir Stock</h3>
-          
-          <form action="{% url 'update_stock_simple' %}" method="POST">
-              {% csrf_token %}
-              <input type="hidden" name="stock_id" id="editStockId">
-              <input type="hidden" name="sede_id_redirect" value="{{ sede_actual.id }}">
-
-              <label style="display:block; color:var(--muted); font-size:12px; margin-bottom:5px;">PRODUCTO</label>
-              <input type="text" id="editProdName" class="form-control" disabled style="opacity: 0.6; cursor: not-allowed;">
-              
-              <label style="display:block; color:var(--muted); font-size:12px; margin-bottom:5px;">NUEVA CANTIDAD</label>
-              <input type="number" name="cantidad" id="editQty" class="form-control" required>
-
-              <div style="display:flex; gap:10px;">
-                  <button type="button" class="btn-block btn-secondary" onclick="closeModal('editModal')">Cancelar</button>
-                  <button type="submit" class="btn-block btn-primary">Guardar</button>
-              </div>
-          </form>
-      </div>
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
+      <i class='bx bx-log-out-circle'></i> <span>Salir</span>
+    </a>
   </div>
 
-  <script>
-    function openEditModal(id, name, qty) {
-        document.getElementById('editStockId').value = id;
-        document.getElementById('editProdName').value = name;
-        document.getElementById('editQty').value = qty;
-        document.getElementById('editModal').classList.add('open');
-        setTimeout(() => document.getElementById('editQty').focus(), 100);
-    }
+  <div class="main-content">
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('open');
-    }
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
 
-    window.onclick = function(event) {
-        if (event.target.classList.contains('modal-overlay')) {
-            event.target.classList.remove('open');
-        }
-    }
-  </script>
+    <div class="header-page">
+      <div>
+        <h2>Inventario General</h2>
+        <p style="color: var(--text-muted);">
+          Sede: <b>{{ sede_actual.nombre }}</b>
+        </p>
+
+        {# ✅ Selector de sedes permitidas #}
+        {% if sedes %}
+          <form class="filters" method="get" action="{% url 'inventory_list' %}">
+            <select class="select" name="sede_id">
+              {% for s in sedes %}
+                <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
+                  {{ s.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+
+            {# Mantener el search al cambiar sede #}
+            <input type="hidden" name="q" value="{{ query|default:'' }}">
+
+            <button class="btn-mini" type="submit">Cambiar sede</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <form method="GET" class="search-bar" action="{% url 'inventory_list' %}">
+        {# Mantener sede_id cuando buscas #}
+        {% if sede_actual %}
+          <input type="hidden" name="sede_id" value="{{ sede_actual.id }}">
+        {% endif %}
+        <i class='bx bx-search'></i>
+        <input type="text" name="q" placeholder="Buscar producto..." value="{{ query }}">
+      </form>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Stock Actual</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in stocks %}
+            <tr>
+              <td style="font-family: monospace; color: var(--text-muted);">
+                {# En tu modelo: codigo_interno / barcode #}
+                {% if stock.producto.codigo_interno %}
+                  {{ stock.producto.codigo_interno }}
+                {% elif stock.producto.barcode %}
+                  {{ stock.producto.barcode }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+
+              <td style="font-weight: 500; color: white;">
+                {{ stock.producto.nombre }}
+              </td>
+
+              <td>{{ stock.producto.categoria|default:"--" }}</td>
+
+              <td style="font-size: 16px;">
+                {{ stock.cantidad }}
+                <span style="font-size: 12px; color: var(--text-muted);">
+                  {{ stock.producto.unidad|default:"" }}
+                </span>
+              </td>
+
+              <td>
+                {% if stock.cantidad <= stock.producto.stock_minimo %}
+                  <span class="badge bg-low">Bajo Stock</span>
+                {% else %}
+                  <span class="badge bg-ok">Normal</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 30px;">
+                No se encontraron productos con ese nombre.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
 
 </body>
 </html>

@@ -236,15 +236,14 @@
       font-weight: 700;
     }
 
-    .table-card{
-      margin-top: 16px;
-    }
+    .table-card{ margin-top: 16px; }
     .table-head{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 12px;
       margin-bottom: 10px;
+      flex-wrap: wrap;
     }
     .table-head h4{
       font-size: 14px;
@@ -261,6 +260,7 @@
     .sub{
       font-size: 12px;
       color: var(--muted2);
+      margin-top: 4px;
     }
 
     table{
@@ -284,6 +284,7 @@
       border-bottom: 1px solid rgba(255,255,255,0.06);
       font-size: 13px;
       color: rgba(255,255,255,0.88);
+      vertical-align: middle;
     }
     tbody tr:hover td{
       background: rgba(255,255,255,0.03);
@@ -299,6 +300,15 @@
       border: 1px solid rgba(255,255,255,0.12);
       color: rgba(255,255,255,0.85);
       white-space: nowrap;
+      gap: 6px;
+    }
+    .pill.ok{
+      border-color: rgba(46,213,115,0.35);
+      background: rgba(46,213,115,0.10);
+    }
+    .pill.warn{
+      border-color: rgba(255,107,107,0.35);
+      background: rgba(255,107,107,0.10);
     }
 
     .btn{
@@ -314,9 +324,28 @@
       box-shadow: 0 12px 24px rgba(79,172,254,0.18);
       transition: transform .15s ease, filter .15s ease;
       white-space: nowrap;
+      text-decoration: none;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
     }
     .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
     .btn:active{ transform: translateY(0); filter: brightness(0.98); }
+
+    .btn.secondary{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: none;
+    }
+
+    .btn.small{ padding: 8px 10px; border-radius: 10px; font-size: 12px; }
+
+    .btnrow{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
     .charts-grid{
       display:grid;
@@ -366,6 +395,7 @@
       .grid{ grid-template-columns: 1fr; }
       .charts-grid{ grid-template-columns: 1fr; }
       .chart{ height: 360px; }
+      .btnrow{ justify-content: flex-start; }
     }
   </style>
 </head>
@@ -373,7 +403,6 @@
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <!-- Cambia este logo a tu archivo real -->
       <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
       <div class="title">
         <span>TELECABLE</span>
@@ -409,6 +438,26 @@
 
     <!-- DASHBOARD -->
     <section id="dashboard" class="section active">
+
+      <!-- ✅ OPCIÓN B: SOLO JAUJA (CENTRAL) VE ACCESO DIRECTO A REQ PROVEEDOR -->
+      {% if sede.tipo == "CENTRAL" %}
+        <div class="card" style="margin-bottom:16px;">
+          <div class="table-head" style="margin-bottom:0;">
+            <div>
+              <h4><i class='bx bxs-factory'></i> REQ a Proveedor (solo Jauja)</h4>
+              <div class="sub">
+                Desde aquí Jauja puede crear requerimientos a proveedores y luego imprimirlos.
+              </div>
+            </div>
+            <div class="btnrow">
+              <a class="btn" href="{% url 'req_home' %}">
+                <i class='bx bx-plus-circle'></i> Crear REQ proveedor
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       <div class="grid">
         <div class="card">
           <div class="kpi">
@@ -448,12 +497,14 @@
         </div>
       {% endif %}
 
-      <!-- Tabla: REQ Pendientes / Acciones rápidas -->
+      <!-- ✅ Tabla: REQ Pendientes / Acciones rápidas + IMPRESIÓN -->
       <div class="card table-card">
         <div class="table-head">
           <div>
             <h4><i class='bx bxs-check-square'></i> REQ Pendientes (Acciones rápidas)</h4>
-            <div class="sub">Convierte un REQ en SAL para preparar la entrega.</div>
+            <div class="sub">
+              Convierte un REQ en SAL para preparar la entrega. También puedes imprimir el REQ (según su tipo).
+            </div>
           </div>
         </div>
 
@@ -461,29 +512,52 @@
           <thead>
             <tr>
               <th>REQ</th>
+              <th>Tipo</th>
               <th>Solicitante</th>
               <th>Fecha</th>
               <th>Estado</th>
-              <th>Acción</th>
+              <th style="text-align:right;">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {% for r in ult_reqs %}
               <tr>
                 <td>{{ r.numero|default:"(sin número)" }}</td>
+
+                <td>
+                  {% if r.tipo_requerimiento == "PROVEEDOR" %}
+                    <span class="pill warn"><i class='bx bx-store'></i> Proveedor</span>
+                  {% elif r.tipo_requerimiento == "ENTRE_SEDES" %}
+                    <span class="pill ok"><i class='bx bx-transfer'></i> Entre sedes</span>
+                  {% else %}
+                    <span class="pill">(sin tipo)</span>
+                  {% endif %}
+                </td>
+
                 <td>{{ r.responsable.username }}</td>
                 <td>{{ r.fecha|date:"Y-m-d H:i" }}</td>
                 <td><span class="pill">{{ r.get_estado_display }}</span></td>
-                <td>
-                  <form method="post" action="{% url 'req_to_sal' r.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn">Convertir a SAL</button>
-                  </form>
+
+                <td style="text-align:right;">
+                  <div class="btnrow">
+                    <!-- ✅ Imprime con tu view req_print (elige template proveedor/entre sedes) -->
+                    <a class="btn secondary small" target="_blank" href="{% url 'req_print' r.id %}">
+                      <i class='bx bx-printer'></i> Imprimir
+                    </a>
+
+                    <!-- ✅ Convierte a SAL -->
+                    <form method="post" action="{% url 'req_to_sal' r.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn small">
+                        <i class='bx bx-transfer-alt'></i> Convertir a SAL
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" style="text-align:center; color: rgba(255,255,255,0.65); padding: 18px;">
+                <td colspan="6" style="text-align:center; color: rgba(255,255,255,0.65); padding: 18px;">
                   No hay REQs pendientes para procesar.
                 </td>
               </tr>

@@ -31,9 +31,8 @@ def _sede_operativa(user):
 
 @login_required
 def sal_detail(request, sal_id: int):
-    # Importante: aquí NO hacemos select_for_update, solo mostrar
     sal = get_object_or_404(
-        DocumentoInventario.objects.select_related("sede", "responsable", "origen"),
+        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion"),
         id=sal_id,
         tipo=TipoDocumento.SAL,
     )
@@ -44,32 +43,29 @@ def sal_detail(request, sal_id: int):
         if not profile:
             raise PermissionDenied("Usuario sin perfil (UserProfile).")
 
-        # ✅ JEFA ve todo
-        if profile.rol == UserProfile.Rol.JEFA:
-            return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+        # JEFA / ADMIN ven todo
+        if profile.rol in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
+            allowed = True
 
-        # ✅ ADMIN (por ahora ve todo)
-        if profile.rol == UserProfile.Rol.ADMIN:
-            return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
-
-        # ✅ ALMACÉN solo ve SAL de su sede
-        if profile.rol == UserProfile.Rol.ALMACEN:
+        # ALMACEN: solo su sede
+        elif profile.rol == UserProfile.Rol.ALMACEN:
             sede = _sede_operativa(request.user)
-            if sal.sede_id != sede.id:
-                raise PermissionDenied("No puedes ver SAL de otra sede.")
-            return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+            allowed = (sal.sede_id == sede.id)
 
-        # ✅ SOLICITANTE: solo si él es responsable o si la SAL viene de su REQ
-        if profile.rol == UserProfile.Rol.SOLICITANTE:
-            if sal.responsable_id == request.user.id:
-                return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+        # SOLICITANTE: si es responsable o si la SAL viene de su REQ
+        elif profile.rol == UserProfile.Rol.SOLICITANTE:
+            allowed = (
+                sal.responsable_id == request.user.id
+                or (sal.origen_id and sal.origen and sal.origen.responsable_id == request.user.id)
+            )
 
-            if sal.origen_id and sal.origen and sal.origen.responsable_id == request.user.id:
-                return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+        else:
+            allowed = False
 
-            raise PermissionDenied("No puedes ver una SAL que no es tuya.")
+        if not allowed:
+            raise PermissionDenied("No puedes ver esta SAL.")
 
-        raise PermissionDenied("Rol no autorizado.")
+        return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
     except PermissionDenied as e:
         messages.error(request, str(e))
@@ -88,27 +84,21 @@ def sal_confirmar(request, sal_id: int):
     try:
         profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
 
-        # 🔒 Re-lee y BLOQUEA la SAL sin select_related (sin outer joins)
-        sal = (
-            DocumentoInventario.objects
-            .select_for_update()
-            .get(id=sal_id, tipo=TipoDocumento.SAL)
-        )
+        # 🔒 Bloqueo sin joins
+        sal = DocumentoInventario.objects.select_for_update().get(id=sal_id, tipo=TipoDocumento.SAL)
 
-        # ✅ ALMACÉN solo confirma SAL de su sede
+        # ALMACEN solo confirma SAL de su sede
         if profile.rol != UserProfile.Rol.JEFA:
             sede = _sede_operativa(request.user)
             if sal.sede_id != sede.id:
                 raise PermissionDenied("No puedes confirmar SAL de otra sede.")
 
-        # Opcional: si ya está confirmada, no hacer nada
-        if sal.estado == "CONFIRMADO":
+        # ✅ Si ya está confirmada
+        if sal.estado == "CONFIRMADO":  # <- ideal: usar constante EstadoDocumento.SAL_CONFIRMADO
             messages.info(request, f"Esta SAL ya estaba confirmada: {sal.numero}")
             return redirect(f"/sal/{sal_id}/")
 
-        # ✅ Confirmar SAL (descuenta stock y crea kardex)
         sal.confirmar(entregado_por=request.user)
-
         messages.success(request, f"SAL confirmada: {sal.numero}")
 
     except DocumentoInventario.DoesNotExist:
@@ -119,3 +109,62 @@ def sal_confirmar(request, sal_id: int):
         messages.error(request, f"Error al confirmar SAL: {e}")
 
     return redirect(f"/sal/{sal_id}/")
+
+
+@login_required
+def sal_print(request, sal_id: int):
+    sal = get_object_or_404(
+        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion"),
+        id=sal_id,
+        tipo=TipoDocumento.SAL,
+    )
+    items = sal.items.select_related("producto").order_by("producto__nombre")
+    total_cantidad = sum(int(it.cantidad or 0) for it in items)
+
+    try:
+        profile = getattr(request.user, "profile", None)
+        if not profile:
+            raise PermissionDenied("Usuario sin perfil (UserProfile).")
+
+        # ✅ JEFA / ADMIN ven todo
+        if profile.rol in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
+            return render(request, "inventario/sal_print.html", {
+                "sal": sal,
+                "items": items,
+                "total_cantidad": total_cantidad,
+            })
+
+        # ✅ ALMACEN: solo su sede
+        if profile.rol == UserProfile.Rol.ALMACEN:
+            sede = _sede_operativa(request.user)
+            if sal.sede_id != sede.id:
+                raise PermissionDenied("No puedes ver SAL de otra sede.")
+            return render(request, "inventario/sal_print.html", {
+                "sal": sal,
+                "items": items,
+                "total_cantidad": total_cantidad,
+            })
+
+        # ✅ SOLICITANTE: solo si es suyo o viene de su REQ
+        if profile.rol == UserProfile.Rol.SOLICITANTE:
+            if sal.responsable_id == request.user.id:
+                return render(request, "inventario/sal_print.html", {
+                    "sal": sal,
+                    "items": items,
+                    "total_cantidad": total_cantidad,
+                })
+
+            if sal.origen_id and sal.origen and sal.origen.responsable_id == request.user.id:
+                return render(request, "inventario/sal_print.html", {
+                    "sal": sal,
+                    "items": items,
+                    "total_cantidad": total_cantidad,
+                })
+
+            raise PermissionDenied("No puedes ver una SAL que no es tuya.")
+
+        raise PermissionDenied("Rol no autorizado.")
+
+    except PermissionDenied as e:
+        messages.error(request, str(e))
+        return redirect("/")
