@@ -1,0 +1,162 @@
+{% extends "inventario/liquidacion/dashboard_dark.html" %}
+{% load static %}
+
+{% block title %}Lista de Liquidaciones{% endblock %}
+
+{% block content %}
+<main class="main">
+  <div class="header">
+    <div>
+      <h2>📋 Lista de Liquidaciones</h2>
+      <p>Historial completo de liquidaciones semanales</p>
+    </div>
+
+    <div class="badge">
+      <i class='bx bxs-user-circle'></i>
+      <span>{{ request.user.username }} ({{ user_info.rol }})</span>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card">
+    <div class="table-head">
+      <div>
+        <h4><i class='bx bx-filter'></i> Filtros</h4>
+        <div class="sub">Filtra las liquidaciones por sede, semana o estado</div>
+      </div>
+    </div>
+
+    <form method="get" class="grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+      <div>
+        <label style="display: block; font-size: 12px; color: var(--muted2); margin-bottom: 6px;">Sede</label>
+        <select name="sede" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: #fff; border-radius: 8px;">
+          <option value="">Todas las sedes</option>
+          {% for sede in sedes_disponibles %}
+          <option value="{{ sede.id }}" {% if request.GET.sede == sede.id|stringformat:"s" %}selected{% endif %}>
+            {{ sede.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 12px; color: var(--muted2); margin-bottom: 6px;">Semana</label>
+        <input type="number" name="semana" placeholder="Número de semana" value="{{ request.GET.semana }}" 
+               style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: #fff; border-radius: 8px;">
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 12px; color: var(--muted2); margin-bottom: 6px;">Año</label>
+        <input type="number" name="anio" placeholder="Año" value="{{ request.GET.anio|default:anio_actual }}" 
+               style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: #fff; border-radius: 8px;">
+      </div>
+
+      <div class="btnrow">
+        <button type="submit" class="btn small">
+          <i class='bx bx-search'></i> Filtrar
+        </button>
+        <a href="{% url 'liquidacion_lista' %}" class="btn secondary small">
+          <i class='bx bx-x'></i> Limpiar
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lista de Liquidaciones -->
+  <div class="card">
+    <div class="table-head">
+      <div>
+        <h4><i class='bx bx-list-ul'></i> Liquidaciones ({{ page_obj.paginator.count }} total)</h4>
+        <div class="sub">
+          {% if is_paginated %}
+            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }}
+          {% endif %}
+        </div>
+      </div>
+      <div class="btnrow">
+        <a class="btn secondary small" href="{% url 'liquidacion_exportar_excel' %}?{{ request.GET.urlencode }}">
+          <i class='bx bx-download'></i> Exportar Excel
+        </a>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Semana/Año</th>
+          <th>Sede</th>
+          <th>Estado</th>
+          <th>Productos</th>
+          <th>Fecha</th>
+          <th>Usuario</th>
+          <th style="text-align:right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for liquidacion in object_list %}
+        <tr>
+          <td>{{ liquidacion.semana }}/{{ liquidacion.anio }}</td>
+          <td>
+            <div>
+              <strong>{{ liquidacion.sede.nombre }}</strong>
+              {% if liquidacion.sede.tipo == 'CENTRAL' %}
+                <br><span class="pill ok" style="font-size: 10px;">Central</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <span class="pill {% if liquidacion.estado == 'LIQUIDADO' %}ok{% elif liquidacion.estado == 'INCONSISTENTE' %}warn{% elif liquidacion.estado == 'CONSISTENTE' %}ok{% else %}pendiente{% endif %}">
+              {{ liquidacion.get_estado_display }}
+            </span>
+          </td>
+          <td>{{ liquidacion.total_productos|default:"-" }}</td>
+          <td>{{ liquidacion.creado_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ liquidacion.liquidado_por.username|default:"-" }}</td>
+          <td style="text-align:right;">
+            <div class="btnrow">
+              <a class="btn secondary small" href="{% url 'liquidacion_detalle' liquidacion.id %}">
+                <i class='bx bx-eye'></i> Ver
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center; color: var(--muted); padding: 30px;">
+            <i class='bx bx-inbox' style="font-size: 36px; margin-bottom: 12px; display: block;"></i>
+            No se encontraron liquidaciones con los filtros seleccionados
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div style="display: flex; justify-content: center; margin-top: 20px; gap: 8px;">
+      {% if page_obj.has_previous %}
+        <a class="btn secondary small" href="?page=1&{{ request.GET.urlencode }}">
+          <i class='bx bx-first-page'></i>
+        </a>
+        <a class="btn secondary small" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">
+          <i class='bx bx-chevron-left'></i>
+        </a>
+      {% endif %}
+
+      <span style="display: flex; align-items: center; gap: 8px; color: var(--muted);">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a class="btn secondary small" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">
+          <i class='bx bx-chevron-right'></i>
+        </a>
+        <a class="btn secondary small" href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">
+          <i class='bx bx-last-page'></i>
+        </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

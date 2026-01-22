@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error de Seguridad - Telecable Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-shield-alt text-red-600 text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Error de Seguridad</h2>
+            <p class="text-gray-600 mb-6">
+                La verificación CSRF ha fallado. Por razones de seguridad, no podemos procesar esta solicitud.
+            </p>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+                <h3 class="text-sm font-medium text-yellow-800 mb-2">Posibles soluciones:</h3>
+                <ul class="text-sm text-yellow-700 space-y-1 text-left">
+                    <li>• Recarga la página e intenta nuevamente</li>
+                    <li>• Asegúrate de estar accediendo directamente a http://127.0.0.1:8000</li>
+                    <li>• Evita usar proxies o redirecciones</li>
+                    <li>• Limpia las cookies del navegador</li>
+                </ul>
+            </div>
+            
+            <div class="space-y-3">
+                <button onclick="history.back()" class="w-full bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver Atrás
+                </button>
+                <button onclick="window.location.href='/'" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-home mr-2"></i> Ir al Inicio
+                </button>
+                <button onclick="location.reload()" class="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors">
+                    <i class="fas fa-sync mr-2"></i> Recargar Página
+                </button>
+            </div>
+            
+            <div class="mt-6 text-xs text-gray-500">
+                Si el problema persiste, contacte al administrador del sistema.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-recargar después de 5 segundos
+        setTimeout(function() {
+            if (confirm('¿Desea recargar la página para solucionar el problema de seguridad?')) {
+                location.reload();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
