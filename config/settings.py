@@ -98,6 +98,40 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:49878",  # Browser preview proxy
+    "http://localhost:49878",
+]
+
+# Para desarrollo, permitir todos los orígenes de localhost
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"http://127.0.0.1:{port}" for port in range(8000, 8010)
+    ])
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"http://localhost:{port}" for port in range(8000, 8010)
+    ])
+    # Permitir el proxy del browser preview
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"http://127.0.0.1:{port}" for port in range(49870, 49880)
+    ])
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"http://localhost:{port}" for port in range(49870, 49880)
+    ])
+
+# CSRF Failure View
+CSRF_FAILURE_VIEW = 'inventario.views_csrf.csrf_failure'
+
+# Para desarrollo, desactivar verificación estricta de cookies
+if DEBUG:
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_HTTPONLY = False
+    SESSION_COOKIE_HTTPONLY = False
+
 # Internationalization
 LANGUAGE_CODE = "es-pe"
 TIME_ZONE = "America/Lima"

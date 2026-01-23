@@ -9,6 +9,8 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from inventario.models import Sede
+from inventario.models import Proveedor
+
 
 from inventario.models import (
     DocumentoInventario,
@@ -211,7 +213,9 @@ def dash_almacen(request):
     profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
     sede = _require_sede(profile)
     hoy = timezone.localdate()
+
     sedes_central = Sede.objects.filter(tipo=Sede.CENTRAL, activo=True).order_by("nombre")
+    proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")  # ✅ NUEVO
 
     req_pendientes = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.REQ,
@@ -270,8 +274,10 @@ def dash_almacen(request):
             "ult_movs": ult_movs,
             "ult_reqs": ult_reqs,
             "sedes_central": sedes_central,
+            "proveedores": proveedores,  # ✅ NUEVO
         },
     )
+
 
 
 # --------------------

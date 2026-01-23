@@ -13,11 +13,16 @@ from django.utils import timezone
 
 User = get_user_model()
 
-# --- Helpers de códigos ---
-INTERNAL_PREFIX = "TC-ALM-"  # código interno para productos sin código de barras
+# ============================================================
+# Helpers de códigos
+# ============================================================
+INTERNAL_PREFIX = "TC-ALM-"
 INTERNAL_RE = re.compile(r"^TC-ALM-(\d{6})$")
 
 
+# ============================================================
+# Base
+# ============================================================
 class TimeStampedModel(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
@@ -26,12 +31,14 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
+# ============================================================
+# Maestros: Sede / Ubicacion / Categoria / Producto
+# ============================================================
 class Sede(TimeStampedModel):
     """
     Sede = almacén.
-    Modelo multi-sede con una CENTRAL (Jauja) y varias secundarias.
+    Multi-sede con una CENTRAL (Jauja) y varias secundarias.
     """
-
     CENTRAL = "CENTRAL"
     SECUNDARIO = "SECUNDARIO"
     TIPO_CHOICES = [(CENTRAL, "Central"), (SECUNDARIO, "Secundario")]
@@ -73,10 +80,9 @@ class Categoria(TimeStampedModel):
 
 class Ubicacion(TimeStampedModel):
     """
-    Ubicación interna tipo RACK-1A, REPISA-02, etc.
-    IMPORTANTE: es INFORMATIVE ONLY (no controla stock).
+    Ubicación interna: RACK-1A, REPISA-02, etc.
+    Informativo (no controla stock).
     """
-
     nombre = models.CharField(max_length=100)
     descripcion = models.CharField(max_length=200, blank=True, default="")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="ubicaciones")
@@ -102,22 +108,20 @@ class Producto(TimeStampedModel):
         Categoria, on_delete=models.PROTECT, related_name="productos", null=True, blank=True
     )
 
-    # Código interno (si no tiene barcode). Ej: TC-ALM-000001
+    # Código interno: TC-ALM-000001
     codigo_interno = models.CharField(max_length=20, unique=True, blank=True)
 
-    # Código externo: puede ser EAN/UPC o serial alfanumérico
+    # Código externo (EAN/UPC/serial alfanumérico)
     barcode = models.CharField(max_length=32, unique=True, null=True, blank=True)
 
-    # UND, M, CAJA, etc.
     unidad = models.CharField(max_length=20, default="UND")
 
-    # costo único por producto (catálogo)
     costo_unitario = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
-        help_text="Costo estándar por unidad (según 'unidad'). Ej: UND, M, CAJA.",
+        help_text="Costo estándar por unidad (según 'unidad').",
     )
 
     stock_minimo = models.PositiveIntegerField(default=0)
@@ -142,29 +146,26 @@ class Producto(TimeStampedModel):
         ci = self.codigo_interno or "SIN-COD"
         return f"{self.nombre} ({ci})"
 
-    # ✅ Para compatibilidad con templates que usan producto.unidad_medida
     @property
     def unidad_medida(self):
+        # compat templates
         return self.unidad
 
     def clean(self):
-        # Barcode: permitir alfanumérico con guiones, sin espacios
         if self.barcode:
             b = self.barcode.strip().upper()
             if not re.match(r"^[A-Z0-9\-]{4,32}$", b):
-                raise ValidationError(
-                    {"barcode": "El código debe ser alfanumérico (sin espacios), 4 a 32 caracteres."}
-                )
+                raise ValidationError({"barcode": "Código alfanumérico sin espacios (4-32)."})
             self.barcode = b
 
-        # Validar formato de código interno si ya existe
         if self.codigo_interno:
             ci = self.codigo_interno.strip().upper()
             if not INTERNAL_RE.match(ci):
-                raise ValidationError({"codigo_interno": "El código interno debe ser tipo TC-ALM-000001."})
+                raise ValidationError({"codigo_interno": "Formato: TC-ALM-000001."})
             self.codigo_interno = ci
 
     def _next_internal_code(self):
+        # simple; si quieres 100% anti-colisión: usar un Correlativo de producto.
         max_code = Producto.objects.filter(codigo_interno__startswith=INTERNAL_PREFIX).aggregate(
             m=Max("codigo_interno")
         )["m"]
@@ -187,10 +188,8 @@ class Producto(TimeStampedModel):
 
 class ProductoSedeInfo(TimeStampedModel):
     """
-    Ubicación referencial por sede.
-    NO afecta stock. Solo para saber dónde está normalmente el producto en esa sede.
+    Ubicación referencial por sede (no afecta stock).
     """
-
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="info_por_sede")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="productos_info")
     ubicacion_referencial = models.ForeignKey(
@@ -206,14 +205,16 @@ class ProductoSedeInfo(TimeStampedModel):
 
     def clean(self):
         if self.ubicacion_referencial and self.ubicacion_referencial.sede_id != self.sede_id:
-            raise ValidationError({"ubicacion_referencial": "La ubicación no pertenece a la sede seleccionada."})
+            raise ValidationError({"ubicacion_referencial": "La ubicación no pertenece a la sede."})
 
 
+# ============================================================
+# Stock + Kardex
+# ============================================================
 class Stock(TimeStampedModel):
     """
-    Stock por producto y SEDE (almacén).
+    Stock por producto y sede.
     """
-
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="stocks")
     sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="stocks")
 
@@ -236,11 +237,11 @@ class Stock(TimeStampedModel):
 
 class MovimientoInventario(TimeStampedModel):
     """
-    Kardex: cada entrada/salida/ajuste queda registrado.
-    Afecta stock por SEDE.
-    Ubicación es opcional (informativa).
+    Kardex.
+    - IN: suma
+    - OUT: resta
+    - ADJ: ajuste (qty puede ser + o -)
     """
-
     TIPO_IN = "IN"
     TIPO_OUT = "OUT"
     TIPO_ADJ = "ADJ"
@@ -257,7 +258,9 @@ class MovimientoInventario(TimeStampedModel):
     )
 
     tipo = models.CharField(max_length=3, choices=TIPOS)
-    qty = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+    # ADJ puede ser negativo
+    qty = models.IntegerField(default=0)
 
     costo_unitario = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     costo_total = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
@@ -279,39 +282,50 @@ class MovimientoInventario(TimeStampedModel):
         ub = self.ubicacion.nombre if self.ubicacion_id else "SIN-UBI"
         return f"{self.get_tipo_display()} {self.qty} - {self.producto.codigo_interno} @ {self.sede.nombre} ({ub})"
 
+    def clean(self):
+        if self.tipo in (self.TIPO_IN, self.TIPO_OUT):
+            if self.qty <= 0:
+                raise ValidationError({"qty": "IN/OUT requieren qty > 0."})
+        if self.tipo == self.TIPO_ADJ:
+            if self.qty == 0:
+                raise ValidationError({"qty": "ADJ requiere qty distinto de 0."})
+
     def save(self, *args, **kwargs):
         if self.costo_unitario is None:
             self.costo_unitario = self.producto.costo_unitario
 
+        # costo_total: usa abs(qty) para que ADJ negativo no rompa costeo
         if self.costo_unitario is not None:
-            self.costo_total = (Decimal(self.qty) * Decimal(self.costo_unitario)).quantize(Decimal("0.01"))
+            self.costo_total = (Decimal(abs(self.qty)) * Decimal(self.costo_unitario)).quantize(Decimal("0.01"))
 
         super().save(*args, **kwargs)
 
     @transaction.atomic
     def aplicar(self):
         stock, _ = Stock.objects.select_for_update().get_or_create(
-            producto=self.producto,
-            sede=self.sede,
-            defaults={"cantidad": 0},
+            producto=self.producto, sede=self.sede, defaults={"cantidad": 0}
         )
 
         if self.tipo == self.TIPO_IN:
             stock.cantidad += self.qty
         elif self.tipo == self.TIPO_OUT:
             stock.cantidad -= self.qty
-            if stock.cantidad < 0:
-                raise ValidationError("No hay stock suficiente para esta salida.")
         elif self.tipo == self.TIPO_ADJ:
             stock.cantidad += self.qty
+
+        if stock.cantidad < 0:
+            raise ValidationError("No hay stock suficiente para esta operación.")
 
         stock.actualizado_en_operacion = timezone.now()
         stock.save()
 
 
+# ============================================================
+# Usuarios / Roles
+# ============================================================
 class UserProfile(TimeStampedModel):
     class Rol(models.TextChoices):
-        SOLICITANTE = "SOLICITANTE", "Solicitante"
+        SOLICITANTE = "SOLICITANTE", "Solicitante (Técnico)"
         ALMACEN = "ALMACEN", "Almacén"
         ADMIN = "ADMIN", "Administrador"
         JEFA = "JEFA", "Jefa / Global"
@@ -325,23 +339,21 @@ class UserProfile(TimeStampedModel):
         null=True,
         blank=True,
         related_name="usuarios_principales",
-        help_text="Sede fija del usuario (solicitante o almacén).",
+        help_text="Sede fija del usuario (técnico o almacén).",
     )
-
     sedes_permitidas = models.ManyToManyField(
         Sede,
         blank=True,
         related_name="usuarios_globales",
         help_text="Sedes a las que puede acceder (usuarios globales).",
     )
-
     sede_activa = models.ForeignKey(
         Sede,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="usuarios_activos",
-        help_text="Sede actual seleccionada (para usuarios globales).",
+        help_text="Sede seleccionada (usuarios globales).",
     )
 
     def __str__(self):
@@ -357,6 +369,9 @@ class UserProfile(TimeStampedModel):
         return self.sedes_permitidas.first()
 
 
+# ============================================================
+# Serializados
+# ============================================================
 class ItemSerializado(TimeStampedModel):
     class Estado(models.TextChoices):
         EN_ALMACEN = "EN_ALMACEN", "En almacén"
@@ -367,13 +382,10 @@ class ItemSerializado(TimeStampedModel):
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="items_serializados")
     serial = models.CharField(max_length=64, unique=True)
 
-    # ubicación referencial (informativa)
     ubicacion = models.ForeignKey(Ubicacion, on_delete=models.PROTECT, related_name="items_serializados")
     estado = models.CharField(max_length=15, choices=Estado.choices, default=Estado.EN_ALMACEN)
 
-    asignado_a = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="items_asignados"
-    )
+    asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="items_asignados")
 
     class Meta:
         indexes = [
@@ -390,10 +402,34 @@ class ItemSerializado(TimeStampedModel):
         return f"{self.producto.nombre} | {self.serial} | {self.estado}"
 
 
-# ==========================
-# Documentos: REQ/SAL/ING/MER
-# ==========================
+# ============================================================
+# Proveedores (para REQ proveedor desde JAUJA)
+# ============================================================
+class Proveedor(TimeStampedModel):
+    ruc = models.CharField(max_length=11, unique=True)
+    razon_social = models.CharField(max_length=255)
+    direccion = models.CharField(max_length=255, blank=True, default="")
+    telefono = models.CharField(max_length=50, blank=True, default="")
+    email = models.EmailField(blank=True, default="")
+    activo = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ["razon_social"]
+
+    def clean(self):
+        if self.ruc:
+            r = self.ruc.strip()
+            if not re.match(r"^\d{11}$", r):
+                raise ValidationError({"ruc": "RUC debe tener 11 dígitos."})
+            self.ruc = r
+
+    def __str__(self):
+        return f"{self.razon_social} ({self.ruc})"
+
+
+# ============================================================
+# Documentos: REQ/SAL/ING/MER
+# ============================================================
 class TipoDocumento(models.TextChoices):
     REQ = "REQ", "Requerimiento"
     SAL = "SAL", "Salida"
@@ -406,15 +442,16 @@ class EstadoDocumento(models.TextChoices):
     REQ_BORRADOR = "REQ_BORRADOR", "REQ - Borrador"
     REQ_PENDIENTE = "REQ_PENDIENTE", "REQ - Pendiente"
     REQ_ATENDIDO = "REQ_ATENDIDO", "REQ - Atendido"
+    REQ_RECHAZADO = "REQ_RECHAZADO", "REQ - Rechazado"
 
-    # docs que mueven stock (SAL/ING/MER)
+    # Docs que mueven stock
     BORRADOR = "BORRADOR", "Borrador"
     CONFIRMADO = "CONFIRMADO", "Confirmado"
     ANULADO = "ANULADO", "Anulado"
 
 
-# ✅ AQUÍ VA (afuera del modelo, para poder importarlo como inventario.models.TipoRequerimiento)
 class TipoRequerimiento(models.TextChoices):
+    LOCAL = "LOCAL", "Local (técnico)"
     PROVEEDOR = "PROVEEDOR", "Proveedor"
     ENTRE_SEDES = "ENTRE_SEDES", "Entre sedes"
 
@@ -433,35 +470,19 @@ class DocumentoInventario(models.Model):
     numero = models.CharField(max_length=32, unique=True, null=True, blank=True)
     fecha = models.DateTimeField(default=timezone.now)
 
-    sede = models.ForeignKey(
-        Sede,
-        on_delete=models.PROTECT,
-        related_name="documentos",
-        null=True,
-        blank=True,
-    )
-
-    ubicacion = models.ForeignKey(
-        Ubicacion,
-        on_delete=models.PROTECT,
-        related_name="documentos",
-        null=True,
-        blank=True,
-    )
+    sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="documentos", null=True, blank=True)
+    ubicacion = models.ForeignKey(Ubicacion, on_delete=models.PROTECT, related_name="documentos", null=True, blank=True)
 
     sede_origen = models.ForeignKey(
-        Sede,
-        on_delete=models.PROTECT,
-        related_name="documentos_origen",
-        null=True,
-        blank=True,
+        Sede, on_delete=models.PROTECT, related_name="documentos_origen", null=True, blank=True
     )
     sede_destino = models.ForeignKey(
-        Sede,
-        on_delete=models.PROTECT,
-        related_name="documentos_destino",
-        null=True,
-        blank=True,
+        Sede, on_delete=models.PROTECT, related_name="documentos_destino", null=True, blank=True
+    )
+
+    # proveedor cuando tipo_requerimiento == PROVEEDOR
+    proveedor = models.ForeignKey(
+        Proveedor, on_delete=models.PROTECT, null=True, blank=True, related_name="requerimientos"
     )
 
     centro_costo = models.CharField(max_length=255, blank=True, default="")
@@ -469,44 +490,27 @@ class DocumentoInventario(models.Model):
     responsable = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="documentos_inventario"
     )
-
     entregado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="documentos_entregados",
-        null=True,
-        blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="documentos_entregados", null=True, blank=True
     )
 
-    # ✅ default correcto para arrancar con REQ
-    estado = models.CharField(
-        max_length=20,
-        choices=EstadoDocumento.choices,
-        default=EstadoDocumento.REQ_BORRADOR,
-    )
+    estado = models.CharField(max_length=20, choices=EstadoDocumento.choices, default=EstadoDocumento.REQ_BORRADOR)
 
     observaciones = models.TextField(blank=True, default="")
 
-    origen = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="derivados"
-    )
+    origen = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="derivados")
 
-    # control de recepción (para SAL inter-almacén)
+    # recepción (para transferencia inter-sedes)
     recibido = models.BooleanField(default=False)
     recibido_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="documentos_recibidos",
-        null=True,
-        blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="documentos_recibidos", null=True, blank=True
     )
     recibido_en = models.DateTimeField(null=True, blank=True)
 
-    # ✅ ESTE CAMPO YA USA EL ENUM CORRECTO (importable)
     tipo_requerimiento = models.CharField(
         max_length=20,
         choices=TipoRequerimiento.choices,
-        default=TipoRequerimiento.ENTRE_SEDES,
+        default=TipoRequerimiento.LOCAL,
     )
 
     class Meta:
@@ -525,21 +529,48 @@ class DocumentoInventario(models.Model):
         return f"{self.tipo} {self.numero or '(sin número)'}"
 
     def clean(self):
+        # sede requerida
         if self.tipo == TipoDocumento.REQ and not self.sede_id:
-            raise ValidationError({"sede": "REQ requiere una sede (almacén solicitante)."})
-
+            raise ValidationError({"sede": "REQ requiere sede (almacén solicitante)."})
         if self.tipo in (TipoDocumento.SAL, TipoDocumento.ING, TipoDocumento.MER) and not self.sede_id:
-            raise ValidationError({"sede": "Este tipo de documento requiere una sede (almacén)."})
+            raise ValidationError({"sede": "Este documento requiere sede (almacén)."})
 
+        # ubicacion debe pertenecer a sede
         if self.ubicacion_id and self.sede_id and self.ubicacion.sede_id != self.sede_id:
             raise ValidationError({"ubicacion": "La ubicación no pertenece a la sede seleccionada."})
 
-        # REQ inter-almacén: si define sede_destino, debe ser CENTRAL
-        if self.tipo == TipoDocumento.REQ and self.sede_destino_id:
-            if self.sede_destino.tipo != Sede.CENTRAL:
-                raise ValidationError(
-                    {"sede_destino": "El destino de un REQ inter-almacén debe ser la sede CENTRAL (Jauja)."}
-                )
+        # reglas de tipo_requerimiento SOLO para REQ
+        if self.tipo == TipoDocumento.REQ:
+
+            # 🟢 LOCAL: técnico / mismo almacén (no usa proveedor ni destino)
+            if self.tipo_requerimiento == TipoRequerimiento.LOCAL:
+                if self.proveedor_id:
+                    raise ValidationError({"proveedor": "REQ LOCAL no debe tener proveedor."})
+                if self.sede_destino_id:
+                    raise ValidationError({"sede_destino": "REQ LOCAL no usa sede_destino."})
+
+            # 🔵 PROVEEDOR: solo CENTRAL + proveedor obligatorio
+            elif self.tipo_requerimiento == TipoRequerimiento.PROVEEDOR:
+                # (sede ya es requerida arriba, pero lo dejamos claro)
+                if self.sede and self.sede.tipo != Sede.CENTRAL:
+                    raise ValidationError({"sede": "Solo la sede CENTRAL puede generar REQ a PROVEEDOR."})
+                if not self.proveedor_id:
+                    raise ValidationError({"proveedor": "REQ a PROVEEDOR requiere proveedor."})
+                if self.sede_destino_id:
+                    raise ValidationError({"sede_destino": "REQ a PROVEEDOR no usa sede_destino."})
+
+            # 🟠 ENTRE_SEDES: sede secundaria -> CENTRAL (Jauja)
+            elif self.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES:
+                # ✅ mejora clave: CENTRAL NO debería pedirse a sí misma
+                if self.sede and self.sede.tipo == Sede.CENTRAL:
+                    raise ValidationError({"sede": "La sede CENTRAL no debe generar REQ 'ENTRE SEDES'."})
+
+                if not self.sede_destino_id:
+                    raise ValidationError({"sede_destino": "REQ entre sedes requiere sede_destino CENTRAL (Jauja)."})
+                if self.sede_destino.tipo != Sede.CENTRAL:
+                    raise ValidationError({"sede_destino": "Destino debe ser CENTRAL (Jauja)."})
+                if self.proveedor_id:
+                    raise ValidationError({"proveedor": "REQ entre sedes no debe tener proveedor."})
 
     def _formatear_numero(self, correlativo: int) -> str:
         return f"{self.tipo}-{correlativo:010d}"
@@ -548,11 +579,9 @@ class DocumentoInventario(models.Model):
     def asignar_numero_si_falta(self):
         if self.numero:
             return self.numero
-
         corr, _ = Correlativo.objects.select_for_update().get_or_create(tipo=self.tipo)
         corr.ultimo_numero += 1
         corr.save(update_fields=["ultimo_numero"])
-
         self.numero = self._formatear_numero(corr.ultimo_numero)
         self.save(update_fields=["numero"])
         return self.numero
@@ -565,6 +594,9 @@ class DocumentoInventario(models.Model):
             raise ValidationError("Solo puedes enviar un REQ en borrador.")
         if not self.items.exists():
             raise ValidationError("No puedes enviar un REQ sin ítems.")
+
+        # valida reglas del clean antes de enviar
+        self.full_clean()
 
         self.asignar_numero_si_falta()
         self.estado = EstadoDocumento.REQ_PENDIENTE
@@ -581,8 +613,13 @@ class DocumentoInventario(models.Model):
 
     @transaction.atomic
     def confirmar(self, *, entregado_por=None):
+        """
+        Confirma SAL/ING/MER:
+        - genera Movimientos
+        - aplica stock
+        """
         if self.tipo == TipoDocumento.REQ:
-            raise ValidationError("Un REQ no se confirma; se envía (pendiente) y luego almacén lo atiende.")
+            raise ValidationError("Un REQ no se confirma; se envía y luego se atiende.")
 
         if self.estado != EstadoDocumento.BORRADOR:
             raise ValidationError("Solo se puede confirmar un documento en BORRADOR.")
@@ -596,17 +633,19 @@ class DocumentoInventario(models.Model):
         for it in items:
             if self.tipo == TipoDocumento.ING:
                 mov_tipo = MovimientoInventario.TIPO_IN
+                qty_mov = int(it.cantidad)
             elif self.tipo in (TipoDocumento.SAL, TipoDocumento.MER):
                 mov_tipo = MovimientoInventario.TIPO_OUT
+                qty_mov = int(it.cantidad)
             else:
-                raise ValidationError("Tipo de documento no soportado para confirmar.")
+                raise ValidationError("Tipo no soportado para confirmar.")
 
             mov = MovimientoInventario.objects.create(
                 producto=it.producto,
                 sede=self.sede,
                 ubicacion=self.ubicacion,
                 tipo=mov_tipo,
-                qty=it.cantidad,
+                qty=qty_mov,
                 costo_unitario=it.costo_unitario,
                 referencia=self.numero,
                 nota=it.observacion or "",
@@ -619,14 +658,14 @@ class DocumentoInventario(models.Model):
         self.estado = EstadoDocumento.CONFIRMADO
         self.save(update_fields=["estado", "entregado_por"])
 
-        # Si esta SAL viene de un REQ, marcar el REQ como atendido
+        # si SAL viene de REQ => REQ atendido
         if self.tipo == TipoDocumento.SAL and self.origen_id:
             req = self.origen
             if req and req.tipo == TipoDocumento.REQ and req.estado == EstadoDocumento.REQ_PENDIENTE:
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save(update_fields=["estado"])
 
-        # SAL inter-almacén (CENTRAL -> sede_destino) => generar ING (borrador) en destino
+        # transferencia inter-sedes: CENTRAL despacha y se crea ING borrador en destino
         if (
             self.tipo == TipoDocumento.SAL
             and self.sede_id
@@ -634,13 +673,9 @@ class DocumentoInventario(models.Model):
             and self.sede_destino_id != self.sede_id
         ):
             if self.sede.tipo != Sede.CENTRAL:
-                raise ValidationError("Solo la sede CENTRAL puede despachar transferencias a otras sedes.")
+                raise ValidationError("Solo la sede CENTRAL puede despachar transferencias.")
 
-            ya_existe_ing = DocumentoInventario.objects.filter(
-                tipo=TipoDocumento.ING,
-                origen_id=self.id,
-            ).exists()
-
+            ya_existe_ing = DocumentoInventario.objects.filter(tipo=TipoDocumento.ING, origen_id=self.id).exists()
             if not ya_existe_ing:
                 responsable_destino = self._get_usuario_almacen_de_sede(self.sede_destino) or self.responsable
 
@@ -667,7 +702,7 @@ class DocumentoInventario(models.Model):
                         observacion=f"Recepción de {self.numero}",
                     )
 
-        # Si se confirma un ING que proviene de una SAL inter-almacén, marcar la SAL origen como RECIBIDA.
+        # si confirmas un ING que viene de SAL transferencia => marca SAL como recibida
         if self.tipo == TipoDocumento.ING and self.origen_id:
             sal = self.origen
             if (
@@ -686,15 +721,14 @@ class DocumentoInventario(models.Model):
     def generar_salida_desde_req(self, *, responsable=None, sede_salida: Sede, ubicacion: Ubicacion | None = None):
         if self.tipo != TipoDocumento.REQ:
             raise ValidationError("Solo un REQ puede generar una SAL.")
-
-        # ✅ Solo desde REQ_PENDIENTE (flujo correcto)
         if self.estado != EstadoDocumento.REQ_PENDIENTE:
-            raise ValidationError("Solo un REQ en estado PENDIENTE puede convertirse en SAL.")
+            raise ValidationError("Solo REQ PENDIENTE puede convertirse en SAL.")
 
         if ubicacion and ubicacion.sede_id != sede_salida.id:
-            raise ValidationError("La ubicación seleccionada no pertenece a la sede de salida.")
+            raise ValidationError("La ubicación no pertenece a la sede de salida.")
 
-        sede_destino_sal = self.sede  # sede solicitante
+        # sede destino en SAL = sede solicitante (la del REQ)
+        sede_destino_sal = self.sede
 
         sal = DocumentoInventario.objects.create(
             tipo=TipoDocumento.SAL,
@@ -718,7 +752,6 @@ class DocumentoInventario(models.Model):
                 costo_unitario=it.costo_unitario,
                 observacion=it.observacion,
             )
-
         return sal
 
 
@@ -729,6 +762,11 @@ class DocumentoItem(models.Model):
     cantidad = models.PositiveIntegerField(default=1)
     costo_unitario = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     observacion = models.CharField(max_length=255, blank=True, default="")
+
+    # liquidación básica por item (útil tanto para técnico como para proyecto)
+    cantidad_devuelta = models.PositiveIntegerField(default=0)
+    cantidad_merma = models.PositiveIntegerField(default=0)
+    cantidad_usada = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -741,7 +779,231 @@ class DocumentoItem(models.Model):
     def __str__(self):
         return f"{self.documento.tipo} {self.producto.codigo_interno} x {self.cantidad}"
 
+    def clean(self):
+        # no permitir que la suma liquidada supere lo entregado
+        total = int(self.cantidad_devuelta or 0) + int(self.cantidad_merma or 0) + int(self.cantidad_usada or 0)
+        if total > int(self.cantidad or 0):
+            raise ValidationError("Devuelto + Merma + Usado no puede superar la cantidad entregada.")
+
     def save(self, *args, **kwargs):
         if self.costo_unitario is None:
             self.costo_unitario = self.producto.costo_unitario
         super().save(*args, **kwargs)
+
+
+# ============================================================
+# PROYECTOS (por sede)
+# ============================================================
+class EstadoProyecto(models.TextChoices):
+    ABIERTO = "ABIERTO", "Abierto"
+    EN_PROCESO = "EN_PROCESO", "En proceso"
+    CERRADO = "CERRADO", "Cerrado"
+    ANULADO = "ANULADO", "Anulado"
+
+
+class Proyecto(TimeStampedModel):
+    """
+    Proyecto creado por almacén de una sede.
+    - Asigna técnicos
+    - Asigna materiales (salidas) durante el proyecto
+    - Al finalizar, se liquida y se calcula costo real (usado + merma)
+    """
+    sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="proyectos")
+    codigo = models.CharField(max_length=40, unique=True)
+    nombre = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, default="")
+    estado = models.CharField(max_length=20, choices=EstadoProyecto.choices, default=EstadoProyecto.ABIERTO)
+
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="proyectos_creados")
+
+    centro_costo = models.CharField(max_length=255, blank=True, default="")
+
+    inicio = models.DateTimeField(default=timezone.now)
+    fin = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        indexes = [models.Index(fields=["sede", "estado"]), models.Index(fields=["codigo"])]
+
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"
+
+    def clean(self):
+        if self.fin and self.fin < self.inicio:
+            raise ValidationError({"fin": "Fin no puede ser menor que inicio."})
+
+
+class ProyectoAsignacion(TimeStampedModel):
+    """
+    Técnicos asignados al proyecto.
+    """
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="asignaciones")
+    tecnico = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="proyectos_asignados")
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["proyecto", "tecnico"], name="uq_proyecto_tecnico"),
+        ]
+
+
+class ProyectoMaterial(TimeStampedModel):
+    """
+    Material asignado a proyecto (plan / reserva / entregas).
+    """
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="materiales")
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+    cantidad_asignada = models.PositiveIntegerField(default=0)
+
+    # tracking de liquidación final del proyecto
+    cantidad_devuelta = models.PositiveIntegerField(default=0)
+    cantidad_merma = models.PositiveIntegerField(default=0)
+    cantidad_usada = models.PositiveIntegerField(default=0)
+
+    costo_unitario = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["proyecto", "producto"], name="uq_proyecto_producto"),
+        ]
+        indexes = [
+            models.Index(fields=["proyecto", "producto"]),
+        ]
+
+    def clean(self):
+        total = int(self.cantidad_devuelta or 0) + int(self.cantidad_merma or 0) + int(self.cantidad_usada or 0)
+        if total > int(self.cantidad_asignada or 0):
+            raise ValidationError("Devuelto + Merma + Usado no puede superar asignado.")
+
+    def save(self, *args, **kwargs):
+        if self.costo_unitario is None:
+            self.costo_unitario = self.producto.costo_unitario
+        super().save(*args, **kwargs)
+
+    @property
+    def costo_total_real(self) -> Decimal:
+        # costo real por proyecto: lo que se consume (usado + merma)
+        usado = Decimal(int(self.cantidad_usada or 0))
+        merma = Decimal(int(self.cantidad_merma or 0))
+        cu = Decimal(self.costo_unitario or 0)
+        return (cu * (usado + merma)).quantize(Decimal("0.01"))
+
+
+# ============================================================
+# LIQUIDACIONES (técnico semanal y/o proyecto)
+# ============================================================
+class TipoLiquidacion(models.TextChoices):
+    TECNICO = "TECNICO", "Liquidación técnico"
+    PROYECTO = "PROYECTO", "Liquidación proyecto"
+
+
+class EstadoLiquidacion(models.TextChoices):
+    BORRADOR = "BORRADOR", "Borrador"
+    CERRADA = "CERRADA", "Cerrada"
+    ANULADA = "ANULADA", "Anulada"
+
+
+class Liquidacion(TimeStampedModel):
+    """
+    Liquidación:
+    - TECNICO: semanal (ej. lunes) por sede
+    - PROYECTO: cierre de proyecto
+    """
+    tipo = models.CharField(max_length=20, choices=TipoLiquidacion.choices)
+
+    sede = models.ForeignKey(Sede, on_delete=models.PROTECT, related_name="liquidaciones_v2")
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="liquidaciones_tecnico"
+    )
+    proyecto = models.ForeignKey(
+        Proyecto, on_delete=models.PROTECT, null=True, blank=True, related_name="liquidaciones"
+    )
+
+    desde = models.DateField(null=True, blank=True)
+    hasta = models.DateField(null=True, blank=True)
+
+    estado = models.CharField(max_length=20, choices=EstadoLiquidacion.choices, default=EstadoLiquidacion.BORRADOR)
+    observaciones = models.TextField(blank=True, default="")
+
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="liquidaciones_creadas")
+
+    class Meta:
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["sede", "tipo", "estado"]),
+            models.Index(fields=["tipo", "tecnico"]),
+            models.Index(fields=["tipo", "proyecto"]),
+        ]
+
+    def clean(self):
+        if self.tipo == TipoLiquidacion.TECNICO:
+            if not self.tecnico_id:
+                raise ValidationError({"tecnico": "Liquidación técnico requiere técnico."})
+            if self.proyecto_id:
+                raise ValidationError({"proyecto": "Liquidación técnico no debe tener proyecto."})
+        if self.tipo == TipoLiquidacion.PROYECTO:
+            if not self.proyecto_id:
+                raise ValidationError({"proyecto": "Liquidación proyecto requiere proyecto."})
+            if self.tecnico_id:
+                raise ValidationError({"tecnico": "Liquidación proyecto no debe tener técnico."})
+            if self.sede_id and self.proyecto and self.proyecto.sede_id != self.sede_id:
+                raise ValidationError({"sede": "La sede de la liquidación debe ser la misma del proyecto."})
+
+        if self.desde and self.hasta and self.hasta < self.desde:
+            raise ValidationError({"hasta": "Hasta no puede ser menor que desde."})
+
+    @property
+    def costo_total_real(self) -> Decimal:
+        # costo real total (usado + merma)
+        total = Decimal("0.00")
+        for it in self.items.all():
+            total += it.costo_total_real
+        return total.quantize(Decimal("0.01"))
+
+
+class LiquidacionItem(TimeStampedModel):
+    """
+    Detalle de liquidación por producto.
+    Clasifica: devuelto / merma / usado / reutilizable (opcional)
+    """
+    liquidacion = models.ForeignKey(Liquidacion, on_delete=models.CASCADE, related_name="items")
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+
+    cantidad_entregada = models.PositiveIntegerField(default=0)
+    cantidad_devuelta = models.PositiveIntegerField(default=0)
+    cantidad_merma = models.PositiveIntegerField(default=0)
+    cantidad_usada = models.PositiveIntegerField(default=0)
+
+    cantidad_reutilizable = models.PositiveIntegerField(default=0)
+
+    costo_unitario = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["liquidacion", "producto"], name="uq_liquidacion_producto"),
+        ]
+        indexes = [
+            models.Index(fields=["liquidacion", "producto"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.costo_unitario is None:
+            self.costo_unitario = self.producto.costo_unitario
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        total = (
+            int(self.cantidad_devuelta or 0)
+            + int(self.cantidad_merma or 0)
+            + int(self.cantidad_usada or 0)
+            + int(self.cantidad_reutilizable or 0)
+        )
+        if total > int(self.cantidad_entregada or 0):
+            raise ValidationError("La suma (devuelto+merma+usado+reutilizable) no puede superar entregada.")
+
+    @property
+    def costo_total_real(self) -> Decimal:
+        usado = Decimal(int(self.cantidad_usada or 0))
+        merma = Decimal(int(self.cantidad_merma or 0))
+        cu = Decimal(self.costo_unitario or 0)
+        return (cu * (usado + merma)).quantize(Decimal("0.01"))

@@ -314,6 +314,7 @@
           Carrito REQ (Borrador)
           {% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
           {% if sede %} · Sede: <b style="color:#fff">{{ sede.nombre }}</b>{% endif %}
+          · Tipo: <b style="color:#fff">LOCAL</b>
         </p>
       </div>
 
@@ -354,7 +355,10 @@
       <!-- RIGHT -->
       <aside class="card">
         <div class="hd">
-          <h2><i class='bx bx-basket'></i> Carrito</h2>
+          <h2>
+            <i class='bx bx-basket'></i> Carrito
+            <span id="cartCount" class="badge" style="margin-left:8px;">0</span>
+          </h2>
           <span class="muted">REQ borrador</span>
         </div>
         <div class="bd">
@@ -372,7 +376,7 @@
             {% if req %}
               <form method="post" action="{% url 'req_enviar' req.id %}">
                 {% csrf_token %}
-                <button class="btn primary" type="submit">
+                <button id="btnEnviarReq" class="btn primary" type="submit" disabled>
                   <i class='bx bx-send'></i> Enviar REQ
                 </button>
               </form>
@@ -468,6 +472,20 @@
     const qEl = document.getElementById("catalogQuery");
     const cartListEl = document.getElementById("cartList");
 
+    const cartCountEl = document.getElementById("cartCount");
+    const btnEnviarReq = document.getElementById("btnEnviarReq");
+
+    let lastCartCount = 0;
+
+    function updateSendButton(){
+      const canSend = lastCartCount > 0;
+      if (btnEnviarReq) btnEnviarReq.disabled = !canSend;
+      if (cartCountEl) cartCountEl.textContent = String(lastCartCount);
+      if (cartCountEl){
+        cartCountEl.className = "badge " + (canSend ? "ok" : "zero");
+      }
+    }
+
     function showMsg(text, isError=false){
       msgEl.style.display = "block";
       msgEl.className = isError ? "msg err" : "msg";
@@ -561,6 +579,9 @@
     }
 
     function renderCart(items){
+      lastCartCount = (items && items.length) ? items.length : 0;
+      updateSendButton();
+
       if (!items || items.length === 0){
         cartListEl.innerHTML = `<div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>`;
         return;
@@ -667,7 +688,7 @@
       if (!inp.classList.contains("cart-qty")) return;
 
       const li = inp.closest(".li");
-      const productoId = li?.dataset?.productoId; // data-producto-id -> dataset.productoId
+      const productoId = li?.dataset?.productoId;
       if (!productoId) return;
 
       const val = Number(inp.value || 0);

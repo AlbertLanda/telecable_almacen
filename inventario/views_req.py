@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import ValidationError, PermissionDenied
@@ -5,6 +7,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.db.models import Q
+from inventario.models import Proveedor
 
 from inventario.models import (
     Ubicacion,
@@ -15,7 +18,7 @@ from inventario.models import (
     Stock,
     Producto,
     Sede,
-    TipoRequerimiento,  # ✅ ahora sí importable (nivel módulo)
+    TipoRequerimiento,
 )
 
 from inventario.services.req_service import (
@@ -73,12 +76,20 @@ def _get_sede_operativa(user):
     return sede
 
 
+def _get_sede_central():
+    return (
+        Sede.objects
+        .filter(tipo=Sede.CENTRAL, activo=True)
+        .order_by("nombre")
+        .first()
+    )
+
+
 def _is_ajax(request) -> bool:
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
 def _producto_codigo(p: Producto) -> str:
-    # ✅ en tu models: codigo_interno y barcode
     return (getattr(p, "codigo_interno", "") or getattr(p, "barcode", "") or "").strip()
 
 
@@ -96,19 +107,80 @@ def _serialize_cart(req: DocumentoInventario):
     return items
 
 
-def _ensure_req_defaults(req: DocumentoInventario):
+def _ensure_req_defaults(req: DocumentoInventario, user):
     """
-    Asegura defaults sin romper nada si el borrador ya existía.
+    Normaliza REQ (sobre todo data antigua) para que no choque con clean().
+
+    Reglas:
+    - SOLICITANTE: siempre LOCAL (sin proveedor, sin sede_destino)
+    - ALMACEN:
+        - CENTRAL: PROVEEDOR (sin sede_destino) (proveedor se setea antes de enviar)
+        - SECUNDARIO: ENTRE_SEDES (sede_destino=CENTRAL) y sin proveedor
+    - JEFA/ADMIN: no forzamos, pero si viene vacío => LOCAL
     """
     changed = False
+    profile = getattr(user, "profile", None)
+    if not profile:
+        return
 
-    # si por data antigua viene null/vacío
+    # Si viene vacío/null por data antigua, ponemos algo seguro
     if not getattr(req, "tipo_requerimiento", None):
-        req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
         changed = True
 
+    # Técnico
+    if profile.rol == UserProfile.Rol.SOLICITANTE:
+        if req.tipo_requerimiento != TipoRequerimiento.LOCAL:
+            req.tipo_requerimiento = TipoRequerimiento.LOCAL
+            changed = True
+        if req.sede_destino_id:
+            req.sede_destino = None
+            changed = True
+        if getattr(req, "proveedor_id", None):
+            req.proveedor = None
+            changed = True
+
+    # Almacén
+    elif profile.rol == UserProfile.Rol.ALMACEN:
+        sede_user = profile.get_sede_operativa()
+        if sede_user and sede_user.tipo == Sede.CENTRAL:
+            if req.tipo_requerimiento != TipoRequerimiento.PROVEEDOR:
+                req.tipo_requerimiento = TipoRequerimiento.PROVEEDOR
+                changed = True
+            if req.sede_destino_id:
+                req.sede_destino = None
+                changed = True
+            # proveedor puede quedar null en borrador (se exige al enviar por clean/full_clean)
+        else:
+            if req.tipo_requerimiento != TipoRequerimiento.ENTRE_SEDES:
+                req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+                changed = True
+
+            central = _get_sede_central()
+            if central and (not req.sede_destino_id or req.sede_destino_id != central.id):
+                req.sede_destino = central
+                changed = True
+
+            if getattr(req, "proveedor_id", None):
+                req.proveedor = None
+                changed = True
+
+    # JEFA/ADMIN: si es LOCAL, limpiar campos por seguridad
+    else:
+        if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
+            if req.sede_destino_id:
+                req.sede_destino = None
+                changed = True
+            if getattr(req, "proveedor_id", None):
+                req.proveedor = None
+                changed = True
+
     if changed:
-        req.save(update_fields=["tipo_requerimiento"])
+        fields = ["tipo_requerimiento", "sede_destino"]
+        # proveedor puede no existir en tu modelo viejo, por eso getattr
+        if hasattr(req, "proveedor"):
+            fields.append("proveedor")
+        req.save(update_fields=fields)
 
 
 # --------------------
@@ -125,7 +197,7 @@ def req_home(request):
         return redirect("/")
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
 
     sedes_central = Sede.objects.filter(tipo=Sede.CENTRAL, activo=True).order_by("nombre")
 
@@ -147,12 +219,17 @@ def req_home(request):
 @login_required
 def req_set_tipo_requerimiento(request):
     """
-    POST: setear tipo_requerimiento y (opcional) sede_destino del REQ borrador.
-    - PROVEEDOR => sede_destino = None
-    - ENTRE_SEDES => requiere sede_destino CENTRAL
+    POST: setear tipo_requerimiento y (opcional) sede_destino/proveedor del REQ borrador.
+
+    Reglas:
+    - SOLICITANTE: SOLO LOCAL (sin proveedor, sin sede_destino)
+    - JEFA:
+        * LOCAL
+        * ENTRE_SEDES (requiere sede_destino CENTRAL)
+        * PROVEEDOR (solo si REQ es de sede CENTRAL + requiere proveedor)
     """
     try:
-        _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+        profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
         ubicacion = _get_ubicacion_operativa(request.user)
     except (ValidationError, PermissionDenied) as e:
         if _is_ajax(request):
@@ -161,23 +238,85 @@ def req_set_tipo_requerimiento(request):
         return redirect("/req/")
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
+
+    # ============================================================
+    # ✅ MEJORA 1: asegurar sede en el borrador antes de validar reglas
+    # (por si tu get_or_create/_ensure no lo setea en algún caso)
+    # ============================================================
+    if req.tipo == TipoDocumento.REQ and not req.sede_id:
+        sede_operativa = None
+        if hasattr(request.user, "profile") and request.user.profile:
+            sede_operativa = request.user.profile.get_sede_operativa()
+        if sede_operativa:
+            req.sede = sede_operativa
+            req.save(update_fields=["sede"])
 
     tipo = (request.POST.get("tipo_requerimiento") or "").strip().upper()
     sede_destino_id = (request.POST.get("sede_destino_id") or "").strip()
+    proveedor_id = (request.POST.get("proveedor_id") or "").strip()
 
-    if tipo not in (TipoRequerimiento.PROVEEDOR, TipoRequerimiento.ENTRE_SEDES):
+    # SOLICITANTE: no negocia => LOCAL
+    if profile.rol == UserProfile.Rol.SOLICITANTE:
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+        req.sede_destino = None
+        req.proveedor = None
+        req.save(update_fields=["tipo_requerimiento", "sede_destino", "proveedor"])
+
+        if _is_ajax(request):
+            return JsonResponse({"ok": True, "tipo_requerimiento": req.tipo_requerimiento})
+        messages.success(request, "Tipo actualizado a LOCAL.")
+        return redirect("/req/")
+
+    # JEFA: validamos tipos permitidos
+    if tipo not in (TipoRequerimiento.LOCAL, TipoRequerimiento.PROVEEDOR, TipoRequerimiento.ENTRE_SEDES):
         msg = "Tipo de requerimiento inválido."
         if _is_ajax(request):
             return JsonResponse({"ok": False, "error": msg}, status=400)
         messages.error(request, msg)
         return redirect("/req/")
 
-    if tipo == TipoRequerimiento.PROVEEDOR:
+    if tipo == TipoRequerimiento.LOCAL:
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+        req.sede_destino = None
+        req.proveedor = None
+        req.save(update_fields=["tipo_requerimiento", "sede_destino", "proveedor"])
+
+    elif tipo == TipoRequerimiento.PROVEEDOR:
+        # ✅ solo CENTRAL
+        if req.sede and req.sede.tipo != Sede.CENTRAL:
+            msg = "PROVEEDOR solo aplica si el REQ pertenece a una sede CENTRAL."
+            if _is_ajax(request):
+                return JsonResponse({"ok": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("/req/")
+
+        # ✅ requiere proveedor
+        if not proveedor_id:
+            msg = "Selecciona un proveedor para REQ a PROVEEDOR."
+            if _is_ajax(request):
+                return JsonResponse({"ok": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("/req/")
+
+        proveedor = get_object_or_404(Proveedor, id=proveedor_id, activo=True)
+
         req.tipo_requerimiento = TipoRequerimiento.PROVEEDOR
         req.sede_destino = None
-        req.save(update_fields=["tipo_requerimiento", "sede_destino"])
-    else:
+        req.proveedor = proveedor
+        req.save(update_fields=["tipo_requerimiento", "sede_destino", "proveedor"])
+
+    else:  # ENTRE_SEDES
+        # ============================================================
+        # ✅ MEJORA 2: regla clara (CENTRAL no debe generar ENTRE_SEDES)
+        # ============================================================
+        if req.sede and req.sede.tipo == Sede.CENTRAL:
+            msg = "La sede CENTRAL no debe generar REQ 'ENTRE SEDES'."
+            if _is_ajax(request):
+                return JsonResponse({"ok": False, "error": msg}, status=400)
+            messages.error(request, msg)
+            return redirect("/req/")
+
         if not sede_destino_id:
             msg = "Selecciona una sede CENTRAL destino."
             if _is_ajax(request):
@@ -187,7 +326,7 @@ def req_set_tipo_requerimiento(request):
 
         sede_destino = get_object_or_404(Sede, id=sede_destino_id, activo=True)
         if sede_destino.tipo != Sede.CENTRAL:
-            msg = "El destino de un REQ entre sedes debe ser CENTRAL."
+            msg = "El destino de un REQ ENTRE SEDES debe ser CENTRAL."
             if _is_ajax(request):
                 return JsonResponse({"ok": False, "error": msg}, status=400)
             messages.error(request, msg)
@@ -195,7 +334,17 @@ def req_set_tipo_requerimiento(request):
 
         req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
         req.sede_destino = sede_destino
-        req.save(update_fields=["tipo_requerimiento", "sede_destino"])
+        req.proveedor = None
+        req.save(update_fields=["tipo_requerimiento", "sede_destino", "proveedor"])
+
+    # ✅ valida reglas del modelo también (por si acaso)
+    try:
+        req.full_clean()
+    except ValidationError as e:
+        if _is_ajax(request):
+            return JsonResponse({"ok": False, "error": str(e)}, status=400)
+        messages.error(request, str(e))
+        return redirect("/req/")
 
     if _is_ajax(request):
         return JsonResponse({"ok": True, "tipo_requerimiento": req.tipo_requerimiento})
@@ -204,16 +353,54 @@ def req_set_tipo_requerimiento(request):
     return redirect("/req/")
 
 
+
 @login_required
 def req_catalogo(request):
     try:
-        _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+        _require_roles(
+            request.user,
+            UserProfile.Rol.SOLICITANTE,
+            UserProfile.Rol.JEFA,
+            UserProfile.Rol.ALMACEN,
+        )
         sede = _get_sede_operativa(request.user)
     except (ValidationError, PermissionDenied) as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
     q = (request.GET.get("q") or "").strip()
+    modo = (request.GET.get("modo") or "").strip().lower()
 
+    # ✅ modo proveedor: NO filtrar por stock
+    if modo == "proveedor":
+        # recomendado: solo CENTRAL
+        if sede.tipo != Sede.CENTRAL:
+            return JsonResponse(
+                {"ok": False, "error": "Solo CENTRAL puede usar catálogo proveedor."},
+                status=403,
+            )
+
+        productos = Producto.objects.filter(activo=True).order_by("nombre")
+
+        if q:
+            productos = productos.filter(
+                Q(nombre__icontains=q)
+                | Q(codigo_interno__icontains=q)
+                | Q(barcode__icontains=q)
+            )
+
+        productos = productos[:80]
+
+        data = [{
+            "producto_id": p.id,
+            "nombre": p.nombre,
+            "codigo": (getattr(p, "codigo_interno", "") or getattr(p, "barcode", "") or ""),
+            "disponible": None,
+            "unidad": getattr(p, "unidad", "") or "",
+        } for p in productos]
+
+        return JsonResponse({"ok": True, "modo": "proveedor", "sede": sede.nombre, "results": data})
+
+    # ✅ modo local: filtrar por stock disponible
     stocks = (
         Stock.objects
         .filter(sede=sede, producto__activo=True, cantidad__gt=0)
@@ -223,33 +410,25 @@ def req_catalogo(request):
 
     if q:
         stocks = stocks.filter(
-            Q(producto__nombre__icontains=q) |
-            Q(producto__codigo_interno__icontains=q) |
-            Q(producto__barcode__icontains=q)
+            Q(producto__nombre__icontains=q)
+            | Q(producto__codigo_interno__icontains=q)
+            | Q(producto__barcode__icontains=q)
         )
 
     stocks = stocks[:80]
 
-    data = []
-    for s in stocks:
-        p = s.producto
-        data.append({
-            "producto_id": p.id,
-            "nombre": p.nombre,
-            "codigo": getattr(p, "codigo_interno", "") or "",
-            "disponible": int(s.cantidad or 0),
-            "unidad": getattr(p, "unidad", "") or "",
-        })
+    data = [{
+        "producto_id": s.producto.id,
+        "nombre": s.producto.nombre,
+        "codigo": getattr(s.producto, "codigo_interno", "") or getattr(s.producto, "barcode", "") or "",
+        "disponible": int(s.cantidad or 0),
+        "unidad": getattr(s.producto, "unidad", "") or "",
+    } for s in stocks]
 
-    return JsonResponse({"ok": True, "sede": sede.nombre, "results": data})
-
+    return JsonResponse({"ok": True, "modo": "local", "sede": sede.nombre, "results": data}) 
 
 @login_required
 def req_carrito(request):
-    """
-    Devuelve el carrito (REQ borrador) en JSON para refrescar sin recargar página.
-    GET /req/carrito/
-    """
     try:
         _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
         ubicacion = _get_ubicacion_operativa(request.user)
@@ -257,7 +436,7 @@ def req_carrito(request):
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
 
     return JsonResponse({
         "ok": True,
@@ -270,10 +449,6 @@ def req_carrito(request):
 @require_POST
 @login_required
 def req_set_qty(request):
-    """
-    AJAX: setear cantidad de un item del carrito (REQ BORRADOR)
-    POST /req/set-qty/  (producto_id, cantidad)
-    """
     if not _is_ajax(request):
         return JsonResponse({"ok": False, "error": "Solo AJAX."}, status=400)
 
@@ -282,6 +457,7 @@ def req_set_qty(request):
         ubicacion = _get_ubicacion_operativa(request.user)
         sede = _get_sede_operativa(request.user)
         req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        _ensure_req_defaults(req, request.user)
     except (ValidationError, PermissionDenied) as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
@@ -301,7 +477,6 @@ def req_set_qty(request):
 
     producto = get_object_or_404(Producto, id=producto_id)
 
-    # Seguridad por stock si no es JEFA
     if profile.rol != UserProfile.Rol.JEFA:
         st = Stock.objects.filter(sede=sede, producto=producto).first()
         disponible = int(st.cantidad) if st else 0
@@ -321,10 +496,6 @@ def req_set_qty(request):
 @require_POST
 @login_required
 def req_remove_producto(request):
-    """
-    AJAX: quitar item del carrito
-    POST /req/remove-producto/ (producto_id)
-    """
     if not _is_ajax(request):
         return JsonResponse({"ok": False, "error": "Solo AJAX."}, status=400)
 
@@ -332,6 +503,7 @@ def req_remove_producto(request):
         _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
         ubicacion = _get_ubicacion_operativa(request.user)
         req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        _ensure_req_defaults(req, request.user)
     except (ValidationError, PermissionDenied) as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
@@ -352,10 +524,6 @@ def req_remove_producto(request):
 @require_POST
 @login_required
 def req_add_producto(request):
-    """
-    Agregar ítem al REQ por POST usando producto_id + cantidad.
-    Si es AJAX => responde JSON (sin redirect).
-    """
     try:
         profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
         ubicacion = _get_ubicacion_operativa(request.user)
@@ -391,7 +559,6 @@ def req_add_producto(request):
 
     producto = get_object_or_404(Producto, id=producto_id)
 
-    # Seguridad: si NO es JEFA, validar disponibilidad en su sede
     if profile.rol != UserProfile.Rol.JEFA:
         st = Stock.objects.filter(sede=sede, producto=producto).first()
         disponible = int(st.cantidad) if st else 0
@@ -409,7 +576,7 @@ def req_add_producto(request):
             return redirect("/req/")
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
 
     try:
         add_item_to_req(user=request.user, req=req, producto=producto, cantidad=cantidad)
@@ -448,7 +615,7 @@ def req_add_item(request):
         return redirect("/req/")
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
 
     producto = buscar_producto_por_code(code)
     if not producto:
@@ -467,7 +634,6 @@ def req_add_item(request):
 @require_POST
 @login_required
 def req_scan_add(request):
-    # (Lo puedes mantener porque existe, pero ya no lo usamos en req_home.html)
     try:
         profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     except PermissionDenied as e:
@@ -489,7 +655,7 @@ def req_scan_add(request):
         return redirect("/req/")
 
     req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req)
+    _ensure_req_defaults(req, request.user)
 
     producto = buscar_producto_por_code(code)
     if not producto:
@@ -520,10 +686,33 @@ def req_enviar(request, req_id: int):
         messages.error(request, "No puedes enviar un REQ que no es tuyo.")
         return redirect("/req/")
 
-    # ✅ Validación extra: si es ENTRE_SEDES, debe tener sede_destino CENTRAL
-    if getattr(req, "tipo_requerimiento", None) == TipoRequerimiento.ENTRE_SEDES and not req.sede_destino_id:
-        messages.error(request, "Este REQ es ENTRE SEDES: selecciona la sede CENTRAL destino antes de enviar.")
-        return redirect("/req/")
+    # Normaliza por si era data vieja (evita que full_clean reviente por campos mal seteados)
+    _ensure_req_defaults(req, request.user)
+
+    # Validaciones “amigables” antes del full_clean (igual full_clean valida todo)
+    tipo_req = getattr(req, "tipo_requerimiento", None)
+
+    if tipo_req == TipoRequerimiento.ENTRE_SEDES:
+        if not req.sede_destino_id:
+            messages.error(request, "Este REQ es ENTRE SEDES: selecciona la sede CENTRAL destino antes de enviar.")
+            return redirect("/req/")
+        if req.sede_destino and req.sede_destino.tipo != Sede.CENTRAL:
+            messages.error(request, "Destino inválido: el destino de ENTRE SEDES debe ser CENTRAL.")
+            return redirect("/req/")
+
+    if tipo_req == TipoRequerimiento.PROVEEDOR:
+        # proveedor se exige por clean(); aquí damos mensaje claro
+        if not getattr(req, "proveedor_id", None):
+            messages.error(request, "Este REQ es a PROVEEDOR: selecciona un proveedor antes de enviar.")
+            return redirect("/req/")
+
+    if tipo_req == TipoRequerimiento.LOCAL:
+        if req.sede_destino_id:
+            messages.error(request, "REQ LOCAL no debe tener sede destino.")
+            return redirect("/req/")
+        if getattr(req, "proveedor_id", None):
+            messages.error(request, "REQ LOCAL no debe tener proveedor.")
+            return redirect("/req/")
 
     try:
         req.enviar_req()
@@ -570,8 +759,8 @@ def req_convert_to_sal(request, req_id: int):
 def req_print(request, req_id: int):
     """
     Imprime REQ con template según tipo_requerimiento:
-    - PROVEEDOR     => inventario/req_print_proveedor.html
-    - ENTRE_SEDES   => inventario/req_print_entre_sedes.html
+    - LOCAL / PROVEEDOR => inventario/req_print_proveedor.html (sin destino)
+    - ENTRE_SEDES       => inventario/req_print_entre_sedes.html
     """
     req = get_object_or_404(
         DocumentoInventario.objects.select_related("sede", "sede_destino", "responsable", "ubicacion"),
@@ -585,6 +774,15 @@ def req_print(request, req_id: int):
         profile = getattr(request.user, "profile", None)
         if not profile:
             raise PermissionDenied("Usuario sin perfil (UserProfile).")
+
+        if profile.rol == UserProfile.Rol.SOLICITANTE:
+            # técnico => siempre LOCAL
+            if req.tipo_requerimiento != TipoRequerimiento.LOCAL or req.sede_destino_id or getattr(req, "proveedor_id", None):
+                req.tipo_requerimiento = TipoRequerimiento.LOCAL
+                req.sede_destino = None
+                if hasattr(req, "proveedor"):
+                    req.proveedor = None
+                req.save(update_fields=["tipo_requerimiento", "sede_destino"] + (["proveedor"] if hasattr(req, "proveedor") else []))
 
         # JEFA/ADMIN: ven todo
         if profile.rol in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
@@ -605,12 +803,13 @@ def req_print(request, req_id: int):
         messages.error(request, str(e))
         return redirect("/")
 
-    tipo_req = getattr(req, "tipo_requerimiento", None) or TipoRequerimiento.ENTRE_SEDES
+    tipo_req = getattr(req, "tipo_requerimiento", None) or TipoRequerimiento.LOCAL
 
-    if tipo_req == TipoRequerimiento.PROVEEDOR:
-        template = "inventario/req_print_proveedor.html"
-    else:
+    if tipo_req == TipoRequerimiento.ENTRE_SEDES:
         template = "inventario/req_print_entre_sedes.html"
+    else:
+        # LOCAL y PROVEEDOR imprimen “sin destino” (tu template proveedor)
+        template = "inventario/req_print_proveedor.html"
 
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
@@ -620,14 +819,16 @@ def req_print(request, req_id: int):
         "total_cantidad": total_cantidad,
     })
 
+
 @require_POST
 @login_required
 def req_set_tipo_doc(request, req_id: int):
     """
     Cambia tipo_requerimiento (y sede_destino) de un REQ ya creado (ej: PENDIENTE),
     desde dashboard almacén.
-    - Solo CENTRAL (JAUJA) puede poner PROVEEDOR
+    - PROVEEDOR solo CENTRAL
     - ENTRE_SEDES requiere sede_destino CENTRAL
+    (LOCAL normalmente es para técnico; si lo necesitas aquí, lo añadimos luego)
     """
     req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
 
@@ -647,7 +848,6 @@ def req_set_tipo_doc(request, req_id: int):
         messages.error(request, "Tipo de requerimiento inválido.")
         return redirect("/dashboard/almacen/")
 
-    # ✅ PROVEEDOR solo CENTRAL (JAUJA)
     if tipo == TipoRequerimiento.PROVEEDOR:
         if sede_user.tipo != Sede.CENTRAL:
             messages.error(request, "Solo la sede CENTRAL (Jauja) puede generar requerimientos a PROVEEDOR.")
@@ -659,7 +859,7 @@ def req_set_tipo_doc(request, req_id: int):
         messages.success(request, f"REQ {req.numero or req.id}: tipo actualizado a PROVEEDOR.")
         return redirect("/dashboard/almacen/")
 
-    # ✅ ENTRE_SEDES => requiere sede_destino CENTRAL
+    # ENTRE_SEDES
     if not sede_destino_id:
         messages.error(request, "Para ENTRE SEDES debes seleccionar una sede CENTRAL destino.")
         return redirect("/dashboard/almacen/")
@@ -671,7 +871,11 @@ def req_set_tipo_doc(request, req_id: int):
 
     req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
     req.sede_destino = sede_destino
-    req.save(update_fields=["tipo_requerimiento", "sede_destino"])
+    if hasattr(req, "proveedor"):
+        req.proveedor = None
+        req.save(update_fields=["tipo_requerimiento", "sede_destino", "proveedor"])
+    else:
+        req.save(update_fields=["tipo_requerimiento", "sede_destino"])
 
     messages.success(request, f"REQ {req.numero or req.id}: tipo actualizado a ENTRE SEDES.")
     return redirect("/dashboard/almacen/")

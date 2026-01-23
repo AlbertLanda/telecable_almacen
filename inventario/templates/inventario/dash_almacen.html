@@ -338,6 +338,12 @@
       box-shadow: none;
     }
 
+    .btn.danger{
+      background: rgba(255,71,87,0.14);
+      border: 1px solid rgba(255,71,87,0.35);
+      box-shadow: none;
+    }
+
     .btn.small{ padding: 8px 10px; border-radius: 10px; font-size: 12px; }
 
     .btnrow{
@@ -389,6 +395,86 @@
     .msg.warning{ border-color: rgba(255,107,107,0.35); background: rgba(255,107,107,0.10); }
     .msg.info{ border-color: rgba(79,172,254,0.40); background: rgba(79,172,254,0.10); }
 
+    /* Modal */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal{
+      width: min(720px, 100%);
+      background: rgba(12,16,36,0.92);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+    }
+    .modal-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 16px 16px 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-head h3{
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .modal-head p{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+    }
+    .modal-body{ padding: 16px; }
+    .modal-row{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:flex-end;
+      margin-bottom: 12px;
+    }
+    .field{
+      flex:1;
+      min-width: 210px;
+    }
+    .field .label{
+      font-size:12px;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 6px;
+    }
+    .field select, .field input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      outline:none;
+    }
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap: 10px;
+      padding: 12px 16px 16px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .xbtn{
+      border:none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      color:#fff;
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor:pointer;
+    }
+
     @media (max-width: 980px){
       body{ overflow:auto; height:auto; }
       .sidebar{ position: sticky; top:0; height: 100vh; }
@@ -418,6 +504,20 @@
       <i class='bx bxs-box'></i> Inventario
     </button>
 
+    <button class="menu-btn" data-tab="reqs">
+      <i class='bx bxs-receipt'></i> Requerimientos
+    </button>
+
+    <button class="menu-btn" data-tab="projects">
+      <i class='bx bxs-folder'></i> Proyectos
+    </button>
+
+    <a class="menu-btn" href="{% url 'liquidacion_dashboard' %}"
+       style="background: linear-gradient(135deg, rgba(46,213,115,0.30), rgba(46,213,115,0.10));
+              border: 1px solid rgba(46,213,115,0.45); color:#fff;">
+      <i class='bx bxs-calculator'></i> 📊 Liquidación
+    </a>
+
     <a class="menu-btn logout-btn" href="{% url 'logout' %}">
       <i class='bx bx-log-out-circle'></i> Cerrar Sesión
     </a>
@@ -439,19 +539,18 @@
     <!-- DASHBOARD -->
     <section id="dashboard" class="section active">
 
-      <!-- ✅ OPCIÓN B: SOLO JAUJA (CENTRAL) VE ACCESO DIRECTO A REQ PROVEEDOR -->
       {% if sede.tipo == "CENTRAL" %}
         <div class="card" style="margin-bottom:16px;">
           <div class="table-head" style="margin-bottom:0;">
             <div>
-              <h4><i class='bx bxs-factory'></i> REQ a Proveedor (solo Jauja)</h4>
+              <h4><i class='bx bxs-factory'></i> REQ a Proveedor (solo CENTRAL)</h4>
               <div class="sub">
-                Desde aquí Jauja puede crear requerimientos a proveedores y luego imprimirlos.
+                Desde aquí CENTRAL puede crear requerimientos a proveedores y luego imprimirlos.
               </div>
             </div>
             <div class="btnrow">
               <a class="btn" href="{% url 'req_home' %}">
-                <i class='bx bx-plus-circle'></i> Crear REQ proveedor
+                <i class='bx bx-plus-circle'></i> Ir a REQ
               </a>
             </div>
           </div>
@@ -488,7 +587,6 @@
         </div>
       </div>
 
-      <!-- Mensajes Django -->
       {% if messages %}
         <div class="messages">
           {% for message in messages %}
@@ -497,7 +595,6 @@
         </div>
       {% endif %}
 
-      <!-- ✅ Tabla: REQ Pendientes / Acciones rápidas + IMPRESIÓN -->
       <div class="card table-card">
         <div class="table-head">
           <div>
@@ -529,6 +626,8 @@
                     <span class="pill warn"><i class='bx bx-store'></i> Proveedor</span>
                   {% elif r.tipo_requerimiento == "ENTRE_SEDES" %}
                     <span class="pill ok"><i class='bx bx-transfer'></i> Entre sedes</span>
+                  {% elif r.tipo_requerimiento == "LOCAL" %}
+                    <span class="pill"><i class='bx bx-home'></i> Local</span>
                   {% else %}
                     <span class="pill">(sin tipo)</span>
                   {% endif %}
@@ -540,12 +639,10 @@
 
                 <td style="text-align:right;">
                   <div class="btnrow">
-                    <!-- ✅ Imprime con tu view req_print (elige template proveedor/entre sedes) -->
                     <a class="btn secondary small" target="_blank" href="{% url 'req_print' r.id %}">
                       <i class='bx bx-printer'></i> Imprimir
                     </a>
 
-                    <!-- ✅ Convierte a SAL -->
                     <form method="post" action="{% url 'req_to_sal' r.id %}" style="display:inline;">
                       {% csrf_token %}
                       <button type="submit" class="btn small">
@@ -566,7 +663,6 @@
         </table>
       </div>
 
-      <!-- Charts -->
       <div class="charts-grid">
         <div class="card chart">
           <h4>Flujo de Movimientos (últimos 60 min)</h4>
@@ -627,12 +723,133 @@
         </table>
       </div>
     </section>
+
+    <!-- REQUERIMIENTOS -->
+    <section id="reqs" class="section">
+      <div class="card table-card">
+        <div class="table-head">
+          <div>
+            <h4><i class='bx bxs-receipt'></i> Requerimientos</h4>
+            <div class="sub">Crea, filtra y procesa REQs sin salir del dashboard.</div>
+          </div>
+          <div class="btnrow">
+            <button class="btn small" id="btnNewReq">
+              <i class='bx bx-plus-circle'></i> Nuevo REQ
+            </button>
+          </div>
+        </div>
+
+        <div id="reqsBox" class="msg">Abre esta pestaña para cargar REQs…</div>
+        <div class="divider" style="height:1px;background:rgba(255,255,255,.08);margin:12px 0;"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>REQ</th><th>Tipo</th><th>Solicitante</th><th>Fecha</th><th>Estado</th><th style="text-align:right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="reqsTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PROYECTOS -->
+    <section id="projects" class="section">
+      <div class="card table-card">
+        <div class="table-head">
+          <div>
+            <h4><i class='bx bxs-folder'></i> Proyectos</h4>
+            <div class="sub">Crea y gestiona proyectos desde aquí.</div>
+          </div>
+          <div class="btnrow">
+            <button class="btn small" id="btnNewProject">
+              <i class='bx bx-plus'></i> Nuevo Proyecto
+            </button>
+          </div>
+        </div>
+
+        <div id_bas id="projectsBox" class="msg">Aquí va tu módulo de proyectos.</div>
+      </div>
+    </section>
   </main>
 
+  <!-- ✅ MODAL NUEVO REQ -->
+  <div id="reqModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3><i class='bx bx-plus-circle'></i> Crear nuevo REQ</h3>
+          <p>Selecciona el tipo. Si es <b>ENTRE_SEDES</b> pide CENTRAL destino, y si es <b>PROVEEDOR</b> pide proveedor.</p>
+        </div>
+        <button class="xbtn" id="btnCloseReqModal"><i class='bx bx-x'></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="reqModalMsg" class="msg error" style="display:none;"></div>
+
+        <div class="modal-row">
+          <div class="field">
+            <div class="label">Tipo de requerimiento</div>
+            <select id="reqTipo">
+              <option value="LOCAL">LOCAL</option>
+              <option value="ENTRE_SEDES">ENTRE_SEDES</option>
+              <option value="PROVEEDOR">PROVEEDOR</option>
+            </select>
+          </div>
+
+          <div class="field" id="wrapDestinoDash" style="display:none;">
+            <div class="label">Sede destino (CENTRAL)</div>
+            <select id="reqDestino">
+              <option value="">-- seleccionar --</option>
+              {% for s in sedes_central %}
+                <option value="{{ s.id }}">{{ s.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field" id="wrapProveedorDash" style="display:none;">
+            <div class="label">Proveedor</div>
+            <select id="reqProveedor">
+              <option value="">-- seleccionar --</option>
+              {% for p in proveedores %}
+                <option value="{{ p.id }}">{{ p.razon_social }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="msg info" id="reqRulesHint">
+          Reglas: LOCAL no usa proveedor ni destino. ENTRE_SEDES requiere destino CENTRAL. PROVEEDOR requiere proveedor y solo CENTRAL.
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" id="btnCancelReq">Cancelar</button>
+        <button class="btn" id="btnCreateReq">
+          <i class='bx bx-check'></i> Crear y continuar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Tabs
+    // Helpers
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return "";
+    }
+
+    function escapeHtml(str){
+      return (str || "").replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    // Tabs + hooks
     document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const tabId = btn.getAttribute('data-tab');
 
         document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
@@ -640,9 +857,12 @@
 
         document.getElementById(tabId).classList.add('active');
         btn.classList.add('active');
+
+        if (tabId === "reqs") await loadReqs();
       });
     });
 
+    // Charts + tables (dashboard API)
     let charts = {};
     let loading = false;
 
@@ -716,9 +936,9 @@
 
         tbodyStock.innerHTML += `
           <tr>
-            <td>${item.codigo}</td>
-            <td>${item.nombre}</td>
-            <td>${item.cantidad}</td>
+            <td>${escapeHtml(item.codigo)}</td>
+            <td>${escapeHtml(item.nombre)}</td>
+            <td>${escapeHtml(String(item.cantidad ?? ""))}</td>
             <td>${statusHtml}</td>
           </tr>`;
       });
@@ -728,10 +948,10 @@
       reqRows.forEach(r => {
         tbodyReq.innerHTML += `
           <tr>
-            <td>${r.numero}</td>
-            <td>${r.solicitante}</td>
-            <td>${r.fecha}</td>
-            <td>${r.estado}</td>
+            <td>${escapeHtml(r.numero)}</td>
+            <td>${escapeHtml(r.solicitante)}</td>
+            <td>${escapeHtml(r.fecha)}</td>
+            <td>${escapeHtml(r.estado)}</td>
           </tr>`;
       });
     }
@@ -747,18 +967,18 @@
 
         const data = await res.json();
 
-        document.getElementById('kpiOrders').innerText = data.kpis.req_pendientes ?? 0;
-        document.getElementById('kpiLowStock').innerText = data.kpis.stock_bajo ?? 0;
+        document.getElementById('kpiOrders').innerText = data.kpis?.req_pendientes ?? 0;
+        document.getElementById('kpiLowStock').innerText = data.kpis?.stock_bajo ?? 0;
 
         renderCharts(
-          data.charts.mov_labels || [],
-          data.charts.mov_in || [],
-          data.charts.mov_out || [],
-          data.charts.top_names || [],
-          data.charts.top_qty || []
+          data.charts?.mov_labels || [],
+          data.charts?.mov_in || [],
+          data.charts?.mov_out || [],
+          data.charts?.top_names || [],
+          data.charts?.top_qty || []
         );
 
-        updateTables(data.tables.stock || [], data.tables.reqs || []);
+        updateTables(data.tables?.stock || [], data.tables?.reqs || []);
       } catch (e) {
         console.error(e);
       } finally {
@@ -766,6 +986,218 @@
       }
     }
 
+    // REQS module (pestaña Requerimientos)
+    function pillTipo(tipo){
+      if (tipo === "PROVEEDOR") return `<span class="pill warn"><i class='bx bx-store'></i> Proveedor</span>`;
+      if (tipo === "ENTRE_SEDES") return `<span class="pill ok"><i class='bx bx-transfer'></i> Entre sedes</span>`;
+      if (tipo === "LOCAL") return `<span class="pill"><i class='bx bx-home'></i> Local</span>`;
+      return `<span class="pill">(sin tipo)</span>`;
+    }
+
+    function renderReqs(rows){
+      const box = document.getElementById("reqsBox");
+      const tb = document.getElementById("reqsTbody");
+
+      if (!rows || rows.length === 0){
+        box.className = "msg";
+        box.textContent = "No hay requerimientos por mostrar.";
+        box.style.display = "block";
+        tb.innerHTML = "";
+        return;
+      }
+
+      box.style.display = "none";
+      const csrftoken = getCookie("csrftoken");
+
+      tb.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escapeHtml(r.numero || "(sin número)")}</td>
+          <td>${pillTipo((r.tipo_requerimiento || "").toUpperCase())}</td>
+          <td>${escapeHtml(r.solicitante || "")}</td>
+          <td>${escapeHtml(r.fecha || "")}</td>
+          <td><span class="pill">${escapeHtml(r.estado || "")}</span></td>
+          <td style="text-align:right;">
+            <div class="btnrow">
+              <a class="btn secondary small" target="_blank" href="/req/${r.id}/print/">
+                <i class='bx bx-printer'></i> Imprimir
+              </a>
+              <form method="post" action="/req/${r.id}/to-sal/" style="display:inline;">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrftoken)}">
+                <button type="submit" class="btn small">
+                  <i class='bx bx-transfer-alt'></i> SAL
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadReqs(){
+      const box = document.getElementById("reqsBox");
+      const tb = document.getElementById("reqsTbody");
+
+      box.className = "msg";
+      box.textContent = "Cargando requerimientos...";
+      box.style.display = "block";
+      tb.innerHTML = "";
+
+      try{
+        const res = await fetch('/api/dashboard/almacen/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (res.redirected) { window.location.href = res.url; return; }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+
+        // ✅ CORRECCIÓN: usar data.reqs_pendientes (incluye id, tipo_requerimiento, etc.)
+        renderReqs(data.reqs_pendientes || []);
+      }catch(e){
+        box.className = "msg error";
+        box.textContent = "Error cargando requerimientos.";
+        console.error(e);
+      }
+    }
+
+    // ✅ Modal Nuevo REQ
+    const sedeTipo = "{{ sede.tipo|default:'' }}";
+    const reqModal = document.getElementById("reqModalBackdrop");
+    const btnNewReq = document.getElementById("btnNewReq");
+    const btnCloseReqModal = document.getElementById("btnCloseReqModal");
+    const btnCancelReq = document.getElementById("btnCancelReq");
+    const btnCreateReq = document.getElementById("btnCreateReq");
+
+    const tipoEl = document.getElementById("reqTipo");
+    const wrapDestino = document.getElementById("wrapDestinoDash");
+    const destinoEl = document.getElementById("reqDestino");
+    const wrapProveedor = document.getElementById("wrapProveedorDash");
+    const proveedorEl = document.getElementById("reqProveedor");
+    const msgEl = document.getElementById("reqModalMsg");
+    const hintEl = document.getElementById("reqRulesHint");
+
+    function openReqModal(){
+      msgEl.style.display = "none";
+      msgEl.textContent = "";
+
+      // Ajustar opciones según sede (reglas del clean)
+      const opts = Array.from(tipoEl.querySelectorAll("option"));
+      opts.forEach(o => o.style.display = "block");
+
+      if ((sedeTipo || "").toUpperCase() === "CENTRAL"){
+        // CENTRAL: LOCAL + PROVEEDOR, NO ENTRE_SEDES
+        const optEntre = tipoEl.querySelector('option[value="ENTRE_SEDES"]');
+        if (optEntre) optEntre.style.display = "none";
+        tipoEl.value = "LOCAL";
+      } else {
+        // NO CENTRAL: LOCAL + ENTRE_SEDES, NO PROVEEDOR
+        const optProv = tipoEl.querySelector('option[value="PROVEEDOR"]');
+        if (optProv) optProv.style.display = "none";
+        tipoEl.value = "LOCAL";
+      }
+
+      paintReqModal();
+      reqModal.style.display = "flex";
+    }
+
+    function closeReqModal(){
+      reqModal.style.display = "none";
+    }
+
+    function paintReqModal(){
+      const t = (tipoEl.value || "").toUpperCase();
+
+      wrapDestino.style.display = (t === "ENTRE_SEDES") ? "block" : "none";
+      wrapProveedor.style.display = (t === "PROVEEDOR") ? "block" : "none";
+
+      if (t === "LOCAL"){
+        hintEl.textContent = "LOCAL: no usa proveedor ni sede destino.";
+      } else if (t === "ENTRE_SEDES"){
+        hintEl.textContent = "ENTRE_SEDES: requiere sede destino CENTRAL (Jauja).";
+      } else if (t === "PROVEEDOR"){
+        hintEl.textContent = "PROVEEDOR: solo CENTRAL y requiere proveedor.";
+      } else {
+        hintEl.textContent = "";
+      }
+    }
+
+    if (btnNewReq){
+      btnNewReq.addEventListener("click", openReqModal);
+    }
+    if (btnCloseReqModal) btnCloseReqModal.addEventListener("click", closeReqModal);
+    if (btnCancelReq) btnCancelReq.addEventListener("click", closeReqModal);
+
+    reqModal.addEventListener("click", (e) => {
+      if (e.target === reqModal) closeReqModal();
+    });
+
+    tipoEl.addEventListener("change", paintReqModal);
+
+    async function createReqFromDashboard(){
+      msgEl.style.display = "none";
+      msgEl.textContent = "";
+
+      const tipo = (tipoEl.value || "").toUpperCase();
+      const destino = (destinoEl?.value || "").trim();
+      const proveedor = (proveedorEl?.value || "").trim();
+
+      // Validaciones frontend (para no chocar con clean)
+      if (tipo === "ENTRE_SEDES" && !destino){
+        msgEl.textContent = "Selecciona una sede CENTRAL destino.";
+        msgEl.style.display = "block";
+        return;
+      }
+      if (tipo === "PROVEEDOR" && !proveedor){
+        msgEl.textContent = "Selecciona un proveedor.";
+        msgEl.style.display = "block";
+        return;
+      }
+
+      btnCreateReq.disabled = true;
+
+      try{
+        const fd = new FormData();
+        fd.append("tipo_requerimiento", tipo);
+        if (destino) fd.append("sede_destino_id", destino);
+        if (proveedor) fd.append("proveedor_id", proveedor);
+
+        // ✅ CORRECCIÓN CLAVE: crear REQ desde dashboard (NO usar /req/set-tipo/)
+        const res = await fetch("/api/reqs/almacen/create/", {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": getCookie("csrftoken"),
+          },
+          body: fd
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+
+        // ✅ Cierra modal y refresca lista
+        closeReqModal();
+        await loadReqs();
+
+        // ✅ Te mando al flujo /req/ para que agregues ítems y luego enviar
+        window.location.href = "/req/";
+      }catch(e){
+        msgEl.textContent = e.message || "Error creando REQ.";
+        msgEl.style.display = "block";
+      }finally{
+        btnCreateReq.disabled = false;
+      }
+    }
+
+    if (btnCreateReq){
+      btnCreateReq.addEventListener("click", createReqFromDashboard);
+    }
+
+    // Proyectos placeholder
+    const btnNewProject = document.getElementById("btnNewProject");
+    if (btnNewProject){
+      btnNewProject.addEventListener("click", () => {
+        alert("Aquí luego abrimos el módulo/modal para crear Proyectos ✅");
+      });
+    }
+
+    // Init dashboard
     loadData();
     setInterval(loadData, 5000);
   </script>

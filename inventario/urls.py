@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 
 from inventario.views_auth import RoleBasedLoginView
+from .views_api import api_reqs_almacen_list, api_reqs_almacen_create
 
 from .views_dashboard import (
     dashboard_redirect,
@@ -33,6 +34,18 @@ from . import views_req
 
 from .views_sal import sal_detail, sal_confirmar, sal_print
 from .views_tecnico import tecnico_dashboard, tecnico_mis_reqs, tecnico_mis_entregas
+
+# Importar views de liquidación
+from .views_liquidacion import (
+    liquidacion_dashboard,
+    liquidar_sede,
+    liquidar_central,
+    liquidacion_detalle,
+    liquidacion_api_resumen,
+    liquidacion_api_graficos,
+    liquidacion_exportar_excel,
+    LiquidacionListView,
+)
 
 
 urlpatterns = [
@@ -87,4 +100,20 @@ urlpatterns = [
     path("tecnico/mis-reqs/", tecnico_mis_reqs, name="tecnico_mis_reqs"),
     path("tecnico/mis-entregas/", tecnico_mis_entregas, name="tecnico_mis_entregas"),
     path("req/<int:req_id>/set-tipo-doc/", views_req.req_set_tipo_doc, name="req_set_tipo_doc"),
+
+    # LIQUIDACIÓN
+    path("liquidacion/", liquidacion_dashboard, name="liquidacion_dashboard"),
+    path("liquidacion/sede/<int:sede_id>/", liquidar_sede, name="liquidar_sede"),
+    path("liquidacion/central/", liquidar_central, name="liquidar_central"),
+    path("liquidacion/<int:liquidacion_id>/", liquidacion_detalle, name="liquidacion_detalle"),
+    path("liquidacion/lista/", LiquidacionListView.as_view(), name="liquidacion_lista"),
+    
+    # API Liquidación
+    path("api/liquidacion/resumen/", liquidacion_api_resumen, name="liquidacion_api_resumen"),
+    path("api/liquidacion/graficos/", liquidacion_api_graficos, name="liquidacion_api_graficos"),
+    path("liquidacion/exportar/", liquidacion_exportar_excel, name="liquidacion_exportar_excel"),
+
+
+    path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
+    path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
 ]

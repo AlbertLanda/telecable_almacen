@@ -129,15 +129,18 @@
     .estado-pendiente { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; }
     .estado-atendido { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
 
-    .link-action {
-      color: #4facfe;
-      text-decoration: none;
+    .muted-pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.80);
+      font-size: 12px;
       font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
-    .link-action:hover { text-decoration: underline; }
 
     @media (max-width: 900px){
       .sidebar{width:220px;}
@@ -175,6 +178,9 @@
       <div>
         <h2>Mis Requerimientos</h2>
         <p>Historial de solicitudes de material</p>
+        <div style="margin-top:10px;">
+          <span class="muted-pill"><i class='bx bx-check-shield'></i> Tipo: LOCAL</span>
+        </div>
       </div>
       <a href="{% url 'tecnico_dashboard' %}" class="back-btn">
         <i class='bx bx-arrow-back'></i> Volver
@@ -212,11 +218,10 @@
                   </span>
                 {% endif %}
               </td>
-
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" style="color:#9a9a9a; text-align: center; padding: 30px;">
+              <td colspan="3" style="color:#9a9a9a; text-align: center; padding: 30px;">
                 <i class='bx bx-inbox' style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
                 No tienes requerimientos registrados.
               </td>

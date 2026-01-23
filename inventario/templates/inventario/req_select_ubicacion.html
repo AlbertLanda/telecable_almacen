@@ -1,8 +1,157 @@
-<h2>Selecciona Ubicación</h2>
-<ul>
-  {% for u in ubicaciones %}
-    <li>
-      <a href="/req/?ubicacion_id={{u.id}}">{{u.sede.nombre}} - {{u.nombre}}</a>
-    </li>
-  {% endfor %}
-</ul>
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Seleccionar Ubicación</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:20px}
+    .card{max-width:820px;margin:0 auto;border:1px solid #ddd;border-radius:12px;padding:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    select,button{padding:10px 12px;border-radius:10px;border:1px solid #ccc}
+    .muted{color:#666;font-size:13px}
+    ul{margin-top:12px}
+    li{margin:8px 0}
+    a{display:inline-block;padding:10px 12px;border:1px solid #ddd;border-radius:10px;text-decoration:none}
+    a:hover{background:#f5f5f5}
+    .note{margin-top:12px;padding:10px 12px;border-radius:10px;background:#f7f7ff;border:1px solid #d8d8ff}
+    .warn{background:#fff7f7;border:1px solid #ffd8d8}
+    .topmeta{margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Selecciona Ubicación</h2>
+
+    <p class="muted topmeta">
+      Usuario: <b>{{ request.user.username }}</b>
+      {% if sede %} · Sede operativa: <b>{{ sede.nombre }}</b> ({{ sede.tipo }}){% endif %}
+      {% if profile %} · Rol: <b>{{ profile.rol }}</b>{% endif %}
+    </p>
+
+    <p class="muted" style="margin-top:10px;">
+      Primero define el tipo de requerimiento y luego elige una ubicación.
+    </p>
+
+    <form class="row" method="post" action="{% url 'req_set_tipo_requerimiento' %}" style="margin:12px 0;">
+      {% csrf_token %}
+
+      <!-- Tipo -->
+      <label id="wrapTipo">
+        <div class="muted">Tipo</div>
+        <select name="tipo_requerimiento" id="tipoReq">
+          <!-- LOCAL siempre existe -->
+          <option value="LOCAL" {% if tipo_requerimiento_actual == "LOCAL" %}selected{% endif %}>
+            LOCAL (técnico)
+          </option>
+
+          <!-- ENTRE_SEDES: solo para JEFA (y/o roles que tú permitas) -->
+          {% if profile and profile.rol != "SOLICITANTE" %}
+            <option value="ENTRE_SEDES" {% if tipo_requerimiento_actual == "ENTRE_SEDES" %}selected{% endif %}>
+              ENTRE SEDES (a CENTRAL)
+            </option>
+          {% endif %}
+
+          <!-- PROVEEDOR: solo si sede operativa es CENTRAL -->
+          {% if sede and sede.tipo == "CENTRAL" and profile and profile.rol != "SOLICITANTE" %}
+            <option value="PROVEEDOR" {% if tipo_requerimiento_actual == "PROVEEDOR" %}selected{% endif %}>
+              PROVEEDOR (solo CENTRAL)
+            </option>
+          {% endif %}
+        </select>
+      </label>
+
+      <!-- Sede destino (solo ENTRE_SEDES) -->
+      <label id="wrapDestino" style="display:none;">
+        <div class="muted">Sede destino (CENTRAL)</div>
+        <select name="sede_destino_id" id="sedeDestino">
+          <option value="">-- seleccionar --</option>
+          {% for s in sedes_central %}
+            <option value="{{ s.id }}" {% if sede_destino_actual_id and sede_destino_actual_id|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>
+              {{ s.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <!-- Proveedor (solo PROVEEDOR) -->
+      <label id="wrapProveedor" style="display:none;">
+        <div class="muted">Proveedor</div>
+        <select name="proveedor_id" id="proveedorId">
+          <option value="">-- seleccionar --</option>
+          {% for p in proveedores %}
+            <option value="{{ p.id }}" {% if proveedor_actual_id and proveedor_actual_id|stringformat:"s" == p.id|stringformat:"s" %}selected{% endif %}>
+              {{ p.razon_social }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <button type="submit">Guardar</button>
+    </form>
+
+    <div class="note" id="noteReglas"></div>
+
+    <ul>
+      {% for u in ubicaciones %}
+        <li>
+          <a href="/req/?ubicacion_id={{ u.id }}">
+            {{ u.sede.nombre }} - {{ u.nombre }}
+          </a>
+        </li>
+      {% empty %}
+        <li class="muted">No hay ubicaciones disponibles.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const tipoEl = document.getElementById("tipoReq");
+    const wrapDestino = document.getElementById("wrapDestino");
+    const wrapProveedor = document.getElementById("wrapProveedor");
+    const note = document.getElementById("noteReglas");
+
+    // Vars desde backend
+    const rol = "{{ profile.rol|default:'' }}";
+    const sedeTipo = "{{ sede.tipo|default:'' }}";
+
+    function paintRules(){
+      let t = (tipoEl.value || "").toUpperCase();
+
+      // SOLICITANTE: forzar LOCAL sí o sí (UI)
+      if (rol === "SOLICITANTE"){
+        t = "LOCAL";
+        tipoEl.value = "LOCAL";
+      }
+
+      // Si no es CENTRAL, nunca debería quedar PROVEEDOR (por UI)
+      if (t === "PROVEEDOR" && sedeTipo !== "CENTRAL"){
+        t = "LOCAL";
+        tipoEl.value = "LOCAL";
+      }
+
+      wrapDestino.style.display = (t === "ENTRE_SEDES") ? "block" : "none";
+      wrapProveedor.style.display = (t === "PROVEEDOR") ? "block" : "none";
+
+      // Mensaje reglas
+      if (t === "LOCAL"){
+        note.className = "note";
+        note.textContent = "LOCAL: No usa proveedor y no usa sede destino.";
+      } else if (t === "PROVEEDOR"){
+        note.className = "note";
+        note.textContent = "PROVEEDOR: Solo CENTRAL puede usarlo y requiere proveedor.";
+      } else if (t === "ENTRE_SEDES"){
+        note.className = "note";
+        note.textContent = "ENTRE_SEDES: Requiere sede destino CENTRAL (Jauja).";
+      } else {
+        note.className = "note";
+        note.textContent = "";
+      }
+    }
+
+    tipoEl.addEventListener("change", paintRules);
+    paintRules();
+  </script>
+</body>
+</html>

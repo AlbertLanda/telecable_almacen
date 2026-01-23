@@ -79,6 +79,12 @@
       border-color:rgba(255,255,255,.06);
       transform: translateY(-1px);
     }
+    .menu a.active{
+      background:var(--primaryGrad);
+      color:#fff;
+      box-shadow:0 10px 24px rgba(221,36,118,.25);
+    }
+
     .logout{
       margin-top:auto;
       border:1px solid rgba(255,71,87,.25) !important;
@@ -141,11 +147,6 @@
       border:1px solid rgba(255,255,255,.10);
       color:#fff;
     }
-    .btn.danger{
-      background:rgba(255,71,87,.14);
-      border:1px solid rgba(255,71,87,.28);
-      color:#fff;
-    }
 
     .badge{
       padding:6px 10px;border-radius:999px;
@@ -156,7 +157,6 @@
     }
     .badge.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.08); color:#d9ffe8;}
     .badge.warn{border-color:rgba(255,165,2,.25); background:rgba(255,165,2,.08); color:#ffe7c7;}
-    .badge.err{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.08); color:#ffd0d5;}
 
     .gridinfo{
       display:grid;
@@ -200,7 +200,6 @@
     .qty{font-weight:900}
     .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
 
-    /* ✅ Print */
     @media print{
       body{background:#fff !important;color:#111 !important; display:block; overflow:visible;}
       .sidebar, .top-actions, .no-print{display:none !important;}
@@ -230,16 +229,33 @@
            onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
       <div>
         <div class="t1">TELECABLE</div>
-        <div class="t2">Técnico · Entregas</div>
+        <div class="t2">
+          {% if request.user.profile.rol == "ALMACEN" %}
+            Almacén · Salidas
+          {% elif request.user.profile.rol == "JEFA" %}
+            Jefa · Salidas
+          {% elif request.user.profile.rol == "ADMIN" %}
+            Admin · Salidas
+          {% else %}
+            Técnico · Entregas
+          {% endif %}
+        </div>
       </div>
     </div>
 
     <nav class="menu">
-      <a href="{% url 'tecnico_dashboard' %}"><i class='bx bxs-dashboard'></i> Panel Técnico</a>
-      <a href="{% url 'req_home' %}"><i class='bx bx-plus-circle'></i> Solicitar Material</a>
-      <a href="{% url 'tecnico_mis_reqs' %}"><i class='bx bx-history'></i> Mis Requerimientos</a>
-      <a class="active" href="{% url 'tecnico_mis_entregas' %}"><i class='bx bx-package'></i> Mis Entregas</a>
-      <a href="{% url 'scan' %}"><i class='bx bx-scan'></i> Escanear</a>
+      {% if request.user.profile.rol == "ALMACEN" %}
+        <a href="{% url 'dash_almacen' %}" class="active"><i class='bx bxs-dashboard'></i> Panel Almacén</a>
+
+      {% elif request.user.profile.rol == "JEFA" or request.user.profile.rol == "ADMIN" %}
+        <a href="{% url 'dashboard' %}" class="active"><i class='bx bxs-dashboard'></i> Dashboard</a>
+
+      {% else %}
+        <a href="{% url 'tecnico_dashboard' %}"><i class='bx bxs-dashboard'></i> Panel Técnico</a>
+        <a href="{% url 'req_home' %}"><i class='bx bx-plus-circle'></i> Solicitar Material</a>
+        <a href="{% url 'tecnico_mis_reqs' %}"><i class='bx bx-history'></i> Mis Requerimientos</a>
+        <a class="active" href="{% url 'tecnico_mis_entregas' %}"><i class='bx bx-package'></i> Mis Entregas</a>
+      {% endif %}
 
       <a class="logout" href="{% url 'logout' %}">
         <i class='bx bx-log-out-circle'></i> Cerrar Sesión
@@ -259,9 +275,20 @@
       </div>
 
       <div class="top-actions row no-print">
-        <a class="btn ghost" href="{% url 'tecnico_mis_entregas' %}">
-          <i class='bx bx-left-arrow-alt'></i> Volver
-        </a>
+        {% if request.user.profile.rol == "ALMACEN" %}
+          <a class="btn ghost" href="{% url 'dash_almacen' %}">
+            <i class='bx bx-left-arrow-alt'></i> Volver
+          </a>
+        {% elif request.user.profile.rol == "JEFA" or request.user.profile.rol == "ADMIN" %}
+          <a class="btn ghost" href="{% url 'dashboard' %}">
+            <i class='bx bx-left-arrow-alt'></i> Volver
+          </a>
+        {% else %}
+          <a class="btn ghost" href="{% url 'tecnico_mis_entregas' %}">
+            <i class='bx bx-left-arrow-alt'></i> Volver
+          </a>
+        {% endif %}
+
         <a class="btn ghost" href="{% url 'sal_print' sal.id %}" target="_blank">
           <i class='bx bx-printer'></i> Imprimir
         </a>
@@ -287,7 +314,6 @@
       <div class="hd">
         <h2><i class='bx bx-receipt'></i> Detalle de entrega</h2>
 
-        {# Badge simple (ajústalo si tus estados no son BORRADOR/CONFIRMADO) #}
         {% if sal.estado == "CONFIRMADO" %}
           <span class="badge ok">CONFIRMADO</span>
         {% elif sal.estado == "BORRADOR" %}
@@ -364,14 +390,20 @@
 
         <div class="divider no-print"></div>
 
-        {# Confirmar (solo visible pantalla) #}
+        {# ✅ Confirmar solo ALMACEN/JEFA/ADMIN #}
         {% if sal.estado == "BORRADOR" %}
-          <form class="no-print" method="post" action="{% url 'sal_confirmar' sal.id %}">
-            {% csrf_token %}
-            <button class="btn primary" type="submit">
-              <i class='bx bx-check-circle'></i> Confirmar SAL (descontar stock)
-            </button>
-          </form>
+          {% if request.user.profile.rol == "ALMACEN" or request.user.profile.rol == "JEFA" or request.user.profile.rol == "ADMIN" %}
+            <form class="no-print" method="post" action="{% url 'sal_confirmar' sal.id %}">
+              {% csrf_token %}
+              <button class="btn primary" type="submit">
+                <i class='bx bx-check-circle'></i> Confirmar SAL (descontar stock)
+              </button>
+            </form>
+          {% else %}
+            <div class="no-print" style="margin-top:10px;">
+              <span class="badge warn">Pendiente de confirmación por Almacén</span>
+            </div>
+          {% endif %}
         {% else %}
           <div class="no-print" style="margin-top:10px;">
             <span class="badge ok">✅ Salida ya confirmada</span>
