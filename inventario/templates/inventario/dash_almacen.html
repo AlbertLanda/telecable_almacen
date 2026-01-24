@@ -768,7 +768,7 @@
           </div>
         </div>
 
-        <div id_bas id="projectsBox" class="msg">Aquí va tu módulo de proyectos.</div>
+        <div id="projectsBox" class="msg">Aquí va tu módulo de proyectos.</div>
       </div>
     </section>
   </main>
@@ -929,7 +929,7 @@
     function updateTables(stockRows, reqRows) {
       const tbodyStock = document.querySelector('#stockTable tbody');
       tbodyStock.innerHTML = '';
-      stockRows.forEach(item => {
+      (stockRows || []).forEach(item => {
         const statusHtml = item.low
           ? '<span class="pill" style="border-color: rgba(255,71,87,0.40); background: rgba(255,71,87,0.10); color: rgba(255,255,255,0.92);">Bajo</span>'
           : '<span class="pill" style="border-color: rgba(46,213,115,0.35); background: rgba(46,213,115,0.10); color: rgba(255,255,255,0.92);">Normal</span>';
@@ -945,7 +945,7 @@
 
       const tbodyReq = document.querySelector('#reqTable tbody');
       tbodyReq.innerHTML = '';
-      reqRows.forEach(r => {
+      (reqRows || []).forEach(r => {
         tbodyReq.innerHTML += `
           <tr>
             <td>${escapeHtml(r.numero)}</td>
@@ -1048,7 +1048,7 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
 
-        // ✅ CORRECCIÓN: usar data.reqs_pendientes (incluye id, tipo_requerimiento, etc.)
+        // ✅ FIX: tu API devuelve "reqs_pendientes" (NO tables.reqs)
         renderReqs(data.reqs_pendientes || []);
       }catch(e){
         box.className = "msg error";
@@ -1072,6 +1072,8 @@
     const proveedorEl = document.getElementById("reqProveedor");
     const msgEl = document.getElementById("reqModalMsg");
     const hintEl = document.getElementById("reqRulesHint");
+
+    const endpointSetTipo = "/req/set-tipo/";
 
     function openReqModal(){
       msgEl.style.display = "none";
@@ -1130,7 +1132,7 @@
 
     tipoEl.addEventListener("change", paintReqModal);
 
-    async function createReqFromDashboard(){
+    async function postReqTipo(){
       msgEl.style.display = "none";
       msgEl.textContent = "";
 
@@ -1138,7 +1140,7 @@
       const destino = (destinoEl?.value || "").trim();
       const proveedor = (proveedorEl?.value || "").trim();
 
-      // Validaciones frontend (para no chocar con clean)
+      // Validaciones frontend
       if (tipo === "ENTRE_SEDES" && !destino){
         msgEl.textContent = "Selecciona una sede CENTRAL destino.";
         msgEl.style.display = "block";
@@ -1158,8 +1160,7 @@
         if (destino) fd.append("sede_destino_id", destino);
         if (proveedor) fd.append("proveedor_id", proveedor);
 
-        // ✅ CORRECCIÓN CLAVE: crear REQ desde dashboard (NO usar /req/set-tipo/)
-        const res = await fetch("/api/reqs/almacen/create/", {
+        const res = await fetch(endpointSetTipo, {
           method: "POST",
           headers: {
             "X-Requested-With": "XMLHttpRequest",
@@ -1169,13 +1170,16 @@
         });
 
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
 
-        // ✅ Cierra modal y refresca lista
+        if (!res.ok){
+          if (res.status === 404){
+            throw new Error("HTTP 404: No existe la ruta del POST. Revisa urls.py (req_set_tipo_requerimiento).");
+          }
+          throw new Error(data.error || ("HTTP " + res.status));
+        }
+
+        // ✅ OK: cerramos modal y vamos al flujo normal
         closeReqModal();
-        await loadReqs();
-
-        // ✅ Te mando al flujo /req/ para que agregues ítems y luego enviar
         window.location.href = "/req/";
       }catch(e){
         msgEl.textContent = e.message || "Error creando REQ.";
@@ -1186,7 +1190,7 @@
     }
 
     if (btnCreateReq){
-      btnCreateReq.addEventListener("click", createReqFromDashboard);
+      btnCreateReq.addEventListener("click", postReqTipo);
     }
 
     // Proyectos placeholder
