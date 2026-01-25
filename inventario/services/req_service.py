@@ -188,12 +188,21 @@ def add_item_to_req(
     cantidad: int = 1,
     observacion: str = "",
 ) -> DocumentoItem:
-    _require_roles(user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    # ✅ Roles permitidos (ANTES solo SOLICITANTE/JEFA)
+    profile = _require_roles(
+        user,
+        UserProfile.Rol.SOLICITANTE,
+        UserProfile.Rol.JEFA,
+        UserProfile.Rol.ALMACEN,
+        UserProfile.Rol.ADMIN,
+    )
 
     if req.tipo != TipoDocumento.REQ or req.estado != EstadoDocumento.REQ_BORRADOR:
         raise ValidationError("Solo puedes agregar ítems a un REQ en BORRADOR.")
 
-    if req.responsable_id != user.id:
+    # ✅ Dueño del borrador: lo mantiene estricto
+    # (ADMIN puede editar cualquiera si quieres; si no, quita esta excepción)
+    if profile.rol != UserProfile.Rol.ADMIN and req.responsable_id != user.id:
         raise PermissionDenied("No puedes modificar un REQ que no es tuyo.")
 
     if cantidad <= 0:

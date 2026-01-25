@@ -395,86 +395,6 @@
     .msg.warning{ border-color: rgba(255,107,107,0.35); background: rgba(255,107,107,0.10); }
     .msg.info{ border-color: rgba(79,172,254,0.40); background: rgba(79,172,254,0.10); }
 
-    /* Modal */
-    .modal-backdrop{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.55);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 16px;
-      z-index: 1000;
-    }
-    .modal{
-      width: min(720px, 100%);
-      background: rgba(12,16,36,0.92);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
-      backdrop-filter: blur(12px);
-      overflow:hidden;
-    }
-    .modal-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 10px;
-      padding: 16px 16px 12px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .modal-head h3{
-      font-size: 15px;
-      font-weight: 700;
-    }
-    .modal-head p{
-      margin-top: 6px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.65);
-    }
-    .modal-body{ padding: 16px; }
-    .modal-row{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items:flex-end;
-      margin-bottom: 12px;
-    }
-    .field{
-      flex:1;
-      min-width: 210px;
-    }
-    .field .label{
-      font-size:12px;
-      color: rgba(255,255,255,.65);
-      margin-bottom: 6px;
-    }
-    .field select, .field input{
-      width:100%;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      color:#fff;
-      outline:none;
-    }
-    .modal-actions{
-      display:flex;
-      justify-content:flex-end;
-      gap: 10px;
-      padding: 12px 16px 16px 16px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .xbtn{
-      border:none;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      color:#fff;
-      border-radius: 12px;
-      padding: 8px 10px;
-      cursor:pointer;
-    }
-
     @media (max-width: 980px){
       body{ overflow:auto; height:auto; }
       .sidebar{ position: sticky; top:0; height: 100vh; }
@@ -543,14 +463,15 @@
         <div class="card" style="margin-bottom:16px;">
           <div class="table-head" style="margin-bottom:0;">
             <div>
-              <h4><i class='bx bxs-factory'></i> REQ a Proveedor (solo CENTRAL)</h4>
+              <h4><i class='bx bxs-factory'></i> REQ a Proveedor (Almacén CENTRAL)</h4>
               <div class="sub">
-                Desde aquí CENTRAL puede crear requerimientos a proveedores y luego imprimirlos.
+                CENTRAL arma el REQ (borrador) en su módulo de almacén y luego lo envía/imprime.
               </div>
             </div>
             <div class="btnrow">
-              <a class="btn" href="{% url 'req_home' %}">
-                <i class='bx bx-plus-circle'></i> Ir a REQ
+              <!-- ✅ FIX: NO usar req_home (técnico). Usar req_home_almacen -->
+              <a class="btn" target="_blank" href="{% url 'req_home_almacen' %}">
+                <i class='bx bx-plus-circle'></i> Crear y continuar
               </a>
             </div>
           </div>
@@ -733,8 +654,9 @@
             <div class="sub">Crea, filtra y procesa REQs sin salir del dashboard.</div>
           </div>
           <div class="btnrow">
+            <!-- ✅ FIX: abrir el módulo de almacén (separado del técnico) -->
             <button class="btn small" id="btnNewReq">
-              <i class='bx bx-plus-circle'></i> Nuevo REQ
+              <i class='bx bx-plus-circle'></i> Crear y continuar
             </button>
           </div>
         </div>
@@ -772,65 +694,6 @@
       </div>
     </section>
   </main>
-
-  <!-- ✅ MODAL NUEVO REQ -->
-  <div id="reqModalBackdrop" class="modal-backdrop">
-    <div class="modal">
-      <div class="modal-head">
-        <div>
-          <h3><i class='bx bx-plus-circle'></i> Crear nuevo REQ</h3>
-          <p>Selecciona el tipo. Si es <b>ENTRE_SEDES</b> pide CENTRAL destino, y si es <b>PROVEEDOR</b> pide proveedor.</p>
-        </div>
-        <button class="xbtn" id="btnCloseReqModal"><i class='bx bx-x'></i></button>
-      </div>
-
-      <div class="modal-body">
-        <div id="reqModalMsg" class="msg error" style="display:none;"></div>
-
-        <div class="modal-row">
-          <div class="field">
-            <div class="label">Tipo de requerimiento</div>
-            <select id="reqTipo">
-              <option value="LOCAL">LOCAL</option>
-              <option value="ENTRE_SEDES">ENTRE_SEDES</option>
-              <option value="PROVEEDOR">PROVEEDOR</option>
-            </select>
-          </div>
-
-          <div class="field" id="wrapDestinoDash" style="display:none;">
-            <div class="label">Sede destino (CENTRAL)</div>
-            <select id="reqDestino">
-              <option value="">-- seleccionar --</option>
-              {% for s in sedes_central %}
-                <option value="{{ s.id }}">{{ s.nombre }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="field" id="wrapProveedorDash" style="display:none;">
-            <div class="label">Proveedor</div>
-            <select id="reqProveedor">
-              <option value="">-- seleccionar --</option>
-              {% for p in proveedores %}
-                <option value="{{ p.id }}">{{ p.razon_social }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="msg info" id="reqRulesHint">
-          Reglas: LOCAL no usa proveedor ni destino. ENTRE_SEDES requiere destino CENTRAL. PROVEEDOR requiere proveedor y solo CENTRAL.
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn secondary" id="btnCancelReq">Cancelar</button>
-        <button class="btn" id="btnCreateReq">
-          <i class='bx bx-check'></i> Crear y continuar
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // Helpers
@@ -1048,7 +911,6 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
 
-        // ✅ FIX: tu API devuelve "reqs_pendientes" (NO tables.reqs)
         renderReqs(data.reqs_pendientes || []);
       }catch(e){
         box.className = "msg error";
@@ -1057,140 +919,12 @@
       }
     }
 
-    // ✅ Modal Nuevo REQ
-    const sedeTipo = "{{ sede.tipo|default:'' }}";
-    const reqModal = document.getElementById("reqModalBackdrop");
+    // ✅ Nuevo REQ: abrir módulo de almacén en nueva pestaña
     const btnNewReq = document.getElementById("btnNewReq");
-    const btnCloseReqModal = document.getElementById("btnCloseReqModal");
-    const btnCancelReq = document.getElementById("btnCancelReq");
-    const btnCreateReq = document.getElementById("btnCreateReq");
-
-    const tipoEl = document.getElementById("reqTipo");
-    const wrapDestino = document.getElementById("wrapDestinoDash");
-    const destinoEl = document.getElementById("reqDestino");
-    const wrapProveedor = document.getElementById("wrapProveedorDash");
-    const proveedorEl = document.getElementById("reqProveedor");
-    const msgEl = document.getElementById("reqModalMsg");
-    const hintEl = document.getElementById("reqRulesHint");
-
-    const endpointSetTipo = "/req/set-tipo/";
-
-    function openReqModal(){
-      msgEl.style.display = "none";
-      msgEl.textContent = "";
-
-      // Ajustar opciones según sede (reglas del clean)
-      const opts = Array.from(tipoEl.querySelectorAll("option"));
-      opts.forEach(o => o.style.display = "block");
-
-      if ((sedeTipo || "").toUpperCase() === "CENTRAL"){
-        // CENTRAL: LOCAL + PROVEEDOR, NO ENTRE_SEDES
-        const optEntre = tipoEl.querySelector('option[value="ENTRE_SEDES"]');
-        if (optEntre) optEntre.style.display = "none";
-        tipoEl.value = "LOCAL";
-      } else {
-        // NO CENTRAL: LOCAL + ENTRE_SEDES, NO PROVEEDOR
-        const optProv = tipoEl.querySelector('option[value="PROVEEDOR"]');
-        if (optProv) optProv.style.display = "none";
-        tipoEl.value = "LOCAL";
-      }
-
-      paintReqModal();
-      reqModal.style.display = "flex";
-    }
-
-    function closeReqModal(){
-      reqModal.style.display = "none";
-    }
-
-    function paintReqModal(){
-      const t = (tipoEl.value || "").toUpperCase();
-
-      wrapDestino.style.display = (t === "ENTRE_SEDES") ? "block" : "none";
-      wrapProveedor.style.display = (t === "PROVEEDOR") ? "block" : "none";
-
-      if (t === "LOCAL"){
-        hintEl.textContent = "LOCAL: no usa proveedor ni sede destino.";
-      } else if (t === "ENTRE_SEDES"){
-        hintEl.textContent = "ENTRE_SEDES: requiere sede destino CENTRAL (Jauja).";
-      } else if (t === "PROVEEDOR"){
-        hintEl.textContent = "PROVEEDOR: solo CENTRAL y requiere proveedor.";
-      } else {
-        hintEl.textContent = "";
-      }
-    }
-
     if (btnNewReq){
-      btnNewReq.addEventListener("click", openReqModal);
-    }
-    if (btnCloseReqModal) btnCloseReqModal.addEventListener("click", closeReqModal);
-    if (btnCancelReq) btnCancelReq.addEventListener("click", closeReqModal);
-
-    reqModal.addEventListener("click", (e) => {
-      if (e.target === reqModal) closeReqModal();
-    });
-
-    tipoEl.addEventListener("change", paintReqModal);
-
-    async function postReqTipo(){
-      msgEl.style.display = "none";
-      msgEl.textContent = "";
-
-      const tipo = (tipoEl.value || "").toUpperCase();
-      const destino = (destinoEl?.value || "").trim();
-      const proveedor = (proveedorEl?.value || "").trim();
-
-      // Validaciones frontend
-      if (tipo === "ENTRE_SEDES" && !destino){
-        msgEl.textContent = "Selecciona una sede CENTRAL destino.";
-        msgEl.style.display = "block";
-        return;
-      }
-      if (tipo === "PROVEEDOR" && !proveedor){
-        msgEl.textContent = "Selecciona un proveedor.";
-        msgEl.style.display = "block";
-        return;
-      }
-
-      btnCreateReq.disabled = true;
-
-      try{
-        const fd = new FormData();
-        fd.append("tipo_requerimiento", tipo);
-        if (destino) fd.append("sede_destino_id", destino);
-        if (proveedor) fd.append("proveedor_id", proveedor);
-
-        const res = await fetch(endpointSetTipo, {
-          method: "POST",
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRFToken": getCookie("csrftoken"),
-          },
-          body: fd
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok){
-          if (res.status === 404){
-            throw new Error("HTTP 404: No existe la ruta del POST. Revisa urls.py (req_set_tipo_requerimiento).");
-          }
-          throw new Error(data.error || ("HTTP " + res.status));
-        }
-
-        // ✅ OK: cerramos modal y vamos al flujo normal
-        closeReqModal();
-        window.location.href = "/req/";
-      }catch(e){
-        msgEl.textContent = e.message || "Error creando REQ.";
-        msgEl.style.display = "block";
-      }finally{
-        btnCreateReq.disabled = false;
-      }
-    }
-
-    if (btnCreateReq){
-      btnCreateReq.addEventListener("click", postReqTipo);
+      btnNewReq.addEventListener("click", () => {
+        window.open("{% url 'req_home_almacen' %}", "_blank");
+      });
     }
 
     // Proyectos placeholder
@@ -1203,7 +937,8 @@
 
     // Init dashboard
     loadData();
-    setInterval(loadData, 5000);
+    // (menos agresivo, evita spam de logs / broken pipe en dev)
+    setInterval(loadData, 10000);
   </script>
 </body>
 </html>

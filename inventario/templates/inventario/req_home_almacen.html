@@ -4,105 +4,270 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>REQ Proveedor | Almacén</title>
+  <title>REQ | Almacén</title>
 
   <style>
     :root{
-      --bg:#0b1020; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
-      --text:#fff; --muted:rgba(255,255,255,.65);
-      --primary:#4facfe; --danger:#ff4757; --ok:#2ed573;
+      --bg:#0b1020;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.08);
+      --border:rgba(255,255,255,.12);
+      --text:#fff;
+      --muted:rgba(255,255,255,.65);
+      --muted2:rgba(255,255,255,.45);
+      --primary:#4facfe;
+      --danger:#ff4757;
+      --ok:#2ed573;
+      --warn:#ff6b6b;
       --r:18px;
+      --shadow:0 14px 34px rgba(0,0,0,.28);
     }
+
     *{box-sizing:border-box}
     body{
-      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: radial-gradient(1000px 700px at 20% -10%, rgba(79,172,254,.20), transparent 60%),
-                  radial-gradient(900px 700px at 110% 10%, rgba(255,71,87,.16), transparent 55%),
-                  linear-gradient(180deg, var(--bg) 0%, #070a14 100%);
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:
+        radial-gradient(1000px 700px at 20% -10%, rgba(79,172,254,.20), transparent 60%),
+        radial-gradient(900px 700px at 110% 10%, rgba(255,71,87,.16), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, #070a14 100%);
       color:var(--text);
+      min-height:100vh;
     }
-    .wrap{max-width:1200px; margin:0 auto; padding:22px;}
+
+    .wrap{max-width:1240px; margin:0 auto; padding:22px;}
     .top{
       display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;
       margin-bottom:14px;
     }
-    h1{font-size:24px; margin:0}
+
+    .brand{
+      display:flex; gap:12px; align-items:center;
+    }
+    .brand img{
+      width:44px;height:44px;border-radius:14px; background:rgba(255,255,255,.92);
+      padding:6px; object-fit:contain; box-shadow:0 10px 25px rgba(0,0,0,.25);
+    }
+    h1{font-size:24px; margin:0; letter-spacing:.2px}
     .meta{color:var(--muted); font-size:13px; margin-top:6px}
+
+    .actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    a,button,input,select{font:inherit}
+
     .pill{
       display:inline-flex; gap:8px; align-items:center;
       padding:8px 10px; border-radius:999px;
       background:var(--panel); border:1px solid var(--border);
       color:rgba(255,255,255,.9); font-size:13px;
-    }
-    .grid{display:grid; grid-template-columns: 1.35fr .65fr; gap:14px;}
-    .card{
-      background:var(--panel); border:1px solid var(--border);
-      border-radius:var(--r); padding:14px;
       backdrop-filter: blur(10px);
     }
+    .pill.ok{border-color: rgba(46,213,115,.35); background: rgba(46,213,115,.10);}
+    .pill.warn{border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.10);}
+
+    .grid{display:grid; grid-template-columns: 1.35fr .65fr; gap:14px;}
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--r);
+      padding:14px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .card h2{
+      font-size:14px;
+      margin:0;
+      letter-spacing:.3px;
+    }
+    .sub{color:var(--muted2); font-size:12px; margin-top:6px; line-height:1.35}
+
     .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    input, button{
-      border-radius:14px; border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06); color:#fff;
-      padding:10px 12px; outline:none;
+    input, select, button{
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      padding:10px 12px;
+      outline:none;
     }
     input::placeholder{color:rgba(255,255,255,.45)}
+    select{min-width:220px}
+
     .btn{
-      cursor:pointer; border:none;
+      cursor:pointer;
+      border:none;
       background:linear-gradient(135deg, rgba(79,172,254,.95), rgba(0,242,254,.75));
-      font-weight:700;
+      font-weight:800;
+      letter-spacing:.2px;
+      box-shadow: 0 12px 24px rgba(79,172,254,.16);
     }
-    .btn.secondary{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); font-weight:650;}
-    .btn.danger{background:rgba(255,71,87,.16); border:1px solid rgba(255,71,87,.35); color:#fff;}
-    .btn.ok{background:rgba(46,213,115,.14); border:1px solid rgba(46,213,115,.35); color:#fff;}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    .btn.secondary{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      font-weight:700;
+      box-shadow:none;
+    }
+    .btn.danger{
+      background:rgba(255,71,87,.16);
+      border:1px solid rgba(255,71,87,.35);
+      font-weight:800;
+      box-shadow:none;
+    }
+    .btn.ok{
+      background:rgba(46,213,115,.14);
+      border:1px solid rgba(46,213,115,.35);
+      font-weight:900;
+      box-shadow:none;
+    }
     .btn.small{padding:8px 10px; border-radius:12px; font-size:12px;}
+
     .muted{color:var(--muted); font-size:12px}
     .list{display:flex; flex-direction:column; gap:10px; margin-top:12px;}
+
     .item{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       padding:12px; border-radius:16px;
-      background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
     }
-    .item .name{font-weight:700}
+    .item .name{font-weight:900}
     .item .code{color:rgba(255,255,255,.55); font-size:12px; margin-top:2px}
     .qty{width:92px; text-align:center}
+
     .hr{height:1px; background:rgba(255,255,255,.10); margin:12px 0;}
-    .msg{padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); font-size:13px;}
+
+    .msg{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      font-size:13px;
+    }
     .msg.error{border-color: rgba(255,71,87,.35); background: rgba(255,71,87,.10);}
     .msg.ok{border-color: rgba(46,213,115,.35); background: rgba(46,213,115,.10);}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr;} }
+    .msg.info{border-color: rgba(79,172,254,.35); background: rgba(79,172,254,.10);}
+
+    .step{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .step .left{min-width:260px}
+    .step .title{font-weight:900}
+    .step .hint{color:var(--muted2); font-size:12px; margin-top:6px; line-height:1.35}
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr;}
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="top">
-      <div>
-        <h1>REQ a Proveedor (Almacén - Jauja)</h1>
-        <div class="meta">
-          Usuario: <b>{{ request.user.username }}</b> · Sede: <b>{{ sede.nombre }}</b> · Ubicación: <b>{{ ubicacion.nombre }}</b>
+      <div class="brand">
+        <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
+        <div>
+          <h1>REQ — Almacén</h1>
+          <div class="meta">
+            Usuario: <b>{{ request.user.username }}</b> ·
+            Sede: <b>{{ sede.nombre }}</b> ·
+            Ubicación: <b>{{ ubicacion.nombre }}</b>
+          </div>
         </div>
       </div>
-      <div class="pill">
-        Tipo: <b>PROVEEDOR</b> (forzado por ALMACÉN CENTRAL)
+
+      <div class="actions">
+        <a class="btn secondary small" href="/dashboard/almacen/">← Volver al Dashboard</a>
+
+        {% if req and req.id %}
+          <a class="btn secondary small" target="_blank" href="{% url 'req_print' req.id %}">Imprimir</a>
+        {% endif %}
+
+        {% if sede.tipo == "CENTRAL" %}
+          <span class="pill ok">Tipo: <b>PROVEEDOR</b></span>
+        {% else %}
+          <span class="pill warn">Tipo: <b>ENTRE_SEDES</b></span>
+        {% endif %}
       </div>
     </div>
 
     {% if messages %}
       <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
         {% for message in messages %}
-          <div class="msg {{ message.tags|default:'' }}">{{ message }}</div>
+          <div class="msg {{ message.tags|default:'info' }}">{{ message }}</div>
         {% endfor %}
       </div>
     {% endif %}
 
     <div class="grid">
-      <!-- CATALOGO -->
+
+      <!-- IZQUIERDA: CATALOGO -->
       <div class="card">
+        <h2>Materiales</h2>
+        <div class="sub">
+          Aquí agregas productos al REQ (borrador). Luego ajustas cantidades en el carrito.
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Paso 1: asegurar configuración -->
+        <div class="step">
+          <div class="left">
+            <div class="title">Paso 1 — Configuración</div>
+            <div class="hint" id="cfgHint">
+              {% if sede.tipo == "CENTRAL" %}
+                CENTRAL crea REQ a PROVEEDOR: selecciona proveedor si aún no está definido.
+              {% else %}
+                No CENTRAL crea REQ ENTRE_SEDES: selecciona sede CENTRAL destino si aún no está definida.
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row" style="justify-content:flex-end;">
+            {% if sede.tipo == "CENTRAL" %}
+              <select id="selProveedor">
+                <option value="">-- proveedor --</option>
+                {% for p in proveedores %}
+                  <option value="{{ p.id }}" {% if req.proveedor_id == p.id %}selected{% endif %}>
+                    {{ p.razon_social }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <button class="btn small" id="btnGuardarCfg">Guardar proveedor</button>
+            {% else %}
+              <select id="selDestino">
+                <option value="">-- sede CENTRAL destino --</option>
+                {% for s in sedes_central %}
+                  <option value="{{ s.id }}" {% if req.sede_destino_id == s.id %}selected{% endif %}>
+                    {{ s.nombre }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <button class="btn small" id="btnGuardarCfg">Guardar destino</button>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- Paso 2: buscar y agregar -->
         <div class="row" style="justify-content:space-between;">
           <div>
-            <div style="font-weight:800;">Materiales</div>
-            <div class="muted">Busca y agrega productos (en proveedor no se valida stock).</div>
+            <div style="font-weight:900;">Paso 2 — Buscar y agregar</div>
+            <div class="muted">
+              {% if sede.tipo == "CENTRAL" %}
+                Modo proveedor: no se valida stock por sede.
+              {% else %}
+                Entre sedes: se usa el catálogo “local” (filtra por stock de tu sede).
+              {% endif %}
+            </div>
           </div>
         </div>
 
@@ -116,15 +281,12 @@
         <div id="catalogo" class="list"></div>
       </div>
 
-      <!-- CARRITO -->
+      <!-- DERECHA: CARRITO -->
       <div class="card">
         <div class="row" style="justify-content:space-between;">
           <div>
-            <div style="font-weight:800;">Carrito</div>
-            <div class="muted">REQ borrador</div>
-          </div>
-          <div class="row">
-            <a class="btn secondary small" target="_blank" href="{% url 'req_print' req.id %}">Imprimir</a>
+            <h2>Carrito</h2>
+            <div class="sub">REQ borrador (lo que vas armando).</div>
           </div>
         </div>
 
@@ -134,14 +296,19 @@
 
         <div class="hr"></div>
 
-        <form method="post" action="{% url 'req_enviar' req.id %}">
-          {% csrf_token %}
-          <button class="btn ok" style="width:100%;">Enviar REQ</button>
-        </form>
-        <div class="muted" style="margin-top:10px;">
-          Al enviar, pasa a <b>PENDIENTE</b> y podrás procesarlo desde el panel.
-        </div>
+        {% if req and req.id %}
+          <form method="post" action="{% url 'req_enviar' req.id %}">
+            {% csrf_token %}
+            <button class="btn ok" id="btnEnviar" style="width:100%;">Enviar REQ</button>
+          </form>
+          <div class="muted" style="margin-top:10px;">
+            Al enviar, pasa a <b>PENDIENTE</b> y el almacén lo procesa desde el panel.
+          </div>
+        {% else %}
+          <div class="msg error">No existe REQ borrador. Revisa tu servicio get_or_create_req_borrador.</div>
+        {% endif %}
       </div>
+
     </div>
   </div>
 
@@ -151,6 +318,7 @@
     const v = `; ${document.cookie}`;
     const parts = v.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
+    return "";
   }
   const csrftoken = getCookie('csrftoken');
 
@@ -167,22 +335,84 @@
     return data;
   }
 
-  // Render catálogo
+  function escapeHtml(str){
+    return (str || "").replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // --------------- Config (proveedor / destino) ---------------
+  const btnGuardarCfg = document.getElementById("btnGuardarCfg");
+  const sedeTipo = "{{ sede.tipo|default:'' }}".toUpperCase();
+
+  async function guardarConfig(){
+    if (!btnGuardarCfg) return;
+
+    btnGuardarCfg.disabled = true;
+    try{
+      const fd = new FormData();
+
+      if (sedeTipo === "CENTRAL"){
+        const prov = document.getElementById("selProveedor")?.value || "";
+        if (!prov){
+          alert("Selecciona un proveedor.");
+          return;
+        }
+        fd.append("tipo_requerimiento", "PROVEEDOR");
+        fd.append("proveedor_id", prov);
+      } else {
+        const dest = document.getElementById("selDestino")?.value || "";
+        if (!dest){
+          alert("Selecciona sede CENTRAL destino.");
+          return;
+        }
+        fd.append("tipo_requerimiento", "ENTRE_SEDES");
+        fd.append("sede_destino_id", dest);
+      }
+
+      await fetchJSON("/req/set-tipo/", {
+        method: "POST",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken,
+        },
+        body: fd
+      });
+
+      // refrescamos carrito por si el backend ajustó defaults
+      await cargarCarrito();
+      alert("Configuración guardada ✅");
+    }catch(e){
+      alert(e.message || "Error guardando configuración.");
+    }finally{
+      btnGuardarCfg.disabled = false;
+    }
+  }
+
+  if (btnGuardarCfg){
+    btnGuardarCfg.addEventListener("click", guardarConfig);
+  }
+
+  // --------------- Catálogo / Carrito ---------------
   function renderCatalogo(rows) {
     const box = document.getElementById('catalogo');
     box.innerHTML = '';
 
     if (!rows || rows.length === 0) {
-      box.appendChild(el('div', `<div class="msg">Sin resultados.</div>`));
+      box.appendChild(el('div', `<div class="msg info">Sin resultados.</div>`));
       return;
     }
 
     rows.forEach(r => {
+      const dispTxt = (r.disponible === null || r.disponible === undefined)
+        ? "Disponible: —"
+        : `Disponible: ${r.disponible}`;
+
       const node = el('div', `
         <div class="item">
           <div>
-            <div class="name">${r.nombre}</div>
-            <div class="code">${r.codigo || ''} · Disponible: ${r.disponible ?? 0} ${r.unidad || ''}</div>
+            <div class="name">${escapeHtml(r.nombre)}</div>
+            <div class="code">${escapeHtml(r.codigo || "")} · ${dispTxt} ${escapeHtml(r.unidad || "")}</div>
           </div>
           <div class="row" style="justify-content:flex-end;">
             <input class="qty" type="number" min="1" value="1" />
@@ -208,7 +438,7 @@
               'X-CSRFToken': csrftoken
             },
             body: new URLSearchParams({
-              producto_id: r.producto_id,
+              producto_id: String(r.producto_id),
               cantidad: String(cantidad)
             })
           });
@@ -224,13 +454,12 @@
     });
   }
 
-  // Render carrito
   function renderCarrito(items) {
     const box = document.getElementById('carrito');
     box.innerHTML = '';
 
     if (!items || items.length === 0) {
-      box.appendChild(el('div', `<div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>`));
+      box.appendChild(el('div', `<div class="msg info">Sin ítems todavía. Agrega desde el catálogo.</div>`));
       return;
     }
 
@@ -238,11 +467,11 @@
       const node = el('div', `
         <div class="item">
           <div>
-            <div class="name">${it.nombre}</div>
-            <div class="code">${it.codigo || ''} · ${it.unidad || ''}</div>
+            <div class="name">${escapeHtml(it.nombre)}</div>
+            <div class="code">${escapeHtml(it.codigo || '')} · ${escapeHtml(it.unidad || '')}</div>
           </div>
           <div class="row" style="justify-content:flex-end;">
-            <input class="qty" type="number" min="1" value="${it.cantidad}" />
+            <input class="qty" type="number" min="1" value="${escapeHtml(String(it.cantidad))}" />
             <button class="btn secondary small">Actualizar</button>
             <button class="btn danger small">Quitar</button>
           </div>
@@ -267,7 +496,7 @@
               'X-CSRFToken': csrftoken
             },
             body: new URLSearchParams({
-              producto_id: it.producto_id,
+              producto_id: String(it.producto_id),
               cantidad: String(cantidad)
             })
           });
@@ -289,7 +518,7 @@
               'Content-Type': 'application/x-www-form-urlencoded',
               'X-CSRFToken': csrftoken
             },
-            body: new URLSearchParams({ producto_id: it.producto_id })
+            body: new URLSearchParams({ producto_id: String(it.producto_id) })
           });
           await cargarCarrito();
         } catch (e) {
@@ -305,8 +534,12 @@
 
   async function buscar() {
     const q = (document.getElementById('q').value || '').trim();
+
+    // CENTRAL => modo proveedor, NO CENTRAL => modo local
+    const modo = (sedeTipo === "CENTRAL") ? "proveedor" : "local";
+
     try {
-      const data = await fetchJSON('/req/catalogo/?modo=proveedor&q=' + encodeURIComponent(q), {
+      const data = await fetchJSON('/req/catalogo/?modo=' + modo + '&q=' + encodeURIComponent(q), {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       });
       renderCatalogo(data.results || []);
@@ -320,7 +553,6 @@
       const data = await fetchJSON('/req/carrito/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       renderCarrito(data.items || []);
     } catch (e) {
-      // si se cae por sesión, etc
       console.error(e);
     }
   }
