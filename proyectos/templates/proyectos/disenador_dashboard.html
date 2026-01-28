@@ -1,0 +1,230 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* 🔴 TRUCO PARA FORZAR EL MODO OSCURO EN TODA LA PANTALLA */
+    body {
+        background-color: #1e1e2e !important;
+        color: #ffffff !important;
+    }
+
+    :root {
+        --bg-panel: #27293d;
+        --primary: #4e73df;
+        --text-muted: #858796;
+        --border-color: rgba(255,255,255,0.05);
+    }
+    
+    .dashboard-wrapper {
+        padding: 30px;
+        min-height: 100vh;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    /* ESTILOS DE BOTONES NEON */
+    .btn-neon {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(78, 115, 223, 0.4);
+        text-decoration: none;
+        transition: transform 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-neon:hover {
+        transform: translateY(-2px);
+        color: white;
+        box-shadow: 0 6px 20px rgba(78, 115, 223, 0.6);
+    }
+
+    /* TARJETAS DE PROYECTO */
+    .project-card {
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .project-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        border-color: var(--primary);
+    }
+
+    .card-body { padding: 25px; flex: 1; }
+    
+    .card-footer {
+        background: rgba(0,0,0,0.2);
+        padding: 15px 25px;
+        border-top: 1px solid var(--border-color);
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* BADGES DE ESTADO */
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .status-pendiente { background: rgba(246, 194, 62, 0.15); color: #f6c23e; border: 1px solid rgba(246, 194, 62, 0.2); }
+    .status-proceso { background: rgba(28, 200, 138, 0.15); color: #1cc88a; border: 1px solid rgba(28, 200, 138, 0.2); }
+    .status-cerrado { background: rgba(133, 135, 150, 0.15); color: #858796; border: 1px solid rgba(133, 135, 150, 0.2); }
+
+    .project-title { font-size: 18px; font-weight: 600; margin-bottom: 5px; color: white; }
+    .project-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 15px; display: flex; align-items: center; gap: 5px; }
+    
+    .tech-pill {
+        background: rgba(255,255,255,0.05);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* BOTONES DE ACCIÓN (PEQUEÑOS) */
+    .action-btn {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 13px;
+        text-align: center;
+        text-decoration: none;
+        transition: 0.2s;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.1); }
+    
+    .btn-pdf { color: #e74a3b; border-color: rgba(231, 74, 59, 0.3); }
+    .btn-pdf:hover { background: rgba(231, 74, 59, 0.1); color: #e74a3b; }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="page-header">
+        <div>
+            <h2 style="margin:0; color:white;">🎨 Panel de Diseño</h2>
+            <p style="margin:5px 0 0 0; color: var(--text-muted);">Gestiona tus planos y asignaciones de obra</p>
+        </div>
+        <a href="{% url 'proyecto_create' %}" class="btn-neon">
+            <i class='bx bx-plus-circle'></i> Nuevo Proyecto
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for p in proyectos %}
+        <div class="col-md-6 col-lg-4">
+            <div class="project-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span style="font-family: monospace; color: var(--primary); font-weight: bold;">{{ p.codigo }}</span>
+                        
+                        {% if p.estado == 'PENDIENTE' %}
+                            <span class="badge-status status-pendiente">Diseño</span>
+                        {% elif p.estado == 'EN_PROCESO' %}
+                            <span class="badge-status status-proceso">En Ejecución</span>
+                        {% elif p.estado == 'FINALIZADO' %}
+                            <span class="badge-status status-cerrado">Cerrado</span> {% else %}
+                            <span class="badge-status status-cerrado">{{ p.get_estado_display }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="project-title">{{ p.nombre }}</h3>
+                    <div class="project-meta">
+                        <i class='bx bxs-map'></i> {{ p.sede.nombre }}
+                    </div>
+                    
+                    <div class="tech-pill">
+                        <i class='bx bxs-hard-hat' style="color: #f6c23e;"></i>
+                        {% if p.responsable %}
+                            <span>Resp: <strong>{{ p.responsable.get_full_name|default:p.responsable.username }}</strong></span>
+                        {% else %}
+                            <span style="color: #e74a3b;">Sin asignar</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        
+                        {% if p.plano %}
+                            <a href="{{ p.plano.url }}" target="_blank" class="action-btn btn-pdf" title="Ver Plano">
+                                <i class='bx bxs-file-pdf'></i>
+                            </a>
+                        {% else %}
+                            <button disabled class="action-btn" style="opacity:0.3; cursor: not-allowed;" title="Sin plano">
+                                <i class='bx bxs-file-pdf'></i>
+                            </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'proyecto_materiales' p.id %}" class="action-btn" style="color:#4facfe; border-color: #4facfe;" title="Ver Materiales">
+                            <i class='bx bx-list-check'></i> Materiales
+                        </a>
+
+                        {% if p.estado == 'FINALIZADO' %}
+                            <a href="{% url 'proyecto_pdf_liquidacion' p.id %}" target="_blank" class="action-btn" style="color:#f6c23e; border-color: #f6c23e;" title="Descargar Acta de Cierre">
+                                <i class='bx bxs-file-doc'></i> Acta
+                            </a>
+                        
+                        {% elif p.estado == 'PENDIENTE' %}
+                            <form action="{% url 'eliminar_proyecto' p.id %}" method="POST" style="display:inline;" 
+                                  onsubmit="return confirm('¿Estás seguro de ELIMINAR este proyecto? Se borrará toda la planificación.');">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn" style="color:#e74a3b; border-color: #e74a3b;" title="Eliminar Proyecto">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </form>
+                        
+                        {% else %}
+                            {% endif %}
+
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <span><i class='bx bx-calendar'></i> {{ p.creado_en|date:"d M Y" }}</span>
+                    <span><i class='bx bx-chevron-right'></i></span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div style="opacity: 0.3;">
+                <i class='bx bx-folder-open' style="font-size: 60px; color: var(--text-muted);"></i>
+                <h3 class="mt-3 text-white">No hay proyectos activos</h3>
+                <p class="text-white">Crea el primero para comenzar a trabajar.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

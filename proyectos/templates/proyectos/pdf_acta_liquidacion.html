@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Acta de Cierre {{ proyecto.codigo }}</title>
+    <style type="text/css">
+        @page { size: A4; margin: 2cm; }
+        body { font-family: Helvetica, sans-serif; font-size: 11px; color: #333; }
+        
+        .header { text-align: center; border-bottom: 2px solid #f6c23e; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #1a1a2e; font-size: 18px; text-transform: uppercase; }
+        .header h2 { margin: 5px 0; color: #f6c23e; font-size: 14px; }
+        
+        .info-box { background-color: #f8f9fc; padding: 10px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .label { font-weight: bold; width: 100px; display: inline-block; color: #555; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th { background-color: #333; color: #f6c23e; padding: 8px; text-align: center; font-size: 10px; text-transform: uppercase; }
+        td { border-bottom: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; }
+        
+        /* Estilo para el Total de Cantidad */
+        .total-row td { 
+            background-color: #333; 
+            color: #fff; 
+            font-weight: bold; 
+            border-top: 2px solid #f6c23e; 
+            font-size: 12px;
+        }
+        
+        .signatures { width: 100%; margin-top: 60px; }
+        .sig-box { width: 45%; float: left; text-align: center; }
+        .sig-line { border-top: 1px solid #000; margin-bottom: 5px; width: 80%; margin-left: 10%; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>TELECABLE - ALMACÉN CENTRAL</h1>
+        <h2>ACTA DE LIQUIDACIÓN Y CIERRE DE OBRA</h2>
+        <p>Generado: {{ fecha_impresion|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="info-box">
+        <div><span class="label">CÓDIGO:</span> <strong>{{ proyecto.codigo }}</strong></div>
+        <div><span class="label">PROYECTO:</span> {{ proyecto.nombre|upper }}</div>
+        <div>
+            <span class="label">RESPONSABLE:</span> 
+            {% if proyecto.responsable %}
+                {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+            {% else %}
+                SIN ASIGNAR
+            {% endif %}
+        </div>
+        <div><span class="label">ESTADO:</span> {{ proyecto.get_estado_display|upper }}</div>
+    </div>
+
+    <h3>BALANCE DE MATERIALES</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="text-align: left;">MATERIAL</th>
+                <th>ENTREGADO</th>
+                <th>DEVUELTO<br>(Almacén)</th>
+                <th>MERMA<br>(Dañado)</th>
+                <th>CONSUMO<br>REAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in materiales %}
+            <tr>
+                <td style="text-align: left;">{{ m.producto.nombre }}</td>
+                <td style="font-weight: bold;">{{ m.cantidad_entregada }}</td>
+                <td style="color: green;">{{ m.cantidad_devuelta }}</td>
+                <td style="color: red;">{{ m.cantidad_merma }}</td>
+                <td style="background-color: #eee; font-weight: bold;">{{ m.cantidad_usada }}</td>
+            </tr>
+            {% endfor %}
+            
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL ITEMS INSTALADOS:</td>
+                <td style="background-color: #f6c23e; color: #000;">{{ total_consumido }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="signatures">
+        <div class="sig-box">
+            <div style="height: 40px;"></div>
+            <div class="sig-line"></div>
+            <div>LIQUIDADO POR</div>
+            <div style="font-size: 9px;">ALMACÉN</div>
+        </div>
+
+        <div class="sig-box" style="float: right;">
+            <div style="height: 40px;"></div>
+            <div class="sig-line"></div>
+            <div>CONFORMIDAD TÉCNICA</div>
+            <div style="font-size: 9px;">
+                {% if proyecto.responsable %}
+                    {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+                {% else %}
+                    TECNICO RESPONSABLE
+                {% endif %}
+            </div>
+            <div style="font-size: 8px; color: #666;">DNI: __________________</div>
+        </div>
+    </div>
+
+</body>
+</html>

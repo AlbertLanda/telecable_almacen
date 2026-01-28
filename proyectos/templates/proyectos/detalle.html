@@ -1,0 +1,63 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container-fluid p-4">
+    <a href="{% url 'proyecto_list' %}" class="btn btn-outline-secondary mb-3">← Volver</a>
+    
+    <div class="card bg-dark text-white border-secondary mb-4">
+        <div class="card-body">
+            <h2 class="text-info">{{ proyecto.nombre }} <small class="text-muted">({{ proyecto.codigo }})</small></h2>
+            <p class="mb-1"><strong>Sede:</strong> {{ proyecto.sede.nombre }} | <strong>Estado:</strong> {{ proyecto.estado }}</p>
+            <p><strong>Costo Real Acumulado:</strong> S/. {{ costo_total }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card bg-dark text-white border-secondary">
+                <div class="card-header">📦 Materiales Asignados</div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Asignado</th>
+                                <th>Usado</th>
+                                <th>Merma</th>
+                                <th>Devuelto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in materiales %}
+                            <tr>
+                                <td>{{ m.producto.nombre }}</td>
+                                <td class="text-info fw-bold">{{ m.cantidad_asignada }}</td>
+                                <td>{{ m.cantidad_usada }}</td>
+                                <td>{{ m.cantidad_merma }}</td>
+                                <td>{{ m.cantidad_devuelta }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center">Sin materiales.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-dark text-white border-secondary">
+                <div class="card-header">👷 Técnicos</div>
+                <ul class="list-group list-group-flush">
+                    {% for a in tecnicos %}
+                    <li class="list-group-item bg-dark text-white border-secondary">
+                        {{ a.tecnico.username }}
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-dark text-muted">Sin técnicos asignados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

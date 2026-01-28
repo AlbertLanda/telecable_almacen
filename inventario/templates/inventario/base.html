@@ -1,184 +1,195 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Inventario Telecable{% endblock %}</title>
+    <title>{% block title %}Telecable Inventario{% endblock %}</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome para iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    {% block extra_css %}{% endblock %}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     
     <style>
-        /* Estilos adicionales si es necesario */
-        .card {
-            @apply bg-white rounded-lg shadow-md p-6;
+        :root {
+            --bg-body: #1e1e2e;       /* Fondo oscuro general */
+            --bg-navbar: #181824;     /* Fondo navbar */
+            --primary: #4e73df;
+            --text-main: #ffffff;
+            --text-muted: #858796;
+            --border-color: rgba(255,255,255,0.05);
         }
-        .btn {
-            @apply px-4 py-2 rounded-md font-medium transition-colors;
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .btn-primary {
-            @apply bg-blue-500 text-white hover:bg-blue-600;
+
+        /* NAVBAR SUPERIOR */
+        .navbar {
+            background-color: var(--bg-navbar);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .btn-secondary {
-            @apply bg-gray-500 text-white hover:bg-gray-600;
+
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .btn-success {
-            @apply bg-green-500 text-white hover:bg-green-600;
+        .navbar-brand i { color: var(--primary); font-size: 24px; }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
-        .btn-danger {
-            @apply bg-red-500 text-white hover:bg-red-600;
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .user-info strong { color: white; }
+
+        .btn-logout-nav {
+            color: #e74a3b;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 6px;
+            transition: 0.2s;
+            border: 1px solid rgba(231, 74, 59, 0.2);
+        }
+        .btn-logout-nav:hover {
+            background: rgba(231, 74, 59, 0.1);
+        }
+
+        /* CONTENIDO PRINCIPAL */
+        .main-container {
+            flex: 1; /* Empuja el footer hacia abajo */
+        }
+
+        /* FOOTER */
+        footer {
+            background-color: var(--bg-navbar);
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        }
+        .toast-msg {
+            background: #27293d;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-left: 5px solid #4e73df;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+            min-width: 300px;
+        }
+        .toast-success { border-left-color: #1cc88a; }
+        .toast-error { border-left-color: #e74a3b; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-100">
-    <!-- Barra de navegación -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="{% url 'home' %}" class="text-xl font-bold text-gray-800">
-                        🏢 Telecable Inventario
-                    </a>
-                </div>
-                
-                <div class="flex items-center space-x-4">
-                    {% if user.is_authenticated %}
-                        <div class="flex items-center space-x-3">
-                            <span class="text-gray-700 font-medium">
-                                👤 {{ user.username }}
-                            </span>
-                            <span class="px-2 py-1 text-xs rounded-full {% if user.profile.rol == 'ADMIN' %}bg-purple-100 text-purple-800{% elif user.profile.rol == 'JEFA' %}bg-indigo-100 text-indigo-800{% elif user.profile.rol == 'ALMACEN' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ user.profile.get_rol_display }}
-                            </span>
-                            {% if user.profile.sede_activa %}
-                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                📍 {{ user.profile.sede_activa.nombre }}
-                            </span>
-                            {% endif %}
-                        </div>
-                        <a href="{% url 'logout' %}" class="btn btn-secondary">
-                            <i class="fas fa-sign-out-alt mr-1"></i> Salir
-                        </a>
-                    {% else %}
-                        <a href="{% url 'login' %}" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt mr-1"></i> Iniciar Sesión
-                        </a>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class='bx bxs-building-house'></i> Telecable Inventario
+        </a>
+
+        {% if user.is_authenticated %}
+        <div class="navbar-user">
+            <div class="user-info">
+                <i class='bx bxs-user-circle' style="font-size: 20px;"></i>
+                <div>
+                    <strong>{{ user.username }}</strong>
+                    {% if user.profile.rol %}
+                        <span style="display:block; font-size: 11px; opacity: 0.7;">{{ user.profile.get_rol_display }}</span>
                     {% endif %}
                 </div>
             </div>
+            
+            <a href="{% url 'logout' %}" class="btn-logout-nav">
+                <i class='bx bx-log-out'></i> Salir
+            </a>
         </div>
+        {% endif %}
     </nav>
-    
-    <!-- Menú de navegación principal -->
-    {% if user.is_authenticated %}
-    <nav class="bg-gray-800 text-white">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex space-x-8 h-10 items-center">
-                <a href="{% url 'home' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-home mr-1"></i> Inicio
-                </a>
-                
-                {% with user_rol=user.profile.rol|default:"" %}
-                <!-- Menú según rol -->
-                {% if user_rol == 'SOLICITANTE' %}
-                <a href="{% url 'scan' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-barcode mr-1"></i> Escanear
-                </a>
-                <a href="{% url 'req_home' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-file-alt mr-1"></i> Requisiciones
-                </a>
-                
-                {% elif user_rol == 'ALMACEN' %}
-                <a href="{% url 'scan' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-barcode mr-1"></i> Escanear
-                </a>
-                <a href="{% url 'req_home' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-file-alt mr-1"></i> Requisiciones
-                </a>
-                <a href="{% url 'dash_almacen' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-warehouse mr-1"></i> Almacén
-                </a>
-                <a href="{% url 'liquidacion_dashboard' %}" class="hover:text-gray-300 transition-colors bg-green-600 px-3 py-1 rounded">
-                    <i class="fas fa-calculator mr-1"></i> 📊 Liquidación
-                </a>
-                
-                {% elif user_rol == 'ADMIN' or user_rol == 'JEFA' %}
-                <a href="{% url 'scan' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-barcode mr-1"></i> Escanear
-                </a>
-                <a href="{% url 'req_home' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-file-alt mr-1"></i> Requisiciones
-                </a>
-                <a href="{% url 'dash_almacen' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-warehouse mr-1"></i> Almacén
-                </a>
-                <a href="{% url 'dash_admin' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-cog mr-1"></i> Administración
-                </a>
-                <a href="{% url 'liquidacion_dashboard' %}" class="hover:text-gray-300 transition-colors bg-green-600 px-3 py-1 rounded">
-                    <i class="fas fa-calculator mr-1"></i> 📊 Liquidación
-                </a>
-                {% endif %}
-                
-                <!-- Dashboard técnico -->
-                {% if user_rol == 'JEFA' %}
-                <a href="{% url 'tecnico_dashboard' %}" class="hover:text-gray-300 transition-colors">
-                    <i class="fas fa-tools mr-1"></i> Técnico
-                </a>
-                {% endif %}
-                {% endwith %}
-            </div>
-        </div>
-    </nav>
-    {% endif %}
-    
-    <!-- Mensajes de Django -->
+
+    <div class="main-container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <footer>
+        &copy; 2026 Telecable - Sistema de Gestión de Materiales v2.0
+    </footer>
     {% if messages %}
-    <div class="max-w-7xl mx-auto px-4 mt-4">
+    <div class="toast-container">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} mb-4 p-4 rounded-md {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
-            {{ message }}
+        <div class="toast-msg {% if message.tags == 'success' %}toast-success{% elif message.tags == 'error' %}toast-error{% endif %}">
+            {% if message.tags == 'success' %}
+                <i class='bx bx-check-circle' style="font-size: 20px; color: #1cc88a;"></i>
+            {% else %}
+                <i class='bx bx-info-circle' style="font-size: 20px;"></i>
+            {% endif %}
+            <div>{{ message }}</div>
         </div>
         {% endfor %}
     </div>
-    {% endif %}
-    
-    <!-- Contenido principal -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        {% block content %}{% endblock %}
-    </main>
-    
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="text-center">
-                <p>&copy; 2024 Telecable - Sistema de Inventario</p>
-            </div>
-        </div>
-    </footer>
-    
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    {% block extra_js %}{% endblock %}
-    
+
     <script>
-        // Funciones JavaScript globales
-        function confirmAction(message) {
-            return confirm(message);
-        }
-        
-        // Auto-ocultar mensajes
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                alert.style.display = 'none';
+        // Desaparecer mensajes después de 4 segundos
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('.toast-msg');
+            toasts.forEach(t => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateX(100%)';
+                t.style.transition = 'all 0.5s ease';
+                setTimeout(() => t.remove(), 500);
             });
-        }, 5000);
+        }, 4000);
     </script>
+    {% endif %}
 </body>
 </html>

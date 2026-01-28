@@ -1,0 +1,61 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h3 class="text-white mb-4">💰 Reporte Financiero de Obras</h3>
+
+    <div class="glass-panel p-4">
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr class="text-uppercase text-muted small">
+                    <th>Código / Obra</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th class="text-end text-success">Costo Real</th>
+                    <th class="text-end">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proyectos %}
+                <tr>
+                    <td>
+                        <div class="fw-bold text-white">{{ p.codigo }}</div>
+                        <small class="text-muted">{{ p.nombre }}</small>
+                    </td>
+                    <td>
+                        {% if p.estado == 'PENDIENTE' %}
+                            <span class="badge bg-warning text-dark">Diseño</span>
+                        {% elif p.estado == 'EN_PROCESO' %}
+                            <span class="badge bg-primary">En Ejecución</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Finalizado</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.responsable.username|default:"--" }}</td>
+                    
+                    <td class="text-end fw-bold text-success fs-5">
+                        S/ {{ p.costo_total_real }}
+                    </td>
+
+                    <td class="text-end">
+                        <a href="{% url 'admin_detalle_financiero' p.id %}" class="btn btn-sm btn-outline-light">
+                            <i class='bx bx-search-alt'></i> Auditar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center py-5">No hay obras registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .glass-panel {
+        background: #27293d; border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+    }
+    .table-dark { background: transparent; --bs-table-bg: transparent; }
+</style>
+{% endblock %}

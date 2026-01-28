@@ -1,0 +1,86 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="text-white mb-0">📊 Auditoría de Costos</h3>
+            <span class="text-muted">{{ proyecto.codigo }} - {{ proyecto.nombre }}</span>
+        </div>
+        <a href="{% url 'admin_reporte_lista' %}" class="btn btn-outline-secondary">Volver</a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="glass-panel p-3 d-flex align-items-center gap-3">
+                <div class="icon-box bg-success text-white"><i class='bx bx-money'></i></div>
+                <div>
+                    <small class="text-muted">COSTO TOTAL</small>
+                    <h3 class="text-success m-0">S/ {{ proyecto.costo_total_real }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel p-0 overflow-hidden">
+        <table class="table table-dark table-hover mb-0">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="p-3">Material</th>
+                    <th class="p-3 text-center">Planificado</th>
+                    <th class="p-3 text-center">Instalado Real</th>
+                    <th class="p-3 text-end">Costo Unit.</th>
+                    <th class="p-3 text-end">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in materiales %}
+                <tr>
+                    <td class="p-3">
+                        <div class="fw-bold">{{ m.producto.nombre }}</div>
+                        <small class="text-muted">{{ m.producto.codigo_interno }}</small>
+                    </td>
+                    <td class="p-3 text-center text-muted">{{ m.cantidad_planificada }}</td>
+                    
+                    <td class="p-3 text-center fw-bold">
+                        {% if m.cantidad_usada > 0 %}
+                            {{ m.cantidad_usada }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="p-3 text-end text-info">
+                        {% if m.costo_unitario %}
+                            S/ {{ m.costo_unitario }}
+                        {% else %}
+                            <span class="badge bg-danger">Sin Precio</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-end text-success fw-bold">
+                        S/ {{ m.costo_total_real }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #4e73df;">
+                    <td colspan="4" class="p-3 text-end fw-bold text-white">TOTAL OBRA:</td>
+                    <td class="p-3 text-end fw-bold text-success fs-5">S/ {{ proyecto.costo_total_real }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+    .glass-panel {
+        background: #27293d; border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+    }
+    .icon-box {
+        width: 50px; height: 50px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+</style>
+{% endblock %}

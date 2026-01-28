@@ -1,0 +1,33 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white">📂 Proyectos y Obras</h2>
+        {% if user.profile.rol == 'ADMIN' or user.profile.rol == 'JEFA' %}
+        <a href="/admin/proyectos/proyecto/add/" class="btn btn-primary" target="_blank">+ Nuevo Proyecto</a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        {% for p in proyectos %}
+        <div class="col-md-4 mb-3">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="card-title text-info">{{ p.nombre }}</h5>
+                        <span class="badge {% if p.estado == 'ABIERTO' %}bg-success{% else %}bg-secondary{% endif %}">{{ p.estado }}</span>
+                    </div>
+                    <p class="card-text small text-muted">{{ p.codigo }} | {{ p.sede.nombre }}</p>
+                    <p>{{ p.descripcion|truncatechars:100 }}</p>
+                    <a href="{% url 'proyecto_detail' p.id %}" class="btn btn-outline-light btn-sm w-100">Ver Detalles</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted mt-5">
+            <h4>No hay proyectos activos.</h4>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

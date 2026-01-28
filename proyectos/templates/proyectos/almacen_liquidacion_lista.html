@@ -1,0 +1,62 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<style>
+    body { background-color: #1e1e2e !important; color: #fff !important; }
+    .glass-panel {
+        background: #27293d; border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px; padding: 25px; margin-bottom: 25px;
+    }
+    .table-custom th { color: #858796; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #3f4050; }
+    .table-custom td { color: white; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 15px 10px; }
+    
+    .btn-liquidar {
+        background: linear-gradient(45deg, #f6c23e, #dda20a);
+        color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; text-decoration: none;
+        transition: 0.3s; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-liquidar:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(246, 194, 62, 0.4); color: white; }
+</style>
+
+<div class="container-fluid p-4">
+    <h3 class="text-white mb-4">🔄 Recepción y Liquidación de Obras</h3>
+
+    <div class="glass-panel">
+        <p class="text-muted mb-4">Selecciona una obra en curso para registrar el retorno de materiales y cerrar el proyecto.</p>
+
+        <table class="table table-custom table-borderless">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Proyecto</th>
+                    <th>Responsable</th>
+                    <th>Inicio</th>
+                    <th class="text-end">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proyectos %}
+                <tr>
+                    <td class="text-info">{{ p.codigo }}</td>
+                    <td>
+                        <strong>{{ p.nombre }}</strong>
+                    </td>
+                    <td>👷 {{ p.responsable.username }}</td>
+                    <td>{{ p.actualizado_en|date:"d M Y" }}</td> <td class="text-end">
+                        <a href="{% url 'almacen_liquidar_proyecto' p.id %}" class="btn-liquidar">
+                            <i class='bx bx-revision'></i> Liquidar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        No hay obras en proceso para liquidar.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

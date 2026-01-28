@@ -1,0 +1,80 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-white">📜 Historial de Obras Cerradas</h3>
+        <a href="{% url 'dash_almacen' %}" class="btn btn-outline-secondary">
+            <i class='bx bx-arrow-back'></i> Volver
+        </a>
+    </div>
+
+    <div class="glass-panel p-4">
+        <p class="text-muted mb-4">
+            Archivo histórico de proyectos liquidados. Aquí puedes reimprimir las Actas de Cierre.
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr class="text-uppercase text-muted small">
+                        <th>Cierre</th>
+                        <th>Código / Proyecto</th>
+                        <th>Responsable</th>
+                        <th>Estado</th>
+                        <th class="text-end">Documentos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in proyectos %}
+                    <tr>
+                        <td class="text-white-50">{{ p.fin|date:"d/m/Y" }}</td>
+                        <td>
+                            <div class="fw-bold text-white">{{ p.codigo }}</div>
+                            <small class="text-muted">{{ p.nombre }}</small>
+                        </td>
+                        <td>
+                            {% if p.responsable %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 25px; height: 25px;">
+                                        <i class='bx bxs-user text-white' style="font-size: 12px;"></i>
+                                    </div>
+                                    <span class="text-white">{{ p.responsable.username }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-danger small">Sin Asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary text-white-50">FINALIZADO</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'proyecto_pdf_liquidacion' p.id %}" target="_blank" 
+                               class="btn btn-sm btn-warning fw-bold">
+                                <i class='bx bxs-file-pdf'></i> Acta de Cierre
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class='bx bx-archive-in' style="font-size: 40px; margin-bottom: 10px;"></i>
+                            <p>Aún no hay obras en el historial.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .glass-panel {
+        background: #27293d; border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+    }
+    .table-dark { background-color: transparent; --bs-table-bg: transparent; }
+    .table-dark td, .table-dark th { border-bottom-color: rgba(255,255,255,0.05); }
+</style>
+{% endblock %}

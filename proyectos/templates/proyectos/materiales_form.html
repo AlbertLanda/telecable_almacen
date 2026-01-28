@@ -1,0 +1,253 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* FORZAR MODO OSCURO */
+    body { background-color: #1e1e2e !important; color: #fff !important; }
+    
+    .panel-container {
+        padding: 30px;
+        min-height: 100vh;
+    }
+
+    /* PANELES DE VIDRIO */
+    .glass-panel {
+        background: #27293d;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        height: 100%; /* Para que tengan la misma altura */
+    }
+
+    .header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding-bottom: 20px;
+    }
+    
+    /* INPUTS ESTILO DARK */
+    .form-control, .form-select {
+        background-color: #161620 !important;
+        border: 1px solid #3f4050 !important;
+        color: white !important;
+        font-size: 14px;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df !important;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2) !important;
+    }
+
+    /* TABLA MEJORADA */
+    .table-container {
+        overflow-x: auto;
+    }
+    .table-dark-custom {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px; /* Espacio entre filas */
+    }
+    .table-dark-custom th {
+        text-align: left;
+        color: #858796;
+        padding: 15px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .table-dark-custom tbody tr {
+        background-color: rgba(255,255,255,0.02);
+        transition: 0.2s;
+    }
+    .table-dark-custom tbody tr:hover {
+        background-color: rgba(255,255,255,0.05);
+        transform: scale(1.01);
+    }
+    .table-dark-custom td {
+        padding: 15px;
+        vertical-align: middle;
+        border-top: 1px solid rgba(255,255,255,0.02);
+        border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+    .table-dark-custom td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-left: 1px solid rgba(255,255,255,0.02); }
+    .table-dark-custom td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-right: 1px solid rgba(255,255,255,0.02); }
+    
+    /* BOTONES */
+    .btn-add { 
+        background: linear-gradient(45deg, #4e73df, #224abe); 
+        color: white; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; margin-top: 10px; 
+        transition: 0.2s;
+    }
+    .btn-add:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4); }
+    
+    .btn-finish { background: #1cc88a; color: white; padding: 10px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;}
+    .btn-finish:hover { background: #17a673; color: white; }
+
+    .btn-icon-save {
+        background: rgba(28, 200, 138, 0.1); color: #1cc88a; border: 1px solid rgba(28, 200, 138, 0.3);
+        padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-icon-save:hover { background: #1cc88a; color: white; }
+
+    .btn-icon-del {
+        background: rgba(231, 74, 59, 0.1); color: #e74a3b; border: 1px solid rgba(231, 74, 59, 0.3);
+        padding: 6px 10px; border-radius: 6px; text-decoration: none; transition: 0.2s; display: inline-block;
+    }
+    .btn-icon-del:hover { background: #e74a3b; color: white; }
+
+    /* Estilo para el input editable en tabla */
+    .input-edit {
+        background: #0f0f16 !important;
+        border: 1px solid #4e73df !important;
+        color: #4e73df !important;
+        font-weight: bold;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        width: 70px;
+    }
+</style>
+
+<div class="panel-container">
+    
+    <div class="header-panel">
+        <div>
+            <h4 class="text-white mb-1">🏗️ Planificación de Materiales</h4>
+            <div class="text-muted d-flex align-items-center gap-2">
+                <i class='bx bx-folder'></i> Proyecto: <strong class="text-white">{{ proyecto.nombre }}</strong> 
+                <span class="badge bg-primary">{{ proyecto.codigo }}</span>
+                
+                {% if proyecto.estado != 'PENDIENTE' %}
+                    <span class="badge bg-warning text-dark"><i class='bx bx-lock-alt'></i> MODO LECTURA</span>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'disenador_dashboard' %}" class="btn-finish">
+            <i class='bx bx-check-circle'></i> Finalizar y Salir
+        </a>
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-4">
+            <div class="glass-panel" style="position: sticky; top: 20px;">
+                <h5 class="mb-4 text-white border-bottom pb-2 border-secondary">
+                    <i class='bx bx-cart-add'></i> Agregar Item
+                </h5>
+                
+                {% if proyecto.estado == 'PENDIENTE' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Producto</label>
+                            {{ form.producto }}
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Cantidad</label>
+                            {{ form.cantidad_planificada }}
+                        </div>
+                        <button type="submit" class="btn-add">
+                            <i class='bx bx-plus'></i> Agregar a la Lista
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="text-center py-5" style="opacity: 0.7;">
+                        <i class='bx bx-lock-alt' style="font-size: 50px; color: #f6c23e;"></i>
+                        <h5 class="mt-3 text-warning">Edición Bloqueada</h5>
+                        <p class="small text-muted">
+                            El proyecto ya está en ejecución o finalizado.<br>
+                            No se pueden agregar más items.
+                        </p>
+                    </div>
+                {% endif %}
+
+                <div class="mt-4 p-3 rounded" style="background: rgba(0,0,0,0.2); text-align: center;">
+                    <span class="text-muted small">Total de Items</span>
+                    <h2 class="text-white m-0">{{ materiales.count }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="glass-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-white m-0"><i class='bx bx-list-ul'></i> Receta del Proyecto</h5>
+                    {% if proyecto.estado == 'PENDIENTE' %}
+                        <span class="text-muted small">Edita la cantidad directamente en la casilla</span>
+                    {% endif %}
+                </div>
+                
+                <div class="table-container">
+                    <table class="table-dark-custom">
+                        <thead>
+                            <tr>
+                                <th>Producto / Descripción</th>
+                                <th>Código</th>
+                                <th class="text-center" style="width: 150px;">Cantidad</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in materiales %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div style="width:40px; height:40px; background:rgba(255,255,255,0.05); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                            <i class='bx bx-cube text-primary fs-4'></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">{{ item.producto.nombre }}</div>
+                                            <small class="text-muted">{{ item.producto.categoria.nombre|default:"General" }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-muted" style="font-family: monospace;">
+                                    {{ item.producto.codigo_interno }}
+                                </td>
+                                
+                                <td class="text-center">
+                                    {% if proyecto.estado == 'PENDIENTE' %}
+                                        <form action="{% url 'editar_cantidad_material' item.id %}" method="POST" class="d-flex justify-content-center align-items-center gap-2">
+                                            {% csrf_token %}
+                                            <input type="number" name="nueva_cantidad" value="{{ item.cantidad_planificada }}" class="input-edit form-control" min="1">
+                                            <button type="submit" class="btn-icon-save" title="Guardar cambio">
+                                                <i class='bx bx-save'></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="badge bg-secondary fs-6">{{ item.cantidad_planificada }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="text-center">
+                                    {% if proyecto.estado == 'PENDIENTE' %}
+                                        <a href="{% url 'eliminar_material_proyecto' item.id %}" class="btn-icon-del" title="Eliminar">
+                                            <i class='bx bx-trash'></i>
+                                        </a>
+                                    {% else %}
+                                        <i class='bx bx-lock-alt text-muted' title="Protegido"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <div style="opacity: 0.5;">
+                                        <i class='bx bx-basket' style="font-size: 40px; margin-bottom: 10px;"></i>
+                                        <p>La lista está vacía.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

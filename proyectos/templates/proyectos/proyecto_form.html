@@ -1,0 +1,177 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* 🔴 FORZAMOS MODO OSCURO GLOBAL */
+    body {
+        background-color: #1e1e2e !important;
+        color: #ffffff !important;
+    }
+
+    :root {
+        --bg-panel: #27293d;
+        --primary: #4e73df;
+        --text-muted: #9a9a9a;
+        --input-bg: #161620;
+        --border-color: #3f4050;
+    }
+
+    .form-wrapper {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding-top: 40px;
+    }
+
+    .form-card {
+        background-color: var(--bg-panel);
+        border-radius: 16px;
+        padding: 30px;
+        width: 100%;
+        max-width: 800px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .form-title {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .form-title h3 { font-weight: 600; margin: 0; color: white; }
+    .form-title i { color: var(--primary); font-size: 24px; }
+
+    /* ESTILOS DE INPUTS DARK - FORZADOS CON !IMPORTANT PARA EVITAR CONFLICTOS */
+    .form-label {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 500;
+    }
+
+    .form-control, .form-select {
+        background-color: var(--input-bg) !important;
+        border: 1px solid var(--border-color) !important;
+        color: white !important;
+        border-radius: 8px;
+        padding: 12px 15px;
+        width: 100%;
+        font-size: 14px;
+        transition: 0.2s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2) !important;
+        outline: none;
+        background-color: #1a1a24 !important;
+    }
+
+    /* Icono de archivo */
+    input[type="file"]::file-selector-button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-right: 15px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    input[type="file"]::file-selector-button:hover { background-color: #375a7f; }
+
+    .btn-save {
+        background: linear-gradient(45deg, #1cc88a, #13855c);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        width: 100%;
+        margin-top: 20px;
+    }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(28, 200, 138, 0.3); }
+
+    .btn-cancel {
+        background: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+        padding: 12px 30px;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .btn-cancel:hover { background: rgba(255,255,255,0.05); color: white; }
+
+    /* Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .full-width { grid-column: span 2; }
+    
+    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
+</style>
+
+<div class="form-wrapper">
+    <div class="form-card">
+        <div class="form-title">
+            <i class='bx bx-layer-plus'></i>
+            <h3>Crear Nuevo Proyecto</h3>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-grid">
+                <div class="full-width">
+                    <label class="form-label">Nombre del Proyecto</label>
+                    {{ form.nombre }}
+                </div>
+
+                <div>
+                    <label class="form-label">Sede</label>
+                    {{ form.sede }}
+                </div>
+                <div>
+                    <label class="form-label">👷 Técnico Responsable</label>
+                    {{ form.responsable }}
+                </div>
+
+                <div class="full-width">
+                    <label class="form-label">📄 Subir Plano (PDF)</label>
+                    {{ form.plano }}
+                </div>
+
+                <div>
+                    <label class="form-label">Fecha Inicio Estimada</label>
+                    {{ form.inicio }}
+                </div>
+                <div>
+                    <label class="form-label">Fecha Fin (Opcional)</label>
+                    {{ form.fin }}
+                </div>
+
+                <div class="full-width">
+                    <label class="form-label">Descripción / Notas</label>
+                    {{ form.descripcion }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-save">Guardar Proyecto</button>
+            <a href="{% url 'disenador_dashboard' %}" class="btn-cancel">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

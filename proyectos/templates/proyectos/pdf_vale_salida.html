@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Vale de Salida {{ proyecto.codigo }}</title>
+    <style type="text/css">
+        @page { size: A4; margin: 2cm; }
+        body { font-family: Helvetica, sans-serif; font-size: 12px; color: #333; }
+        
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4e73df; padding-bottom: 10px; }
+        .header h1 { margin: 0; color: #1a1a2e; font-size: 20px; text-transform: uppercase; }
+        .header p { margin: 2px 0; color: #666; font-size: 10px; }
+        
+        .info-box { width: 100%; margin-bottom: 20px; background-color: #f8f9fc; padding: 10px; border: 1px solid #ddd; }
+        .info-row { margin-bottom: 5px; }
+        .label { font-weight: bold; color: #4e73df; width: 120px; display: inline-block; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th { background-color: #4e73df; color: white; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        td { border-bottom: 1px solid #ddd; padding: 8px; font-size: 11px; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        
+        .signatures { width: 100%; margin-top: 50px; }
+        .sig-box { width: 45%; float: left; text-align: center; }
+        .sig-line { border-top: 1px solid #000; margin-bottom: 5px; width: 80%; margin-left: 10%; }
+        .sig-role { font-size: 10px; color: #666; font-weight: bold; }
+        
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>TELECABLE - ALMACÉN CENTRAL</h1>
+        <p>CONTROL DE SALIDA DE MATERIALES PARA OBRA</p>
+        <p>Generado el: {{ fecha_impresion|date:"d/m/Y H:i" }} por {{ usuario.username|upper }}</p>
+    </div>
+
+    <div class="info-box">
+        <div class="info-row"><span class="label">PROYECTO:</span> {{ proyecto.nombre|upper }}</div>
+        <div class="info-row"><span class="label">CÓDIGO:</span> <strong>{{ proyecto.codigo }}</strong></div>
+        <div class="info-row"><span class="label">SEDE:</span> {{ proyecto.sede.nombre }}</div>
+        <div class="info-row"><span class="label">RESPONSABLE:</span> {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}</div>
+    </div>
+
+    <h3>DETALLE DE MATERIALES ENTREGADOS</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>CÓDIGO</th>
+                <th>DESCRIPCIÓN / MATERIAL</th>
+                <th style="text-align: center;">CANT. PLANIFICADA</th>
+                <th style="text-align: center;">ENTREGADO TOTAL</th>
+                <th style="text-align: center;">U.M.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in materiales %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.producto.codigo_interno }}</td>
+                <td>{{ item.producto.nombre }}</td>
+                <td style="text-align: center; color: #666;">{{ item.cantidad_planificada }}</td>
+                <td style="text-align: center; font-weight: bold;">{{ item.cantidad_entregada }}</td>
+                <td style="text-align: center;">{{ item.producto.unidad }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px;">
+                    Aún no se han entregado materiales para este proyecto.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="signatures">
+        <div class="sig-box">
+            <div style="height: 40px;"></div> <div class="sig-line"></div>
+            <div>ENTREGADO POR</div>
+            <div class="sig-role">ALMACÉN - {{ proyecto.sede.nombre }}</div>
+        </div>
+
+        <div class="sig-box" style="float: right;">
+            <div style="height: 40px;"></div>
+            <div class="sig-line"></div>
+            <div>RECIBIDO CONFORME</div>
+            <div class="sig-role">{{ proyecto.responsable.get_full_name|upper }}</div>
+            <div class="sig-role">DNI: __________________</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Este documento certifica la salida de materiales del almacén de Telecable. 
+        Página 1 de 1
+    </div>
+
+</body>
+</html>

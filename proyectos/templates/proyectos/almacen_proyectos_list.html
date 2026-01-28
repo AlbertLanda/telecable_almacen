@@ -1,0 +1,106 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    body { background-color: #1e1e2e !important; color: #fff !important; }
+    
+    .container-fluid { padding: 30px; }
+    
+    .glass-panel {
+        background: #27293d;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        overflow: hidden;
+    }
+
+    .table-neon { width: 100%; border-collapse: collapse; }
+    .table-neon th {
+        text-align: left; color: #858796; padding: 15px;
+        font-size: 12px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .table-neon td {
+        padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle;
+    }
+    .table-neon tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge-status { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase;}
+    .bg-pend { background: rgba(246, 194, 62, 0.15); color: #f6c23e; border: 1px solid rgba(246, 194, 62, 0.3); }
+    .bg-proc { background: rgba(28, 200, 138, 0.15); color: #1cc88a; border: 1px solid rgba(28, 200, 138, 0.3); }
+
+    .btn-attend {
+        background: #4e73df; color: white; padding: 8px 15px; border-radius: 8px; 
+        text-decoration: none; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-attend:hover { background: #375a7f; color: white; }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="text-white m-0">🏗️ Proyectos por Atender</h3>
+            <p class="text-muted m-0">Selecciona una obra para iniciar el despacho de materiales.</p>
+        </div>
+        <a href="{% url 'dash_almacen' %}" class="btn btn-outline-light btn-sm">
+            <i class='bx bx-arrow-back'></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <div class="glass-panel">
+        <table class="table-neon">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre del Proyecto</th>
+                    <th>Responsable</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th class="text-end">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proyectos %}
+                <tr>
+                    <td class="text-info fw-bold">{{ p.codigo }}</td>
+                    <td>
+                        <div style="font-weight: 600; color: white;">{{ p.nombre }}</div>
+                        <small class="text-muted">Diseñado por: {{ p.creado_por.username }}</small>
+                    </td>
+                    <td>
+                        {% if p.responsable %}
+                            <div class="d-flex align-items-center gap-2">
+                                <i class='bx bxs-user-circle fs-5 text-muted'></i>
+                                {{ p.responsable.get_full_name|default:p.responsable.username }}
+                            </div>
+                        {% else %}
+                            <span class="text-danger">--</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.estado == 'PENDIENTE' %}
+                            <span class="badge-status bg-pend">Pendiente</span>
+                        {% else %}
+                            <span class="badge-status bg-proc">En Proceso</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.creado_en|date:"d/m/Y" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'almacen_proyecto_detalle' p.id %}" class="btn-attend">
+                            <i class='bx bx-box'></i> Ver Materiales
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <i class='bx bx-folder-open' style="font-size: 40px; color: #858796;"></i>
+                        <p class="text-muted mt-2">No hay proyectos pendientes en esta sede.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

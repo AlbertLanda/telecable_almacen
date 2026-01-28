@@ -1,0 +1,205 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<style>
+    /* FORZAR MODO OSCURO */
+    body { background-color: #1e1e2e !important; color: #fff !important; }
+    .container-fluid { padding: 40px; max-width: 1100px; }
+    
+    .glass-panel {
+        background: #27293d;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    /* TARJETA DE INFORMACIÓN DEL PROYECTO */
+    .project-info-card {
+        background: rgba(78, 115, 223, 0.1);
+        border: 1px solid rgba(78, 115, 223, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .info-label { color: #858796; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; display: block;}
+    .info-value { color: white; font-weight: 600; font-size: 15px; }
+
+    /* INPUTS DE CANTIDAD */
+    .form-control-qty {
+        background: #161620; 
+        border: 1px solid #3f4050; 
+        color: white; 
+        text-align: center; 
+        font-weight: bold;
+        font-size: 16px;
+        border-radius: 8px;
+        padding: 8px;
+        width: 100px;
+        margin: 0 auto;
+        transition: 0.2s;
+    }
+    .form-control-qty:focus {
+        background: #1e1e2e; border-color: #4facfe; color: white; box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.25); outline: none;
+    }
+    .form-control-qty:disabled { opacity: 0.5; cursor: not-allowed; border-color: #e74a3b; }
+
+    /* TABLA */
+    .table-neon { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .table-neon th { color: #858796; font-size: 12px; text-transform: uppercase; padding: 10px; letter-spacing: 0.5px; }
+    .table-neon td { vertical-align: middle; padding: 15px 10px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.02); }
+    .table-neon tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .table-neon tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+    
+    /* BOTONES */
+    .btn-confirm {
+        background: linear-gradient(45deg, #1cc88a, #13855c);
+        color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; border: none; margin-top: 20px; font-size: 16px; letter-spacing: 0.5px;
+        display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.3s;
+    }
+    .btn-confirm:hover { box-shadow: 0 8px 20px rgba(28, 200, 138, 0.4); transform: translateY(-2px); }
+
+    .btn-cancel {
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #858796;
+        padding: 8px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 13px;
+        transition: 0.2s;
+        display: flex; align-items: center; gap: 5px;
+    }
+    .btn-cancel:hover { background: rgba(255,255,255,0.1); color: white; border-color: white; }
+
+    .stock-pill { padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: bold; }
+    .bg-blue-soft { background: rgba(78, 115, 223, 0.2); color: #4facfe; }
+    .bg-red-soft { background: rgba(231, 74, 59, 0.2); color: #e74a3b; }
+
+</style>
+
+<div class="container-fluid">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="text-white m-0">📦 Confirmar Despacho</h3>
+            <p class="text-muted m-0 small">Verifica las cantidades antes de generar la salida.</p>
+        </div>
+        <a href="{% url 'almacen_proyecto_detalle' proyecto.id %}" class="btn-cancel">
+            <i class='bx bx-x'></i> Cancelar
+        </a>
+    </div>
+
+    <div class="glass-panel">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="project-info-card">
+                <div>
+                    <span class="info-label">Proyecto</span>
+                    <div class="info-value">{{ proyecto.nombre }}</div>
+                </div>
+                <div>
+                    <span class="info-label">Código</span>
+                    <div class="info-value text-info">{{ proyecto.codigo }}</div>
+                </div>
+                <div class="text-end">
+                    <span class="info-label">Técnico Receptor</span>
+                    <div class="info-value">👷 {{ proyecto.responsable.username }}</div>
+                </div>
+            </div>
+
+            <table class="w-100 table-neon">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Producto</th>
+                        <th class="text-center">Stock Sede</th>
+                        <th class="text-center">Pendiente Obra</th>
+                        <th class="text-center" style="width: 150px; color: #4facfe;">A Despachar Hoy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                                    <i class='bx bx-cube text-white'></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block text-white">{{ item.producto.nombre }}</strong>
+                                    <small class="text-muted">{{ item.producto.codigo_interno }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="text-center">
+                            {% if item.stock_temp == 0 %}
+                                <span class="stock-pill bg-red-soft">0</span>
+                            {% else %}
+                                <span class="stock-pill bg-blue-soft">{{ item.stock_temp }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <span class="text-warning fw-bold">{{ item.pendiente_temp }}</span>
+                        </td>
+
+                        <td class="text-center">
+                            {% if item.stock_temp > 0 %}
+                                <input type="number" 
+                                       name="input_{{ item.id }}" 
+                                       class="form-control-qty"
+                                       value="{{ item.sugerido }}" 
+                                       min="0" 
+                                       max="{{ item.sugerido }}">
+                                <div class="text-muted mt-1" style="font-size: 10px;">
+                                    Max: {{ item.sugerido }}
+                                </div>
+                            {% else %}
+                                <input type="text" disabled class="form-control-qty" value="0">
+                                <div class="text-danger mt-1" style="font-size: 10px;">
+                                    Sin Stock
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class='bx bx-check-circle fs-1 mb-2'></i><br>
+                            ¡Todo entregado! No hay materiales pendientes.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <label class="info-label mb-2">Notas / Observaciones (Opcional)</label>
+                <textarea name="notas" class="form-control" rows="2" 
+                          style="background:#161620; border:1px solid #3f4050; color:white;"
+                          placeholder="Ej: Se entrega cable marca X..."></textarea>
+            </div>
+
+            {% if items %}
+                <button type="submit" class="btn-confirm">
+                    <i class='bx bx-check-double fs-4'></i> CONFIRMAR SALIDA Y DESCONTAR STOCK
+                </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const btn = document.getElementById('btn-submit');
+        if (btn) {
+            btn.disabled = true; // Desactiva el botón
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin fs-4'></i> PROCESANDO..."; // Cambia texto
+            btn.style.opacity = "0.7";
+        }
+    });
+</script>
+{% endblock %}

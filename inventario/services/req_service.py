@@ -281,3 +281,46 @@ def set_item_qty(*, user, req: DocumentoInventario, producto: Producto, cantidad
     item.cantidad = cantidad
     item.save(update_fields=["cantidad"])
     return item
+
+
+def clonar_req(user, req_origen_id):
+    """
+    Crea un nuevo REQ borrador copiando los items de un REQ anterior.
+    """
+    from inventario.models import DocumentoInventario, DocumentoItem, EstadoDocumento, TipoDocumento
+    from django.shortcuts import get_object_or_404
+    from django.utils import timezone
+
+    # 1. Obtener el original
+    original = get_object_or_404(DocumentoInventario, id=req_origen_id, tipo=TipoDocumento.REQ)
+    
+    # 2. Verificar o crear borrador actual
+    # (Usamos tu función existente o creamos uno nuevo limpio)
+    # Para clonar, mejor creamos uno nuevo directamente para no mezclar con lo que tenga en el carrito
+    perfil = user.profile
+    ubicacion = perfil.get_sede_operativa().ubicaciones.first() # Simplificado
+
+    nuevo_req = DocumentoInventario.objects.create(
+        tipo=TipoDocumento.REQ,
+        estado=EstadoDocumento.REQ_BORRADOR,
+        sede=original.sede, # Mantiene la misma sede
+        ubicacion=ubicacion,
+        responsable=user,
+        fecha=timezone.now(),
+        tipo_requerimiento=original.tipo_requerimiento,
+        sede_destino=original.sede_destino,
+        proveedor=original.proveedor,
+        observaciones=f"Clonado del REQ {original.numero or original.id}"
+    )
+
+    # 3. Copiar items
+    items_originales = original.items.all()
+    for item in items_originales:
+        DocumentoItem.objects.create(
+            documento=nuevo_req,
+            producto=item.producto,
+            cantidad=item.cantidad,
+            observacion=item.observacion
+        )
+    
+    return nuevo_req

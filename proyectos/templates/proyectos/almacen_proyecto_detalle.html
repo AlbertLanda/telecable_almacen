@@ -1,0 +1,206 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* FORZAMOS MODO OSCURO */
+    body { background-color: #1e1e2e !important; color: #fff !important; }
+    .container-fluid { padding: 30px; }
+    
+    .glass-panel {
+        background: #27293d;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        margin-bottom: 25px;
+    }
+
+    .project-header {
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 20px;
+    }
+
+    .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .info-item label { color: #858796; font-size: 12px; text-transform: uppercase; display: block; }
+    .info-item span { font-size: 16px; font-weight: 600; color: white; }
+
+    /* TABLA DE MATERIALES */
+    .table-dark-custom { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .table-dark-custom th { color: #858796; font-size: 12px; text-align: left; padding: 10px; }
+    .table-dark-custom td { background: rgba(255,255,255,0.03); padding: 15px; vertical-align: middle; }
+    .table-dark-custom tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .table-dark-custom tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+    /* BARRAS DE PROGRESO (TRUCO CSS VAR) */
+    .progress-bg { 
+        background: rgba(255,255,255,0.1); 
+        height: 6px; 
+        border-radius: 3px; 
+        width: 100%; 
+        margin-top: 5px; 
+    }
+    
+    .progress-fill { 
+        height: 100%; 
+        border-radius: 3px; 
+        background: #4e73df; 
+        transition: width 0.5s ease;
+        width: var(--w); 
+    }
+    
+    .fill-success { background: #1cc88a; } 
+
+    /* ✅ CLASES NUEVAS PARA EL STOCK (Evita errores en el editor) */
+    .stock-badge-ok {
+        background: rgba(78, 115, 223, 0.2); 
+        color: #4facfe;
+        font-size: 14px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+    .stock-badge-low {
+        background: rgba(231, 74, 59, 0.2); 
+        color: #e74a3b;
+        font-size: 14px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+
+    .btn-action {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white; border: none; padding: 12px 25px; border-radius: 10px; 
+        font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .btn-action:hover { transform: translateY(-2px); color: white; box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4); }
+</style>
+
+<div class="container-fluid">
+    
+    <div class="glass-panel">
+        <div class="project-header">
+            <div>
+                <div class="d-flex align-items-center gap-3">
+                    <h3 class="m-0 text-white">{{ proyecto.nombre }}</h3>
+                    <span class="badge bg-primary">{{ proyecto.codigo }}</span>
+                </div>
+                <p class="text-muted m-0 mt-1">Sede: {{ proyecto.sede.nombre }}</p>
+            </div>
+            <div>
+                <a href="{% url 'almacen_proyectos_list' %}" class="btn btn-outline-secondary btn-sm">Volver</a>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Responsable</label>
+                <span>👷 {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}</span>
+            </div>
+            <div class="info-item">
+                <label>Fecha Inicio</label>
+                <span>📅 {{ proyecto.inicio|date:"d M Y" }}</span>
+            </div>
+            
+            <div class="info-item">
+                <label>Estado Entrega</label>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="progress-bg" style="width: 100px; margin:0;">
+                        <div class="progress-fill {% if progreso == 100 %}fill-success{% endif %}" 
+                             style="--w: {{ progreso }}%;"></div>
+                    </div>
+                    <span class="small text-white">{{ progreso }}%</span>
+                </div>
+            </div>
+
+            <div class="info-item text-end">
+                <a href="{% url 'almacen_generar_salida' proyecto.id %}" class="btn-action">
+                    <i class='bx bx-export'></i> Generar Salida (Despacho)
+                </a>
+
+                <a href="{% url 'proyecto_pdf_salida' proyecto.id %}" target="_blank" 
+                   class="btn-action" 
+                   style="background: linear-gradient(45deg, #e74a3b, #c0392b);">
+                    <i class='bx bx-printer'></i> Imprimir Vale (PDF)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h5 class="text-white mb-3"><i class='bx bx-list-check'></i> Estado de Materiales</h5>
+            
+            <table class="table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Producto / Código</th>
+                        <th class="text-center" style="color: #4facfe;">Stock Sede</th>
+                        <th class="text-center">Planificado</th>
+                        <th class="text-center">Ya Entregado</th>
+                        <th class="text-center">Falta Entregar</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in materiales %}
+                    <tr>
+                        <td>
+                            <strong class="text-white">{{ item.producto.nombre }}</strong>
+                            <div class="text-muted small">{{ item.producto.codigo_interno }}</div>
+                        </td>
+                        
+                        <td class="text-center">
+                            {% if item.stock_actual < item.cantidad_planificada %}
+                                <span class="stock-badge-low">{{ item.stock_actual }}</span>
+                            {% else %}
+                                <span class="stock-badge-ok">{{ item.stock_actual }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="text-center">
+                            <span class="badge bg-secondary fs-6">{{ item.cantidad_planificada }}</span>
+                        </td>
+                        
+                        <td class="text-center">
+                            <strong class="text-info fs-6">{{ item.cantidad_entregada }}</strong>
+                        </td>
+
+                        <td class="text-center">
+                            {% with entregada=item.cantidad_entregada|default:0 plan=item.cantidad_planificada|default:1 %}
+                                {% if item.cantidad_entregada >= item.cantidad_planificada %}
+                                    <span class="badge bg-success"><i class='bx bx-check'></i> Listo</span>
+                                {% else %}
+                                    {% with pendiente=item.cantidad_planificada|add:"-"|add:item.cantidad_entregada %}
+                                        <span class="badge bg-warning text-dark">{{ pendiente }} Pendiente</span>
+                                        
+                                        {% if item.stock_actual < pendiente %}
+                                            <div style="font-size:10px; color:#e74a3b; margin-top:5px;">
+                                                <i class='bx bxs-error'></i> Falta Stock
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+
+                        <td>
+                            {% if item.cantidad_entregada >= item.cantidad_planificada %}
+                                <span style="color: #1cc88a; font-weight:bold; font-size:12px;">COMPLETO</span>
+                            {% else %}
+                                <div class="progress-bg" style="width: 80px;">
+                                    {% widthratio item.cantidad_entregada item.cantidad_planificada 100 as pct %}
+                                    <div class="progress-fill" style="--w: {{ pct }}%;"></div>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

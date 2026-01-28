@@ -1,0 +1,152 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-white">🏁 Liquidación de Obra: {{ proyecto.codigo }}</h3>
+        <a href="{% url 'almacen_liquidacion_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+
+    <div class="glass-panel mb-4 p-3">
+        <div class="row">
+            <div class="col-md-4">
+                <small class="text-muted">PROYECTO</small>
+                <h5 class="text-white">{{ proyecto.nombre }}</h5>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">RESPONSABLE</small>
+                <h5 class="text-warning">{{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}</h5>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="badge bg-warning text-dark p-2">EN CIERRE</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="glass-panel p-0 overflow-hidden">
+            <table class="table table-dark table-hover mb-0" style="background: transparent;">
+                <thead style="background: rgba(246, 194, 62, 0.2);">
+                    <tr>
+                        <th class="p-3 text-warning">MATERIAL</th>
+                        <th class="p-3 text-center">TOTAL ENTREGADO</th>
+                        <th class="p-3 text-center" style="width: 140px; color: #1cc88a;">
+                            <i class='bx bx-minus'></i> BUENOS<br><small>(Al Stock)</small>
+                        </th>
+                        <th class="p-3 text-center" style="width: 140px; color: #e74a3b;">
+                            <i class='bx bx-minus'></i> DAÑADOS<br><small>(Merma)</small>
+                        </th>
+                        <th class="p-3 text-center" style="border-left: 2px solid rgba(255,255,255,0.1);">
+                            <i class='bx bx-equal'></i> SE QUEDÓ EN OBRA
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in materiales %}
+                    <tr>
+                        <td class="p-3 align-middle">
+                            <div class="fw-bold">{{ m.producto.nombre }}</div>
+                            <small class="text-muted">{{ m.producto.codigo_interno }}</small>
+                        </td>
+                        <td class="p-3 text-center align-middle">
+                            <span class="badge bg-primary fs-6 badge-entregado" data-val="{{ m.max_devolucion }}">{{ m.max_devolucion }}</span>
+                        </td>
+                        
+                        <td class="p-3">
+                            <input type="number" 
+                                   name="input_good_{{ m.id }}" 
+                                   class="form-control text-center bg-dark text-success border-success input-calc"
+                                   data-id="{{ m.id }}"
+                                   min="0" 
+                                   value="0">
+                        </td>
+
+                        <td class="p-3">
+                            <input type="number" 
+                                   name="input_bad_{{ m.id }}" 
+                                   class="form-control text-center bg-dark text-danger border-danger input-calc"
+                                   data-id="{{ m.id }}"
+                                   min="0" 
+                                   value="0">
+                        </td>
+
+                        <td class="p-3 text-center align-middle">
+                            <span class="fw-bold text-white fs-5" id="consumo_{{ m.id }}">{{ m.max_devolucion }}</span>
+                            <small class="d-block text-muted">Instalado</small>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center p-5">Nada pendiente.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            <label class="text-muted mb-2">Observaciones de Cierre:</label>
+            <textarea name="notas" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Ej: Obra finalizada sin novedades..."></textarea>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-warning btn-lg fw-bold" onclick="return confirm('¿Confirmas el cierre del proyecto? Esta acción es definitiva.')">
+                <i class='bx bx-check-double'></i> CONFIRMAR DEVOLUCIÓN Y CERRAR OBRA
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Script simple para calcular en tiempo real el "Consumo Final"
+    document.querySelectorAll('.input-return').forEach(input => {
+        input.addEventListener('input', function() {
+            const entregado = parseInt(this.dataset.entregado);
+            const devuelto = parseInt(this.value) || 0;
+            const consumoDisplay = document.getElementById('consumo_' + this.dataset.id);
+            
+            const consumoReal = entregado - devuelto;
+            consumoDisplay.innerText = consumoReal;
+            
+            if(devuelto > 0) {
+                this.classList.add('border-warning');
+            } else {
+                this.classList.remove('border-warning');
+            }
+        });
+    });
+
+    document.querySelectorAll('.input-calc').forEach(input => {
+        input.addEventListener('input', function() {
+            const id = this.dataset.id;
+            
+            // Buscamos los valores del grupo
+            const inputGood = document.querySelector(`input[name="input_good_${id}"]`);
+            const inputBad = document.querySelector(`input[name="input_bad_${id}"]`);
+            const entregadoBadge = inputGood.closest('tr').querySelector('.badge-entregado');
+            const consumoDisplay = document.getElementById(`consumo_${id}`);
+
+            const valEntregado = parseInt(entregadoBadge.dataset.val);
+            const valGood = parseInt(inputGood.value) || 0;
+            const valBad = parseInt(inputBad.value) || 0;
+            const totalReturn = valGood + valBad;
+
+            // Validación visual (No pasarse del entregado)
+            if (totalReturn > valEntregado) {
+                inputGood.classList.add('is-invalid');
+                inputBad.classList.add('is-invalid');
+                consumoDisplay.innerText = "Error";
+                consumoDisplay.classList.add('text-danger');
+            } else {
+                inputGood.classList.remove('is-invalid');
+                inputBad.classList.remove('is-invalid');
+                consumoDisplay.classList.remove('text-danger');
+                
+                // Cálculo: Consumo = Entregado - (Buenos + Malos)
+                const consumoReal = valEntregado - totalReturn;
+                consumoDisplay.innerText = consumoReal;
+            }
+        });
+    });
+</script>
+{% endblock %}
