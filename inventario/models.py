@@ -450,9 +450,9 @@ class DocumentoInventario(models.Model):
         Sede, on_delete=models.PROTECT, related_name="documentos_destino", null=True, blank=True
     )
 
-    proveedor = models.ForeignKey(
-        Proveedor, on_delete=models.PROTECT, null=True, blank=True, related_name="requerimientos"
-    )
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
+
+    proveedor_manual = models.CharField(max_length=150, blank=True, null=True, verbose_name="Nombre Proveedor (Manual)")
 
     centro_costo = models.CharField(max_length=255, blank=True, default="")
     
@@ -527,8 +527,8 @@ class DocumentoInventario(models.Model):
             elif self.tipo_requerimiento == TipoRequerimiento.PROVEEDOR:
                 if self.sede and self.sede.tipo != Sede.CENTRAL:
                     raise ValidationError({"sede": "Solo la sede CENTRAL puede generar REQ a PROVEEDOR."})
-                if not self.proveedor_id:
-                    raise ValidationError({"proveedor": "REQ a PROVEEDOR requiere proveedor."})
+                if not self.proveedor_id and not self.proveedor_manual:
+                    raise ValidationError("Debes indicar un Proveedor (Selección o Manual).")
             elif self.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES:
                 if self.sede and self.sede.tipo == Sede.CENTRAL:
                     raise ValidationError({"sede": "La sede CENTRAL no debe generar REQ 'ENTRE SEDES'."})
@@ -596,20 +596,39 @@ class DocumentoInventario(models.Model):
             else:
                 raise ValidationError("Tipo no soportado para confirmar.")
 
-            # ✅ CREAMOS EL MOVIMIENTO CORRECTAMENTE CON TUS CAMPOS
+            # 1. Movimiento de Almacén (Resta stock físico de la sede)
             mov = MovimientoInventario.objects.create(
                 producto=it.producto,
                 sede=self.sede,
                 ubicacion=self.ubicacion,
                 tipo=mov_tipo,
                 qty=qty_mov,
-                # costo_unitario=it.costo_unitario,
+                # costo_unitario=it.costo_unitario, # Descomenta si usas costos
                 referencia=self.numero,
-                usuario=self.responsable, # Registramos quién hizo el movimiento
+                usuario=self.responsable,
                 nota=it.observacion or "",
             )
-            # ✅ APLICAMOS EL MOVIMIENTO (RESTAMOS STOCK)
             mov.aplicar()
+
+            # ✅ 2. LÓGICA DE MOCHILA TÉCNICA (NUEVO)
+            # Si es una SALIDA y el solicitante es un TÉCNICO (SOLICITANTE)
+            if self.tipo == TipoDocumento.SAL and self.solicitante and hasattr(self.solicitante, 'profile'):
+                if self.solicitante.profile.rol == UserProfile.Rol.SOLICITANTE:
+                    # Importación local para evitar ciclos
+                    from .models import StockTecnico 
+                    
+                    stock_tech, _ = StockTecnico.objects.get_or_create(
+                        tecnico=self.solicitante,
+                        producto=it.producto
+                    )
+                    stock_tech.cantidad += qty_mov
+                    stock_tech.save()
+
+        if entregado_por:
+            self.entregado_por = entregado_por
+
+        self.estado = EstadoDocumento.CONFIRMADO
+        self.save(update_fields=["estado", "entregado_por"])
 
         if entregado_por:
             self.entregado_por = entregado_por
@@ -693,3 +712,20 @@ class DocumentoItem(models.Model):
         if self.costo_unitario is None:
             self.costo_unitario = self.producto.costo_unitario
         super().save(*args, **kwargs)
+
+class StockTecnico(TimeStampedModel):
+    """
+    La 'Mochila' o Bodega Móvil del Técnico.
+    Aquí se acumula todo lo que pide en la semana (SAL).
+    """
+    tecnico = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mi_stock")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Stock de Técnico"
+        verbose_name_plural = "Stocks de Técnicos"
+        unique_together = ['tecnico', 'producto'] # Un registro por producto por técnico
+
+    def __str__(self):
+        return f"{self.tecnico.username} tiene {self.cantidad} de {self.producto.codigo_interno}"

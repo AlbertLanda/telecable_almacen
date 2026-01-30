@@ -11,6 +11,9 @@ from django.views.generic import ListView
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from datetime import timedelta
+from django.db import transaction
+from inventario.models import StockTecnico, DocumentoItem
+from django.contrib.auth import get_user_model
 
 # Importamos modelos del Core
 from inventario.models import Sede, Producto, Stock, UserProfile, DocumentoInventario, TipoDocumento, EstadoDocumento
@@ -18,6 +21,8 @@ from inventario.models import Sede, Producto, Stock, UserProfile, DocumentoInven
 from operaciones.models import LiquidacionSemanal, LiquidacionLog
 # Importamos servicios
 from operaciones.services import LiquidacionService
+
+User = get_user_model()
 
 # ========================================================
 # HELPERS
@@ -296,3 +301,103 @@ def tecnico_mis_reqs(request):
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     reqs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, responsable=request.user).order_by("-fecha")[:50]
     return render(request, "operaciones/tecnico_mis_reqs.html", {"reqs": reqs})
+
+@login_required
+def liquidacion_tecnico_lista(request):
+    """
+    Lista de técnicos que tienen material en su poder (Mochila > 0).
+    """
+    # Validación de rol (Almacén, Admin, Jefa)
+    if not request.user.profile.rol in ['ALMACEN', 'ADMIN', 'JEFA']:
+        return redirect('home')
+        
+    # Buscamos técnicos que tengan deuda en su mochila
+    tecnicos_con_deuda = User.objects.filter(
+        mi_stock__cantidad__gt=0
+    ).distinct()
+    
+    return render(request, 'operaciones/liquidacion_tecnicos_lista.html', {
+        'tecnicos': tecnicos_con_deuda
+    })
+
+@login_required
+def liquidar_tecnico(request, tecnico_id):
+    """
+    Pantalla de Arqueo: Se decide cuánto devuelve (bueno), cuánto es merma (malo) y cuánto consumió.
+    """
+    if not request.user.profile.rol in ['ALMACEN', 'ADMIN', 'JEFA']:
+        return redirect('home')
+
+    tecnico = get_object_or_404(User, id=tecnico_id)
+    mochila = StockTecnico.objects.filter(tecnico=tecnico, cantidad__gt=0).select_related('producto')
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                sede_almacen = request.user.profile.get_sede_operativa()
+                notas_usuario = request.POST.get('observaciones', '')
+                
+                # 1. Crear Documento ING (Reingreso por devolución física de lo BUENO)
+                doc_ing = DocumentoInventario.objects.create(
+                    tipo=TipoDocumento.ING,
+                    estado=EstadoDocumento.BORRADOR,
+                    sede=sede_almacen,
+                    responsable=request.user,
+                    solicitante=tecnico,
+                    referencia="LIQ-SEMANAL",
+                    observaciones=f"Liquidación Semana. {notas_usuario}"
+                )
+                
+                hay_devolucion = False
+                reporte_mermas = [] # Para guardar texto de lo roto
+
+                for item in mochila:
+                    # Inputs del formulario
+                    cant_devuelta = int(request.POST.get(f'devuelto_{item.id}', 0)) # Buenos
+                    cant_merma = int(request.POST.get(f'merma_{item.id}', 0))       # Malos
+                    
+                    total_retorno = cant_devuelta + cant_merma
+
+                    if total_retorno > item.cantidad:
+                        raise ValueError(f"Error en {item.producto.nombre}: La suma de Devuelto + Merma supera lo que tiene.")
+
+                    # A. Lo BUENO entra al Almacén (Stock Físico)
+                    if cant_devuelta > 0:
+                        DocumentoItem.objects.create(
+                            documento=doc_ing,
+                            producto=item.producto,
+                            cantidad=cant_devuelta,
+                            observacion="Sobrante Semanal (Buen estado)"
+                        )
+                        hay_devolucion = True
+                    
+                    # B. Lo MALO (Merma) solo se registra en texto (No entra al stock bueno)
+                    if cant_merma > 0:
+                        reporte_mermas.append(f"{cant_merma}x {item.producto.nombre}")
+
+                    # C. Vaciar la mochila (Se cierra la semana completa)
+                    item.cantidad = 0 
+                    item.save()
+
+                # Si hubo mermas, las anotamos en la observación del documento para historial
+                if reporte_mermas:
+                    doc_ing.observaciones += " | MERMAS REPORTADAS (DESECHADAS): " + ", ".join(reporte_mermas)
+                    doc_ing.save()
+
+                # Confirmar Ingreso si hubo devolución de cosas buenas
+                if hay_devolucion:
+                    doc_ing.confirmar()
+                    messages.success(request, f"✅ Liquidación procesada. Stock BUENO recuperado con {doc_ing.numero}")
+                else:
+                    doc_ing.delete() # Borrar borrador si no hubo retornos físicos
+                    messages.success(request, "✅ Liquidación procesada. Todo fue consumido o desechado.")
+
+                return redirect('liquidacion_tecnico_lista')
+
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    return render(request, 'operaciones/liquidar_tecnico_form.html', {
+        'tecnico': tecnico,
+        'mochila': mochila
+    })

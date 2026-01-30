@@ -20,7 +20,7 @@
       --accent:#4facfe;
       --accent2:#00f2fe;
       --danger:#ff4757;
-      --success:#2ed573;
+      --success:#2ed573; /* Verde Neón */
       --primaryGrad:linear-gradient(45deg,#FF512F 0%,#DD2476 100%);
       --glass:rgba(255,255,255,.04);
       --shadow:0 14px 40px rgba(0,0,0,.35);
@@ -132,6 +132,7 @@
 
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    
     .btn{
       padding:12px 14px;border-radius:14px;border:0;cursor:pointer;
       font-weight:700;color:#fff;
@@ -142,6 +143,13 @@
     }
     .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
     .btn.primary{background:var(--primaryGrad)}
+    
+    /* 👇 CLASE NUEVA PARA EL BOTÓN VERDE DE RECEPCIÓN */
+    .btn.success{
+        background: var(--success);
+        color: #0f1220; /* Texto oscuro para contraste */
+    }
+    
     .btn.ghost{
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);
@@ -199,6 +207,20 @@
     tbody tr:last-child td{border-bottom:0}
     .qty{font-weight:900}
     .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
+
+    /* 👇 ESTILOS PARA LA CAJA DE RECEPCIÓN (Reemplaza a Bootstrap) */
+    .reception-box {
+        margin-top: 24px;
+        padding: 24px;
+        border-radius: 16px;
+        background: rgba(46, 213, 115, 0.08);
+        border: 1px solid rgba(46, 213, 115, 0.4);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
 
     @media print{
       body{background:#fff !important;color:#111 !important; display:block; overflow:visible;}
@@ -390,7 +412,7 @@
 
         <div class="divider no-print"></div>
 
-        {# ✅ Confirmar solo ALMACEN/JEFA/ADMIN #}
+        {# ✅ Confirmar solo ALMACEN/JEFA/ADMIN (Para borradores) #}
         {% if sal.estado == "BORRADOR" %}
           {% if request.user.profile.rol == "ALMACEN" or request.user.profile.rol == "JEFA" or request.user.profile.rol == "ADMIN" %}
             <form class="no-print" method="post" action="{% url 'sal_confirmar' sal.id %}">
@@ -404,10 +426,40 @@
               <span class="badge warn">Pendiente de confirmación por Almacén</span>
             </div>
           {% endif %}
-        {% else %}
-          <div class="no-print" style="margin-top:10px;">
-            <span class="badge ok">✅ Salida ya confirmada</span>
-          </div>
+        {% endif %}
+
+        {# --- 👇 NUEVO: BOTÓN PARA EL QUE RECIBE (Destino) --- #}
+        {# Lógica: Si está confirmado, NO recibido, y YO soy el destino #}
+        {% if sal.estado == "CONFIRMADO" and not sal.recibido %}
+            {% if request.user.profile.get_sede_operativa.id == sal.sede_destino.id %}
+                
+                <div class="reception-box no-print">
+                    <h4 style="color: var(--success); margin-bottom: 0px; font-size: 1.2rem;">
+                        <i class='bx bxs-truck'></i> Mercadería en Puerta
+                    </h4>
+                    <p class="muted" style="font-size: 0.9rem; max-width: 500px;">
+                        Revisa que los ítems de arriba coincidan con lo físico. 
+                        Si todo está correcto, confirma el ingreso a tu almacén.
+                    </p>
+                    
+                    <form method="post" action="{% url 'almacen_recepcionar_traspaso' sal.id %}">
+                        {% csrf_token %}
+                        <button class="btn success" style="padding: 14px 24px; font-size: 15px;">
+                            <i class='bx bx-check-double'></i> CONFIRMAR INGRESO AL STOCK
+                        </button>
+                    </form>
+                </div>
+
+            {% endif %}
+        {% endif %}
+
+        {# --- SI YA SE RECIBIÓ --- #}
+        {% if sal.recibido %}
+            <div class="no-print mt-3 text-center" style="margin-top:20px; text-align:center;">
+                <span class="badge ok">
+                    ✅ Recepcionado por {{ sal.recibido_por.username }} el {{ sal.recibido_en|date:"d/m/Y H:i" }}
+                </span>
+            </div>
         {% endif %}
 
       </div>

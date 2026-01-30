@@ -242,7 +242,7 @@ def add_item_to_req(
 
 @transaction.atomic
 def remove_item_from_req(*, user, req: DocumentoInventario, producto: Producto) -> None:
-    _require_roles(user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    _require_roles(user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA, UserProfile.Rol.ALMACEN, UserProfile.Rol.ADMIN)
 
     if req.tipo != TipoDocumento.REQ or req.estado != EstadoDocumento.REQ_BORRADOR:
         raise ValidationError("Solo puedes quitar ítems de un REQ en BORRADOR.")
@@ -255,7 +255,7 @@ def remove_item_from_req(*, user, req: DocumentoInventario, producto: Producto) 
 
 @transaction.atomic
 def set_item_qty(*, user, req: DocumentoInventario, producto: Producto, cantidad: int) -> DocumentoItem:
-    _require_roles(user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    _require_roles(user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA, UserProfile.Rol.ALMACEN, UserProfile.Rol.ADMIN)
 
     if req.tipo != TipoDocumento.REQ or req.estado != EstadoDocumento.REQ_BORRADOR:
         raise ValidationError("Solo puedes editar cantidades en un REQ en BORRADOR.")

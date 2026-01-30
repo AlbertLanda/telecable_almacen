@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Telecable Inventario{% endblock %}</title>
+    
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* --- PALETA APPLE DARK PRO --- */
+            --bg-body: #000000;          /* Negro Puro */
+            --bg-card: #1C1C1E;          /* Gris Oscuro Superficie */
+            --bg-input: #2C2C2E;         /* Gris Input */
+            --border-color: #38383A;     /* Bordes sutiles */
+            
+            /* --- ACCENT COLORS --- */
+            --primary: #0A84FF;          /* Azul iOS */
+            --primary-hover: #0077ED;    
+            --success: #30D158;          /* Verde iOS */
+            --danger: #FF453A;           /* Rojo iOS */
+            --warning: #FFD60A;          /* Amarillo iOS */
+            
+            /* --- TEXTOS --- */
+            --text-main: #F5F5F7;        /* Blanco Humo */
+            --text-muted: #86868B;       /* Gris medio */
+            
+            /* --- UI --- */
+            --radius: 12px;              /* Bordes redondeados estándar */
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.5); /* Sombra difusa */
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* --- RESET Y BASE --- */
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased; /* Texto nítido en Mac */
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.2s; }
+        ul { list-style: none; padding: 0; margin: 0; }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background-color: rgba(28, 28, 30, 0.8); /* Efecto vidrio */
+            backdrop-filter: blur(20px);
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.5px;
+        }
+        .navbar-brand i { color: var(--primary); font-size: 22px; }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .user-info strong { color: var(--text-main); font-weight: 500; }
+
+        .btn-logout-nav {
+            color: var(--danger);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 69, 58, 0.1);
+        }
+        .btn-logout-nav:hover { background: rgba(255, 69, 58, 0.2); }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        .main-container {
+            flex: 1;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* --- COMPONENTES GLOBALES (Para usar en todas las vistas) --- */
+        
+        /* 1. Tarjetas */
+        .card, .step {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* 2. Botones */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 99px; /* Píldora */
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary, .btn.ok { background-color: var(--primary); color: white; }
+        .btn-success { background-color: var(--success); color: black; }
+        .btn-danger, .btn.danger { background-color: rgba(255, 69, 58, 0.15); color: var(--danger); }
+        .btn-sm, .btn.small { padding: 6px 14px; font-size: 12px; }
+
+        /* 3. Inputs */
+        input, select, textarea {
+            background-color: var(--bg-input);
+            border: 1px solid transparent;
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            background-color: #3A3A3C;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+        }
+
+        /* 4. Utilidades de Texto */
+        h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.5px; }
+        .text-muted { color: var(--text-muted); font-size: 13px; }
+        .hr { height: 1px; background: var(--border-color); margin: 20px 0; }
+
+        /* --- FOOTER --- */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            background: var(--bg-body);
+        }
+
+        /* --- TOASTS (Notificaciones) --- */
+        .toast-container {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast-msg {
+            background: var(--bg-card);
+            color: var(--text-main);
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+            display: flex; align-items: center; gap: 12px;
+            font-size: 14px;
+            animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .toast-success i { color: var(--success); }
+        .toast-error i { color: var(--danger); }
+        
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class='bx bxs-cube-alt'></i> Telecable
+        </a>
+
+        {% if user.is_authenticated %}
+        <div style="display:flex; gap:20px; align-items:center;">
+            <div class="user-info">
+                <span>{{ user.username }}</span>
+                {% if user.profile.rol %}
+                    <span style="background:var(--bg-input); padding:2px 8px; border-radius:4px; font-size:10px;">{{ user.profile.get_rol_display }}</span>
+                {% endif %}
+            </div>
+            
+            <a href="{% url 'logout' %}" class="btn-logout-nav">
+                Salir
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="main-container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <footer>
+        &copy; 2026 Telecable S.A.C.
+    </footer>
+
+    {% if messages %}
+    <div class="toast-container">
+        {% for message in messages %}
+        <div class="toast-msg {% if message.tags == 'success' %}toast-success{% elif message.tags == 'error' %}toast-error{% endif %}">
+            {% if message.tags == 'success' %}
+                <i class='bx bxs-check-circle'></i>
+            {% else %}
+                <i class='bx bxs-info-circle'></i>
+            {% endif %}
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.toast-msg').forEach(t => t.style.display = 'none');
+        }, 4000);
+    </script>
+    {% endif %}
+</body>
+</html>

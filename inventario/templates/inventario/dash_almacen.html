@@ -1,140 +1,183 @@
-{% extends 'inventario/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block content %}
 <style>
-    /* 🔴 FORZAR MODO OSCURO GLOBAL */
-    body { background-color: #1e1e2e !important; color: #ffffff !important; }
-
-    :root {
-        --bg-panel: #27293d;
-        --primary: #4e73df;
-        --success: #1cc88a;
-        --warning: #f6c23e;
-        --danger: #e74a3b;
-        --text-muted: #858796;
-        --border-color: rgba(255,255,255,0.05);
-    }
-
+    /* --- GRID LAYOUT --- */
     .dashboard-container {
-        padding: 30px;
-        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
     }
 
-    /* TARJETAS KPI (ARRIBA) */
+    /* --- KPI WIDGETS (Estilo iOS) --- */
     .kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 20px;
-        margin-bottom: 30px;
     }
 
     .kpi-card {
-        background: var(--bg-panel);
+        background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 20px;
+        border-radius: var(--radius);
+        padding: 24px;
         display: flex;
         align-items: center;
         gap: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        transition: transform 0.2s;
+        box-shadow: var(--shadow);
+        transition: transform 0.2s ease;
     }
-    .kpi-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+    .kpi-card:hover { transform: translateY(-2px); }
 
     .kpi-icon {
-        width: 60px; height: 60px;
+        width: 50px; height: 50px;
         border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 30px;
+        font-size: 24px;
+        flex-shrink: 0;
     }
-    .icon-orange { background: rgba(246, 194, 62, 0.15); color: var(--warning); }
-    .icon-red { background: rgba(231, 74, 59, 0.15); color: var(--danger); }
-    .icon-green { background: rgba(28, 200, 138, 0.15); color: var(--success); }
+    /* Colores sutiles Apple */
+    .icon-orange { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
+    .icon-green  { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .icon-red    { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
 
-    .kpi-info h3 { margin: 0; font-size: 28px; font-weight: 700; color: white; }
-    .kpi-info p { margin: 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .kpi-info h3 { margin: 0; font-size: 32px; font-weight: 700; color: var(--text-main); letter-spacing: -1px; }
+    .kpi-info p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* LAYOUT PRINCIPAL */
+    /* --- LAYOUT PRINCIPAL --- */
     .main-grid {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 2fr 1fr; /* 2/3 para tablas, 1/3 para acciones */
         gap: 25px;
     }
-    @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+    @media(max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
 
-    /* PANELES DE CRISTAL */
-    .glass-panel {
-        background: var(--bg-panel);
+    /* --- TARJETAS DE SECCIÓN --- */
+    .section-card {
+        background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        height: 100%;
+        border-radius: var(--radius);
+        padding: 0; /* Padding controlado internamente */
+        overflow: hidden; /* Para que los bordes de la tabla no se salgan */
+        box-shadow: var(--shadow);
+        margin-bottom: 25px;
     }
 
-    .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
+    .card-header {
+        padding: 20px;
         border-bottom: 1px solid var(--border-color);
+        display: flex; justify-content: space-between; align-items: center;
     }
-    .panel-header h4 { margin: 0; color: white; font-weight: 600; }
+    .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
 
-    /* TABLA CYBERPUNK */
-    .table-neon { width: 100%; border-collapse: collapse; }
-    .table-neon th {
-        text-align: left; color: var(--text-muted); padding: 12px;
-        font-size: 12px; text-transform: uppercase; border-bottom: 1px solid var(--border-color);
+    /* --- TABLA MODERNA (Estilo Apple Music / Finder) --- */
+    .table-modern { width: 100%; border-collapse: collapse; }
+    
+    .table-modern th {
+        text-align: left;
+        color: var(--text-muted);
+        padding: 12px 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(255,255,255,0.02);
     }
-    .table-neon td {
-        padding: 15px 12px;
-        border-bottom: 1px solid rgba(255,255,255,0.02);
-        color: rgba(255,255,255,0.9);
+    
+    .table-modern td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-main);
+        font-size: 14px;
         vertical-align: middle;
     }
-    .table-neon tr:hover td { background: rgba(255,255,255,0.03); }
+    .table-modern tr:last-child td { border-bottom: none; }
+    .table-modern tr:hover td { background-color: rgba(255,255,255,0.03); }
 
-    /* BOTONES */
-    .btn-action {
-        background: rgba(78, 115, 223, 0.15); color: var(--primary);
-        border: 1px solid rgba(78, 115, 223, 0.3);
-        padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
-        text-decoration: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px;
+    /* --- BOTONES Y ACCIONES --- */
+    .btn-table {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px;
+        transition: 0.2s;
+        border: 1px solid transparent;
     }
-    .btn-action:hover { background: var(--primary); color: white; }
+    .btn-blue { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+    .btn-blue:hover { background: var(--primary); color: white; }
+    
+    .btn-cyan { background: rgba(100, 210, 255, 0.15); color: #64D2FF; }
+    .btn-cyan:hover { background: #64D2FF; color: black; }
+    
+    .btn-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .btn-green:hover { background: var(--success); color: white; }
 
-    .btn-quick {
+    /* --- LISTA DE ACCIONES RÁPIDAS (Estilo iOS Settings) --- */
+    .quick-actions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .action-row {
         display: flex; align-items: center; gap: 15px;
-        background: rgba(255,255,255,0.03);
-        padding: 15px; border-radius: 12px;
-        text-decoration: none; color: white;
-        border: 1px solid var(--border-color);
-        transition: 0.2s; margin-bottom: 10px;
+        background: var(--bg-input); /* Un gris un pelín más claro que la card */
+        padding: 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: 0.2s;
+        border: 1px solid transparent;
     }
-    .btn-quick:hover { background: rgba(255,255,255,0.08); transform: translateX(5px); }
-    .btn-quick i { font-size: 24px; color: var(--primary); }
+    .action-row:hover {
+        background: #3A3A3C;
+        transform: translateX(4px);
+    }
 
-    /* LISTA DE ALERTAS */
-    .alert-item {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.02);
+    .action-icon {
+        font-size: 22px;
+        width: 36px; height: 36px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.1);
     }
-    .alert-item:last-child { border-bottom: none; }
-    .stock-badge {
-        background: rgba(231, 74, 59, 0.2); color: var(--danger);
-        padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;
+    .action-text h5 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .action-text p { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
+
+    /* Notificación Roja Pulsante */
+    .badge-pulse {
+        background-color: var(--danger);
+        color: white;
+        font-size: 10px; font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-left: auto;
+        animation: pulse 2s infinite;
+        box-shadow: 0 0 10px rgba(255, 69, 58, 0.4);
     }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* Estados Vacíos */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state i { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+
 </style>
 
 <div class="dashboard-container">
     
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-        <div>
-            <h2 style="color:white; margin:0;">📦 Panel de Almacén</h2>
-            <p style="color:var(--text-muted); margin:5px 0 0 0;">Gestión operativa: <strong>{{ sede.nombre }}</strong></p>
+    <div>
+        <h2 style="margin:0; font-weight:700;">Panel de Almacén</h2>
+        <div style="font-size:14px; color:var(--text-muted); margin-top:5px; display:flex; gap:10px;">
+            <span><i class='bx bxs-building'></i> {{ sede.nombre }}</span>
+            <span>•</span>
+            <span><i class='bx bxs-user'></i> {{ request.user.username }}</span>
         </div>
     </div>
 
@@ -154,7 +197,7 @@
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon icon-red"><i class='bx bx-error'></i></div>
+            <div class="kpi-icon icon-red"><i class='bx bx-error-circle'></i></div>
             <div class="kpi-info">
                 <p>Stock Crítico</p>
                 <h3>{{ kpi_stock }}</h3>
@@ -164,122 +207,223 @@
 
     <div class="main-grid">
         
-        <div class="glass-panel">
-            <div class="panel-header">
-                <h4>📥 Solicitudes por Atender (REQs)</h4>
-            </div>
-
-            {% if reqs_pendientes %}
-            <div style="overflow-x:auto;">
-                <table class="table-neon">
-                    <thead>
-                        <tr>
-                            <th>N° REQ</th>
-                            <th>Solicitante</th>
-                            <th>Fecha</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for r in reqs_pendientes %}
-                        <tr>
-                            <td style="font-family: monospace; color: var(--warning);">
-                                {{ r.numero|default:"(Borrador)" }}
-                            </td>
-                            <td>
-                                <strong>{{ r.responsable.username }}</strong>
-                                <br><small style="color:var(--text-muted);">{{ r.get_tipo_requerimiento_display }}</small>
-                            </td>
-                            <td>{{ r.fecha|date:"d/m H:i" }}</td>
-                            <td>
-                                <form action="{% url 'req_to_sal' r.id %}" method="POST">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-action">
-                                        <i class='bx bx-package'></i> Despachar
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div style="text-align:center; padding:40px; opacity:0.5;">
-                <i class='bx bx-check-circle' style="font-size:50px; color:var(--success);"></i>
-                <p>Todo al día. No hay solicitudes pendientes.</p>
+        <div class="left-col">
+            
+            {% if transferencias_entrantes %}
+            <div class="section-card" style="border-left: 4px solid var(--primary);">
+                <div class="card-header">
+                    <h4><i class='bx bxs-truck' style="color:var(--primary);"></i> Mercadería en Camino</h4>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th>Origen</th>
+                                <th>Desde</th>
+                                <th>Enviado Por</th>
+                                <th>Fecha</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transferencias_entrantes %}
+                            <tr>
+                                <td style="font-family:monospace; font-weight:600;">{{ t.numero }}</td>
+                                <td>{{ t.sede.nombre }}</td>
+                                <td>{{ t.responsable.username }}</td>
+                                <td>{{ t.fecha|date:"d/m H:i" }}</td>
+                                <td style="text-align:right;">
+                                    <a href="{% url 'sal_detail' t.id %}" class="btn-table btn-blue">
+                                        Revisar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             {% endif %}
-        </div>
 
-        <div style="display:flex; flex-direction:column; gap:25px;">
-            
-            <div class="glass-panel" style="height:auto;">
-                <div class="panel-header">
-                    <h4>⚡ Acciones Rápidas</h4>
+            {% if compras_pendientes %}
+            <div class="section-card" style="border-left: 4px solid #64D2FF;">
+                <div class="card-header">
+                    <h4><i class='bx bxs-shopping-bag' style="color:#64D2FF;"></i> Compras Pendientes</h4>
                 </div>
-                <a href="{% url 'req_home_almacen' %}" class="btn-quick">
-                    <i class='bx bx-plus-circle'></i>
-                    <div>
-                        <div style="font-weight:600;">Nuevo Pedido Manual</div>
-                        <div style="font-size:12px; color:var(--text-muted);">Crear REQ desde cero</div>
-                    </div>
-                </a>
-                
-                <a href="{% url 'inventory_list' %}" class="btn-quick">
-                    <i class='bx bx-list-check'></i>
-                    <div>
-                        <div style="font-weight:600;">Inventario Total</div>
-                        <div style="font-size:12px; color:var(--text-muted);">Ver stock de la sede</div>
-                    </div>
-                </a>
-
-                <a href="{% url 'almacen_proyectos_list' %}" class="btn-quick" style="border-color: rgba(78, 115, 223, 0.4);">
-                    <i class='bx bx-briefcase-alt-2' style="color: #4e73df;"></i>
-                    <div>
-                        <div style="font-weight:600; color:#4e73df;">Atender Proyectos</div>
-                        <div style="font-size:12px; color:var(--text-muted);">Despachar materiales de obra</div>
-                    </div>
-                </a>
-
-                <a href="{% url 'almacen_liquidacion_lista' %}" class="btn-quick" style="border-color: rgba(246, 194, 62, 0.4);">
-                    <i class='bx bx-revision' style="color: #f6c23e;"></i>
-                    <div>
-                        <div style="font-weight:600; color:#f6c23e;">Cierre de Obras</div>
-                        <div style="font-size:12px; color:var(--text-muted);">Liquidar retornos y mermas</div>
-                    </div>
-                </a>
-
-                <a href="{% url 'almacen_historial_obras' %}" class="btn-quick" style="border-color: rgba(160, 100, 220, 0.4);">
-                    <i class='bx bx-archive' style="color: #a064dc;"></i>
-                    <div>
-                        <div style="font-weight:600; color:#a064dc;">Historial de Obras</div>
-                        <div style="font-size:12px; color:var(--text-muted);">Reimprimir Actas Cerradas</div>
-                    </div>
-                </a>
+                <div style="overflow-x:auto;">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th>Orden #</th>
+                                <th>Proveedor</th>
+                                <th>Responsable</th>
+                                <th>Fecha</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for compra in compras_pendientes %}
+                            <tr>
+                                <td style="font-family:monospace; font-weight:600;">{{ compra.numero }}</td>
+                                <td>{{ compra.proveedor_manual|default:"Manual" }}</td>
+                                <td>{{ compra.responsable.username }}</td>
+                                <td>{{ compra.fecha|date:"d/m H:i" }}</td>
+                                <td style="text-align:right;">
+                                    <a href="{% url 'req_recepcionar_compra' compra.id %}" class="btn-table btn-cyan">
+                                        Ingresar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+            {% endif %}
 
-            <div class="glass-panel" style="flex:1;">
-                <div class="panel-header">
-                    <h4 style="color:var(--danger);">⚠️ Stock Bajo</h4>
+            <div class="section-card">
+                <div class="card-header">
+                    <h4><i class='bx bx-list-ul'></i> Solicitudes por Atender (REQs)</h4>
                 </div>
-                
-                {% if items_bajos %}
-                    {% for stock in items_bajos %}
-                    <div class="alert-item">
-                        <div>
-                            <div style="color:white; font-weight:500;">{{ stock.producto.nombre }}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">{{ stock.producto.codigo_interno }}</div>
-                        </div>
-                        <div class="stock-badge">{{ stock.cantidad }} UND</div>
-                    </div>
-                    {% endfor %}
+
+                {% if reqs_pendientes %}
+                <div style="overflow-x:auto;">
+                    <table class="table-modern">
+                        <thead>
+                            <tr>
+                                <th>N° REQ</th>
+                                <th>Solicitante</th>
+                                <th>Tipo</th>
+                                <th>Fecha</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in reqs_pendientes %}
+                            <tr>
+                                <td style="font-family:monospace; color:var(--text-muted);">
+                                    {{ r.numero|default:"(Borrador)" }}
+                                </td>
+                                <td>
+                                    <strong>{{ r.responsable.username }}</strong>
+                                </td>
+                                <td>
+                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}
+                                        <span style="color:#64D2FF; font-size:11px; border:1px solid #64D2FF; padding:2px 6px; border-radius:4px;">PROVEEDOR</span>
+                                    {% else %}
+                                        <span style="color:var(--text-muted); font-size:11px;">ENTRE SEDES</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ r.fecha|date:"d/m H:i" }}</td>
+                                <td style="text-align:right;">
+                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}
+                                        <a href="{% url 'req_recepcionar_compra' r.id %}" class="btn-table btn-green">
+                                            Ingresar
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'req_to_sal' r.id %}" class="btn-table btn-blue">
+                                            Despachar
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div style="text-align:center; padding:20px; color:var(--text-muted);">
-                        <i class='bx bx-happy-heart-eyes' style="font-size:24px;"></i><br>
-                        Stock saludable
+                    <div class="empty-state">
+                        <i class='bx bx-check-double'></i>
+                        <p>Todo al día. No tienes solicitudes pendientes.</p>
                     </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <div class="right-col">
+            
+            <div class="section-card">
+                <div class="card-header">
+                    <h4><i class='bx bxs-bolt-circle'></i> Acciones Rápidas</h4>
+                </div>
+                <div style="padding:15px;" class="quick-actions-list">
+                    
+                    <a href="{% url 'req_home_almacen' %}" class="action-row">
+                        <div class="action-icon" style="color:var(--primary);"><i class='bx bx-plus-medical'></i></div>
+                        <div class="action-text">
+                            <h5>Nuevo Pedido</h5>
+                            <p>Crear REQ manual</p>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'inventory_list' %}" class="action-row">
+                        <div class="action-icon" style="color:#FF9500;"><i class='bx bx-box'></i></div>
+                        <div class="action-text">
+                            <h5>Inventario Total</h5>
+                            <p>Ver stock actual</p>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'almacen_proyectos_list' %}" class="action-row">
+                        <div class="action-icon" style="color:#BF5AF2;"><i class='bx bx-briefcase-alt-2'></i></div>
+                        <div class="action-text">
+                            <h5>Atender Proyectos</h5>
+                            <p>Despacho a obras</p>
+                        </div>
+                        {% if notificacion_proyectos > 0 %}
+                            <span class="badge-pulse">{{ notificacion_proyectos }}</span>
+                        {% endif %}
+                    </a>
+
+                    <a href="{% url 'almacen_liquidacion_lista' %}" class="action-row">
+                        <div class="action-icon" style="color:#FF375F;"><i class='bx bx-revision'></i></div>
+                        <div class="action-text">
+                            <h5>Cierre de Obras</h5>
+                            <p>Liquidar retornos</p>
+                        </div>
+                    </a>
+                    
+                    <a href="{% url 'liquidacion_tecnico_lista' %}" class="action-row">
+                        <div class="action-icon" style="color:#30D158;"><i class='bx bx-user-check'></i></div>
+                        <div class="action-text">
+                            <h5>Liquidación Semanal</h5>
+                            <p>Cierre de técnicos</p>
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+
+            <div class="section-card" style="border-top: 4px solid var(--danger);">
+                <div class="card-header">
+                    <h4><i class='bx bxs-bell-ring' style="color:var(--danger);"></i> Alertas de Stock</h4>
+                </div>
+                <div style="padding:0;">
+                    {% if items_bajos %}
+                        <table class="table-modern">
+                            <tbody>
+                                {% for stock in items_bajos %}
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:600;">{{ stock.producto.nombre }}</div>
+                                        <div style="font-size:11px; color:var(--text-muted);">{{ stock.producto.codigo_interno }}</div>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <span style="background:rgba(255, 69, 58, 0.15); color:var(--danger); padding:4px 8px; border-radius:6px; font-weight:700; font-size:12px;">
+                                            {{ stock.cantidad }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="empty-state" style="padding:30px;">
+                            <i class='bx bxs-smile' style="color:var(--success);"></i>
+                            <p>Stock saludable.</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
 
         </div>

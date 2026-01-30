@@ -1,0 +1,30 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container p-4">
+    <h3 class="text-white mb-4">👷 Técnicos con Stock Pendiente</h3>
+    <div class="glass-panel">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>Técnico</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tecnicos %}
+                <tr>
+                    <td>{{ t.username }}</td>
+                    <td>
+                        <a href="{% url 'liquidar_tecnico' t.id %}" class="btn btn-warning">
+                            <i class='bx bx-calculator'></i> Liquidar Semana
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="text-center text-muted">Todos los técnicos están al día (Mochilas vacías).</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

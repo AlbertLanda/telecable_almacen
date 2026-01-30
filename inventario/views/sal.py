@@ -6,8 +6,16 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
-from inventario.models import DocumentoInventario, TipoDocumento, UserProfile, EstadoDocumento
+from inventario.models import (
+    DocumentoInventario, 
+    TipoDocumento, 
+    UserProfile, 
+    EstadoDocumento, 
+    MovimientoInventario, 
+    DocumentoItem
+)
 
 
 def _require_roles(user, *roles):
@@ -32,7 +40,7 @@ def _sede_operativa(user):
 @login_required
 def sal_detail(request, sal_id: int):
     sal = get_object_or_404(
-        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion"),
+        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion", "sede_destino"),
         id=sal_id,
         tipo=TipoDocumento.SAL,
     )
@@ -45,11 +53,23 @@ def sal_detail(request, sal_id: int):
 
         # Reglas de visualización
         allowed = False
+        
+        # 1. Admin/Jefa ven todo
         if profile.rol in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
             allowed = True
+            
+        # 2. Almacén ve si es SU sede de origen O SU sede de destino
         elif profile.rol == UserProfile.Rol.ALMACEN:
-            sede = _sede_operativa(request.user)
-            allowed = (sal.sede_id == sede.id)
+            sede_user = _sede_operativa(request.user)
+            
+            # Caso A: Yo la envié (Soy Jauja)
+            if sal.sede_id == sede_user.id: 
+                allowed = True
+            # Caso B: Me la enviaron a mí (Soy Oroya)
+            elif sal.sede_destino_id == sede_user.id: 
+                allowed = True
+                
+        # 3. Técnico ve si es suyo (Solo para SAL locales)
         elif profile.rol == UserProfile.Rol.SOLICITANTE:
             allowed = (
                 sal.responsable_id == request.user.id
@@ -57,7 +77,7 @@ def sal_detail(request, sal_id: int):
             )
 
         if not allowed:
-            raise PermissionDenied("No puedes ver esta SAL.")
+            raise PermissionDenied("No tienes permisos para ver esta Guía de Salida.")
 
         return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
 
@@ -71,7 +91,7 @@ def sal_detail(request, sal_id: int):
 @transaction.atomic
 def sal_confirmar(request, sal_id: int):
     """
-    Confirma una SAL: descuenta stock y crea movimientos.
+    Confirma una SAL (Manual): descuenta stock y crea movimientos.
     Solo Almacén o Jefa.
     """
     try:
@@ -112,7 +132,7 @@ def sal_print(request, sal_id: int):
     items = sal.items.select_related("producto").order_by("producto__nombre")
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
-    # Validaciones de permiso igual que detail
+    # Validaciones de permiso igual que detail (Simplificado para impresión)
     profile = getattr(request.user, "profile", None)
     if profile.rol == UserProfile.Rol.SOLICITANTE:
         if sal.responsable_id != request.user.id:
@@ -126,3 +146,75 @@ def sal_print(request, sal_id: int):
         "items": items,
         "total_cantidad": total_cantidad,
     })
+
+
+@require_POST
+@login_required
+def almacen_recepcionar_traspaso(request, sal_id):
+    """
+    Recibe una SAL de otra sede y genera automáticamente el ING en mi sede.
+    """
+    try:
+        with transaction.atomic():
+            # 1. Buscamos la SAL que viene hacia mí
+            # Usamos el helper _sede_operativa para mayor seguridad
+            mi_sede = _sede_operativa(request.user)
+            
+            sal = get_object_or_404(DocumentoInventario, id=sal_id, tipo=TipoDocumento.SAL)
+
+            if sal.sede_destino != mi_sede:
+                raise PermissionDenied("Este traspaso no es para tu sede.")
+            
+            if sal.recibido:
+                messages.warning(request, "Este traspaso ya fue recepcionado.")
+                return redirect('dash_almacen')
+
+            # 2. Crear el documento de INGRESO (ING) en mi sede
+            ing = DocumentoInventario.objects.create(
+                tipo=TipoDocumento.ING,
+                estado=EstadoDocumento.CONFIRMADO, # Confirmado directo
+                sede=mi_sede,                      # Entra a MI sede
+                responsable=request.user,          # Yo lo recibo
+                sede_origen=sal.sede,              # Viene de allá
+                referencia=f"Ref: {sal.numero}",   # Referencia a la SAL original
+                observaciones=f"Recepción automática de transferencia {sal.numero}",
+                origen=sal,
+                fecha=timezone.now()
+            )
+            ing.asignar_numero_si_falta()
+
+            # 3. Copiar items y mover stock (SUMAR a mi inventario)
+            for item_sal in sal.items.all():
+                # A. Crear Item en el ING
+                DocumentoItem.objects.create(
+                    documento=ing,
+                    producto=item_sal.producto,
+                    cantidad=item_sal.cantidad,
+                    observacion=item_sal.observacion
+                )
+
+                # B. Movimiento Físico (SUMAR STOCK)
+                mov = MovimientoInventario.objects.create(
+                    producto=item_sal.producto,
+                    sede=mi_sede,
+                    ubicacion=None, # O una ubicación de recepción por defecto
+                    tipo=MovimientoInventario.TIPO_IN, # Entrada
+                    qty=item_sal.cantidad,
+                    referencia=ing.numero,
+                    usuario=request.user,
+                    nota=f"Transferencia desde {sal.sede.nombre}"
+                )
+                mov.aplicar() # ¡Aquí sube tu stock!
+
+            # 4. Marcar la SAL original como RECIBIDA
+            sal.recibido = True
+            sal.recibido_por = request.user
+            sal.recibido_en = timezone.now()
+            sal.save()
+
+            messages.success(request, f"✅ Mercadería recepcionada correctamente con {ing.numero}. Stock actualizado.")
+
+    except Exception as e:
+        messages.error(request, f"Error al recepcionar: {str(e)}")
+
+    return redirect('dash_almacen')

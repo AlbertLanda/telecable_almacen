@@ -82,3 +82,4 @@ class LiquidacionLog(TimeStampedModel):
         verbose_name = "Log de Liquidación"
         verbose_name_plural = "Logs de Liquidación"
         ordering = ['-creado_en']
+

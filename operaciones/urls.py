@@ -5,7 +5,7 @@ from .views import (
     tecnico_mis_reqs, 
     tecnico_mis_entregas,
     
-    # Liquidación
+    # Liquidación Sede/Central
     liquidacion_dashboard,
     liquidar_sede,
     liquidar_central,
@@ -13,10 +13,12 @@ from .views import (
     liquidacion_exportar_excel,
     liquidacion_api_resumen,
     liquidacion_api_graficos,
-    LiquidacionListView
+    LiquidacionListView,
+
+    # 👇 NUEVAS VISTAS IMPORTADAS (FALTABAN ESTAS)
+    liquidacion_tecnico_lista,
+    liquidar_tecnico
 )
-
-
 
 urlpatterns = [
     # TÉCNICO (Rutas base: /operaciones/tecnico/...)
@@ -35,4 +37,8 @@ urlpatterns = [
     # API Liquidación
     path("api/resumen/", liquidacion_api_resumen, name="liquidacion_api_resumen"),
     path("api/graficos/", liquidacion_api_graficos, name="liquidacion_api_graficos"),
+
+    # RUTAS DE LIQUIDACIÓN DE TÉCNICOS
+    path('liquidacion/tecnicos/', liquidacion_tecnico_lista, name='liquidacion_tecnico_lista'),
+    path('liquidacion/tecnico/<int:tecnico_id>/', liquidar_tecnico, name='liquidar_tecnico'),
 ]

@@ -15,8 +15,11 @@ from inventario.models import (
     EstadoDocumento,
     MovimientoInventario,
     Sede,
-    Proveedor
+    Proveedor,
+    TipoRequerimiento
 )
+
+from proyectos.models import Proyecto, EstadoProyecto
 
 # --------------------
 # HELPERS
@@ -208,42 +211,62 @@ def inventory_list(request):
 # --------------------
 @login_required
 def dash_almacen(request):
-    # 1. Seguridad y Contexto (Tu lógica original)
+    # 1. Seguridad y Contexto
     profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
     sede = _require_sede(profile)
     hoy = timezone.localdate()
 
-    # 2. Listas auxiliares (para modales o futuros usos)
+    # 2. Listas auxiliares
     sedes_central = Sede.objects.filter(tipo=Sede.CENTRAL, activo=True).order_by("nombre")
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
 
-    # 3. BANDEJA DE ENTRADA (Tabla Principal)
-    # Obtenemos la lista completa de pendientes para mostrar en la tabla grande
+    # 3. BANDEJA DE ENTRADA (LÓGICA CORREGIDA 🧠)
+    # Deben salir:
+    # A) Solicitudes LOCALES de mi propia sede (Mis técnicos)
+    # B) Solicitudes ENTRE_SEDES que vienen HACIA MÍ (Yo soy el destino)
+    # C) Solicitudes a PROVEEDOR (Solo si soy Central y las creé yo)
     reqs_pendientes_list = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.REQ,
-        estado=EstadoDocumento.REQ_PENDIENTE,
-        sede=sede,
-    ).select_related("responsable").order_by("fecha")
+        estado=EstadoDocumento.REQ_PENDIENTE
+    ).filter(
+        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.LOCAL) |  # Caso A: Mis técnicos
+        Q(sede_destino=sede, tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES) | # Caso B: Oroya me pide a mí (Jauja)
+        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.PROVEEDOR) # Caso C: Compras
+    ).select_related("responsable", "sede").order_by("fecha")
 
-    # 4. STOCK BAJO (Lógica Doble)
-    # Creamos la consulta base
+    # 4. STOCK BAJO
     query_stock_bajo = Stock.objects.filter(sede=sede, producto__activo=True).filter(
         Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
         | Q(producto__stock_minimo=0, cantidad__lte=5)
     ).select_related('producto')
 
-    # A) Para el KPI (Número)
     count_stock_bajo = query_stock_bajo.count()
-    # B) Para el Panel Lateral (Lista de objetos, solo los primeros 5)
     items_stock_bajo = query_stock_bajo[:5] 
 
-    # 5. MOVIMIENTOS HOY (KPI)
-    # Sumamos Salidas confirmadas + Ingresos confirmados hoy
+    # 5. MOVIMIENTOS HOY
     movimientos_hoy = DocumentoInventario.objects.filter(
         sede=sede,
         estado=EstadoDocumento.CONFIRMADO,
         fecha__date=hoy
     ).count()
+
+    # 6. PROYECTOS ACTIVOS (Pendientes + En Proceso)
+    count_proyectos_activos = Proyecto.objects.filter(
+        sede=sede
+    ).exclude(
+        estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+    ).count()
+
+    # 7. 🧮 CÁLCULO TOTAL (Suma de todo lo pendiente)
+    total_pendientes_kpi = reqs_pendientes_list.count() + count_proyectos_activos
+
+    # 8. TRANSFERENCIAS ENTRANTES (SALIDAS que vienen hacia mí para recibir)
+    transferencias_entrantes = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.SAL,          # Es una salida de otro lado
+        sede_destino=sede,               # Destino: MI sede actual
+        estado=EstadoDocumento.CONFIRMADO, # Ya salió de origen
+        recibido=False                   # Aún no le doy 'Recibir'
+    ).select_related('sede', 'responsable')
 
     return render(
         request,
@@ -252,18 +275,20 @@ def dash_almacen(request):
             "profile": profile,
             "sede": sede,
             
-            # Datos para KPIs (Tarjetas de arriba)
-            "kpi_pendientes": reqs_pendientes_list.count(),
+            # KPIs
+            "kpi_pendientes": total_pendientes_kpi,
             "kpi_movimientos": movimientos_hoy,
             "kpi_stock": count_stock_bajo,
 
-            # Datos para Tablas y Listas
-            "reqs_pendientes": reqs_pendientes_list, # Tabla izquierda
-            "items_bajos": items_stock_bajo,         # Alerta derecha
-            
-            # Extras
+            # Listas de datos
+            "reqs_pendientes": reqs_pendientes_list,
+            "items_bajos": items_stock_bajo,
             "sedes_central": sedes_central,
             "proveedores": proveedores,
+            "transferencias_entrantes": transferencias_entrantes,
+
+            # Notificación botón proyectos
+            "notificacion_proyectos": count_proyectos_activos, 
         },
     )
 

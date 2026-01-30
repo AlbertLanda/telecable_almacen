@@ -37,11 +37,13 @@ from .views.req import (
     req_home_almacen,
     req_set_tipo_doc,
     req_clonar,
-    req_eliminar
+    req_eliminar,
+    req_recepcionar_compra,
+    req_set_tipo
 )
 
 # 5. Importaciones de SAL (Salidas)
-from .views.sal import sal_detail, sal_confirmar, sal_print
+from .views.sal import sal_detail, sal_confirmar, sal_print, almacen_recepcionar_traspaso
 
 
 urlpatterns = [
@@ -71,6 +73,7 @@ urlpatterns = [
     path("api/dashboard/almacen/", api_dashboard_almacen, name="api_dashboard_almacen"),
     path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
     path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
+    path('almacen/recepcionar/<int:sal_id>/', almacen_recepcionar_traspaso, name='almacen_recepcionar_traspaso'),
 
     # ==========================
     # REQ (FLUJO TÉCNICO / GENERAL)
@@ -87,10 +90,11 @@ urlpatterns = [
     path("req/remove-producto/", req_remove_producto, name="req_remove_producto"),
 
     # Acciones sobre el REQ
-    path("req/set-tipo/", req_set_tipo_requerimiento, name="req_set_tipo_requerimiento"),
+    path('req/set-tipo/', req_set_tipo, name='req_set_tipo'),
     path("req/<int:req_id>/enviar/", req_enviar, name="req_enviar"),
     path("req/<int:req_id>/to-sal/", req_convert_to_sal, name="req_to_sal"),
     path("req/<int:req_id>/print/", req_print, name="req_print"),
+    path("req/<int:req_id>/recepcionar-compra/", req_recepcionar_compra, name="req_recepcionar_compra"),
     
     # Clonar pedido (Repetir)
     path("req/<int:req_id>/clonar/", req_clonar, name="req_clonar"),
