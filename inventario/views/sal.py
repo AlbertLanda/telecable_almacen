@@ -7,6 +7,7 @@ from django.db import transaction
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from inventario.permissions import role_required, sede_required, get_profile
 
 from inventario.models import (
     DocumentoInventario, 
@@ -19,7 +20,7 @@ from inventario.models import (
 
 
 def _require_roles(user, *roles):
-    profile = getattr(user, "profile", None)
+    profile = get_profile(user)
     if not profile:
         raise PermissionDenied("Usuario sin perfil (UserProfile).")
     if profile.rol not in roles:
@@ -28,7 +29,7 @@ def _require_roles(user, *roles):
 
 
 def _sede_operativa(user):
-    profile = getattr(user, "profile", None)
+    profile = get_profile(user)
     if not profile:
         raise ValidationError("Usuario sin perfil (UserProfile).")
     sede = profile.get_sede_operativa()
@@ -47,7 +48,7 @@ def sal_detail(request, sal_id: int):
     items = sal.items.select_related("producto").order_by("producto__nombre")
 
     try:
-        profile = getattr(request.user, "profile", None)
+        profile = get_profile(request.user)
         if not profile:
             raise PermissionDenied("Usuario sin perfil.")
 
@@ -87,20 +88,22 @@ def sal_detail(request, sal_id: int):
 
 
 @require_POST
-@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 @transaction.atomic
 def sal_confirmar(request, sal_id: int):
     """
     Confirma una SAL (Manual): descuenta stock y crea movimientos.
-    Solo Almacén o Jefa.
+    Solo Almacén, Jefa o Admin.
     """
     try:
-        profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
+        profile = request.user_profile
 
-        # Bloqueo para evitar concurrencia
-        sal = DocumentoInventario.objects.select_for_update().get(id=sal_id, tipo=TipoDocumento.SAL)
+        sal = DocumentoInventario.objects.select_for_update().get(
+            id=sal_id, tipo=TipoDocumento.SAL
+        )
 
-        if profile.rol != UserProfile.Rol.JEFA:
+        # Solo JEFA puede confirmar otras sedes
+        if profile.rol not in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
             sede = _sede_operativa(request.user)
             if sal.sede_id != sede.id:
                 raise PermissionDenied("No puedes confirmar SAL de otra sede.")
@@ -133,7 +136,10 @@ def sal_print(request, sal_id: int):
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
     # Validaciones de permiso igual que detail (Simplificado para impresión)
-    profile = getattr(request.user, "profile", None)
+    profile = get_profile(request.user)
+    if not profile:
+        messages.error(request, "Usuario sin perfil.")
+        return redirect("/")
     if profile.rol == UserProfile.Rol.SOLICITANTE:
         if sal.responsable_id != request.user.id:
              # Si no es responsable directo, check si es origen
@@ -149,7 +155,8 @@ def sal_print(request, sal_id: int):
 
 
 @require_POST
-@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+@transaction.atomic
 def almacen_recepcionar_traspaso(request, sal_id):
     """
     Recibe una SAL de otra sede y genera automáticamente el ING en mi sede.

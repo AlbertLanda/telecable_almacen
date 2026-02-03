@@ -10,6 +10,9 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from ..models import Stock, MovimientoInventario
+from django.db.models import Case, When, IntegerField
+from django.db.models.functions import TruncDate
+from django.db.models import Count
 
 from inventario.models import (
     UserProfile,
@@ -304,39 +307,44 @@ def dash_almacen(request):
     # --- A) GRÁFICO DE DONA (Salud del Stock) ---
     CRITICO = 5
     BAJO = 15
-    
-    stocks_grafico = Stock.objects.filter(sede=sede_actual)
-    stock_critico = 0
-    stock_bajo = 0
-    stock_saludable = 0
 
-    for s in stocks_grafico:
-        cant = s.cantidad
-        if cant <= CRITICO:
-            stock_critico += 1
-        elif cant <= BAJO:
-            stock_bajo += 1
-        else:
-            stock_saludable += 1
+    agg_stock = Stock.objects.filter(sede=sede_actual).aggregate(
+        stock_critico=Sum(
+            Case(When(cantidad__lte=CRITICO, then=1), default=0, output_field=IntegerField())
+        ),
+        stock_bajo=Sum(
+            Case(When(cantidad__gt=CRITICO, cantidad__lte=BAJO, then=1), default=0, output_field=IntegerField())
+        ),
+        stock_saludable=Sum(
+            Case(When(cantidad__gt=BAJO, then=1), default=0, output_field=IntegerField())
+        ),
+    )
+
+    stock_critico = agg_stock["stock_critico"] or 0
+    stock_bajo = agg_stock["stock_bajo"] or 0
+    stock_saludable = agg_stock["stock_saludable"] or 0
 
     # --- B) GRÁFICO DE BARRAS (Actividad últimos 7 días) ---
     labels_dias = []
     data_movimientos = []
 
+    start_day = hoy - timedelta(days=6)
+
+    qs = (
+        MovimientoInventario.objects
+        .filter(sede=sede_actual, creado_en__date__gte=start_day, creado_en__date__lte=hoy)
+        .annotate(dia=TruncDate("creado_en"))
+        .values("dia")
+        .annotate(cnt=Count("id"))
+    )
+
+    # lo convertimos a dict para rellenar días sin movimientos con 0
+    map_cnt = {row["dia"]: row["cnt"] for row in qs}
+
     for i in range(6, -1, -1):
         dia = hoy - timedelta(days=i)
-        
-        # Etiqueta del día (ej: "Lun")
-        labels_dias.append(dia.strftime("%a")) 
-        
-        # Contamos movimientos
-        # Usamos los campos correctos: 'creado_en' y 'sede'
-        cnt = MovimientoInventario.objects.filter(
-            creado_en__date=dia,
-            sede=sede_actual
-        ).count()
-        
-        data_movimientos.append(cnt)
+        labels_dias.append(dia.strftime("%a"))
+        data_movimientos.append(int(map_cnt.get(dia, 0)))
 
     # ==========================================
     # 10. RENDERIZADO FINAL

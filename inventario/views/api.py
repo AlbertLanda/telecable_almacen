@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum, DecimalField, ExpressionWrapper
 
 # Importamos los modelos del Core
 from inventario.models import (
@@ -59,11 +60,18 @@ def api_dashboard_almacen(request):
     ).count()
 
     # Valor inventario
-    valor_inv = Decimal("0.00")
-    # Nota: Esto puede ser lento si hay muchos datos, optimizar en futuro
-    stocks = Stock.objects.filter(sede=sede).select_related("producto")
-    for s in stocks:
-        valor_inv += (Decimal(s.cantidad) * (s.producto.costo_unitario or Decimal("0.00")))
+    valor_inv = (
+        Stock.objects.filter(sede=sede)
+        .aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("cantidad") * F("producto__costo_unitario"),
+                    output_field=DecimalField(max_digits=18, decimal_places=2),
+                )
+            )
+        )["total"]
+        or Decimal("0.00")
+    )
 
     # 2. Movimientos últimos 60 min
     now = timezone.now()

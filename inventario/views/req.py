@@ -34,6 +34,7 @@ from inventario.services.req_service import (
 from inventario.services.sal_service import req_to_sal
 from inventario.services.lookup_service import buscar_producto_por_code
 from inventario.services.req_service import clonar_req
+from inventario.permissions import role_required, sede_required, get_profile
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 import json
@@ -44,7 +45,7 @@ from django.db import IntegrityError
 # Helpers
 # --------------------
 def _require_roles(user, *roles):
-    profile = getattr(user, "profile", None)
+    profile = get_profile(user)
     if not profile:
         raise PermissionDenied("Usuario sin perfil (UserProfile).")
     if profile.rol not in roles:
@@ -52,7 +53,7 @@ def _require_roles(user, *roles):
     return profile
 
 def _get_ubicacion_operativa(user):
-    profile = getattr(user, "profile", None)
+    profile = get_profile(user)
     if not profile:
         raise ValidationError("El usuario no tiene perfil (UserProfile).")
 
@@ -68,13 +69,13 @@ def _get_ubicacion_operativa(user):
     )
 
     if not ubicacion:
-        # Fallback: creamos una por defecto si no existe
         ubicacion = Ubicacion.objects.create(nombre="GENERAL", sede=sede)
 
     return ubicacion
 
+
 def _get_sede_operativa(user):
-    profile = getattr(user, "profile", None)
+    profile = get_profile(user)
     if not profile:
         raise ValidationError("El usuario no tiene perfil (UserProfile).")
     sede = profile.get_sede_operativa()
@@ -645,6 +646,7 @@ def req_eliminar(request, req_id):
 
 
 @login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 def req_recepcionar_compra(request, req_id: int):
     """
     Convierte un REQ de PROVEEDOR en un INGRESO (ING).
@@ -654,6 +656,12 @@ def req_recepcionar_compra(request, req_id: int):
     if req.tipo_requerimiento != TipoRequerimiento.PROVEEDOR:
         messages.error(request, "Este no es un pedido a proveedor.")
         return redirect("dash_almacen")
+    
+    profile = get_profile(request.user)
+    if profile and profile.rol == UserProfile.Rol.ALMACEN:
+        sede_user = profile.get_sede_operativa()
+        if sede_user and req.sede_id != sede_user.id:
+            raise PermissionDenied("No puedes atender REQ de otra sede.")
 
     if request.method == "POST":
         try:
@@ -821,6 +829,7 @@ def req_set_tipo(request):
     
 
 @login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 def req_atender(request, req_id: int):
     """
     Despacha un REQ solicitado por un TÉCNICO.
@@ -835,6 +844,12 @@ def req_atender(request, req_id: int):
         return redirect("dash_almacen")
 
     sede_origen = req.sede
+
+    profile = get_profile(request.user)
+    if profile and profile.rol == UserProfile.Rol.ALMACEN:
+        sede_user = profile.get_sede_operativa()
+        if sede_user and req.sede_id != sede_user.id:
+            raise PermissionDenied("No puedes atender REQ de otra sede.")
     
     if request.method == "POST":
         try:
