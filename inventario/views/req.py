@@ -20,7 +20,8 @@ from inventario.models import (
     Producto,
     Sede,
     TipoRequerimiento,
-    Proveedor
+    Proveedor,
+    ItemSerializado
 )
 
 from inventario.services.req_service import (
@@ -35,6 +36,9 @@ from inventario.services.lookup_service import buscar_producto_por_code
 from inventario.services.req_service import clonar_req
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
+import json
+from django.db import IntegrityError
+
 
 # --------------------
 # Helpers
@@ -160,20 +164,15 @@ def _ensure_req_defaults(req: DocumentoInventario, user):
 def req_home(request):
     """
     Vista principal inteligente.
-    CORREGIDA: Busca agresivamente cualquier borrador (REQ_BORRADOR o BORRADOR)
-    antes de intentar crear uno nuevo.
     """
     profile = getattr(request.user, 'profile', None)
     if not profile:
         return redirect('logout')
     
     # 1. Obtener Ubicación Segura
-    # Usamos filter().first() para evitar el error 500 si no hay ubicaciones
     ubicacion_obj = Ubicacion.objects.filter(sede=profile.get_sede_operativa()).order_by('nombre').first()
     
-    # 2. BUSCAR BORRADOR EXISTENTE (La Corrección Clave 🔑)
-    # Buscamos si ya existe uno en cualquiera de los dos estados posibles
-    # Esto evita que se cree uno nuevo al recargar la página
+    # 2. BUSCAR BORRADOR EXISTENTE
     req_borrador = DocumentoInventario.objects.filter(
         responsable=request.user,
         estado__in=[EstadoDocumento.BORRADOR, EstadoDocumento.REQ_BORRADOR], 
@@ -183,6 +182,9 @@ def req_home(request):
     # Solo si NO existe ninguno, dejamos que el servicio cree uno nuevo
     if not req_borrador:
         req_borrador = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion_obj)
+
+    # 🟢 FIX 1: Forzar que el tipo sea LOCAL si es técnico, para que no salga "Entre Sedes"
+    _ensure_req_defaults(req_borrador, request.user)
 
     # 3. Configurar Entorno (Sede y Stock)
     sede_usuario = profile.get_sede_operativa()
@@ -231,16 +233,15 @@ def req_home(request):
 
     return render(request, 'inventario/req_home.html', ctx)
 
+
 @login_required
 def req_home_almacen(request):
     """
-    Vista específica para que el Almacenero cree REQ (a Proveedor o Entre Sedes)
-    sin usar la interfaz del técnico.
+    Vista específica para que el Almacenero cree REQ.
     """
     try:
         profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
         sede = _get_sede_operativa(request.user)
-        # Usamos una ubicación 'default' o administrativa
         ubicacion = _get_ubicacion_operativa(request.user) 
     except (ValidationError, PermissionDenied) as e:
         messages.error(request, str(e))
@@ -262,8 +263,6 @@ def req_home_almacen(request):
             "proveedores": proveedores,
         },
     )
-    return req_home(request)
-
 
 
 @require_POST
@@ -339,6 +338,7 @@ def req_set_tipo_requerimiento(request):
     if _is_ajax(request): return JsonResponse({"ok": True})
     return redirect("/req/")
 
+
 @login_required
 def req_catalogo(request):
     try:
@@ -400,6 +400,7 @@ def req_catalogo(request):
     } for s in stocks]
 
     return JsonResponse({"ok": True, "modo": modo or "local", "results": data})
+
 
 @login_required
 def req_carrito(request):
@@ -470,6 +471,7 @@ def req_add_producto(request):
         if _is_ajax(request): return JsonResponse({"ok": False, "error": str(e)}, status=403)
         return redirect("/req/")
 
+
 @login_required
 def req_add_item(request):
     if request.method != "POST": return redirect("/req/")
@@ -486,6 +488,7 @@ def req_add_item(request):
     except Exception as e:
         messages.error(request, str(e))
     return redirect("/req/")
+
 
 @require_POST
 @login_required
@@ -517,7 +520,7 @@ def req_enviar(request, req_id: int):
         messages.error(request, "No puedes enviar un REQ que no es tuyo.")
         return redirect("req_home")
     
-    # 2. Validación de Estado (Aceptamos ambos por si acaso)
+    # 2. Validación de Estado
     if req.estado not in [EstadoDocumento.BORRADOR, EstadoDocumento.REQ_BORRADOR]:
         messages.error(request, "El requerimiento ya fue enviado o procesado.")
         return redirect("req_home")
@@ -527,7 +530,7 @@ def req_enviar(request, req_id: int):
         messages.error(request, "El carrito está vacío.")
         return redirect("req_home")
 
-    # 4. Validar Configuración (Aquí es donde fallaba antes)
+    # 4. Validar Configuración
     if req.tipo_requerimiento == TipoRequerimiento.PROVEEDOR:
         if not req.proveedor_manual: 
             messages.error(request, "⚠️ Falta escribir y GUARDAR el nombre del PROVEEDOR en el Paso 1.")
@@ -539,13 +542,13 @@ def req_enviar(request, req_id: int):
 
     # 5. Procesar
     try:
+        # 🟢 FIX 2: Generar el número ANTES de guardar
+        req.asignar_numero_si_falta()
+        
         req.estado = EstadoDocumento.REQ_PENDIENTE
         req.fecha = timezone.now()
         req.save()
         
-        # 🟢 FIX CLAVE: Recargar para obtener el número generado (REQ-000X)
-        req.refresh_from_db()
-
         # Mensajes
         if req.tipo_requerimiento == TipoRequerimiento.PROVEEDOR:
             messages.success(request, f"✅ Orden de Compra {req.numero} generada exitosamente.")
@@ -566,136 +569,10 @@ def req_enviar(request, req_id: int):
 
 @login_required
 def req_convert_to_sal(request, req_id: int):
-    """
-    Vista híbrida:
-    GET -> Muestra pantalla de confirmación visual (stock vs solicitado).
-    POST -> Ejecuta el despacho, genera SAL, descuenta stock y llena mochila.
-    """
-    req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
-    
-    if req.estado != EstadoDocumento.REQ_PENDIENTE:
-        messages.error(request, "El REQ no está pendiente.")
-        return redirect("dash_almacen")
-
-    # --- PROCESAR POST (CONFIRMACIÓN) ---
-    if request.method == "POST":
-        try:
-            with transaction.atomic():
-                
-                # 🧠 LÓGICA DE SEDES CORREGIDA (PARA ENTRE SEDES) 🧠
-                if req.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES:
-                    # Si Oroya pidió a Jauja:
-                    # El que despacha (Usuario Actual/Jauja) es el ORIGEN.
-                    # El que pidió (req.sede/Oroya) es el DESTINO.
-                    sede_salida = request.user.profile.get_sede_operativa()
-                    sede_llegada = req.sede
-                else:
-                    # Si es LOCAL o PROVEEDOR, todo ocurre en la misma sede
-                    sede_salida = req.sede
-                    sede_llegada = None
-
-                # 1. Crear SALIDA
-                sal = DocumentoInventario.objects.create(
-                    tipo=TipoDocumento.SAL,
-                    estado=EstadoDocumento.CONFIRMADO,
-                    sede=sede_salida,          # <--- Jauja (De aquí sale el stock)
-                    sede_destino=sede_llegada, # <--- Oroya (Aquí debe aparecer el aviso)
-                    responsable=request.user,
-                    solicitante=req.responsable,
-                    origen=req,
-                    referencia=f"Atención REQ {req.numero}",
-                    fecha=timezone.now(),
-                    observaciones=request.POST.get('notas', '')
-                )
-                sal.asignar_numero_si_falta() # 🚨 Generar ID SAL-000...
-
-                # 2. Procesar Ítems según lo que confirmaste en el form
-                items_req = req.items.all()
-                hubo_despacho = False
-
-                for item in items_req:
-                    # Obtenemos la cantidad que el almacenero escribió en el input
-                    qty_input = int(request.POST.get(f'qty_{item.id}', 0))
-
-                    if qty_input > 0:
-                        # Validar Stock Real (EN SEDE SALIDA)
-                        stock_almacen = Stock.objects.filter(producto=item.producto, sede=sede_salida).first()
-                        stock_actual = stock_almacen.cantidad if stock_almacen else 0
-
-                        if stock_actual < qty_input:
-                            raise ValidationError(f"Stock insuficiente para {item.producto.nombre}. Tienes {stock_actual}, intentas sacar {qty_input}.")
-
-                        # A. Item en Documento SAL
-                        DocumentoItem.objects.create(
-                            documento=sal,
-                            producto=item.producto,
-                            cantidad=qty_input,
-                            observacion=item.observacion
-                        )
-
-                        # B. Movimiento Almacén (Resta física de SEDE SALIDA)
-                        mov = MovimientoInventario.objects.create(
-                            producto=item.producto,
-                            sede=sede_salida, # <--- Resta de Jauja
-                            tipo=MovimientoInventario.TIPO_OUT,
-                            qty=qty_input,
-                            referencia=sal.numero,
-                            usuario=request.user,
-                            nota=f"Traspaso a {sede_llegada.nombre if sede_llegada else 'Local'}"
-                        )
-                        mov.aplicar()
-
-                        # C. Mochila Técnico (SOLO SI ES LOCAL)
-                        # Si es traspaso entre sedes, NO se llena mochila, se espera recepción en la otra sede.
-                        if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
-                            from inventario.models import StockTecnico
-                            stock_tech, _ = StockTecnico.objects.get_or_create(
-                                tecnico=req.responsable,
-                                producto=item.producto
-                            )
-                            stock_tech.cantidad += qty_input
-                            stock_tech.save()
-                        
-                        hubo_despacho = True
-
-                if hubo_despacho:
-                    req.estado = EstadoDocumento.REQ_ATENDIDO
-                    req.save()
-                    messages.success(request, f"✅ Despacho {sal.numero} realizado con éxito.")
-                    return redirect("sal_detail", sal_id=sal.id)
-                else:
-                    messages.warning(request, "⚠️ No se despachó nada (cantidades en 0).")
-                    sal.delete() # Borrar SAL vacía
-                    return redirect("req_convert_to_sal", req_id=req.id)
-
-        except Exception as e:
-            messages.error(request, f"Error: {str(e)}")
-            return redirect("req_convert_to_sal", req_id=req.id)
-
-    # --- PROCESAR GET (MOSTRAR PANTALLA) ---
-    # Usamos la sede del usuario actual (Jauja) para ver SU stock disponible
-    sede_visualizar = request.user.profile.get_sede_operativa()
-
-    items_procesados = []
-    for item in req.items.select_related('producto').all():
-        stock_obj = Stock.objects.filter(producto=item.producto, sede=sede_visualizar).first()
-        stock_actual = stock_obj.cantidad if stock_obj else 0
-        
-        # Sugerimos despachar lo que pide, o lo que hay si es menos
-        sugerido = min(item.cantidad, stock_actual)
-
-        items_procesados.append({
-            'original_id': item.id,
-            'producto': item.producto,
-            'cantidad_solicitada': item.cantidad,
-            'stock_actual': stock_actual,
-            'cantidad_sugerida': sugerido
-        })
-
-    return render(request, 'inventario/req_despachar_form.html', {
-        'req': req,
-        'items_procesados': items_procesados
-    })
+    # Esta función queda obsoleta para despacho manual, 
+    # pero la dejamos por si tienes enlaces viejos.
+    # Ahora usamos req_atender.
+    return redirect("req_atender", req_id=req_id)
 
 @login_required
 def req_print(request, req_id: int):
@@ -740,12 +617,12 @@ def req_clonar(request, req_id):
     try:
         nuevo_req = clonar_req(request.user, req_id)
         messages.success(request, "Pedido duplicado correctamente. Revisa el carrito antes de enviar.")
-        # Redirigir al home del REQ (que muestra el borrador actual)
         return redirect("req_home") 
     except Exception as e:
         messages.error(request, f"Error al clonar: {str(e)}")
         return redirect("tecnico_mis_reqs")
-    
+
+
 @login_required
 def req_eliminar(request, req_id):
     """Permite eliminar un REQ solo si está en estado BORRADOR"""
@@ -766,15 +643,14 @@ def req_eliminar(request, req_id):
     messages.success(request, "Borrador eliminado correctamente.")
     return redirect("tecnico_mis_reqs")
 
+
 @login_required
 def req_recepcionar_compra(request, req_id: int):
     """
     Convierte un REQ de PROVEEDOR en un INGRESO (ING).
-    Sube el stock en la Sede Central.
     """
     req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
     
-    # Seguridad: Solo para compras a proveedores
     if req.tipo_requerimiento != TipoRequerimiento.PROVEEDOR:
         messages.error(request, "Este no es un pedido a proveedor.")
         return redirect("dash_almacen")
@@ -782,14 +658,21 @@ def req_recepcionar_compra(request, req_id: int):
     if request.method == "POST":
         try:
             with transaction.atomic():
+                # 0. Ubicación por defecto
+                ubicacion_defecto = Ubicacion.objects.filter(sede=req.sede).first()
+                if not ubicacion_defecto:
+                    ubicacion_defecto = Ubicacion.objects.create(
+                        sede=req.sede, nombre="RECEPCION", descripcion="Ubicación automática de ingreso"
+                    )
+
                 # 1. Crear el Ingreso (ING)
                 ing = DocumentoInventario.objects.create(
                     tipo=TipoDocumento.ING,
                     estado=EstadoDocumento.CONFIRMADO,
-                    sede=req.sede,             # Entra a mi sede (Jauja)
-                    responsable=request.user,  # Yo lo recibo
-                    proveedor=req.proveedor,   # Viene de este proveedor
-                    origen=req,                # Basado en este REQ
+                    sede=req.sede,             
+                    responsable=request.user,  
+                    proveedor=req.proveedor,   
+                    origen=req,                
                     referencia=f"Llegada Compra {req.numero}",
                     fecha=timezone.now(),
                     observaciones=request.POST.get('notas', '')
@@ -798,13 +681,12 @@ def req_recepcionar_compra(request, req_id: int):
 
                 items_req = req.items.all()
                 
-                # 2. Procesar ítems
+                # 2. Procesar cada ítem del pedido
                 for item in items_req:
-                    # Leemos cuánto llegó realmente (input del form)
                     qty_llegada = int(request.POST.get(f'qty_{item.id}', 0))
                     
                     if qty_llegada > 0:
-                        # A. Item en Documento ING
+                        # A. Registrar Item
                         DocumentoItem.objects.create(
                             documento=ing,
                             producto=item.producto,
@@ -812,49 +694,93 @@ def req_recepcionar_compra(request, req_id: int):
                             observacion=item.observacion
                         )
 
-                        # B. Movimiento Físico (SUMA STOCK) 📈
+                        # B. Movimiento Físico
                         mov = MovimientoInventario.objects.create(
                             producto=item.producto,
                             sede=req.sede,
-                            tipo=MovimientoInventario.TIPO_IN, # Entrada
+                            tipo=MovimientoInventario.TIPO_IN,
                             qty=qty_llegada,
                             referencia=ing.numero,
                             usuario=request.user,
-                            nota=f"Compra a {req.proveedor.razon_social if req.proveedor else 'Proveedor'}"
+                            nota=f"Compra {req.numero}"
                         )
-                        mov.aplicar()
+                        mov.aplicar() 
+
+                        # C. SERIALIZADOS
+                        if item.producto.es_serializado:
+                            # --- RANGO ---
+                            rango_inicio = request.POST.get(f'rango_inicio_{item.id}')
+                            rango_fin = request.POST.get(f'rango_fin_{item.id}')
+                            
+                            if rango_inicio and rango_fin:
+                                try:
+                                    start = int(rango_inicio)
+                                    end = int(rango_fin)
+                                    items_a_crear = []
+                                    for num in range(start, end + 1):
+                                        serial_str = str(num)
+                                        items_a_crear.append(ItemSerializado(
+                                            producto=item.producto,
+                                            serial=serial_str,
+                                            ubicacion=ubicacion_defecto,
+                                            estado=ItemSerializado.Estado.EN_ALMACEN
+                                        ))
+                                    ItemSerializado.objects.bulk_create(items_a_crear, ignore_conflicts=True)
+                                except ValueError:
+                                    pass
+
+                            # --- DETALLE ONUs ---
+                            json_data = request.POST.get(f'detalles_json_{item.id}')
+                            if json_data:
+                                try:
+                                    lista_series = json.loads(json_data)
+                                    for data in lista_series:
+                                        sn = data.get('sn', '').strip().upper()
+                                        mac = data.get('mac', '').strip().upper()
+                                        cod44 = data.get('cod44', '').strip().upper()
+                                        
+                                        if sn: 
+                                            try:
+                                                ItemSerializado.objects.create(
+                                                    producto=item.producto,
+                                                    serial=sn,
+                                                    mac_address=mac,
+                                                    codigo_trazabilidad=cod44,
+                                                    ubicacion=ubicacion_defecto,
+                                                    estado=ItemSerializado.Estado.EN_ALMACEN
+                                                )
+                                            except IntegrityError:
+                                                pass
+                                except json.JSONDecodeError:
+                                    pass
 
                 # 3. Cerrar el REQ
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save()
 
-                messages.success(request, f"✅ Compra ingresada al stock con éxito ({ing.numero}).")
+                messages.success(request, f"✅ Compra ingresada correctamente. Activos serializados registrados.")
                 return redirect("dash_almacen")
 
         except Exception as e:
-            messages.error(request, f"Error: {str(e)}")
+            messages.error(request, f"Error al procesar: {str(e)}")
             return redirect("dash_almacen")
 
-    # --- GET: Mostrar formulario de verificación (Igual que el de despacho pero para recibir) ---
     return render(request, 'inventario/req_recepcionar_form.html', {'req': req})
+
 
 @require_POST
 @login_required
 def req_set_tipo(request):
     """
     Guarda la configuración del REQ (Paso 1).
-    Versión final: Limpia, segura y busca en ambos estados.
     """
     try:
-        # 1. RECIBIR EL ID EXACTO (Prioridad absoluta)
         req_id = request.POST.get("req_id")
         req_borrador = None
         
-        # A) Si el frontend manda ID, usamos ese
         if req_id:
             req_borrador = DocumentoInventario.objects.filter(id=req_id, responsable=request.user).first()
         
-        # B) Si no hay ID o no se encontró, buscamos el activo (Fallback inteligente)
         if not req_borrador:
             req_borrador = DocumentoInventario.objects.filter(
                 responsable=request.user,
@@ -865,23 +791,17 @@ def req_set_tipo(request):
         if not req_borrador:
             return JsonResponse({"ok": False, "error": "No se encontró ningún borrador activo para guardar."})
 
-        # 2. PROCESAR DATOS
         tipo = request.POST.get("tipo_requerimiento")
         
         if tipo == "PROVEEDOR":
             nombre_prov = request.POST.get("proveedor_manual", "").strip()
-            
-            # Validación simple
             if not nombre_prov:
                 return JsonResponse({"ok": False, "error": "El nombre del proveedor no puede estar vacío."})
             
-            # Asignar valores
             req_borrador.tipo_requerimiento = TipoRequerimiento.PROVEEDOR
             req_borrador.proveedor_manual = nombre_prov 
             req_borrador.proveedor = None 
             req_borrador.sede_destino = None
-            
-            # 3. GUARDAR (Sin argumentos para asegurar escritura total)
             req_borrador.save()
 
         elif tipo == "ENTRE_SEDES":
@@ -892,12 +812,172 @@ def req_set_tipo(request):
             req_borrador.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
             req_borrador.sede_destino_id = destino_id
             req_borrador.proveedor_manual = None
-            
-            # 3. GUARDAR
             req_borrador.save()
 
         return JsonResponse({"ok": True})
 
     except Exception as e:
-        # En caso de error inesperado, lo enviamos al frontend
         return JsonResponse({"ok": False, "error": f"Error interno: {str(e)}"})
+    
+
+@login_required
+def req_atender(request, req_id: int):
+    """
+    Despacha un REQ solicitado por un TÉCNICO.
+    Mueve stock de Almacén -> Mochila del Técnico (StockTecnico).
+    Maneja ítems serializados (ONUs específicas o rangos de precintos).
+    """
+    req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
+    
+    # Validaciones básicas
+    if req.estado != EstadoDocumento.REQ_PENDIENTE:
+        messages.error(request, "Este requerimiento no está pendiente.")
+        return redirect("dash_almacen")
+
+    sede_origen = req.sede
+    
+    if request.method == "POST":
+        try:
+            with transaction.atomic():
+                
+                # 🚑 FIX: Aseguramos número
+                if not req.numero:
+                    req.asignar_numero_si_falta()
+
+                # 1. Crear el documento de SALIDA (SAL)
+                sal = DocumentoInventario.objects.create(
+                    tipo=TipoDocumento.SAL,
+                    estado=EstadoDocumento.CONFIRMADO,
+                    sede=sede_origen,
+                    responsable=request.user,
+                    solicitante=req.responsable,
+                    origen=req,
+                    referencia=f"Atención de {req.numero}",
+                    fecha=timezone.now(),
+                    observaciones=request.POST.get('notas', '')
+                )
+                sal.asignar_numero_si_falta()
+
+                items_req = req.items.all()
+
+                for item in items_req:
+                    qty_despacho = int(request.POST.get(f'qty_{item.id}', 0))
+
+                    if qty_despacho > 0:
+                        # A. Registrar en DocumentoItem
+                        DocumentoItem.objects.create(
+                            documento=sal,
+                            producto=item.producto,
+                            cantidad=qty_despacho,
+                            observacion=item.observacion
+                        )
+
+                        # B. Movimiento Físico
+                        mov = MovimientoInventario.objects.create(
+                            producto=item.producto,
+                            sede=sede_origen,
+                            tipo=MovimientoInventario.TIPO_OUT,
+                            qty=qty_despacho,
+                            referencia=sal.numero,
+                            usuario=request.user,
+                            nota=f"Despacho a {req.responsable.username}"
+                        )
+                        mov.aplicar()
+
+                        # C. Mochila Técnica
+                        if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
+                            stock_tech, _ = StockTecnico.objects.get_or_create(
+                                tecnico=req.responsable,
+                                producto=item.producto
+                            )
+                            stock_tech.cantidad += qty_despacho
+                            stock_tech.save()
+
+                        # D. SERIALIZADOS
+                        if item.producto.es_serializado:
+                            
+                            # --- RANGO ---
+                            rango_inicio = request.POST.get(f'rango_inicio_{item.id}')
+                            rango_fin = request.POST.get(f'rango_fin_{item.id}')
+                            
+                            if rango_inicio and rango_fin:
+                                start = int(rango_inicio)
+                                end = int(rango_fin)
+                                items_to_update = ItemSerializado.objects.filter(
+                                    producto=item.producto,
+                                    ubicacion__sede=sede_origen,
+                                    estado=ItemSerializado.Estado.EN_ALMACEN,
+                                    serial__gte=str(start), 
+                                    serial__lte=str(end)
+                                )
+                                items_to_update.update(
+                                    estado=ItemSerializado.Estado.ASIGNADO,
+                                    asignado_a=req.responsable, 
+                                    ubicacion=None 
+                                )
+
+                            # --- DETALLE ONUs ---
+                            json_ids = request.POST.get(f'detalles_json_{item.id}')
+                            if json_ids:
+                                try:
+                                    ids_seleccionados = json.loads(json_ids)
+                                    items_onu = ItemSerializado.objects.filter(
+                                        id__in=ids_seleccionados,
+                                        producto=item.producto,
+                                        estado=ItemSerializado.Estado.EN_ALMACEN
+                                    )
+                                    items_onu.update(
+                                        estado=ItemSerializado.Estado.ASIGNADO,
+                                        asignado_a=req.responsable,
+                                        ubicacion=None
+                                    )
+                                except:
+                                    pass
+
+                # Cerrar REQ
+                req.estado = EstadoDocumento.REQ_ATENDIDO
+                req.save()
+
+                # 🟢 FIX 3: Nombre del técnico si first_name está vacío
+                nombre_tecnico = req.responsable.get_full_name() or req.responsable.username
+                messages.success(request, f"✅ Despacho realizado. Material cargado a {nombre_tecnico}.")
+                
+                return redirect("dash_almacen")
+
+        except Exception as e:
+            messages.error(request, f"Error al despachar: {str(e)}")
+            return redirect("dash_almacen")
+
+    # --- GET: Preparar datos ---
+    items_context = []
+    sede_visualizar = request.user.profile.get_sede_operativa()
+
+    for item in req.items.all():
+        disponibles = []
+        if item.producto.es_serializado:
+            qs = ItemSerializado.objects.filter(
+                producto=item.producto,
+                ubicacion__sede=sede_visualizar,
+                estado=ItemSerializado.Estado.EN_ALMACEN
+            ).only('id', 'serial', 'codigo_trazabilidad', 'mac_address')[:500] 
+            
+            disponibles = [
+                {
+                    'id': x.id, 
+                    'serial': x.serial, 
+                    'cod44': x.codigo_trazabilidad or '', 
+                    'mac': x.mac_address or ''
+                } 
+                for x in qs
+            ]
+        
+        items_context.append({
+            'req_item': item,
+            'disponibles_json': json.dumps(disponibles)
+        })
+
+    context = {
+        'req': req,
+        'items_context': items_context
+    }
+    return render(request, 'inventario/req_despachar_form.html', context)

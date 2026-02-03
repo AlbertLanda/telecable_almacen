@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* HEADER */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 25px; background: var(--bg-card);
+        padding: 20px; border-radius: var(--radius);
+        border: 1px solid var(--glass-border);
+    }
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
+    .header-content p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+
+    /* BUSCADOR */
+    .search-bar {
+        margin-bottom: 20px; position: relative;
+    }
+    .search-input {
+        width: 100%; padding: 15px 15px 15px 45px;
+        background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px; color: #fff; outline: none; transition: 0.3s;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
+    .search-icon {
+        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+        color: var(--text-muted); font-size: 20px;
+    }
+
+    /* GRID DE PRODUCTOS */
+    .stock-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    /* TARJETA DE PRODUCTO */
+    .stock-card {
+        background: var(--bg-card); border: 1px solid var(--glass-border);
+        border-radius: var(--radius); padding: 15px;
+        display: flex; justify-content: space-between; align-items: center;
+        transition: 0.2s;
+    }
+    .stock-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+
+    .sc-info { flex: 1; min-width: 0; margin-right: 15px; }
+    .sc-name { font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-code { font-family: monospace; color: var(--text-muted); font-size: 11px; }
+
+    .sc-qty {
+        text-align: center; background: rgba(255,255,255,0.05);
+        padding: 8px 12px; border-radius: 10px; min-width: 50px;
+    }
+    .qty-val { display: block; font-size: 18px; font-weight: 700; color: #fff; }
+    .qty-lbl { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+
+    /* ESTADOS DE STOCK */
+    .sc-low .qty-val { color: #FF9F0A; } /* Stock bajo */
+    .sc-zero .qty-val { color: #FF453A; } /* Sin stock */
+
+    @media (max-width: 768px) {
+        .stock-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="page-header">
+    <div class="header-content">
+        <h2><i class='bx bx-briefcase-alt-2' style="color: var(--primary);"></i> Mi Stock</h2>
+        <p>Inventario actual en mi poder</p>
+    </div>
+    <a href="{% url 'tecnico_dashboard' %}" class="btn btn-warning" style="background: rgba(255,255,255,0.1); color: #fff;">
+        <i class='bx bx-arrow-back'></i> Volver
+    </a>
+</div>
+
+<div class="search-bar">
+    <i class='bx bx-search search-icon'></i>
+    <input type="text" id="stockSearch" class="search-input" placeholder="Buscar material por nombre o código...">
+</div>
+
+<div class="stock-grid" id="stockContainer">
+    {% for item in stock_items %}
+    <div class="stock-card {% if item.cantidad <= 5 %}sc-low{% endif %} {% if item.cantidad == 0 %}sc-zero{% endif %}">
+        <div class="sc-info">
+            <div class="sc-name">{{ item.producto.nombre }}</div>
+            <div class="sc-code">{{ item.producto.codigo|default:"S/C" }}</div>
+        </div>
+        <div class="sc-qty">
+            <span class="qty-val">{{ item.cantidad }}</span>
+            <span class="qty-lbl">{{ item.producto.unidad|default:"UND" }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+        <i class='bx bx-package' style="font-size: 40px; margin-bottom: 10px;"></i>
+        <p>No tienes materiales asignados actualmente.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    document.getElementById('stockSearch').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.stock-card');
+        
+        cards.forEach(card => {
+            const name = card.querySelector('.sc-name').textContent.toLowerCase();
+            const code = card.querySelector('.sc-code').textContent.toLowerCase();
+            
+            if (name.includes(term) || code.includes(term)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

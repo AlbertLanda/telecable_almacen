@@ -2,12 +2,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+# 1. AGREGAMOS ESTE IMPORT 👇
+from django.views.generic import RedirectView 
+
 # Importamos una vista para el root (ej. redirigir al login o dashboard)
 from inventario.views.dashboard import dashboard_redirect 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     
+    # 2. AGREGAMOS ESTA LÍNEA AQUÍ 👇 (Para callar el error 404 en consola)
+    path('favicon.ico', RedirectView.as_view(url='/static/favicon.ico', permanent=True)),
+
     # Redirección raíz ("/") -> dashboard
     path("", dashboard_redirect, name="root"),
 

@@ -6,6 +6,10 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import F, Sum, Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from ..models import Stock, MovimientoInventario
 
 from inventario.models import (
     UserProfile,
@@ -211,30 +215,47 @@ def inventory_list(request):
 # --------------------
 @login_required
 def dash_almacen(request):
-    # 1. Seguridad y Contexto
-    profile = _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA)
-    sede = _require_sede(profile)
-    hoy = timezone.localdate()
+    # ==========================================
+    # 1. SEGURIDAD Y CONTEXTO
+    # ==========================================
+    try:
+        profile = request.user.profile
+    except UserProfile.DoesNotExist:
+        messages.error(request, "Tu usuario no tiene un perfil configurado.")
+        return redirect('home') # O a donde prefieras
 
-    # 2. Listas auxiliares
+    # ✅ CORRECCIÓN CLAVE: Usamos el método del modelo
+    sede = profile.get_sede_operativa()
+
+    if not sede:
+        # Si el usuario es nuevo y no tiene sede, evitamos el error 500
+        messages.error(request, "Tu usuario no tiene ninguna sede asignada.")
+        return redirect('home') 
+
+    hoy = timezone.localdate()
+    sede_actual = sede 
+
+    # ==========================================
+    # 2. LISTAS AUXILIARES
+    # ==========================================
     sedes_central = Sede.objects.filter(tipo=Sede.CENTRAL, activo=True).order_by("nombre")
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
 
-    # 3. BANDEJA DE ENTRADA (LÓGICA CORREGIDA 🧠)
-    # Deben salir:
-    # A) Solicitudes LOCALES de mi propia sede (Mis técnicos)
-    # B) Solicitudes ENTRE_SEDES que vienen HACIA MÍ (Yo soy el destino)
-    # C) Solicitudes a PROVEEDOR (Solo si soy Central y las creé yo)
+    # ==========================================
+    # 3. BANDEJA DE ENTRADA (REQs PENDIENTES)
+    # ==========================================
     reqs_pendientes_list = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.REQ,
         estado=EstadoDocumento.REQ_PENDIENTE
     ).filter(
-        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.LOCAL) |  # Caso A: Mis técnicos
-        Q(sede_destino=sede, tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES) | # Caso B: Oroya me pide a mí (Jauja)
-        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.PROVEEDOR) # Caso C: Compras
+        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.LOCAL) |  # A) Mis técnicos
+        Q(sede_destino=sede, tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES) | # B) Me piden a mí
+        Q(sede=sede, tipo_requerimiento=TipoRequerimiento.PROVEEDOR) # C) Compras mías
     ).select_related("responsable", "sede").order_by("fecha")
 
-    # 4. STOCK BAJO
+    # ==========================================
+    # 4. KPI: STOCK BAJO
+    # ==========================================
     query_stock_bajo = Stock.objects.filter(sede=sede, producto__activo=True).filter(
         Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
         | Q(producto__stock_minimo=0, cantidad__lte=5)
@@ -243,54 +264,110 @@ def dash_almacen(request):
     count_stock_bajo = query_stock_bajo.count()
     items_stock_bajo = query_stock_bajo[:5] 
 
-    # 5. MOVIMIENTOS HOY
+    # ==========================================
+    # 5. KPI: MOVIMIENTOS HOY
+    # ==========================================
     movimientos_hoy = DocumentoInventario.objects.filter(
         sede=sede,
         estado=EstadoDocumento.CONFIRMADO,
         fecha__date=hoy
     ).count()
 
-    # 6. PROYECTOS ACTIVOS (Pendientes + En Proceso)
+    # ==========================================
+    # 6. KPI: PROYECTOS ACTIVOS
+    # ==========================================
     count_proyectos_activos = Proyecto.objects.filter(
         sede=sede
     ).exclude(
         estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
     ).count()
 
-    # 7. 🧮 CÁLCULO TOTAL (Suma de todo lo pendiente)
+    # ==========================================
+    # 7. KPI TOTAL
+    # ==========================================
     total_pendientes_kpi = reqs_pendientes_list.count() + count_proyectos_activos
 
-    # 8. TRANSFERENCIAS ENTRANTES (SALIDAS que vienen hacia mí para recibir)
+    # ==========================================
+    # 8. TRANSFERENCIAS ENTRANTES
+    # ==========================================
     transferencias_entrantes = DocumentoInventario.objects.filter(
-        tipo=TipoDocumento.SAL,          # Es una salida de otro lado
-        sede_destino=sede,               # Destino: MI sede actual
-        estado=EstadoDocumento.CONFIRMADO, # Ya salió de origen
-        recibido=False                   # Aún no le doy 'Recibir'
+        tipo=TipoDocumento.SAL,         
+        sede_destino=sede,              
+        estado=EstadoDocumento.CONFIRMADO, 
+        recibido=False                  
     ).select_related('sede', 'responsable')
 
-    return render(
-        request,
-        "inventario/dash_almacen.html",
-        {
-            "profile": profile,
-            "sede": sede,
-            
-            # KPIs
-            "kpi_pendientes": total_pendientes_kpi,
-            "kpi_movimientos": movimientos_hoy,
-            "kpi_stock": count_stock_bajo,
+    # ==========================================
+    # 📊 9. LÓGICA PARA GRÁFICOS (CHART.JS)
+    # ==========================================
 
-            # Listas de datos
-            "reqs_pendientes": reqs_pendientes_list,
-            "items_bajos": items_stock_bajo,
-            "sedes_central": sedes_central,
-            "proveedores": proveedores,
-            "transferencias_entrantes": transferencias_entrantes,
+    # --- A) GRÁFICO DE DONA (Salud del Stock) ---
+    CRITICO = 5
+    BAJO = 15
+    
+    stocks_grafico = Stock.objects.filter(sede=sede_actual)
+    stock_critico = 0
+    stock_bajo = 0
+    stock_saludable = 0
 
-            # Notificación botón proyectos
-            "notificacion_proyectos": count_proyectos_activos, 
-        },
-    )
+    for s in stocks_grafico:
+        cant = s.cantidad
+        if cant <= CRITICO:
+            stock_critico += 1
+        elif cant <= BAJO:
+            stock_bajo += 1
+        else:
+            stock_saludable += 1
+
+    # --- B) GRÁFICO DE BARRAS (Actividad últimos 7 días) ---
+    labels_dias = []
+    data_movimientos = []
+
+    for i in range(6, -1, -1):
+        dia = hoy - timedelta(days=i)
+        
+        # Etiqueta del día (ej: "Lun")
+        labels_dias.append(dia.strftime("%a")) 
+        
+        # Contamos movimientos
+        # Usamos los campos correctos: 'creado_en' y 'sede'
+        cnt = MovimientoInventario.objects.filter(
+            creado_en__date=dia,
+            sede=sede_actual
+        ).count()
+        
+        data_movimientos.append(cnt)
+
+    # ==========================================
+    # 10. RENDERIZADO FINAL
+    # ==========================================
+    context = {
+        "profile": profile,
+        "sede": sede,
+        
+        # KPIs
+        "kpi_pendientes": total_pendientes_kpi,
+        "kpi_movimientos": movimientos_hoy,
+        "kpi_stock": count_stock_bajo,
+
+        # Listas de datos
+        "reqs_pendientes": reqs_pendientes_list,
+        "items_bajos": items_stock_bajo,
+        "sedes_central": sedes_central,
+        "proveedores": proveedores,
+        "transferencias_entrantes": transferencias_entrantes,
+
+        # Notificaciones
+        "notificacion_proyectos": count_proyectos_activos,
+        
+        # DATOS PARA LOS GRÁFICOS 📊
+        'chart_stock_data': [stock_saludable, stock_bajo, stock_critico],
+        'chart_mov_labels': labels_dias,
+        'chart_mov_data': data_movimientos,
+    }
+
+    return render(request, "inventario/dash_almacen.html", context)
+
 
 # --------------------
 # DASH SOLICITANTE (SOLICITANTE/JEFA)
@@ -317,3 +394,5 @@ def dash_solicitante(request):
         "inventario/dash_solicitante.html",
         {"profile": profile, "sede": sede, "mis_reqs": mis_reqs},
     )
+
+

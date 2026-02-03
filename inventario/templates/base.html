@@ -4,34 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+
     <title>{% block title %}Telecable Inventario{% endblock %}</title>
     
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     
     <style>
         :root {
-            /* --- PALETA APPLE DARK PRO --- */
-            --bg-body: #000000;          /* Negro Puro */
-            --bg-card: #1C1C1E;          /* Gris Oscuro Superficie */
-            --bg-input: #2C2C2E;         /* Gris Input */
-            --border-color: #38383A;     /* Bordes sutiles */
+            /* --- PALETA NEON DARK --- */
+            --bg-body: #0f1220;       /* Azul muy oscuro (Fondo Principal) */
+            --bg-card: rgba(30, 34, 50, 0.6); /* Cristal Oscuro */
+            --bg-input: rgba(255, 255, 255, 0.05);
             
-            /* --- ACCENT COLORS --- */
-            --primary: #0A84FF;          /* Azul iOS */
-            --primary-hover: #0077ED;    
-            --success: #30D158;          /* Verde iOS */
-            --danger: #FF453A;           /* Rojo iOS */
-            --warning: #FFD60A;          /* Amarillo iOS */
+            /* --- COLORES NEON --- */
+            --primary: #4facfe;       /* Azul Neón */
+            --primary-hover: #00f2fe; /* Cyan Brillante */
+            --success: #00d2ff;       /* Verde/Azul éxito */
+            --danger: #ff6b6b;        /* Rojo suave */
+            --warning: #fbc2eb;       /* Rosa/Púrpura suave */
             
             /* --- TEXTOS --- */
-            --text-main: #F5F5F7;        /* Blanco Humo */
-            --text-muted: #86868B;       /* Gris medio */
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
             
             /* --- UI --- */
-            --radius: 12px;              /* Bordes redondeados estándar */
+            --radius: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 24px rgba(0,0,0,0.5); /* Sombra difusa */
-            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --font-stack: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         /* --- RESET Y BASE --- */
@@ -44,138 +47,203 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            -webkit-font-smoothing: antialiased; /* Texto nítido en Mac */
+            /* Fondo sutil degradado */
+            background-image: radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.05) 0%, transparent 20%),
+                              radial-gradient(circle at 90% 80%, rgba(251, 194, 235, 0.05) 0%, transparent 20%);
         }
 
         a { text-decoration: none; color: inherit; transition: 0.2s; }
         ul { list-style: none; padding: 0; margin: 0; }
 
-        /* --- NAVBAR --- */
+        /* --- NAVBAR GLASS --- */
         .navbar {
-            background-color: rgba(28, 28, 30, 0.8); /* Efecto vidrio */
+            background: rgba(15, 18, 32, 0.8);
             backdrop-filter: blur(20px);
-            padding: 12px 30px;
+            -webkit-backdrop-filter: blur(20px);
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--glass-border);
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         .navbar-brand {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
             color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 10px;
-            letter-spacing: -0.5px;
+            letter-spacing: 0.5px;
         }
-        .navbar-brand i { color: var(--primary); font-size: 22px; }
+        .navbar-brand i { 
+            color: var(--primary); 
+            font-size: 24px; 
+            text-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+        }
 
         .user-info {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-muted);
         }
-        .user-info strong { color: var(--text-main); font-weight: 500; }
+        .user-info strong { color: var(--text-main); font-weight: 600; }
 
         .btn-logout-nav {
             color: var(--danger);
             font-size: 13px;
-            font-weight: 500;
-            padding: 6px 12px;
+            font-weight: 600;
+            padding: 8px 16px;
             border-radius: var(--radius-sm);
-            background: rgba(255, 69, 58, 0.1);
+            background: rgba(255, 107, 107, 0.1);
+            transition: 0.2s;
         }
-        .btn-logout-nav:hover { background: rgba(255, 69, 58, 0.2); }
+        .btn-logout-nav:hover { 
+            background: rgba(255, 107, 107, 0.2); 
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.2);
+        }
 
         /* --- LAYOUT PRINCIPAL --- */
         .main-container {
             flex: 1;
-            padding: 30px 20px;
+            padding: 40px 20px;
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
+            animation: fadeIn 0.6s ease-out;
         }
 
-        /* --- COMPONENTES GLOBALES (Para usar en todas las vistas) --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- COMPONENTES GLOBALES --- */
         
-        /* 1. Tarjetas */
-        .card, .step {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
+        /* 1. Tarjetas de Vidrio (Glassmorphism) */
+        .card, .step, .glass-panel, .section-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover, .glass-panel:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
-        /* 2. Botones */
+        /* 2. Botones Neon */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             background-color: var(--bg-input);
             color: var(--text-main);
             border: none;
-            padding: 10px 20px;
-            border-radius: 99px; /* Píldora */
+            padding: 10px 24px;
+            border-radius: 12px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
         
-        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .btn:active { transform: translateY(0); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-primary, .btn.ok { background-color: var(--primary); color: white; }
-        .btn-success { background-color: var(--success); color: black; }
-        .btn-danger, .btn.danger { background-color: rgba(255, 69, 58, 0.15); color: var(--danger); }
-        .btn-sm, .btn.small { padding: 6px 14px; font-size: 12px; }
+        .btn-primary, .btn.ok {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: #0f1220; /* Texto oscuro para contraste */
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: #0f1220;
+        }
+        .btn-danger, .btn.danger {
+            background: rgba(255, 107, 107, 0.15); color: var(--danger); border: 1px solid var(--danger);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%);
+            color: #0f1220;
+        }
 
-        /* 3. Inputs */
+        /* 3. Inputs Modernos */
         input, select, textarea {
             background-color: var(--bg-input);
-            border: 1px solid transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-main);
-            border-radius: 8px;
-            padding: 10px 14px;
+            border-radius: 10px;
+            padding: 12px 16px;
             font-family: inherit;
             font-size: 14px;
             width: 100%;
             box-sizing: border-box;
-            transition: 0.2s;
+            transition: 0.3s;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
-            background-color: #3A3A3C;
+            background-color: rgba(255, 255, 255, 0.1);
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.25);
         }
 
-        /* 4. Utilidades de Texto */
-        h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.5px; }
+        /* 4. Tablas Flotantes */
+        .table-modern, .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        .table-modern th, .table th {
+            text-align: left;
+            padding: 10px 15px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .table-modern tbody tr, .table tbody tr {
+            background: rgba(255, 255, 255, 0.03);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .table-modern tbody tr:hover, .table tbody tr:hover {
+            transform: scale(1.01);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .table-modern td, .table td {
+            padding: 15px;
+            border: none;
+        }
+        .table-modern td:first-child, .table td:first-child { border-radius: 10px 0 0 10px; }
+        .table-modern td:last-child, .table td:last-child { border-radius: 0 10px 10px 0; }
+
+        /* 5. Utilidades */
+        h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.5px; }
         .text-muted { color: var(--text-muted); font-size: 13px; }
-        .hr { height: 1px; background: var(--border-color); margin: 20px 0; }
+        .hr { height: 1px; background: var(--glass-border); margin: 20px 0; }
 
         /* --- FOOTER --- */
         footer {
-            border-top: 1px solid var(--border-color);
-            padding: 20px;
+            border-top: 1px solid var(--glass-border);
+            padding: 25px;
             text-align: center;
             color: var(--text-muted);
             font-size: 12px;
-            background: var(--bg-body);
+            background: rgba(15, 18, 32, 0.5);
         }
 
         /* --- TOASTS (Notificaciones) --- */
@@ -184,21 +252,25 @@
             display: flex; flex-direction: column; gap: 10px;
         }
         .toast-msg {
-            background: var(--bg-card);
+            background: rgba(30, 34, 50, 0.9);
+            backdrop-filter: blur(10px);
             color: var(--text-main);
-            padding: 14px 20px;
-            border-radius: var(--radius);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-            border: 1px solid var(--border-color);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-left: 4px solid var(--primary);
             display: flex; align-items: center; gap: 12px;
             font-size: 14px;
-            animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: slideIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
+        .toast-success { border-color: var(--success); }
         .toast-success i { color: var(--success); }
+        
+        .toast-error { border-color: var(--danger); }
         .toast-error i { color: var(--danger); }
         
         @keyframes slideIn {
-            from { transform: translateX(20px); opacity: 0; }
+            from { transform: translateX(50px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
     </style>
@@ -215,12 +287,14 @@
             <div class="user-info">
                 <span>{{ user.username }}</span>
                 {% if user.profile.rol %}
-                    <span style="background:var(--bg-input); padding:2px 8px; border-radius:4px; font-size:10px;">{{ user.profile.get_rol_display }}</span>
+                    <span style="background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;">
+                        {{ user.profile.get_rol_display }}
+                    </span>
                 {% endif %}
             </div>
             
             <a href="{% url 'logout' %}" class="btn-logout-nav">
-                Salir
+                <i class='bx bx-log-out'></i> Salir
             </a>
         </div>
         {% endif %}
@@ -232,7 +306,7 @@
     </div>
 
     <footer>
-        &copy; 2026 Telecable S.A.C.
+        &copy; 2026 Telecable S.A.C. | Sistema de Gestión de Almacén v2.0
     </footer>
 
     {% if messages %}
@@ -240,9 +314,9 @@
         {% for message in messages %}
         <div class="toast-msg {% if message.tags == 'success' %}toast-success{% elif message.tags == 'error' %}toast-error{% endif %}">
             {% if message.tags == 'success' %}
-                <i class='bx bxs-check-circle'></i>
+                <i class='bx bxs-check-circle' style="font-size: 20px;"></i>
             {% else %}
-                <i class='bx bxs-info-circle'></i>
+                <i class='bx bxs-error-circle' style="font-size: 20px;"></i>
             {% endif %}
             <span>{{ message }}</span>
         </div>
@@ -250,7 +324,11 @@
     </div>
     <script>
         setTimeout(() => {
-            document.querySelectorAll('.toast-msg').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.toast-msg').forEach(t => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateX(20px)';
+                setTimeout(() => t.style.display = 'none', 300); // Espera la animación
+            });
         }, 4000);
     </script>
     {% endif %}

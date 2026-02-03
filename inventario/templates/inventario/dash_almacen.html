@@ -2,12 +2,20 @@
 {% load static %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
     /* --- GRID LAYOUT --- */
     .dashboard-container {
         display: flex;
         flex-direction: column;
         gap: 30px;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     /* --- KPI WIDGETS (Estilo iOS) --- */
@@ -26,9 +34,13 @@
         align-items: center;
         gap: 20px;
         box-shadow: var(--shadow);
-        transition: transform 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-card:hover { 
+        transform: translateY(-4px); 
+        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        border-color: rgba(255,255,255,0.1);
+    }
 
     .kpi-icon {
         width: 50px; height: 50px;
@@ -62,8 +74,9 @@
         overflow: hidden; /* Para que los bordes de la tabla no se salgan */
         box-shadow: var(--shadow);
         margin-bottom: 25px;
+        transition: all 0.2s ease;
     }
-
+    
     .card-header {
         padding: 20px;
         border-bottom: 1px solid var(--border-color);
@@ -125,7 +138,7 @@
 
     .action-row {
         display: flex; align-items: center; gap: 15px;
-        background: var(--bg-input); /* Un gris un pelín más claro que la card */
+        background: var(--bg-input); 
         padding: 16px;
         border-radius: 12px;
         text-decoration: none;
@@ -135,6 +148,7 @@
     .action-row:hover {
         background: #3A3A3C;
         transform: translateX(4px);
+        border-color: rgba(255,255,255,0.1);
     }
 
     .action-icon {
@@ -310,6 +324,10 @@
                                 <td>
                                     {% if r.tipo_requerimiento == "PROVEEDOR" %}
                                         <span style="color:#64D2FF; font-size:11px; border:1px solid #64D2FF; padding:2px 6px; border-radius:4px;">PROVEEDOR</span>
+                                    
+                                    {% elif r.tipo_requerimiento == "LOCAL" %}
+                                        <span style="color:#FFD60A; font-size:11px; border:1px solid #FFD60A; padding:2px 6px; border-radius:4px;">TÉCNICO (LOCAL)</span>
+
                                     {% else %}
                                         <span style="color:var(--text-muted); font-size:11px;">ENTRE SEDES</span>
                                     {% endif %}
@@ -321,7 +339,7 @@
                                             Ingresar
                                         </a>
                                     {% else %}
-                                        <a href="{% url 'req_to_sal' r.id %}" class="btn-table btn-blue">
+                                        <a href="{% url 'req_atender' r.id %}" class="btn-table btn-blue">
                                             Despachar
                                         </a>
                                     {% endif %}
@@ -338,9 +356,30 @@
                     </div>
                 {% endif %}
             </div>
-        </div>
 
-        <div class="right-col">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                
+                <div class="section-card" style="margin-bottom:0;">
+                    <div class="card-header" style="border-bottom:none; padding-bottom:10px;">
+                        <h4><i class='bx bx-bar-chart-alt-2' style="color:#0A84FF;"></i> Actividad (7 días)</h4>
+                    </div>
+                    <div style="padding: 0 20px 20px 20px; height: 250px;">
+                        <canvas id="chartMovimientos"></canvas>
+                    </div>
+                </div>
+
+                <div class="section-card" style="margin-bottom:0;">
+                    <div class="card-header" style="border-bottom:none; padding-bottom:10px;">
+                        <h4><i class='bx bx-doughnut-chart' style="color:#BF5AF2;"></i> Salud del Stock</h4>
+                    </div>
+                    <div style="padding: 0 20px 20px 20px; height: 250px; position:relative;">
+                        <canvas id="chartStock"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+        </div> <div class="right-col">
             
             <div class="section-card">
                 <div class="card-header">
@@ -426,8 +465,92 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-
+        </div> 
+    </div> 
 </div>
+
+{{ chart_mov_labels|json_script:"json-labels" }}
+{{ chart_mov_data|json_script:"json-data-movs" }}
+{{ chart_stock_data|json_script:"json-data-stock" }}
+
+<script>
+    // Configuración Global de Chart.js
+    Chart.defaults.color = '#86868B'; 
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    Chart.defaults.scale.grid.color = '#2C2C2E'; 
+
+    // =============================================
+    // 1. GRÁFICO DE BARRAS (Datos Reales)
+    // =============================================
+    const ctx1 = document.getElementById('chartMovimientos').getContext('2d');
+    
+    let gradientBlue = ctx1.createLinearGradient(0, 0, 0, 400);
+    gradientBlue.addColorStop(0, '#0A84FF'); 
+    gradientBlue.addColorStop(1, 'rgba(10, 132, 255, 0.2)');
+
+    // LEER DATOS DESDE DJANGO (Forma Segura)
+    const labelsDias = JSON.parse(document.getElementById('json-labels').textContent);
+    const dataMovs = JSON.parse(document.getElementById('json-data-movs').textContent);
+
+    new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: labelsDias,
+            datasets: [{
+                label: 'Movimientos (Salidas)',
+                data: dataMovs, 
+                backgroundColor: gradientBlue,
+                borderRadius: 6,
+                barThickness: 20,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { precision: 0 } }, 
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // =============================================
+    // 2. GRÁFICO DE DONA (Datos Reales)
+    // =============================================
+    const ctx2 = document.getElementById('chartStock').getContext('2d');
+    
+    // LEER DATOS DESDE DJANGO
+    const stockData = JSON.parse(document.getElementById('json-data-stock').textContent);
+
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Saludable (>15)', 'Bajo (6-15)', 'Crítico (0-5)'],
+            datasets: [{
+                data: stockData,
+                backgroundColor: ['#30D158', '#FF9F0A', '#FF453A'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { 
+                        boxWidth: 10, 
+                        usePointStyle: true,
+                        color: '#F5F5F7' 
+                    }
+                }
+            }
+        }
+    });
+</script>
+
 {% endblock %}

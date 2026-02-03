@@ -356,24 +356,54 @@ class ItemSerializado(TimeStampedModel):
         MERMA = "MERMA", "Merma / Baja"
 
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="items_serializados")
-    serial = models.CharField(max_length=64, unique=True)
-    ubicacion = models.ForeignKey(Ubicacion, on_delete=models.PROTECT, related_name="items_serializados")
+    serial = models.CharField(max_length=64, unique=True, verbose_name="Serial Principal / GPON SN")
+    codigo_trazabilidad = models.CharField(
+        max_length=30, 
+        blank=True, 
+        null=True, 
+        verbose_name="Cód. Pintado / Trazabilidad",
+        help_text="Ej: El número '44' pintado en la caja."
+    )
+
+    # 3. DATOS TÉCNICOS EXTRA (Solo para ONUs/Equipos)
+    mac_address = models.CharField(max_length=32, blank=True, null=True, verbose_name="MAC Address")
+    serial_secundario = models.CharField(max_length=64, blank=True, null=True, verbose_name="D-SN / Serie Secundario")
+
+    # Ubicación y Estado
+    ubicacion = models.ForeignKey(
+        Ubicacion, 
+        on_delete=models.SET_NULL, # Si borras la estantería, el ítem no se borra
+        null=True,                 # Permite que la base de datos guarde NULL
+        blank=True,                # Permite que los formularios acepten vacío
+        related_name="items_serializados"
+    )
     estado = models.CharField(max_length=15, choices=Estado.choices, default=Estado.EN_ALMACEN)
+    
+    # Quién lo tiene actualmente (si está ASIGNADO)
     asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="items_asignados")
 
     class Meta:
         indexes = [
-            models.Index(fields=["serial"]),
+            models.Index(fields=["serial"]),              # Búsqueda por SN
+            models.Index(fields=["codigo_trazabilidad"]), # Búsqueda por el "44"
+            models.Index(fields=["mac_address"]),         # Búsqueda por MAC
             models.Index(fields=["producto", "estado"]),
             models.Index(fields=["ubicacion"]),
         ]
 
     def clean(self):
+        # Limpiamos y ponemos en mayúsculas todos los códigos
         if self.serial:
             self.serial = self.serial.strip().upper()
+        if self.mac_address:
+            self.mac_address = self.mac_address.strip().upper()
+        if self.codigo_trazabilidad:
+            self.codigo_trazabilidad = self.codigo_trazabilidad.strip().upper()
 
     def __str__(self):
-        return f"{self.producto.nombre} | {self.serial} | {self.estado}"
+        # Muestra algo como: "ONU ZTE (44) | ZTEGDA... | EN_ALMACEN"
+        traza = f"({self.codigo_trazabilidad}) " if self.codigo_trazabilidad else ""
+        return f"{self.producto.nombre} {traza}| {self.serial} | {self.estado}"
 
 
 # ============================================================

@@ -1,415 +1,225 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solicitar Material | Telecable</title>
 
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root{
-      --bg:#0f1220;
-      --panel:#161a2b;
-      --line:rgba(255,255,255,.08);
-      --muted:rgba(255,255,255,.62);
-      --text:#fff;
-      --accent:#4facfe;
-      --accent2:#00f2fe;
-      --danger:#ff4757;
-      --success:#2ed573;
-      --primaryGrad:linear-gradient(45deg,#FF512F 0%,#DD2476 100%);
-      --glass:rgba(255,255,255,.04);
-      --shadow:0 14px 40px rgba(0,0,0,.35);
-      --r:18px;
+{% block content %}
+<style>
+    /* --- ENCABEZADO (Corrección de Posición) --- */
+    .page-header {
+        display: flex; 
+        justify-content: space-between; /* Separa los elementos a los extremos */
+        align-items: center;
+        margin-bottom: 25px; 
+        background: var(--bg-card);
+        padding: 20px; 
+        border-radius: var(--radius);
+        border: 1px solid var(--glass-border);
     }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:'Poppins',sans-serif;
-      background:
-        radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0/26px 26px,
-        linear-gradient(180deg,#0f1220 0%, #0b0e18 100%);
-      color:var(--text);
-      min-height:100vh;
-      display:flex;
-      overflow:hidden;
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
+    .header-content p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+
+    /* --- LAYOUT PRINCIPAL (GRID) --- */
+    .req-container {
+        display: grid;
+        grid-template-columns: 1fr 380px; /* Catálogo flexible, Carrito fijo */
+        gap: 25px;
+        align-items: start;
+        animation: fadeIn 0.5s ease-out;
     }
 
-    .sidebar{
-      width:260px;
-      background:rgba(10,12,22,.55);
-      backdrop-filter: blur(10px);
-      border-right:1px solid var(--line);
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .brand{
-      display:flex;align-items:center;gap:12px;
-      padding:12px;
-      border-radius:16px;
-      background:var(--glass);
-      border:1px solid var(--line);
-      margin-bottom:6px;
-    }
-    .brand img{
-      width:42px;height:42px;border-radius:12px;
-      background:#fff;object-fit:contain;padding:4px;
-    }
-    .brand .t1{font-weight:800;letter-spacing:.6px}
-    .brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
-
-    .menu{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
-    .menu a{
-      display:flex;align-items:center;gap:12px;
-      text-decoration:none;
-      color:rgba(255,255,255,.70);
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid transparent;
-      transition:.2s ease;
-    }
-    .menu a i{font-size:20px}
-    .menu a:hover{
-      background:rgba(255,255,255,.05);
-      color:#fff;
-      border-color:rgba(255,255,255,.06);
-      transform: translateY(-1px);
-    }
-    .menu a.active{
-      background:var(--primaryGrad);
-      color:#fff;
-      box-shadow:0 10px 24px rgba(221,36,118,.25);
-    }
-    .logout{
-      margin-top:auto;
-      border:1px solid rgba(255,71,87,.25) !important;
-      color:rgba(255,71,87,.95) !important;
-    }
-    .logout:hover{
-      background:rgba(255,71,87,.10) !important;
-      color:#fff !important;
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .main{flex:1;padding:24px;overflow:auto;}
-    .topbar{
-      display:flex;align-items:flex-start;justify-content:space-between;
-      gap:14px;flex-wrap:wrap;margin-bottom:18px;
-    }
-    .title h1{font-size:26px;font-weight:750;letter-spacing:.2px}
-    .title p{color:var(--muted);font-size:13px;margin-top:4px}
-    .userpill{
-      display:flex;align-items:center;gap:10px;
-      padding:10px 14px;border-radius:999px;
-      background:var(--glass);
-      border:1px solid var(--line);
-    }
-    .userpill i{font-size:20px;color:#ff6b6b}
-
-    .wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;}
-
-    .card{
-      background:rgba(22,26,43,.76);
-      border:1px solid var(--line);
-      border-radius:var(--r);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:16px 16px 12px 16px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      display:flex;align-items:center;justify-content:space-between;
-      gap:10px;flex-wrap:wrap;
-    }
-    .card .hd h2{
-      font-size:15px;font-weight:700;
-      display:flex;align-items:center;gap:10px;
-    }
-    .card .hd h2 i{color:var(--accent)}
-    .card .bd{padding:16px}
-
-    .msg{
-      padding:10px 12px;border-radius:14px;
-      border:1px solid rgba(79,172,254,.22);
-      background:rgba(79,172,254,.10);
-      color:#cfe8ff;margin-bottom:10px;font-size:13px;
-    }
-    .msg.err{
-      border-color:rgba(255,71,87,.22);
-      background:rgba(255,71,87,.08);
-      color:#ffd0d5;
-    }
-    .muted{color:var(--muted)}
-    .row{display:flex;gap:10px;flex-wrap:wrap;}
-    .input{
-      flex:1;min-width:220px;padding:12px 14px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      color:#fff;outline:none;
-    }
-    .input:focus{border-color:rgba(79,172,254,.55); box-shadow:0 0 0 4px rgba(79,172,254,.10)}
-    .btn{
-      padding:12px 14px;border-radius:14px;border:0;cursor:pointer;
-      font-weight:700;color:#fff;
-      background:linear-gradient(45deg,var(--accent) 0%, var(--accent2) 100%);
-      transition:.2s ease;
-      display:inline-flex;align-items:center;gap:10px;
-      text-decoration:none;white-space:nowrap;
-    }
-    .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
-    .btn.primary{background:var(--primaryGrad)}
-    .btn.ghost{
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      color:#fff;
-    }
-    .btn.danger{
-      background:rgba(255,71,87,.14);
-      border:1px solid rgba(255,71,87,.28);
-      color:#fff;
-    }
-    .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none !important; filter:none !important;}
-
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
-    .p{
-      background:rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:16px;padding:14px;
-      display:flex;flex-direction:column;gap:10px;min-height:150px;
-    }
-    .p .name{font-weight:750}
-    .p .code{font-size:12px;color:var(--muted)}
-    .p .meta{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);
-    }
-    .badge{
-      padding:5px 10px;border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      font-weight:700;color:#fff;
-    }
-    .badge.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.08); color:#d9ffe8;}
-    .badge.low{border-color:rgba(255,165,2,.25); background:rgba(255,165,2,.08); color:#ffe7c7;}
-    .badge.zero{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.08); color:#ffd0d5;}
-
-    .qtyrow{display:flex;gap:8px;align-items:center;}
-    .qty{
-      width:92px;padding:10px 12px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      color:#fff;outline:none;
+    /* --- COLUMNA IZQUIERDA: CATÁLOGO --- */
+    .catalog-section {
+        background: var(--bg-card);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        padding: 20px;
+        min-height: 80vh;
     }
 
-    .list{display:flex;flex-direction:column;gap:10px;}
-    .li{
-      display:flex;justify-content:space-between;gap:10px;align-items:center;
-      padding:12px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
+    /* Buscador */
+    .search-box { position: relative; margin-bottom: 20px; }
+    .search-input {
+        width: 100%; padding: 15px 15px 15px 45px; border-radius: 12px;
+        background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
+        color: #fff; font-size: 15px; outline: none; transition: 0.3s;
     }
-    .li .left{min-width:0}
-    .li .left b{display:block}
-    .li .left span{font-size:12px;color:var(--muted)}
-    .divider{height:1px;background:rgba(255,255,255,.06);margin:14px 0}
-    .foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-
-    @media (max-width: 1020px){
-      body{overflow:auto}
-      .wrap{grid-template-columns:1fr}
-      .sidebar{display:none}
-      .main{padding:16px}
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
+    .search-icon {
+        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+        color: var(--text-muted); font-size: 20px;
     }
 
-    /* Modal */
-    .modal-backdrop{
-      position:fixed; inset:0;
-      background:rgba(0,0,0,.55);
-      backdrop-filter: blur(6px);
-      display:flex; align-items:center; justify-content:center;
-      z-index:9999;
+    /* Grid de Productos */
+    .catalog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
     }
-    .modal{
-      width:min(420px, 92vw);
-      background:rgba(22,26,43,.92);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
-      box-shadow:0 18px 50px rgba(0,0,0,.45);
-      padding:16px;
+
+    /* Tarjeta de Producto */
+    .prod-card {
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px; padding: 15px;
+        display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s;
     }
-    .modal-title{font-weight:800; font-size:16px; margin-bottom:6px;}
-    .modal-text{color:rgba(255,255,255,.70); font-size:13px; line-height:1.35; margin-bottom:14px;}
-    .modal-actions{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;}
+    .prod-card:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); border-color: var(--primary); }
+    .pc-title { font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 5px; line-height: 1.3; }
+    .pc-code { font-size: 11px; color: var(--text-muted); font-family: monospace; margin-bottom: 10px; }
+    
+    .pc-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; }
+    .badge-stock { padding: 4px 8px; border-radius: 6px; font-weight: 700; }
+    .bs-ok { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+    .bs-low { background: rgba(255, 159, 10, 0.2); color: #FF9F0A; }
+    .bs-zero { background: rgba(255, 69, 58, 0.2); color: #ff4757; }
 
-    /* Toast */
-    .toast{
-      position:fixed;
-      right:16px; bottom:16px;
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(22,26,43,.92);
-      color:#fff;
-      box-shadow:0 14px 40px rgba(0,0,0,.35);
-      z-index:10000;
-      font-size:13px;
-      display:none;
-      max-width:min(360px, 92vw);
+    /* Formulario de agregar */
+    .add-form { display: flex; gap: 5px; }
+    .qty-input {
+        width: 60px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+        color: #fff; border-radius: 8px; text-align: center; padding: 5px; font-weight: 700;
     }
-    .toast.ok{border-color:rgba(46,213,115,.25); background:rgba(46,213,115,.12);}
-    .toast.err{border-color:rgba(255,71,87,.25); background:rgba(255,71,87,.12);}
-
-    /* Spinner */
-    .spin{
-      width:14px;height:14px;
-      border-radius:50%;
-      border:2px solid rgba(255,255,255,.25);
-      border-top-color:#fff;
-      display:inline-block;
-      animation: spin .8s linear infinite;
+    .btn-add {
+        flex: 1; background: var(--primary); color: #000; border: none; border-radius: 8px;
+        font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
     }
-    @keyframes spin{to{transform:rotate(360deg)}}
-  </style>
-</head>
+    .btn-add:hover { filter: brightness(1.1); }
+    .btn-add:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-<body>
-  <aside class="sidebar">
-    <div class="brand">
-      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
-           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
-      <div>
-        <div class="t1">TELECABLE</div>
-        <div class="t2">Técnico · Requerimientos</div>
-      </div>
-    </div>
+    /* --- COLUMNA DERECHA: CARRITO --- */
+    .cart-section {
+        background: var(--bg-card); border: 1px solid var(--glass-border);
+        border-radius: var(--radius); padding: 20px;
+        position: sticky; top: 90px;
+        display: flex; flex-direction: column; max-height: 85vh;
+    }
 
-    <nav class="menu">
-      <a href="{% url 'tecnico_dashboard' %}">
-        <i class='bx bxs-dashboard'></i> Panel Técnico
-      </a>
-      <a class="active" href="{% url 'req_home' %}">
-        <i class='bx bx-plus-circle'></i> Solicitar Material
-      </a>
-      <a href="{% url 'tecnico_mis_reqs' %}">
-        <i class='bx bx-history'></i> Mis Requerimientos
-      </a>
-      <a href="{% url 'tecnico_mis_entregas' %}">
-        <i class='bx bx-package'></i> Mis Entregas
-      </a>
+    .cart-header {
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;
+    }
+    .cart-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
 
-      <a class="logout" href="{% url 'logout' %}">
-        <i class='bx bx-log-out-circle'></i> Cerrar Sesión
-      </a>
-    </nav>
-  </aside>
+    .cart-item {
+        background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px;
+        display: flex; align-items: center; justify-content: space-between;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .ci-info { flex: 1; min-width: 0; margin-right: 10px; }
+    .ci-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ci-code { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+    
+    .ci-actions { display: flex; align-items: center; gap: 5px; }
+    .cart-qty-input { width: 50px; text-align: center; padding: 5px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 13px; }
+    .btn-remove { width: 28px; height: 28px; border-radius: 6px; background: rgba(255, 69, 58, 0.2); color: #ff4757; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-remove:hover { background: rgba(255, 69, 58, 0.4); }
 
-  <main class="main">
-    <div class="topbar">
-      <div class="title">
-        <h1>Solicitar Material</h1>
+    .cart-footer { border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px; padding-top: 15px; }
+    .btn-send {
+        width: 100%; background: linear-gradient(135deg, #4facfe, #00f2fe);
+        color: #000; font-weight: 800; padding: 12px; border-radius: 12px;
+        border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3); transition: 0.2s;
+    }
+    .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5); }
+    .btn-send:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
+
+    /* TOAST */
+    .custom-toast {
+        position: fixed; bottom: 20px; right: 20px;
+        background: rgba(30, 34, 50, 0.95); backdrop-filter: blur(10px);
+        color: #fff; padding: 15px 25px; border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        display: none; z-index: 9999; animation: slideUp 0.3s ease;
+    }
+    .toast-success { border-left: 4px solid var(--success); }
+    .toast-error { border-left: 4px solid var(--danger); }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* RESPONSIVE */
+    @media (max-width: 992px) {
+        .req-container { grid-template-columns: 1fr; }
+        .cart-section { position: relative; top: 0; order: -1; margin-bottom: 20px; }
+        .catalog-section { min-height: auto; }
+        
+        /* Ajuste de Header en Móvil */
+        .page-header { flex-direction: row; flex-wrap: wrap; gap: 15px; }
+    }
+</style>
+
+<div class="page-header">
+    <div class="header-content">
+        <h2><i class='bx bx-cart-add' style="color:var(--primary);"></i> Solicitar Material</h2>
         <p>
-          Carrito REQ (Borrador)
-          {% if ubicacion %} · Ubicación: <b style="color:#fff">{{ ubicacion }}</b>{% endif %}
-          {% if sede %} · Sede: <b style="color:#fff">{{ sede.nombre }}</b>{% endif %}
-          · Tipo: <b style="color:#fff">LOCAL</b>
+            {% if sede %}Sede: <strong style="color:#fff">{{ sede.nombre }}</strong>{% endif %}
+            <span style="margin: 0 5px; opacity: 0.5;">|</span>
+            Tipo: <strong style="color:#fff">LOCAL</strong>
         </p>
-      </div>
-
-      <div class="userpill">
-        <i class='bx bxs-user-circle'></i>
-        <span>{{ request.user.username }}</span>
-      </div>
     </div>
+    
+    <div>
+        <a href="{% url 'tecnico_dashboard' %}" class="btn" style="background: rgba(255, 69, 58, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 69, 58, 0.3);">
+            <i class='bx bx-log-out-circle'></i> Volver
+        </a>
+    </div>
+</div>
 
-    {% if messages %}
-      {% for message in messages %}
-        <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
+<div class="req-container">
+    
+    <div class="catalog-section">
+        <form id="catalogSearchForm" class="search-box">
+            <i class='bx bx-search search-icon'></i>
+            <input id="catalogQuery" class="search-input" name="q" placeholder="Buscar material por nombre o código..." autocomplete="off">
+        </form>
 
-    <div class="wrap">
-      <!-- LEFT -->
-      <section class="card">
-        <div class="hd">
-          <h2><i class='bx bx-store'></i> Materiales disponibles</h2>
-          <span class="muted">Selecciona producto y cantidad</span>
-        </div>
+        <div id="catalogMsg" style="display:none; padding:10px; color:var(--text-muted); text-align:center;"></div>
 
-        <div class="bd">
-          <form id="catalogSearchForm" class="row" style="margin-bottom:12px;">
-            <input id="catalogQuery" class="input" name="q" placeholder="Buscar por nombre o código...">
-            <button class="btn ghost" type="submit"><i class='bx bx-search'></i> Buscar</button>
-          </form>
-
-          <div id="catalogMsg" class="msg" style="display:none;"></div>
-
-          <div id="catalogGrid" class="grid">
-            <div class="msg">Cargando catálogo por sede...</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT -->
-      <aside class="card">
-        <div class="hd">
-          <h2>
-            <i class='bx bx-basket'></i> Carrito
-            <span id="cartCount" class="badge" style="margin-left:8px;">0</span>
-          </h2>
-          <span class="muted">REQ borrador</span>
-        </div>
-        <div class="bd">
-          <div id="cartList" class="list">
-            <div class="msg">Cargando carrito...</div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="foot">
-            <div class="muted" style="font-size:12px;">
-              Al enviar, pasa a <b>PENDIENTE</b> y Almacén podrá atenderlo.
+        <div id="catalogGrid" class="catalog-grid">
+            <div style="text-align:center; grid-column: 1/-1; padding: 40px; color: var(--text-muted);">
+                <i class='bx bx-loader-alt bx-spin' style="font-size: 30px;"></i> Cargando catálogo...
             </div>
-
-            {% if req %}
-              <form method="post" action="{% url 'req_enviar' req.id %}">
-                {% csrf_token %}
-                <button id="btnEnviarReq" class="btn primary" type="submit" disabled>
-                  <i class='bx bx-send'></i> Enviar REQ
-                </button>
-              </form>
-            {% else %}
-              <a class="btn ghost" href="{% url 'req_home' %}">
-                <i class='bx bx-refresh'></i> Recargar
-              </a>
-            {% endif %}
-          </div>
         </div>
-      </aside>
     </div>
-  </main>
 
-  <!-- Modal confirmación -->
-  <div id="confirmModal" class="modal-backdrop" style="display:none;">
-    <div class="modal">
-      <div class="modal-title">Confirmar acción</div>
-      <div id="confirmText" class="modal-text">¿Seguro?</div>
+    <div class="cart-section">
+        <div class="cart-header">
+            <h4 style="margin:0;"><i class='bx bx-basket'></i> Mi Pedido</h4>
+            <span id="cartCount" class="badge" style="background:var(--primary); color:#000;">0 ítems</span>
+        </div>
 
-      <div class="modal-actions">
-        <button id="confirmCancel" class="btn ghost" type="button">Cancelar</button>
-        <button id="confirmOk" class="btn danger" type="button">
-          <i class='bx bx-trash'></i> Quitar
-        </button>
-      </div>
+        <div id="cartList" class="cart-list">
+            <div style="text-align:center; padding:20px; color:var(--text-muted);">
+                Tu carrito está vacío.
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            {% if req %}
+                <form method="post" action="{% url 'req_enviar' req.id %}">
+                    {% csrf_token %}
+                    <button id="btnEnviarReq" class="btn-send" type="submit" disabled>
+                        <i class='bx bx-send'></i> ENVIAR PEDIDO
+                    </button>
+                </form>
+            {% else %}
+                <button class="btn-send" disabled>Cargando...</button>
+            {% endif %}
+            <div style="margin-top:10px; font-size:11px; color:var(--text-muted); text-align:center;">
+                * Al enviar, el almacén recibirá tu solicitud para aprobarla.
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Toast -->
-  <div id="toast" class="toast"></div>
+</div>
 
-  <script>
+<div id="toast" class="custom-toast"></div>
+
+<script>
     const URL_CATALOGO = "{% url 'req_catalogo' %}";
     const URL_ADD_PRODUCTO = "{% url 'req_add_producto' %}";
     const URL_CARRITO = "{% url 'req_carrito' %}";
@@ -417,346 +227,172 @@
     const URL_REMOVE_PRODUCTO = "{% url 'req_remove_producto' %}";
 
     function getCookie(name) {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
-      return "";
+        let value = `; ${document.cookie}`;
+        let parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return "";
     }
     const csrftoken = getCookie("csrftoken");
 
-    function escapeHtml(str){
-      return (str || "").replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
-    }
-
-    // Toast
-    const toastEl = document.getElementById("toast");
-    let toastTimer = null;
-    function toast(text, type="ok"){
-      toastEl.className = `toast ${type}`;
-      toastEl.textContent = text || "";
-      toastEl.style.display = "block";
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastEl.style.display = "none", 2200);
-    }
-
-    // Modal
-    const modalEl = document.getElementById("confirmModal");
-    const confirmTextEl = document.getElementById("confirmText");
-    const btnCancel = document.getElementById("confirmCancel");
-    const btnOk = document.getElementById("confirmOk");
-    let modalResolve = null;
-
-    function confirmModal(text){
-      return new Promise((resolve) => {
-        modalResolve = resolve;
-        confirmTextEl.textContent = text || "¿Seguro?";
-        modalEl.style.display = "flex";
-      });
-    }
-    function closeModal(result){
-      modalEl.style.display = "none";
-      if (modalResolve) modalResolve(result);
-      modalResolve = null;
-    }
-    btnCancel.addEventListener("click", () => closeModal(false));
-    btnOk.addEventListener("click", () => closeModal(true));
-    modalEl.addEventListener("click", (e) => { if (e.target === modalEl) closeModal(false); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalEl.style.display !== "none") closeModal(false); });
-
-    // UI refs
     const gridEl = document.getElementById("catalogGrid");
-    const msgEl = document.getElementById("catalogMsg");
-    const formEl = document.getElementById("catalogSearchForm");
-    const qEl = document.getElementById("catalogQuery");
     const cartListEl = document.getElementById("cartList");
-
     const cartCountEl = document.getElementById("cartCount");
     const btnEnviarReq = document.getElementById("btnEnviarReq");
+    const toastEl = document.getElementById("toast");
+    const searchForm = document.getElementById("catalogSearchForm");
+    const searchInput = document.getElementById("catalogQuery");
 
-    let lastCartCount = 0;
+    let toastTimer;
 
-    function updateSendButton(){
-      const canSend = lastCartCount > 0;
-      if (btnEnviarReq) btnEnviarReq.disabled = !canSend;
-      if (cartCountEl) cartCountEl.textContent = String(lastCartCount);
-      if (cartCountEl){
-        cartCountEl.className = "badge " + (canSend ? "ok" : "zero");
-      }
+    function showToast(msg, type='success') {
+        toastEl.className = `custom-toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+        toastEl.innerHTML = type === 'error' ? `<i class='bx bx-error'></i> ${msg}` : `<i class='bx bx-check-circle'></i> ${msg}`;
+        toastEl.style.display = 'block';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toastEl.style.display = 'none'; }, 3000);
     }
 
-    function showMsg(text, isError=false){
-      msgEl.style.display = "block";
-      msgEl.className = isError ? "msg err" : "msg";
-      msgEl.textContent = text;
-    }
-    function hideMsg(){
-      msgEl.style.display = "none";
-      msgEl.textContent = "";
-    }
-
-    function badge(disponible){
-      if (disponible <= 0) return `<span class="badge zero">0</span>`;
-      if (disponible <= 10) return `<span class="badge low">${disponible}</span>`;
-      return `<span class="badge ok">${disponible}</span>`;
-    }
-
-    function setBtnLoading(btn, loading){
-      if (!btn) return;
-      if (loading){
-        btn.dataset._old = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spin"></span> Procesando...`;
-      }else{
-        btn.disabled = false;
-        if (btn.dataset._old) btn.innerHTML = btn.dataset._old;
-      }
-    }
-
-    function renderCatalog(items){
-      if (!items || items.length === 0){
-        gridEl.innerHTML = `<div class="msg err">No hay stock disponible en tu sede (o no coincide la búsqueda).</div>`;
-        return;
-      }
-
-      gridEl.innerHTML = items.map(p => {
-        const nombre = escapeHtml(p.nombre);
-        const codigo = escapeHtml(p.codigo || "");
-        const disp = Number(p.disponible || 0);
-
-        return `
-          <div class="p">
-            <div>
-              <div class="name">${nombre}</div>
-              <div class="code">${codigo ? codigo : ""}</div>
-            </div>
-
-            <div class="meta">
-              <span class="muted">Disponible:</span>
-              ${badge(disp)}
-            </div>
-
-            <form class="qtyrow" data-action="add-producto">
-              <input type="hidden" name="csrfmiddlewaretoken" value="${csrftoken}">
-              <input type="hidden" name="producto_id" value="${p.producto_id}">
-              <input class="qty" type="number" name="cantidad" min="1" step="1" value="1" ${disp<=0 ? "disabled" : ""}>
-              <button class="btn" type="submit" ${disp<=0 ? "disabled" : ""}>
-                <i class='bx bx-cart-add'></i> Agregar
-              </button>
-            </form>
-
-            <div class="muted" style="font-size:12px;">
-              * El stock se descuenta cuando Almacén confirma la SAL.
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    async function loadCatalog(q=""){
-      hideMsg();
-      gridEl.innerHTML = `<div class="msg">Cargando catálogo...</div>`;
-
-      const url = new URL(URL_CATALOGO, window.location.origin);
-      if (q) url.searchParams.set("q", q);
-
-      try{
-        const res = await fetch(url.toString(), { headers: { "Accept":"application/json" }});
-        const data = await res.json();
-
-        if (!res.ok || !data.ok){
-          renderCatalog([]);
-          showMsg(data && data.error ? data.error : "No se pudo cargar el catálogo.", true);
-          return;
-        }
-
-        renderCatalog(data.results || []);
-      }catch(e){
-        renderCatalog([]);
-        showMsg("Error de red al cargar el catálogo.", true);
-      }
-    }
-
-    function renderCart(items){
-      lastCartCount = (items && items.length) ? items.length : 0;
-      updateSendButton();
-
-      if (!items || items.length === 0){
-        cartListEl.innerHTML = `<div class="msg">Sin ítems todavía. Agrega desde el catálogo.</div>`;
-        return;
-      }
-
-      cartListEl.innerHTML = items.map(it => `
-        <div class="li" data-producto-id="${it.producto_id}">
-          <div class="left">
-            <b>${escapeHtml(it.nombre)}</b>
-            <span>${escapeHtml(it.codigo || "")}</span>
-          </div>
-
-          <div style="display:flex; gap:8px; align-items:center;">
-            <input class="qty cart-qty"
-                   type="number"
-                   min="1"
-                   step="1"
-                   value="${Number(it.cantidad || 1)}"
-                   style="width:82px;">
-            <button class="btn ghost cart-remove" type="button" title="Quitar">
-              ✕
-            </button>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    async function safeJson(res){
-      try { return await res.json(); } catch(e){ return null; }
-    }
-
-    function postForm(url, payloadObj){
-      const fd = new FormData();
-      for (const [k,v] of Object.entries(payloadObj)) fd.append(k, String(v));
-      fd.append("csrfmiddlewaretoken", csrftoken);
-
-      return fetch(url, {
-        method: "POST",
-        body: fd,
-        headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
-      });
-    }
-
-    async function refreshCart(){
-      try{
-        const res = await fetch(URL_CARRITO, {
-          headers: { "Accept":"application/json", "X-Requested-With":"XMLHttpRequest" }
-        });
-        const data = await safeJson(res);
-        if (!res.ok || !data || !data.ok) return;
-        renderCart(data.items || []);
-      }catch(e){}
-    }
-
-    // Buscar catálogo sin recargar
-    formEl.addEventListener("submit", (ev) => {
-      ev.preventDefault();
-      loadCatalog((qEl.value || "").trim());
-    });
-
-    // Agregar desde catálogo (sin recargar + toast)
-    document.addEventListener("submit", async (ev) => {
-      const form = ev.target;
-      if (!form.classList.contains("qtyrow")) return;
-      if (form.dataset.action !== "add-producto") return;
-
-      ev.preventDefault();
-
-      const btn = form.querySelector("button[type='submit']");
-      setBtnLoading(btn, true);
-
-      const fd = new FormData(form);
-
-      try{
-        const res = await fetch(URL_ADD_PRODUCTO, {
-          method: "POST",
-          body: fd,
-          headers: { "X-Requested-With": "XMLHttpRequest", "Accept":"application/json" },
-        });
-
-        const data = await safeJson(res);
-
-        if (!res.ok || !data || !data.ok){
-          const err = (data && data.error) ? data.error : "No se pudo agregar.";
-          toast(err, "err");
-          setBtnLoading(btn, false);
-          return;
-        }
-
-        renderCart(data.items || []);
-        toast("Agregado al carrito ✅", "ok");
-      }catch(e){
-        toast("Error de red al agregar.", "err");
-      }finally{
-        setBtnLoading(btn, false);
-      }
-    });
-
-    // Debounce por producto para set qty
-    const qtyTimers = new Map();
-
-    cartListEl.addEventListener("input", (ev) => {
-      const inp = ev.target;
-      if (!inp.classList.contains("cart-qty")) return;
-
-      const li = inp.closest(".li");
-      const productoId = li?.dataset?.productoId;
-      if (!productoId) return;
-
-      const val = Number(inp.value || 0);
-
-      if (qtyTimers.has(productoId)) clearTimeout(qtyTimers.get(productoId));
-      qtyTimers.set(productoId, setTimeout(async () => {
-        if (val <= 0){
-          toast("Cantidad inválida.", "err");
-          await refreshCart();
-          return;
-        }
-
-        try{
-          const res = await postForm(URL_SET_QTY, { producto_id: productoId, cantidad: val });
-          const data = await safeJson(res);
-
-          if (!res.ok || !data || !data.ok){
-            toast((data && data.error) ? data.error : "No se pudo actualizar cantidad.", "err");
-            await refreshCart();
+    function renderCatalog(items) {
+        if (!items || items.length === 0) {
+            gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#888;">No se encontraron materiales.</div>`;
             return;
-          }
-
-          toast("Cantidad actualizada ✅", "ok");
-          await refreshCart();
-        }catch(e){
-          toast("Error de red al actualizar cantidad.", "err");
-          await refreshCart();
-        }
-      }, 350));
-    });
-
-    // Quitar con confirmación + toast
-    cartListEl.addEventListener("click", async (ev) => {
-      const btn = ev.target.closest(".cart-remove");
-      if (!btn) return;
-
-      const li = btn.closest(".li");
-      const productoId = li?.dataset?.productoId;
-      if (!productoId) return;
-
-      const nombre = li.querySelector(".left b")?.textContent?.trim() || "este item";
-      const ok = await confirmModal(`¿Seguro que deseas quitar "${nombre}" del carrito?`);
-      if (!ok) return;
-
-      setBtnLoading(btn, true);
-
-      try{
-        const res = await postForm(URL_REMOVE_PRODUCTO, { producto_id: productoId });
-        const data = await safeJson(res);
-
-        if (!res.ok || !data || !data.ok){
-          toast((data && data.error) ? data.error : "No se pudo quitar el item.", "err");
-          setBtnLoading(btn, false);
-          return;
         }
 
-        toast("Item quitado 🗑️", "ok");
-        await refreshCart();
-      }catch(e){
-        toast("Error de red al quitar item.", "err");
-      }finally{
-        setBtnLoading(btn, false);
-      }
-    });
+        gridEl.innerHTML = items.map(p => {
+            const stock = p.disponible || 0;
+            const badgeClass = stock > 10 ? 'bs-ok' : (stock > 0 ? 'bs-low' : 'bs-zero');
+            const disabled = stock <= 0 ? 'disabled' : '';
+            
+            return `
+            <div class="prod-card">
+                <div>
+                    <div class="pc-title">${p.nombre}</div>
+                    <div class="pc-code">${p.codigo || 'SIN CODIGO'}</div>
+                    <div class="pc-meta">
+                        <span>Stock:</span>
+                        <span class="badge-stock ${badgeClass}">${stock}</span>
+                    </div>
+                </div>
+                <form class="add-form" onsubmit="addToCart(event, ${p.producto_id})">
+                    <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
+                    <button type="submit" class="btn-add" ${disabled}>
+                        <i class='bx bx-plus'></i> Agregar
+                    </button>
+                </form>
+            </div>
+            `;
+        }).join('');
+    }
 
-    // Inicial
-    loadCatalog("");
+    function renderCart(items) {
+        const count = items ? items.length : 0;
+        cartCountEl.textContent = `${count} ítems`;
+        
+        if (btnEnviarReq) btnEnviarReq.disabled = count === 0;
+
+        if (!items || items.length === 0) {
+            cartListEl.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Tu carrito está vacío.</div>`;
+            return;
+        }
+
+        cartListEl.innerHTML = items.map(it => `
+            <div class="cart-item">
+                <div class="ci-info">
+                    <div class="ci-name">${it.nombre}</div>
+                    <div class="ci-code">${it.codigo || '-'}</div>
+                </div>
+                <div class="ci-actions">
+                    <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1" 
+                           onchange="updateQty(${it.producto_id}, this.value)">
+                    <button class="btn-remove" onclick="removeFromCart(${it.producto_id})" title="Quitar">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function loadCatalog(q = "") {
+        const url = new URL(URL_CATALOGO, window.location.origin);
+        if (q) url.searchParams.set("q", q);
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            renderCatalog(data.results || []);
+        } catch (e) {
+            gridEl.innerHTML = `<div style="color:red; text-align:center;">Error cargando catálogo.</div>`;
+        }
+    }
+
+    async function addToCart(e, prodId) {
+        e.preventDefault();
+        const form = e.target;
+        const qty = form.querySelector('input[name="cantidad"]').value;
+        const btn = form.querySelector('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i>`;
+        btn.disabled = true;
+
+        const fd = new FormData();
+        fd.append('producto_id', prodId);
+        fd.append('cantidad', qty);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+
+        try {
+            const res = await fetch(URL_ADD_PRODUCTO, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            if (data.ok) {
+                showToast("Agregado al carrito");
+                renderCart(data.items);
+            } else {
+                showToast(data.error || "Error al agregar", 'error');
+            }
+        } catch (err) { showToast("Error de conexión", 'error'); } 
+        finally { btn.innerHTML = originalText; btn.disabled = false; }
+    }
+
+    let debounceTimer;
+    function updateQty(prodId, newQty) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            if (newQty < 1) return;
+            const fd = new FormData();
+            fd.append('producto_id', prodId);
+            fd.append('cantidad', newQty);
+            fd.append('csrfmiddlewaretoken', csrftoken);
+            try {
+                const res = await fetch(URL_SET_QTY, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+                const data = await res.json();
+                if(data.ok) showToast("Cantidad actualizada");
+                else { showToast(data.error, 'error'); refreshCart(); }
+            } catch(e) {}
+        }, 500);
+    }
+
+    async function removeFromCart(prodId) {
+        if(!confirm("¿Quitar este ítem?")) return;
+        const fd = new FormData();
+        fd.append('producto_id', prodId);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+        try {
+            const res = await fetch(URL_REMOVE_PRODUCTO, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            if(data.ok) { renderCart(data.items); showToast("Ítem eliminado", 'error'); }
+        } catch(e) {}
+    }
+
+    async function refreshCart() {
+        try {
+            const res = await fetch(URL_CARRITO, { headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            renderCart(data.items);
+        } catch(e) {}
+    }
+
+    searchForm.addEventListener('submit', (e) => { e.preventDefault(); loadCatalog(searchInput.value); });
+    searchInput.addEventListener('input', (e) => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); });
+
+    loadCatalog();
     refreshCart();
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

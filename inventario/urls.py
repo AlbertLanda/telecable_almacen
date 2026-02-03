@@ -39,7 +39,8 @@ from .views.req import (
     req_clonar,
     req_eliminar,
     req_recepcionar_compra,
-    req_set_tipo
+    req_set_tipo,
+    req_atender
 )
 
 # 5. Importaciones de SAL (Salidas)
@@ -74,6 +75,7 @@ urlpatterns = [
     path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
     path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
     path('almacen/recepcionar/<int:sal_id>/', almacen_recepcionar_traspaso, name='almacen_recepcionar_traspaso'),
+    path('req/<int:req_id>/atender/', req_atender, name='req_atender'),
 
     # ==========================
     # REQ (FLUJO TÉCNICO / GENERAL)

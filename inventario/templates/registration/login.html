@@ -1,238 +1,208 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Almacén | Telecable</title>
+{% extends 'base.html' %}
+{% load static %}
 
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
 
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Poppins', sans-serif;
-      height: 100vh;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: url('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop') no-repeat center center fixed;
-      background-size: cover;
-      box-shadow: inset 0 0 0 2000px rgba(10, 15, 30, 0.6);
+<style>
+    /* --- CAPA SUPERIOR (Overlay) --- */
+    .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #0f1220; 
+        z-index: 9999;       
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;    
     }
 
-    .login-container {
-      position: relative;
-      padding: 45px;
-      width: 100%;
-      max-width: 400px;
-      border-radius: 25px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    /* EL FONDO ANIMADO */
+    #particles-js {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(135deg, rgba(10, 12, 20, 0.9), rgba(15, 18, 32, 0.8)), 
+                          url('https://tse1.mm.bing.net/th/id/OIP.p1q7DqJmgvK4VAnVNQu3uQHaEM?rs=1&pid=ImgDetMain&o=7&rm=3');
+        background-size: cover;
+        background-position: center;
+        z-index: 1;
     }
 
-    .login-box { text-align: center; color: #ffffff; }
-
-    .logo {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 5px;
-      color: #ffffff;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+    /* LA TARJETA */
+    .login-card {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 400px;
+        padding: 40px;
+        background: rgba(30, 34, 50, 0.3); 
+        backdrop-filter: blur(15px);        
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        box-shadow: 0 0 40px rgba(79, 172, 254, 0.1); 
+        animation: slideUp 0.8s ease-out;
+        text-align: center;
     }
 
-    .subtitle {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 35px;
-      font-weight: 400;
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(50px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .input-group {
-      position: relative;
-      margin-bottom: 25px;
-      text-align: left;
+    /* --- ESTILOS DE ELEMENTOS --- */
+    .logo-glow {
+        width: 70px; height: 70px;
+        margin: 0 auto 20px;
+        background: rgba(79, 172, 254, 0.1);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 35px; color: #4facfe;
+        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        border: 1px solid rgba(79, 172, 254, 0.3);
     }
 
-    .input-group label {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: 500;
-      margin-bottom: 8px;
-      display: block;
-      margin-left: 10px;
+    .login-title { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 5px; letter-spacing: 1px; }
+    .login-subtitle { color: #8b9bb4; font-size: 13px; margin-bottom: 30px; letter-spacing: 0.5px; }
+
+    .input-box { position: relative; margin-bottom: 20px; }
+    
+    /* Ícono Izquierdo (Usuario/Candado) */
+    .input-icon-left {
+        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+        color: #4facfe; font-size: 18px; pointer-events: none; /* El click pasa a través */
     }
 
-    .input-icon {
-      position: absolute;
-      top: 42px;
-      left: 15px;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 18px;
+    /* Ícono Derecho (El Ojito) */
+    .input-icon-right {
+        position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        color: #8b9bb4; font-size: 20px; cursor: pointer; transition: 0.3s;
+        z-index: 20;
+    }
+    .input-icon-right:hover { color: #fff; }
+    
+    .form-control-login {
+        width: 100%;
+        padding: 12px 45px 12px 45px; /* Espacio a ambos lados para los íconos */
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 15px;
+        outline: none;
+        transition: 0.3s;
+    }
+    .form-control-login:focus {
+        border-color: #4facfe;
+        box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
+        background: rgba(0, 0, 0, 0.5);
     }
 
-    .input-field {
-      width: 100%;
-      padding: 12px 45px 12px 45px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 12px;
-      color: #ffffff;
-      font-family: 'Poppins', sans-serif;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.3s ease;
+    .btn-login {
+        width: 100%; padding: 14px;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border: none; border-radius: 10px;
+        color: #000; font-weight: 700; font-size: 16px;
+        cursor: pointer; margin-top: 10px;
+        transition: 0.3s;
+        box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
     }
+    .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5); }
 
-    .input-field:focus {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: #ffffff;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-    }
+    .footer { margin-top: 25px; color: #555; font-size: 11px; }
+</style>
 
-    .input-field::placeholder { color: rgba(255, 255, 255, 0.4); }
+<div class="login-overlay">
+    <div id="particles-js"></div>
 
-    .password-toggle {
-      position: absolute;
-      top: 42px;
-      right: 15px;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 20px;
-      cursor: pointer;
-      transition: color 0.3s;
-      z-index: 10;
-    }
-
-    .password-toggle:hover { color: #ffffff; }
-
-    .btn-submit {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: #ffffff;
-      color: #000000;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 15px;
-    }
-
-    .btn-submit:hover {
-      background: #f0f0f0;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
-    }
-
-    .btn-submit:disabled {
-      background: rgba(255, 255, 255, 0.5);
-      color: #666;
-      cursor: not-allowed;
-    }
-
-    .error-msg {
-      background: rgba(255, 59, 48, 0.2);
-      color: #ffcccc;
-      font-size: 13px;
-      padding: 12px;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      border: 1px solid rgba(255, 59, 48, 0.4);
-      text-align: center;
-    }
-
-    .footer-link {
-      margin-top: 30px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-    }
-  </style>
-</head>
-<body>
-
-  <div class="login-container">
-    <div class="login-box">
-      <div class="logo">TELECABLE</div>
-      <div class="subtitle">Sistema de Almacén</div>
-
-      {% if form.errors %}
-        <div class="error-msg">Credenciales incorrectas</div>
-      {% endif %}
-
-      <!-- ✅ Django LoginView: POST normal -->
-      <form id="loginForm" method="post">
-        {% csrf_token %}
-
-        <div class="input-group">
-          <label for="id_username">Usuario</label>
-          <i class='bx bxs-user input-icon'></i>
-          <!-- ✅ IMPORTANTE: name="username" -->
-          <input
-            type="text"
-            id="id_username"
-            name="username"
-            class="input-field"
-            placeholder="ID Empleado"
-            autocomplete="username"
-            required
-            autofocus
-          >
+    <div class="login-card">
+        <div class="logo-glow">
+            <i class='bx bx-cube-alt'></i>
         </div>
+        
+        <h2 class="login-title">TELECABLE</h2>
+        <p class="login-subtitle">Acceso Seguro al Almacén</p>
 
-        <div class="input-group">
-          <label for="id_password">Contraseña</label>
-          <i class='bx bxs-lock-alt input-icon'></i>
-          <!-- ✅ IMPORTANTE: name="password" -->
-          <input
-            type="password"
-            id="id_password"
-            name="password"
-            class="input-field"
-            placeholder="••••••••"
-            autocomplete="current-password"
-            required
-          >
-          <i class='bx bx-hide password-toggle' id="togglePassword" aria-label="Mostrar/Ocultar contraseña"></i>
-        </div>
+        <form method="POST">
+            {% csrf_token %}
+            {% if form.errors %}
+                <div class="alert alert-danger p-2 mb-3 small" style="background: rgba(255, 69, 58, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 8px;">
+                    Usuario o contraseña incorrectos
+                </div>
+            {% endif %}
 
-        <button type="submit" class="btn-submit" id="loginBtn">INGRESAR</button>
-      </form>
+            <div class="input-box">
+                <i class='bx bx-user input-icon-left'></i>
+                <input type="text" name="username" class="form-control-login" placeholder="ID de Empleado" required autocomplete="off">
+            </div>
 
-      <div class="footer-link">
-        © 2026 Telecable S.A.
-      </div>
+            <div class="input-box">
+                <i class='bx bx-lock-alt input-icon-left'></i>
+                <input type="password" name="password" id="passwordInput" class="form-control-login" placeholder="Contraseña" required>
+                <i class='bx bx-show input-icon-right' id="togglePassword"></i>
+            </div>
+
+            <button type="submit" class="btn-login">INGRESAR AL SISTEMA</button>
+        </form>
+
+        <div class="footer">© 2026 Telecable S.A. | V 2.0</div>
     </div>
-  </div>
+</div>
 
-  <script>
-    // OJITO (solo UI, no toca el login)
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('id_password');
+<script>
+    /* 1. LÓGICA DEL OJITO */
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#passwordInput');
 
-    togglePassword.addEventListener('click', function () {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-      this.classList.toggle('bx-show');
-      this.classList.toggle('bx-hide');
+    togglePassword.addEventListener('click', function (e) {
+        // Cambiar el tipo de input
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        
+        // Cambiar el ícono (Ojo abierto / Ojo tachado)
+        this.classList.toggle('bx-show');
+        this.classList.toggle('bx-hide');
+        
+        // Efecto visual de color
+        if(type === 'text'){
+            this.style.color = '#4facfe'; // Azul cuando se ve
+        } else {
+            this.style.color = '#8b9bb4'; // Gris cuando está oculto
+        }
     });
 
-    // UX: deshabilitar botón al enviar
-    const form = document.getElementById('loginForm');
-    const btn = document.getElementById('loginBtn');
-    form.addEventListener('submit', () => {
-      btn.disabled = true;
-      btn.innerText = "VERIFICANDO...";
+    /* 2. CONFIGURACIÓN DE PARTÍCULAS */
+    particlesJS("particles-js", {
+        "particles": {
+            "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+            "color": { "value": "#4facfe" },
+            "shape": { "type": "circle" },
+            "opacity": { "value": 0.5, "random": true },
+            "size": { "value": 3, "random": true },
+            "line_linked": {
+                "enable": true, "distance": 150, "color": "#4facfe", "opacity": 0.4, "width": 1
+            },
+            "move": {
+                "enable": true, "speed": 2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false,
+            }
+        },
+        "interactivity": {
+            "detect_on": "canvas",
+            "events": {
+                "onhover": { "enable": true, "mode": "grab" },
+                "onclick": { "enable": true, "mode": "push" },
+                "resize": true
+            },
+            "modes": {
+                "grab": { "distance": 140, "line_linked": { "opacity": 1 } },
+                "push": { "particles_nb": 4 }
+            }
+        },
+        "retina_detect": true
     });
-  </script>
-
-</body>
-</html>
+</script>
+{% endblock %}

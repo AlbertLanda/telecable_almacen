@@ -1,263 +1,199 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Mis Entregas | Telecable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-body: #1e1e2e;
-      --bg-sidebar: #181824;
-      --bg-panel: #27293d;
-      --primary-grad: linear-gradient(45deg, #FF512F 0%, #DD2476 100%);
-      --primary-solid: #ff6b6b;
-      --accent: #4facfe;
-      --text-main: #ffffff;
-      --text-muted: #9a9a9a;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .sidebar {
-      width: 260px;
-      background-color: var(--bg-sidebar);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid rgba(255,255,255,0.05);
-      box-shadow: 5px 0 15px rgba(0,0,0,0.2);
-      z-index: 10;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 50px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
-    .brand span { font-size: 20px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
 
-    .menu-btn {
-      background: transparent;
-      border: none;
-      width: 100%;
-      padding: 16px 20px;
-      text-align: left;
-      color: var(--text-muted);
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      transition: all 0.3s ease;
-      margin-bottom: 8px;
-      font-weight: 500;
-      text-decoration: none;
+{% block content %}
+<style>
+    /* --- ENCABEZADO --- */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 25px; background: var(--bg-card);
+        padding: 20px; border-radius: var(--radius);
+        border: 1px solid var(--glass-border);
     }
-    .menu-btn i { font-size: 20px; }
-    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
-    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(221, 36, 118, 0.4); }
+    .header-title h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
+    .header-title p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
 
-    .logout-btn { margin-top: auto; color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.2); }
-    .logout-btn:hover { background: rgba(255, 71, 87, 0.1); color: white; }
-
-    .main-content {
-      flex: 1;
-      padding: 30px;
-      overflow-y: auto;
-      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 30px 30px;
+    /* --- ESTILOS DE TABLA PC --- */
+    .table-responsive-desktop {
+        width: 100%;
+        overflow-x: auto;
     }
-    .header {
-      margin-bottom: 35px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+    
+    table { 
+        width: 100% !important; 
+        border-collapse: separate; 
+        border-spacing: 0 8px; 
     }
-    .header h2 { font-weight: 600; font-size: 28px; }
-    .header p { color: var(--text-muted); font-size: 14px; }
-
-    .back-btn {
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+    
+    th {
+        color: var(--text-muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 15px;
+        font-weight: 600;
     }
-    .back-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); }
 
-    .table-container {
-      background: var(--bg-panel);
-      padding: 25px;
-      border-radius: 16px;
-      overflow-x: auto;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    td {
+        padding: 15px;
+        vertical-align: middle;
+        background: rgba(255, 255, 255, 0.03);
+        border: none;
+        transition: 0.2s;
     }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; min-width: 860px; }
-    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; font-weight: 600; }
-    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
+    
+    td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
 
-    .estado-badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      display: inline-block;
+    .col-left   { text-align: left; }
+    .col-center { text-align: center; }
+    .col-right  { text-align: right; }
+
+    tr:hover td { background: rgba(255, 255, 255, 0.08); transform: scale(1.005); }
+
+    /* --- TARJETAS MÓVILES --- */
+    .mobile-card-list { display: none; flex-direction: column; gap: 15px; }
+    
+    .delivery-card {
+        background: var(--bg-card); border: 1px solid var(--glass-border);
+        border-radius: var(--radius); padding: 15px;
+        position: relative; overflow: hidden;
     }
-    .estado-borrador { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
-    .estado-confirmado { background: rgba(79, 172, 254, 0.2); color: #4facfe; }
-    .estado-anulado { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-
-    .sal-link {
-      color: #4facfe;
-      text-decoration: none;
-      font-weight: 700;
-      transition: all 0.3s ease;
+    
+    .dc-header { 
+        display: flex; justify-content: space-between; align-items: center; 
+        margin-bottom: 10px; padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-    .sal-link:hover { color: #00d2ff; text-decoration: underline; }
+    .dc-code { font-family: monospace; font-weight: 700; color: #fff; font-size: 15px; }
+    
+    .dc-body { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #ccc; }
+    .dc-row { display: flex; justify-content: space-between; }
+    .dc-label { color: var(--text-muted); }
 
-    .link-action {
-      color: #4facfe;
-      text-decoration: none;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .dc-footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; }
+    
+    /* --- RESPONSIVE --- */
+    @media (max-width: 992px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .table-responsive-desktop { display: none; }
+        .mobile-card-list { display: flex; }
     }
-    .link-action:hover { text-decoration: underline; }
+</style>
 
-    @media (max-width: 900px){
-      .sidebar{width:220px;}
-    }
-  </style>
-</head>
+<div class="page-header">
+    <div class="header-title">
+        <h2><i class='bx bx-package' style="color: var(--primary);"></i> Mis Entregas</h2>
+        <p>Historial de material recibido del almacén</p>
+    </div>
+    <a href="{% url 'tecnico_dashboard' %}" class="btn btn-warning" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+        <i class='bx bx-arrow-back'></i> Volver al Panel
+    </a>
+</div>
 
-<body>
-  <div class="sidebar">
-    <div class="brand">
-      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
-      <span>TELECABLE</span>
+<div class="section-card">
+    
+    <div class="table-responsive-desktop">
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-left">Código SAL</th>
+                    <th class="col-center">Fecha</th>
+                    <th class="col-center">Estado</th>
+                    <th class="col-center">Origen (REQ)</th>
+                    <th class="col-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sals %}
+                <tr>
+                    <td class="col-left">
+                        <a href="{% url 'sal_detail' s.id %}" style="font-family: monospace; font-weight: 700; color: var(--primary); text-decoration: none; font-size: 14px;">
+                            {{ s.numero|default:"(Sin Código)" }}
+                        </a>
+                    </td>
+                    
+                    <td class="col-center text-muted">{{ s.fecha|date:"d/m/Y H:i" }}</td>
+                    
+                    <td class="col-center">
+                        {% if s.estado == 'CONFIRMADO' %}
+                            <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); border: 1px solid rgba(48, 209, 88, 0.3);">Confirmado</span>
+                        {% elif s.estado == 'ANULADO' %}
+                            <span class="badge" style="background:rgba(255, 69, 58, 0.15); color:var(--danger);">Anulado</span>
+                        {% else %}
+                            <span class="badge" style="background:rgba(255, 255, 255, 0.1);">{{ s.get_estado_display }}</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="col-center">
+                        {% if s.origen %}
+                            <span style="font-family: monospace; color: var(--warning); font-weight: 600;">
+                                <i class='bx bx-file'></i> {{ s.origen.numero }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted" style="font-size: 12px; font-style: italic;">Entrega Directa</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="col-right">
+                        <a href="{% url 'sal_detail' s.id %}" class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 14px;">
+                            <i class='bx bx-show'></i> Ver Detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 50px; color: var(--text-muted);">
+                        <i class='bx bx-ghost' style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p style="font-size: 16px;">No tienes entregas registradas aún.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <a href="{% url 'tecnico_dashboard' %}" class="menu-btn">
-      <i class='bx bxs-dashboard'></i> Panel Técnico
-    </a>
-    <a href="{% url 'req_home' %}" class="menu-btn">
-      <i class='bx bx-plus-circle'></i> Solicitar Material
-    </a>
-    <a href="{% url 'tecnico_mis_reqs' %}" class="menu-btn">
-      <i class='bx bx-history'></i> Mis Requerimientos
-    </a>
-    <a href="{% url 'tecnico_mis_entregas' %}" class="menu-btn active">
-      <i class='bx bx-package'></i> Mis Entregas
-    </a>
-
-    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
-      <i class='bx bx-log-out-circle'></i> Cerrar Sesión
-    </a>
-  </div>
-
-  <div class="main-content">
-    <div class="header">
-      <div>
-        <h2>Mis Entregas</h2>
-        <p>Historial de entregas de material recibidas</p>
-      </div>
-      <a href="{% url 'tecnico_dashboard' %}" class="back-btn">
-        <i class='bx bx-arrow-back'></i> Volver
-      </a>
-    </div>
-
-    <div class="table-container">
-      <h4 style="font-size:16px; margin-bottom:15px;">📦 Lista de Entregas (SAL)</h4>
-
-      <table>
-        <thead>
-          <tr>
-            <th>SAL</th>
-            <th>Fecha</th>
-            <th>Estado</th>
-            <th>Origen</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for s in sals %}
-            <tr>
-              <td>
-                <a href="{% url 'sal_detail' s.id %}" class="sal-link">
-                  {{ s.numero|default:"(sin número)" }}
-                </a>
-              </td>
-
-              <td>{{ s.fecha|date:"Y-m-d H:i" }}</td>
-
-              <td>
-                {% if s.estado == "BORRADOR" %}
-                  <span class="estado-badge estado-borrador">{{ s.get_estado_display }}</span>
-                {% elif s.estado == "CONFIRMADO" %}
-                  <span class="estado-badge estado-confirmado">{{ s.get_estado_display }}</span>
-                {% elif s.estado == "ANULADO" %}
-                  <span class="estado-badge estado-anulado">{{ s.get_estado_display }}</span>
+    <div class="mobile-card-list">
+        {% for s in sals %}
+        <div class="delivery-card">
+            <div class="dc-header">
+                <div class="dc-code">
+                    <i class='bx bx-box' style="color: var(--primary);"></i> {{ s.numero|default:"(Sin Código)" }}
+                </div>
+                {% if s.estado == 'CONFIRMADO' %}
+                    <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); font-size: 11px;">OK</span>
                 {% else %}
-                  <span class="estado-badge" style="background: rgba(255,255,255,0.08); color:#ddd;">
-                    {{ s.get_estado_display }}
-                  </span>
+                    <span class="badge" style="background:rgba(255, 255, 255, 0.1); font-size: 11px;">{{ s.get_estado_display }}</span>
                 {% endif %}
-              </td>
+            </div>
+            
+            <div class="dc-body">
+                <div class="dc-row">
+                    <span class="dc-label">Fecha:</span>
+                    <span>{{ s.fecha|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="dc-row">
+                    <span class="dc-label">Origen:</span>
+                    {% if s.origen %}
+                        <span style="color: var(--warning);">{{ s.origen.numero }}</span>
+                    {% else %}
+                        <span>Entrega Directa</span>
+                    {% endif %}
+                </div>
+            </div>
 
-              <td>
-                {% if s.origen %}
-                  <span style="color: #ffa502; font-weight: 700;">
-                    {{ s.origen.numero|default:"REQ sin número" }}
-                  </span>
-                {% else %}
-                  <span style="color: #9a9a9a;">Directo</span>
-                {% endif %}
-              </td>
-
-              <td>
-                <a href="{% url 'sal_detail' s.id %}" class="link-action">
-                  <i class='bx bx-eye'></i> Ver detalle
+            <div class="dc-footer">
+                <a href="{% url 'sal_detail' s.id %}" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 13px;">
+                    Ver Detalle Completo <i class='bx bx-chevron-right'></i>
                 </a>
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="5" style="color:#9a9a9a; text-align: center; padding: 30px;">
-                <i class='bx bx-package' style="font-size: 48px; display: block; margin-bottom: 10px;"></i>
-                No tienes entregas registradas.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </div>
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <p>No hay entregas.</p>
+        </div>
+        {% endfor %}
     </div>
-  </div>
-</body>
-</html>
+
+</div>
+{% endblock %}

@@ -306,14 +306,23 @@ def tecnico_mis_reqs(request):
 def liquidacion_tecnico_lista(request):
     """
     Lista de técnicos que tienen material en su poder (Mochila > 0).
+    FILTRO: Solo muestra técnicos de la misma SEDE que el usuario logueado.
     """
     # Validación de rol (Almacén, Admin, Jefa)
     if not request.user.profile.rol in ['ALMACEN', 'ADMIN', 'JEFA']:
         return redirect('home')
-        
-    # Buscamos técnicos que tengan deuda en su mochila
+    
+    # 1. Obtener la sede del almacenero logueado
+    try:
+        sede_actual = request.user.profile.get_sede_operativa()
+    except:
+        messages.error(request, "No tienes una sede asignada para ver liquidaciones.")
+        return redirect('dash_almacen')
+
+    # 2. Consulta filtrada por deuda y POR SEDE
     tecnicos_con_deuda = User.objects.filter(
-        mi_stock__cantidad__gt=0
+        mi_stock__cantidad__gt=0,            # Que deba algo
+        profile__sede_principal=sede_actual  # Que sea de MI sede
     ).distinct()
     
     return render(request, 'operaciones/liquidacion_tecnicos_lista.html', {
@@ -400,4 +409,23 @@ def liquidar_tecnico(request, tecnico_id):
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
         'tecnico': tecnico,
         'mochila': mochila
+    })
+
+
+@login_required
+def tecnico_mi_stock(request):
+    """
+    Muestra el inventario actual en poder del técnico (Mochila).
+    """
+    # 1. Seguridad: Solo técnicos o jefes
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    
+    # 2. Consultar el modelo correcto: StockTecnico
+    stock_items = StockTecnico.objects.filter(
+        tecnico=request.user, 
+        cantidad__gt=0
+    ).select_related('producto').order_by('producto__nombre')
+    
+    return render(request, 'operaciones/tecnico_mi_stock.html', {
+        'stock_items': stock_items
     })
