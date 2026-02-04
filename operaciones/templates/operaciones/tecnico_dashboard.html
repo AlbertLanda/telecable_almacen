@@ -5,225 +5,184 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    /* =========================================
-       1. LAYOUT & HEADER
-       ========================================= */
-    .dashboard-container {
-        display: grid;
-        grid-template-columns: 2.5fr 1fr; /* Izquierda principal, Derecha lateral */
-        gap: 30px;
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* HEADER */
-    .page-header {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 30px; background: var(--bg-card); padding: 25px; 
-        border-radius: var(--radius); border: 1px solid var(--glass-border);
-    }
-    .header-content h2 { margin: 0; font-size: 26px; font-weight: 700; color: #fff; }
-    .header-content p { margin: 5px 0 0; color: var(--text-muted); font-size: 14px; display: flex; align-items: center; gap: 8px; }
-
-    /* BOTÓN DE ACCIÓN PRINCIPAL */
-    .btn-action-main {
-        background: linear-gradient(135deg, var(--primary) 0%, #00f2fe 100%);
-        color: #000; border: none; padding: 12px 30px;
-        border-radius: 12px; font-weight: 700; font-size: 15px;
-        display: inline-flex; align-items: center; gap: 10px;
-        cursor: pointer; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-        transition: 0.2s; text-decoration: none;
-    }
-    .btn-action-main:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5); filter: brightness(1.1); }
-
-    /* =========================================
-       2. TARJETAS KPI (INDICADORES)
-       ========================================= */
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 30px; }
-    .kpi-card {
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius); padding: 25px;
-        position: relative; overflow: hidden;
-        display: flex; flex-direction: column; justify-content: space-between;
-        min-height: 120px; transition: transform 0.2s;
-    }
-    .kpi-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
+    /* El Dashboard ahora hereda los colores del nuevo base.html Enterprise */
     
-    .kpi-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-    .kpi-orange::before { background: #FF9F0A; box-shadow: 2px 0 15px rgba(255, 159, 10, 0.4); }
-    .kpi-green::before { background: #30D158; box-shadow: 2px 0 15px rgba(48, 209, 88, 0.4); }
-    .kpi-blue::before { background: #0A84FF; box-shadow: 2px 0 15px rgba(10, 132, 255, 0.4); }
+    /* Layout */
+    .dashboard-container {
+        display: grid; grid-template-columns: 2.5fr 1fr; gap: 24px; animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .kpi-top { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
-    .kpi-value { font-size: 38px; font-weight: 700; color: #fff; line-height: 1; }
-    .kpi-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-    .kpi-icon { font-size: 28px; opacity: 0.8; }
+    /* Header Limpio */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+        border-bottom: 1px solid var(--border-light); padding-bottom: 20px;
+    }
+    .header-content h2 { font-size: 28px; font-weight: 700; color: var(--text-main); margin: 0; }
+    .header-content p { color: var(--text-secondary); margin: 4px 0 0; display: flex; align-items: center; gap: 6px; }
 
-    /* =========================================
-       3. LISTAS Y TABLAS
-       ========================================= */
-    .quick-list { display: flex; flex-direction: column; gap: 15px; }
+    /* Botón de Acción Principal (Pill) */
+    .btn-action-main {
+        background-color: var(--primary); color: #fff; padding: 12px 28px; border-radius: 50px;
+        font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; gap: 8px;
+        transition: 0.2s; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+    }
+    .btn-action-main:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Tarjetas Genéricas */
+    .section-card {
+        background: var(--bg-card); border-radius: var(--radius); padding: 24px;
+        border: 1px solid var(--border-light);
+    }
+    h4 { margin: 0 0 20px 0; font-size: 18px; color: var(--text-main); font-weight: 600; }
+
+    /* KPIs Refinados */
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+    .kpi-card {
+        background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius);
+        padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
+        min-height: 120px; transition: 0.2s; position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { border-color: rgba(255,255,255,0.2); background: var(--bg-hover); }
+    
+    /* Indicador lateral sutil */
+    .kpi-card::before { content:''; position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; border-radius: 0 4px 4px 0; }
+    .kpi-orange::before { background: var(--warning); }
+    .kpi-green::before { background: var(--success); }
+    .kpi-blue::before { background: var(--primary); }
+
+    .kpi-top { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
+    .kpi-icon { font-size: 22px; color: var(--text-secondary); }
+    .kpi-value { font-size: 36px; font-weight: 700; color: var(--text-main); }
+    .kpi-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Menú Rápido (Estilo Settings) */
+    .quick-list { display: flex; flex-direction: column; gap: 1px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
     .quick-item {
-        display: flex; align-items: center; gap: 15px;
-        background: var(--bg-input); padding: 18px; border-radius: 14px;
-        text-decoration: none; color: var(--text-main); transition: 0.2s;
-        border: 1px solid transparent;
+        display: flex; align-items: center; gap: 15px; padding: 16px; background: var(--bg-card);
+        color: var(--text-main); transition: 0.2s;
     }
-    .quick-item:hover { background: rgba(255,255,255,0.08); border-color: var(--primary); transform: translateX(5px); }
-    .quick-icon {
-        width: 45px; height: 45px; border-radius: 12px;
-        display: flex; align-items: center; justify-content: center; font-size: 22px;
-        flex-shrink: 0;
+    .quick-item:hover { background: var(--bg-hover); }
+    .quick-icon-box {
+        width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;
     }
 
-    .history-list-mobile { display: none; flex-direction: column; gap: 12px; }
-    .history-card {
-        background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 15px;
-        display: flex; align-items: center; justify-content: space-between;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .h-info h5 { margin: 0; font-size: 14px; color: #fff; font-family: monospace; }
-    .h-info p { margin: 4px 0 0; font-size: 12px; color: var(--text-muted); }
+    /* Tablas */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; color: var(--text-secondary); font-size: 12px; font-weight: 600; padding-bottom: 12px; border-bottom: 1px solid var(--border-light); }
+    td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
 
-    /* Control de Visibilidad */
+    /* Badges Status */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-orange { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .badge-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .badge-blue { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+
+    /* Móvil */
     .mobile-view { display: none; }
     .desktop-view { display: block; }
+    .history-list-mobile { display: none; flex-direction: column; gap: 10px; }
+    .history-card { background: var(--bg-input); padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* =========================================
-       📱 MODO CELULAR
-       ========================================= */
     @media (max-width: 992px) {
-        .dashboard-container { grid-template-columns: 100%; gap: 20px; }
+        .dashboard-container { grid-template-columns: 100%; }
         .desktop-view { display: none; }
-        .mobile-view { display: block; margin-bottom: 25px; }
-        
-        .page-header { flex-direction: column; text-align: center; gap: 20px; padding: 20px; }
-        .btn-action-main { width: 100%; justify-content: center; padding: 15px; font-size: 16px; }
-
-        .kpi-grid { grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .mobile-view { display: block; margin-bottom: 24px; }
+        .page-header { flex-direction: column; text-align: center; gap: 15px; border-bottom: none; }
+        .btn-action-main { width: 100%; justify-content: center; }
+        .kpi-grid { grid-template-columns: 1fr 1fr; }
         .kpi-card:nth-child(3) { grid-column: span 2; }
-        .kpi-value { font-size: 30px; }
-        .kpi-card { padding: 15px; min-height: 100px; }
-
-        .chart-container-mobile { position: relative; height: 220px; width: 100%; overflow: hidden; }
         .table-responsive-desktop { display: none; } 
         .history-list-mobile { display: flex; }
+        .chart-container-mobile { position: relative; height: 220px; width: 100%; }
     }
 </style>
 
 <div class="page-header">
     <div class="header-content">
-        <h2>Hola, {{ user.first_name|default:user.username }} 👋</h2>
-        <p>
-            <i class='bx bxs-map'></i> {{ sede.nombre }} 
-            <span style="opacity:0.3; margin:0 5px;">|</span> 
-            Técnico Operativo
-        </p>
+        <h2>Hola, {{ user.first_name|default:user.username }}</h2>
+        <p><i class='bx bxs-map'></i> {{ sede.nombre }} &nbsp;<span>|</span>&nbsp; Técnico Operativo</p>
     </div>
     <a href="{% url 'req_home' %}" class="btn-action-main">
-        <i class='bx bx-plus-circle'></i> Solicitar Material
+        <i class='bx bx-plus'></i> Solicitar Material
     </a>
 </div>
 
 <div class="kpi-grid">
     <div class="kpi-card kpi-orange">
-        <div class="kpi-top">
-            <div class="kpi-value">{{ kpis.reqs_activos }}</div>
-            <div class="kpi-icon" style="color: #FF9F0A;"><i class='bx bx-time-five'></i></div>
-        </div>
-        <div class="kpi-label">Pendientes</div>
+        <div class="kpi-top"><div class="kpi-icon"><i class='bx bx-time'></i></div><div class="kpi-label">Pendientes</div></div>
+        <div class="kpi-value">{{ kpis.reqs_activos }}</div>
     </div>
     <div class="kpi-card kpi-green">
-        <div class="kpi-top">
-            <div class="kpi-value">{{ kpis.reqs_atendidos }}</div>
-            <div class="kpi-icon" style="color: #30D158;"><i class='bx bx-check-double'></i></div>
-        </div>
-        <div class="kpi-label">Atendidos</div>
+        <div class="kpi-top"><div class="kpi-icon"><i class='bx bx-check-circle'></i></div><div class="kpi-label">Atendidos</div></div>
+        <div class="kpi-value">{{ kpis.reqs_atendidos }}</div>
     </div>
     <div class="kpi-card kpi-blue">
-        <div class="kpi-top">
-            <div class="kpi-value">{{ kpis.entregas }}</div>
-            <div class="kpi-icon" style="color: #0A84FF;"><i class='bx bx-package'></i></div>
-        </div>
-        <div class="kpi-label">Mis Entregas (SAL)</div>
+        <div class="kpi-top"><div class="kpi-icon"><i class='bx bx-package'></i></div><div class="kpi-label">Mis Entregas</div></div>
+        <div class="kpi-value">{{ kpis.entregas }}</div>
     </div>
 </div>
 
 <div class="dashboard-container">
-    
     <div class="left-content" style="min-width: 0;">
         
         <div class="mobile-view section-card">
-            <h4 style="margin-bottom: 15px; font-size: 16px;">Accesos Directos</h4>
+            <h4>Accesos</h4>
             <div class="quick-list">
-                
                 <a href="{% url 'tecnico_mis_reqs' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(255, 159, 10, 0.15); color: #FF9F0A;">
-                        <i class='bx bx-file'></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mis Requerimientos</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Ver historial de pedidos</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(255,159,10,0.15); color:var(--warning);"><i class='bx bx-file'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Mis Requerimientos</div><div style="font-size:12px; color:var(--text-secondary);">Historial</div></div>
+                    <i class='bx bx-chevron-right' style="color:var(--text-secondary);"></i>
                 </a>
-
                 <a href="{% url 'tecnico_mis_entregas' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(191, 90, 242, 0.15); color: #bf5af2;"><i class='bx bx-box'></i></div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mis Entregas</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Material recibido</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(48,209,88,0.15); color:var(--success);"><i class='bx bx-box'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Mis Entregas</div><div style="font-size:12px; color:var(--text-secondary);">Recibidos</div></div>
+                    <i class='bx bx-chevron-right' style="color:var(--text-secondary);"></i>
                 </a>
-
                 <a href="{% url 'tecnico_mi_stock' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(79, 172, 254, 0.15); color: var(--primary);"><i class='bx bx-briefcase'></i></div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mi Stock</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Inventario en poder</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(10,132,255,0.15); color:var(--primary);"><i class='bx bx-briefcase'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Mi Stock</div><div style="font-size:12px; color:var(--text-secondary);">Inventario</div></div>
+                    <i class='bx bx-chevron-right' style="color:var(--text-secondary);"></i>
                 </a>
             </div>
         </div>
 
         <div class="section-card">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
-                <h4 style="font-size: 18px;"><i class='bx bx-line-chart' style="color:var(--primary);"></i> Actividad</h4>
-                <span class="text-muted" style="font-size: 12px;">Últimos 7 días</span>
+                <h4>Actividad Semanal</h4>
             </div>
-            <div class="chart-container-mobile" style="width: 100%; height: 250px;">
+            <div class="chart-container-mobile" style="width: 100%; height: 240px;">
                 <canvas id="chartActivity"></canvas>
             </div>
         </div>
 
         <div class="section-card">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
-                <h4 style="font-size: 18px;"><i class='bx bx-list-ul' style="color:var(--warning);"></i> Recientes</h4>
-                <a href="{% url 'tecnico_mis_reqs' %}" style="font-size: 13px; color: var(--primary);">Ver todos</a>
+                <h4>Recientes</h4>
+                <a href="{% url 'tecnico_mis_reqs' %}" style="font-size:13px; color:var(--primary);">Ver todos</a>
             </div>
             
             {% if reqs_recientes %}
-                <div class="table-responsive-desktop table-modern" style="overflow-x:auto;">
-                    <table style="width:100%;">
-                        <thead>
-                            <tr><th>Código</th><th>Fecha</th><th>Estado</th><th style="text-align: right;">Acción</th></tr>
-                        </thead>
+                <div class="table-responsive-desktop">
+                    <table>
+                        <thead><tr><th>Código</th><th>Fecha</th><th>Estado</th><th style="text-align:right;"></th></tr></thead>
                         <tbody>
                             {% for r in reqs_recientes %}
                             <tr>
-                                <td style="font-family: monospace; color: #fff; font-weight: 600;">{{ r.numero|default:"(Borrador)" }}</td>
-                                <td class="text-muted">{{ r.fecha|date:"d/m H:i" }}</td>
+                                <td style="font-family:monospace; font-weight:600;">{{ r.numero|default:"(Borrador)" }}</td>
+                                <td style="color:var(--text-secondary);">{{ r.fecha|date:"d M, H:i" }}</td>
                                 <td>
-                                    {% if r.estado == 'REQ_PENDIENTE' %}<span class="badge" style="background:rgba(255, 159, 10, 0.15); color:#FF9F0A;">Pendiente</span>
-                                    {% elif r.estado == 'REQ_ATENDIDO' %}<span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success);">Atendido</span>
-                                    {% else %}<span class="badge" style="background:rgba(255, 255, 255, 0.1);">{{ r.get_estado_display }}</span>{% endif %}
+                                    {% if r.estado == 'REQ_PENDIENTE' %}<span class="badge badge-orange">Pendiente</span>
+                                    {% elif r.estado == 'REQ_ATENDIDO' %}<span class="badge badge-green">Atendido</span>
+                                    {% else %}<span class="badge badge-blue">{{ r.get_estado_display }}</span>{% endif %}
                                 </td>
                                 <td style="text-align: right;">
-                                    {% if r.estado == 'REQ_BORRADOR' %}<a href="{% url 'req_home' %}" class="btn btn-sm btn-warning">Editar</a>
-                                    {% else %}<i class='bx bx-chevron-right' style="color:var(--text-muted); font-size: 20px;"></i>{% endif %}
+                                    {% if r.estado == 'REQ_BORRADOR' %}
+                                        <a href="{% url 'req_home' %}" style="color:var(--warning); font-size:13px; font-weight:600;">Editar</a>
+                                    {% else %}
+                                        <i class='bx bx-chevron-right' style="color:var(--text-tertiary); font-size: 18px;"></i>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -234,66 +193,46 @@
                 <div class="history-list-mobile">
                     {% for r in reqs_recientes %}
                     <div class="history-card">
-                        <div style="display: flex; align-items: center; overflow: hidden;">
-                            <div class="quick-icon" style="width: 35px; height: 35px; background: rgba(255,255,255,0.05); font-size: 18px; margin-right: 15px;">
-                                <i class='bx bx-file'></i>
-                            </div>
-                            <div class="h-info">
-                                <h5>{{ r.numero|default:"(Borrador)" }}</h5>
-                                <p>{{ r.fecha|date:"d M, H:i" }}</p>
-                            </div>
+                        <div>
+                            <div style="font-weight:600; margin-bottom:4px;">{{ r.numero|default:"(Borrador)" }}</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">{{ r.fecha|date:"d M, H:i" }}</div>
                         </div>
-                        <div style="flex-shrink: 0;"> 
-                            {% if r.estado == 'REQ_PENDIENTE' %}<span style="color:#FF9F0A; font-size: 12px; font-weight: 700;">Pendiente</span>
-                            {% elif r.estado == 'REQ_ATENDIDO' %}<span style="color:#30D158; font-size: 12px; font-weight: 700;">Listo</span>
-                            {% else %}<span style="color:#999; font-size: 12px;">{{ r.get_estado_display }}</span>{% endif %}
+                        <div>
+                            {% if r.estado == 'REQ_PENDIENTE' %}<span style="color:var(--warning); font-size:12px; font-weight:600;">Pendiente</span>
+                            {% elif r.estado == 'REQ_ATENDIDO' %}<span style="color:var(--success); font-size:12px; font-weight:600;">Listo</span>
+                            {% elif r.estado == 'REQ_BORRADOR' %}<a href="{% url 'req_home' %}" style="color:var(--warning); font-size:12px; font-weight:600;">Editar</a>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div style="text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px;">
-                    <p>Sin movimientos recientes.</p>
-                </div>
+                <div style="text-align:center; padding:30px; color:var(--text-secondary); font-size:14px;">Sin movimientos recientes.</div>
             {% endif %}
         </div>
     </div>
 
     <div class="right-content desktop-view">
         <div class="section-card">
-            <h4 style="margin-bottom: 20px;">Menú Rápido</h4>
+            <h4>Menú Rápido</h4>
             <div class="quick-list">
-                
                 <a href="{% url 'tecnico_mis_reqs' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(255, 159, 10, 0.15); color: #FF9F0A;">
-                        <i class='bx bx-file'></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mis Requerimientos</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Ver historial de pedidos</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(255,159,10,0.15); color:var(--warning);"><i class='bx bx-file'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Requerimientos</div><div style="font-size:12px; color:var(--text-secondary);">Historial</div></div>
                 </a>
-
                 <a href="{% url 'tecnico_mis_entregas' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(191, 90, 242, 0.15); color: #bf5af2;"><i class='bx bx-box'></i></div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mis Entregas</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Ver historial recibido</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(48,209,88,0.15); color:var(--success);"><i class='bx bx-box'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Mis Entregas</div><div style="font-size:12px; color:var(--text-secondary);">Recibidos</div></div>
                 </a>
-
                 <a href="{% url 'tecnico_mi_stock' %}" class="quick-item">
-                    <div class="quick-icon" style="background: rgba(79, 172, 254, 0.15); color: var(--primary);"><i class='bx bx-briefcase'></i></div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 15px;">Mi Stock</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">Inventario en poder</div>
-                    </div>
+                    <div class="quick-icon-box" style="background: rgba(10,132,255,0.15); color:var(--primary);"><i class='bx bx-briefcase'></i></div>
+                    <div style="flex:1;"><div style="font-weight:600;">Mi Stock</div><div style="font-size:12px; color:var(--text-secondary);">Inventario</div></div>
                 </a>
             </div>
         </div>
 
         <div class="section-card">
-            <h4 style="margin-bottom: 15px;">Resumen</h4>
+            <h4>Resumen</h4>
             <div style="height: 200px; position: relative;">
                 <canvas id="chartStatus"></canvas>
             </div>
@@ -307,16 +246,17 @@
 {{ chart.estado_data|json_script:"status-data" }}
 
 <script>
-    Chart.defaults.color = '#86868B';
-    Chart.defaults.font.family = "'Segoe UI', sans-serif";
+    // Configuración Global Chart.js (Enterprise Style)
+    Chart.defaults.color = '#98989D';
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
     Chart.defaults.maintainAspectRatio = false;
 
-    // 1. Gráfica Lineal
+    // 1. Lineal
     const ctx = document.getElementById('chartActivity').getContext('2d');
     let gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(79, 172, 254, 0.5)');
-    gradient.addColorStop(1, 'rgba(79, 172, 254, 0.0)');
+    gradient.addColorStop(0, 'rgba(10, 132, 255, 0.25)');
+    gradient.addColorStop(1, 'rgba(10, 132, 255, 0.0)');
 
     new Chart(ctx, {
         type: 'line',
@@ -325,57 +265,34 @@
             datasets: [{
                 label: 'Pedidos',
                 data: JSON.parse(document.getElementById('chart-data').textContent),
-                borderColor: '#4facfe',
-                backgroundColor: gradient,
-                borderWidth: 3, tension: 0.4, fill: true,
-                pointBackgroundColor: '#0f1220', pointBorderColor: '#4facfe'
+                borderColor: '#0A84FF', backgroundColor: gradient,
+                borderWidth: 2, tension: 0.4, fill: true,
+                pointBackgroundColor: '#1c1c1e', pointBorderColor: '#0A84FF', pointRadius: 4
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { display: false } },
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 5, font: {size: 10} } }
-            }
+            scales: { y: { beginAtZero: true, ticks: { display: false }, grid: { display: false } }, x: { grid: { display: false }, ticks: { font: {size: 11} } } }
         }
     });
 
-    // 2. Gráfica Dona (Colores Inteligentes)
+    // 2. Dona
     const chartStatusCanvas = document.getElementById('chartStatus');
     if (chartStatusCanvas) {
-        
-        // Obtenemos los datos
         const labels = JSON.parse(document.getElementById('status-labels').textContent);
         const dataValues = JSON.parse(document.getElementById('status-data').textContent);
-
-        // LÓGICA DE COLORES INTELIGENTES
-        // Mapeamos los colores basándonos en el TEXTO de la etiqueta
         const bgColors = labels.map(label => {
             const l = label.toLowerCase();
-            if (l.includes('atendido') || l.includes('confirmado')) return '#30D158'; // Verde (Éxito)
-            if (l.includes('borrador')) return '#FF453A'; // Rojo (Borrador)
-            if (l.includes('pendiente')) return '#FF9F0A'; // Naranja (Pendiente)
-            return '#0A84FF'; // Azul (Por defecto)
+            if (l.includes('atendido') || l.includes('confirmado')) return '#30D158';
+            if (l.includes('borrador')) return '#FF453A';
+            if (l.includes('pendiente')) return '#FF9F0A';
+            return '#0A84FF';
         });
-
-        const ctx2 = chartStatusCanvas.getContext('2d');
-        new Chart(ctx2, {
+        new Chart(chartStatusCanvas.getContext('2d'), {
             type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: dataValues,
-                    backgroundColor: bgColors, // Usamos nuestros colores dinámicos
-                    borderWidth: 0, hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false, cutout: '75%',
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, color: '#fff', padding: 20 } } }
-            }
+            data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 5 }] },
+            options: { cutout: '85%', plugins: { legend: { display: false } } }
         });
     }
 </script>
-
 {% endblock %}

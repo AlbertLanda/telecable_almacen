@@ -1,22 +1,116 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container-fluid p-4">
-    <a href="{% url 'proyecto_list' %}" class="btn btn-outline-secondary mb-3">← Volver</a>
+<style>
+    /* =========================================
+       DETALLE PROYECTO (Enterprise Style)
+       ========================================= */
     
-    <div class="card bg-dark text-white border-secondary mb-4">
-        <div class="card-body">
-            <h2 class="text-info">{{ proyecto.nombre }} <small class="text-muted">({{ proyecto.codigo }})</small></h2>
-            <p class="mb-1"><strong>Sede:</strong> {{ proyecto.sede.nombre }} | <strong>Estado:</strong> {{ proyecto.estado }}</p>
-            <p><strong>Costo Real Acumulado:</strong> S/. {{ costo_total }}</p>
+    .project-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content .project-code { 
+        font-family: monospace; background: var(--bg-input); padding: 2px 8px; border-radius: 6px; 
+        font-size: 14px; font-weight: 600; color: var(--primary); vertical-align: middle; margin-left: 8px;
+    }
+    .header-meta { margin-top: 8px; display: flex; gap: 15px; color: var(--text-secondary); font-size: 14px; }
+    .meta-item { display: flex; align-items: center; gap: 6px; }
+
+    /* Costo Badge */
+    .cost-badge {
+        background: rgba(48, 209, 88, 0.1); border: 1px solid rgba(48, 209, 88, 0.2);
+        padding: 10px 16px; border-radius: 10px; text-align: right;
+    }
+    .cost-label { display: block; font-size: 11px; text-transform: uppercase; color: var(--success); font-weight: 700; }
+    .cost-val { display: block; font-size: 20px; font-weight: 700; color: var(--text-main); font-family: monospace; }
+
+    /* Layout */
+    .content-grid {
+        display: grid; grid-template-columns: 2fr 1fr; gap: 24px;
+    }
+
+    /* Tarjetas */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card); margin-bottom: 20px;
+    }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-light); }
+    .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); }
+
+    /* Tabla */
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 12px 20px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    td { padding: 12px 20px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .val-highlight { font-weight: 700; color: var(--primary); }
+
+    /* Lista Técnicos */
+    .tech-list { list-style: none; margin: 0; padding: 0; }
+    .tech-item {
+        padding: 12px 20px; border-bottom: 1px solid var(--border-light);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .tech-item:last-child { border-bottom: none; }
+    .tech-avatar {
+        width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input);
+        display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
+    }
+    .tech-name { font-weight: 500; color: var(--text-main); font-size: 14px; }
+
+    @media (max-width: 992px) {
+        .content-grid { grid-template-columns: 1fr; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .cost-badge { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    }
+</style>
+
+<div class="project-container">
+    
+    <div class="page-header">
+        <div>
+            <div class="header-content">
+                <h2>{{ proyecto.nombre }} <span class="project-code">{{ proyecto.codigo }}</span></h2>
+            </div>
+            <div class="header-meta">
+                <div class="meta-item"><i class='bx bxs-building'></i> {{ proyecto.sede.nombre }}</div>
+                <div class="meta-item"><i class='bx bx-info-circle'></i> {{ proyecto.get_estado_display }}</div>
+            </div>
+        </div>
+        
+        <div class="cost-badge">
+            <span class="cost-label">Costo Real</span>
+            <span class="cost-val">S/ {{ costo_total }}</span>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card bg-dark text-white border-secondary">
-                <div class="card-header">📦 Materiales Asignados</div>
+    <div class="content-grid">
+        
+        <div>
+            <div class="content-card">
+                <div class="card-header">
+                    <h4><i class='bx bx-package'></i> Materiales Asignados</h4>
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-dark table-hover mb-0">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Producto</th>
@@ -29,35 +123,49 @@
                         <tbody>
                             {% for m in materiales %}
                             <tr>
-                                <td>{{ m.producto.nombre }}</td>
-                                <td class="text-info fw-bold">{{ m.cantidad_asignada }}</td>
+                                <td style="font-weight: 500;">{{ m.producto.nombre }}</td>
+                                <td class="val-highlight">{{ m.cantidad_asignada }}</td>
                                 <td>{{ m.cantidad_usada }}</td>
-                                <td>{{ m.cantidad_merma }}</td>
-                                <td>{{ m.cantidad_devuelta }}</td>
+                                <td style="color: var(--danger);">{{ m.cantidad_merma }}</td>
+                                <td style="color: var(--success);">{{ m.cantidad_devuelta }}</td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="5" class="text-center">Sin materiales.</td></tr>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                                    Sin materiales registrados.
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            
+            <a href="{% url 'proyecto_list' %}" class="btn btn-ghost" style="border: 1px solid var(--border-light); color: var(--text-secondary);">
+                <i class='bx bx-arrow-back'></i> Volver a la Lista
+            </a>
         </div>
 
-        <div class="col-md-4">
-            <div class="card bg-dark text-white border-secondary">
-                <div class="card-header">👷 Técnicos</div>
-                <ul class="list-group list-group-flush">
+        <div>
+            <div class="content-card">
+                <div class="card-header">
+                    <h4><i class='bx bx-group'></i> Equipo Técnico</h4>
+                </div>
+                <ul class="tech-list">
                     {% for a in tecnicos %}
-                    <li class="list-group-item bg-dark text-white border-secondary">
-                        {{ a.tecnico.username }}
+                    <li class="tech-item">
+                        <div class="tech-avatar"><i class='bx bxs-user'></i></div>
+                        <span class="tech-name">{{ a.tecnico.get_full_name|default:a.tecnico.username }}</span>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-dark text-muted">Sin técnicos asignados.</li>
+                    <li class="tech-item" style="color: var(--text-secondary); font-style: italic;">
+                        Sin técnicos asignados.
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
+
     </div>
 </div>
 {% endblock %}

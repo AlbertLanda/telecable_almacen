@@ -3,149 +3,158 @@
 
 {% block content %}
 <style>
-    /* --- ENCABEZADO --- */
+    /* =========================================
+       MIS ENTREGAS (Enterprise Style)
+       ========================================= */
+    
+    .entregas-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
     .page-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 25px; background: var(--bg-card);
-        padding: 20px; border-radius: var(--radius);
-        border: 1px solid var(--glass-border);
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
     }
-    .header-title h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
-    .header-title p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
 
-    /* --- ESTILOS DE TABLA PC --- */
-    .table-responsive-desktop {
-        width: 100%;
-        overflow-x: auto;
+    /* Tarjeta Principal */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Tabla PC */
+    .table-responsive-desktop { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
     }
     
-    table { 
-        width: 100% !important; 
-        border-collapse: separate; 
-        border-spacing: 0 8px; 
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .code-link { 
+        font-family: monospace; font-weight: 600; color: var(--primary); text-decoration: none; 
+        background: rgba(10, 132, 255, 0.1); padding: 4px 8px; border-radius: 6px; font-size: 13px;
     }
-    
-    th {
-        color: var(--text-muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 15px;
-        font-weight: 600;
+    .code-link:hover { text-decoration: underline; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .st-confirmado { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .st-anulado { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+    .st-borrador { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+
+    /* Botón Ver */
+    .btn-view {
+        color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light);
+        text-decoration: none; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
     }
+    .btn-view:hover { background: var(--bg-hover); color: var(--text-main); border-color: var(--text-secondary); }
 
-    td {
-        padding: 15px;
-        vertical-align: middle;
-        background: rgba(255, 255, 255, 0.03);
-        border: none;
-        transition: 0.2s;
-    }
-    
-    td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
-    td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
-
-    .col-left   { text-align: left; }
-    .col-center { text-align: center; }
-    .col-right  { text-align: right; }
-
-    tr:hover td { background: rgba(255, 255, 255, 0.08); transform: scale(1.005); }
-
-    /* --- TARJETAS MÓVILES --- */
-    .mobile-card-list { display: none; flex-direction: column; gap: 15px; }
+    /* --- VISTA MÓVIL (Tarjetas) --- */
+    .mobile-list { display: none; flex-direction: column; gap: 15px; }
     
     .delivery-card {
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius); padding: 15px;
-        position: relative; overflow: hidden;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
     }
+    .dc-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+    .dc-code { font-family: monospace; font-weight: 700; color: var(--text-main); font-size: 14px; }
     
-    .dc-header { 
-        display: flex; justify-content: space-between; align-items: center; 
-        margin-bottom: 10px; padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .dc-code { font-family: monospace; font-weight: 700; color: #fff; font-size: 15px; }
-    
-    .dc-body { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #ccc; }
-    .dc-row { display: flex; justify-content: space-between; }
-    .dc-label { color: var(--text-muted); }
+    .dc-row { display: flex; justify-content: space-between; font-size: 13px; }
+    .dc-label { color: var(--text-secondary); }
+    .dc-val { color: var(--text-main); font-weight: 500; }
 
-    .dc-footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; }
-    
-    /* --- RESPONSIVE --- */
+    .dc-actions { margin-top: 5px; }
+    .btn-mobile { width: 100%; text-align: center; justify-content: center; padding: 10px; background: var(--bg-input); border: none; color: var(--primary); font-weight: 600; }
+
+    /* Estado Vacío */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
+
     @media (max-width: 992px) {
-        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
         .table-responsive-desktop { display: none; }
-        .mobile-card-list { display: flex; }
+        .mobile-list { display: flex; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
     }
 </style>
 
-<div class="page-header">
-    <div class="header-title">
-        <h2><i class='bx bx-package' style="color: var(--primary);"></i> Mis Entregas</h2>
-        <p>Historial de material recibido del almacén</p>
-    </div>
-    <a href="{% url 'tecnico_dashboard' %}" class="btn btn-warning" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
-        <i class='bx bx-arrow-back'></i> Volver al Panel
-    </a>
-</div>
-
-<div class="section-card">
+<div class="entregas-container">
     
-    <div class="table-responsive-desktop">
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Mis Entregas</h2>
+            <p>Historial de material recibido del almacén</p>
+        </div>
+        <div>
+            <a href="{% url 'tecnico_dashboard' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="content-card table-responsive-desktop">
         <table>
             <thead>
                 <tr>
-                    <th class="col-left">Código SAL</th>
-                    <th class="col-center">Fecha</th>
-                    <th class="col-center">Estado</th>
-                    <th class="col-center">Origen (REQ)</th>
-                    <th class="col-right">Acciones</th>
+                    <th>Código SAL</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Origen (REQ)</th>
+                    <th style="text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in sals %}
                 <tr>
-                    <td class="col-left">
-                        <a href="{% url 'sal_detail' s.id %}" style="font-family: monospace; font-weight: 700; color: var(--primary); text-decoration: none; font-size: 14px;">
+                    <td>
+                        <a href="{% url 'sal_detail' s.id %}" class="code-link">
                             {{ s.numero|default:"(Sin Código)" }}
                         </a>
                     </td>
-                    
-                    <td class="col-center text-muted">{{ s.fecha|date:"d/m/Y H:i" }}</td>
-                    
-                    <td class="col-center">
+                    <td style="color: var(--text-secondary);">{{ s.fecha|date:"d M Y, H:i" }}</td>
+                    <td>
                         {% if s.estado == 'CONFIRMADO' %}
-                            <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); border: 1px solid rgba(48, 209, 88, 0.3);">Confirmado</span>
+                            <span class="badge st-confirmado">Confirmado</span>
                         {% elif s.estado == 'ANULADO' %}
-                            <span class="badge" style="background:rgba(255, 69, 58, 0.15); color:var(--danger);">Anulado</span>
+                            <span class="badge st-anulado">Anulado</span>
                         {% else %}
-                            <span class="badge" style="background:rgba(255, 255, 255, 0.1);">{{ s.get_estado_display }}</span>
+                            <span class="badge st-borrador">{{ s.get_estado_display }}</span>
                         {% endif %}
                     </td>
-                    
-                    <td class="col-center">
+                    <td>
                         {% if s.origen %}
-                            <span style="font-family: monospace; color: var(--warning); font-weight: 600;">
+                            <span style="font-family: monospace; color: var(--warning); font-size: 13px;">
                                 <i class='bx bx-file'></i> {{ s.origen.numero }}
                             </span>
                         {% else %}
-                            <span class="text-muted" style="font-size: 12px; font-style: italic;">Entrega Directa</span>
+                            <span style="font-size: 12px; color: var(--text-secondary); font-style: italic;">Entrega Directa</span>
                         {% endif %}
                     </td>
-                    
-                    <td class="col-right">
-                        <a href="{% url 'sal_detail' s.id %}" class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 14px;">
-                            <i class='bx bx-show'></i> Ver Detalle
+                    <td style="text-align: right;">
+                        <a href="{% url 'sal_detail' s.id %}" class="btn-view">
+                            Ver Detalle
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" style="text-align: center; padding: 50px; color: var(--text-muted);">
-                        <i class='bx bx-ghost' style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
-                        <p style="font-size: 16px;">No tienes entregas registradas aún.</p>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class='bx bx-box'></i>
+                            <h3>Sin Entregas</h3>
+                            <p>No tienes historial de recepciones.</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -153,44 +162,42 @@
         </table>
     </div>
 
-    <div class="mobile-card-list">
+    <div class="mobile-list">
         {% for s in sals %}
         <div class="delivery-card">
-            <div class="dc-header">
-                <div class="dc-code">
-                    <i class='bx bx-box' style="color: var(--primary);"></i> {{ s.numero|default:"(Sin Código)" }}
-                </div>
+            <div class="dc-top">
+                <span class="dc-code">{{ s.numero|default:"(Sin Código)" }}</span>
                 {% if s.estado == 'CONFIRMADO' %}
-                    <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); font-size: 11px;">OK</span>
+                    <span class="badge st-confirmado">OK</span>
+                {% elif s.estado == 'ANULADO' %}
+                    <span class="badge st-anulado">X</span>
                 {% else %}
-                    <span class="badge" style="background:rgba(255, 255, 255, 0.1); font-size: 11px;">{{ s.get_estado_display }}</span>
+                    <span class="badge st-borrador">{{ s.get_estado_display }}</span>
                 {% endif %}
             </div>
             
-            <div class="dc-body">
-                <div class="dc-row">
-                    <span class="dc-label">Fecha:</span>
-                    <span>{{ s.fecha|date:"d/m/Y H:i" }}</span>
-                </div>
-                <div class="dc-row">
-                    <span class="dc-label">Origen:</span>
-                    {% if s.origen %}
-                        <span style="color: var(--warning);">{{ s.origen.numero }}</span>
-                    {% else %}
-                        <span>Entrega Directa</span>
-                    {% endif %}
-                </div>
+            <div class="dc-row">
+                <span class="dc-label">Fecha:</span>
+                <span class="dc-val">{{ s.fecha|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="dc-row">
+                <span class="dc-label">Origen:</span>
+                <span class="dc-val">
+                    {% if s.origen %}{{ s.origen.numero }}{% else %}Directa{% endif %}
+                </span>
             </div>
 
-            <div class="dc-footer">
-                <a href="{% url 'sal_detail' s.id %}" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 13px;">
-                    Ver Detalle Completo <i class='bx bx-chevron-right'></i>
+            <div class="dc-actions">
+                <a href="{% url 'sal_detail' s.id %}" class="btn-view btn-mobile">
+                    Ver Detalle Completo
                 </a>
             </div>
         </div>
         {% empty %}
-        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-            <p>No hay entregas.</p>
+        <div class="empty-state">
+            <i class='bx bx-box'></i>
+            <h3>Sin Entregas</h3>
+            <p>No tienes historial.</p>
         </div>
         {% endfor %}
     </div>

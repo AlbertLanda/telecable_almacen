@@ -1,126 +1,207 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container-fluid p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="text-white">🏁 Liquidación de Obra: {{ proyecto.codigo }}</h3>
-        <a href="{% url 'almacen_liquidacion_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+<style>
+    /* =========================================
+       LIQUIDACIÓN DE OBRA (Enterprise)
+       ========================================= */
+    
+    .liquidate-container {
+        max-width: 1100px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Info Card */
+    .info-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: var(--shadow-card);
+    }
+    .info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+    .info-item div { font-size: 15px; font-weight: 600; color: var(--text-main); }
+    .status-badge { 
+        background: rgba(255, 159, 10, 0.15); color: var(--warning); padding: 4px 10px; border-radius: 6px; 
+        font-size: 11px; font-weight: 700; text-transform: uppercase; border: 1px solid rgba(255, 159, 10, 0.3);
+    }
+
+    /* Tabla Liquidación */
+    .table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+    }
+
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: center; color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; 
+        padding: 16px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); vertical-align: bottom;
+    }
+    th.th-left { text-align: left; padding-left: 24px; }
+    
+    td { padding: 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); }
+    td.td-left { padding-left: 24px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    /* Columnas */
+    .col-material { width: 30%; }
+    .col-entregado { width: 15%; text-align: center; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .col-input { width: 15%; text-align: center; }
+    .col-consumo { width: 15%; text-align: center; font-weight: 800; font-size: 18px; color: var(--primary); }
+
+    /* Inputs */
+    .qty-input {
+        width: 80px; text-align: center; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 15px;
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); transition: 0.2s;
+    }
+    .qty-input:focus { outline: none; border-color: var(--primary); background: #3a3a3c; }
+    
+    .input-green { border-color: rgba(48, 209, 88, 0.3); color: var(--success); }
+    .input-green:focus { border-color: var(--success); }
+    
+    .input-red { border-color: rgba(255, 69, 58, 0.3); color: var(--danger); }
+    .input-red:focus { border-color: var(--danger); }
+
+    .is-invalid { border-color: var(--danger) !important; background: rgba(255, 69, 58, 0.1) !important; }
+
+    /* Badges */
+    .badge-entregado { 
+        background: var(--bg-input); padding: 6px 12px; border-radius: 6px; 
+        border: 1px solid var(--border-light); display: inline-block;
+    }
+
+    /* Footer */
+    .footer-section { padding: 24px; border-top: 1px solid var(--border-light); }
+    .notes-input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; }
+
+    .btn-confirm {
+        width: 100%; background-color: var(--warning); color: #000; border: none; padding: 16px;
+        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 10px;
+        box-shadow: 0 4px 12px rgba(255, 159, 10, 0.3);
+    }
+    .btn-confirm:hover { background-color: #ff9f0a; transform: translateY(-2px); }
+
+    .error-text { color: var(--danger) !important; text-decoration: line-through; }
+
+    @media (max-width: 992px) {
+        .info-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .text-end { text-align: left !important; }
+    }
+</style>
+
+<div class="liquidate-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Liquidación de Obra: <span style="color:var(--primary)">{{ proyecto.codigo }}</span></h2>
+        </div>
+        <a href="{% url 'almacen_liquidacion_lista' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
-    <div class="glass-panel mb-4 p-3">
-        <div class="row">
-            <div class="col-md-4">
-                <small class="text-muted">PROYECTO</small>
-                <h5 class="text-white">{{ proyecto.nombre }}</h5>
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted">RESPONSABLE</small>
-                <h5 class="text-warning">{{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}</h5>
-            </div>
-            <div class="col-md-4 text-end">
-                <div class="badge bg-warning text-dark p-2">EN CIERRE</div>
-            </div>
+    <div class="info-card">
+        <div class="info-item">
+            <label>Proyecto</label>
+            <div>{{ proyecto.nombre }}</div>
+        </div>
+        <div class="info-item">
+            <label>Responsable</label>
+            <div><i class='bx bxs-user'></i> {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}</div>
+        </div>
+        <div class="info-item text-end">
+            <span class="status-badge">En Cierre</span>
         </div>
     </div>
 
     <form method="POST">
         {% csrf_token %}
         
-        <div class="glass-panel p-0 overflow-hidden">
-            <table class="table table-dark table-hover mb-0" style="background: transparent;">
-                <thead style="background: rgba(246, 194, 62, 0.2);">
-                    <tr>
-                        <th class="p-3 text-warning">MATERIAL</th>
-                        <th class="p-3 text-center">TOTAL ENTREGADO</th>
-                        <th class="p-3 text-center" style="width: 140px; color: #1cc88a;">
-                            <i class='bx bx-minus'></i> BUENOS<br><small>(Al Stock)</small>
-                        </th>
-                        <th class="p-3 text-center" style="width: 140px; color: #e74a3b;">
-                            <i class='bx bx-minus'></i> DAÑADOS<br><small>(Merma)</small>
-                        </th>
-                        <th class="p-3 text-center" style="border-left: 2px solid rgba(255,255,255,0.1);">
-                            <i class='bx bx-equal'></i> SE QUEDÓ EN OBRA
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in materiales %}
-                    <tr>
-                        <td class="p-3 align-middle">
-                            <div class="fw-bold">{{ m.producto.nombre }}</div>
-                            <small class="text-muted">{{ m.producto.codigo_interno }}</small>
-                        </td>
-                        <td class="p-3 text-center align-middle">
-                            <span class="badge bg-primary fs-6 badge-entregado" data-val="{{ m.max_devolucion }}">{{ m.max_devolucion }}</span>
-                        </td>
-                        
-                        <td class="p-3">
-                            <input type="number" 
-                                   name="input_good_{{ m.id }}" 
-                                   class="form-control text-center bg-dark text-success border-success input-calc"
-                                   data-id="{{ m.id }}"
-                                   min="0" 
-                                   value="0">
-                        </td>
+        <div class="table-card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="th-left col-material">Material</th>
+                            <th class="col-entregado">Total Entregado</th>
+                            <th class="col-input" style="color:var(--success);">
+                                <i class='bx bx-archive-in'></i> Buenos<br><small>(Retorno)</small>
+                            </th>
+                            <th class="col-input" style="color:var(--danger);">
+                                <i class='bx bx-trash'></i> Dañados<br><small>(Merma)</small>
+                            </th>
+                            <th class="col-consumo">
+                                <i class='bx bx-equal'></i> Se quedó en Obra<br><small>(Consumo)</small>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in materiales %}
+                        <tr>
+                            <td class="td-left">
+                                <strong style="display:block; font-size:15px;">{{ m.producto.nombre }}</strong>
+                                <small style="color:var(--text-secondary); font-family:monospace;">{{ m.producto.codigo_interno }}</small>
+                            </td>
 
-                        <td class="p-3">
-                            <input type="number" 
-                                   name="input_bad_{{ m.id }}" 
-                                   class="form-control text-center bg-dark text-danger border-danger input-calc"
-                                   data-id="{{ m.id }}"
-                                   min="0" 
-                                   value="0">
-                        </td>
+                            <td class="col-entregado">
+                                <span class="badge-entregado" data-val="{{ m.max_devolucion }}">
+                                    {{ m.max_devolucion }}
+                                </span>
+                            </td>
 
-                        <td class="p-3 text-center align-middle">
-                            <span class="fw-bold text-white fs-5" id="consumo_{{ m.id }}">{{ m.max_devolucion }}</span>
-                            <small class="d-block text-muted">Instalado</small>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="text-center p-5">Nada pendiente.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            <td class="col-input">
+                                <input type="number" name="input_good_{{ m.id }}" 
+                                       class="qty-input input-green input-calc" 
+                                       data-id="{{ m.id }}" min="0" value="0">
+                            </td>
 
-        <div class="mt-4">
-            <label class="text-muted mb-2">Observaciones de Cierre:</label>
-            <textarea name="notas" class="form-control bg-dark text-white border-secondary" rows="2" placeholder="Ej: Obra finalizada sin novedades..."></textarea>
-        </div>
+                            <td class="col-input">
+                                <input type="number" name="input_bad_{{ m.id }}" 
+                                       class="qty-input input-red input-calc" 
+                                       data-id="{{ m.id }}" min="0" value="0">
+                            </td>
 
-        <div class="d-grid gap-2 mt-4">
-            <button type="submit" class="btn btn-warning btn-lg fw-bold" onclick="return confirm('¿Confirmas el cierre del proyecto? Esta acción es definitiva.')">
-                <i class='bx bx-check-double'></i> CONFIRMAR DEVOLUCIÓN Y CERRAR OBRA
-            </button>
+                            <td class="col-consumo">
+                                <span id="consumo_{{ m.id }}">{{ m.max_devolucion }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer-section">
+                <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
+                    Observaciones de Cierre
+                </label>
+                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Obra finalizada sin novedades..."></textarea>
+                
+                <button type="submit" class="btn-confirm" onclick="return confirm('¿Confirmas el cierre del proyecto? Esta acción es definitiva.')">
+                    <i class='bx bx-check-double'></i> CONFIRMAR DEVOLUCIÓN Y CERRAR OBRA
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
 <script>
-    // Script simple para calcular en tiempo real el "Consumo Final"
-    document.querySelectorAll('.input-return').forEach(input => {
-        input.addEventListener('input', function() {
-            const entregado = parseInt(this.dataset.entregado);
-            const devuelto = parseInt(this.value) || 0;
-            const consumoDisplay = document.getElementById('consumo_' + this.dataset.id);
-            
-            const consumoReal = entregado - devuelto;
-            consumoDisplay.innerText = consumoReal;
-            
-            if(devuelto > 0) {
-                this.classList.add('border-warning');
-            } else {
-                this.classList.remove('border-warning');
-            }
-        });
-    });
-
     document.querySelectorAll('.input-calc').forEach(input => {
         input.addEventListener('input', function() {
             const id = this.dataset.id;
             
-            // Buscamos los valores del grupo
+            // Buscamos los inputs del grupo
             const inputGood = document.querySelector(`input[name="input_good_${id}"]`);
             const inputBad = document.querySelector(`input[name="input_bad_${id}"]`);
             const entregadoBadge = inputGood.closest('tr').querySelector('.badge-entregado');
@@ -131,16 +212,16 @@
             const valBad = parseInt(inputBad.value) || 0;
             const totalReturn = valGood + valBad;
 
-            // Validación visual (No pasarse del entregado)
+            // Validación visual
             if (totalReturn > valEntregado) {
                 inputGood.classList.add('is-invalid');
                 inputBad.classList.add('is-invalid');
                 consumoDisplay.innerText = "Error";
-                consumoDisplay.classList.add('text-danger');
+                consumoDisplay.classList.add('error-text');
             } else {
                 inputGood.classList.remove('is-invalid');
                 inputBad.classList.remove('is-invalid');
-                consumoDisplay.classList.remove('text-danger');
+                consumoDisplay.classList.remove('error-text');
                 
                 // Cálculo: Consumo = Entregado - (Buenos + Malos)
                 const consumoReal = valEntregado - totalReturn;

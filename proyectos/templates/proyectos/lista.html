@@ -1,33 +1,139 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container-fluid p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-white">📂 Proyectos y Obras</h2>
+<style>
+    /* =========================================
+       LISTA DE PROYECTOS (Enterprise Style)
+       ========================================= */
+    
+    .projects-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 30px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Botón Nuevo */
+    .btn-new {
+        background: var(--primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600;
+        text-decoration: none; display: flex; align-items: center; gap: 8px; transition: 0.2s; border: none;
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+    }
+    .btn-new:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Grid de Tarjetas */
+    .projects-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+    }
+
+    /* Tarjeta de Proyecto */
+    .project-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        transition: 0.2s; position: relative; overflow: hidden;
+        min-height: 220px;
+    }
+    .project-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-card); border-color: rgba(255,255,255,0.2); }
+
+    /* Header de Tarjeta */
+    .pc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .pc-title { font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0; line-height: 1.3; }
+    
+    .status-badge { 
+        padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .st-abierto { background: rgba(48, 209, 88, 0.15); color: var(--success); border: 1px solid rgba(48, 209, 88, 0.3); }
+    .st-cerrado { background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border-light); }
+
+    /* Meta Info */
+    .pc-meta { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+    .meta-code { 
+        font-family: monospace; background: rgba(10, 132, 255, 0.1); color: var(--primary); 
+        padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: 600;
+    }
+    .meta-sede { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+
+    /* Descripción */
+    .pc-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; flex-grow: 1; margin-bottom: 20px; }
+
+    /* Footer / Botón */
+    .btn-details {
+        width: 100%; text-align: center; padding: 12px; border-radius: 10px;
+        background: var(--bg-input); color: var(--text-main); font-weight: 600; font-size: 14px;
+        text-decoration: none; border: 1px solid var(--border-light); transition: 0.2s;
+    }
+    .btn-details:hover { background: var(--bg-hover); color: var(--primary); border-color: var(--primary); }
+
+    /* Estado Vacío */
+    .empty-state {
+        grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: var(--text-secondary);
+        background: var(--bg-card); border-radius: var(--radius); border: 1px dashed var(--border-light);
+    }
+    .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.3; }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .projects-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="projects-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Proyectos y Obras</h2>
+            <p>Gestión y seguimiento de obras activas.</p>
+        </div>
+        
         {% if user.profile.rol == 'ADMIN' or user.profile.rol == 'JEFA' %}
-        <a href="/admin/proyectos/proyecto/add/" class="btn btn-primary" target="_blank">+ Nuevo Proyecto</a>
+            <a href="/admin/proyectos/proyecto/add/" class="btn-new" target="_blank">
+                <i class='bx bx-plus'></i> Nuevo Proyecto
+            </a>
         {% endif %}
     </div>
 
-    <div class="row">
+    <div class="projects-grid">
         {% for p in proyectos %}
-        <div class="col-md-4 mb-3">
-            <div class="card bg-dark text-white border-secondary h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title text-info">{{ p.nombre }}</h5>
-                        <span class="badge {% if p.estado == 'ABIERTO' %}bg-success{% else %}bg-secondary{% endif %}">{{ p.estado }}</span>
-                    </div>
-                    <p class="card-text small text-muted">{{ p.codigo }} | {{ p.sede.nombre }}</p>
-                    <p>{{ p.descripcion|truncatechars:100 }}</p>
-                    <a href="{% url 'proyecto_detail' p.id %}" class="btn btn-outline-light btn-sm w-100">Ver Detalles</a>
-                </div>
+        <div class="project-card">
+            <div class="pc-header">
+                <h3 class="pc-title">{{ p.nombre }}</h3>
+                <span class="status-badge {% if p.estado == 'ABIERTO' or p.estado == 'PENDIENTE' or p.estado == 'EN_PROCESO' %}st-abierto{% else %}st-cerrado{% endif %}">
+                    {{ p.estado }}
+                </span>
             </div>
+            
+            <div class="pc-meta">
+                <span class="meta-code">{{ p.codigo }}</span>
+                <span class="meta-sede"><i class='bx bxs-building'></i> {{ p.sede.nombre }}</span>
+            </div>
+
+            <p class="pc-desc">
+                {{ p.descripcion|default:"Sin descripción registrada."|truncatechars:100 }}
+            </p>
+
+            <a href="{% url 'proyecto_detail' p.id %}" class="btn-details">
+                Ver Detalles <i class='bx bx-right-arrow-alt'></i>
+            </a>
         </div>
         {% empty %}
-        <div class="col-12 text-center text-muted mt-5">
-            <h4>No hay proyectos activos.</h4>
+        <div class="empty-state">
+            <i class='bx bx-folder-open'></i>
+            <h3>No hay proyectos activos</h3>
+            <p>Comienza creando uno nuevo desde el panel de administración.</p>
         </div>
         {% endfor %}
     </div>
+
 </div>
 {% endblock %}

@@ -3,133 +3,149 @@
 
 {% block content %}
 <style>
-    /* ESTILOS DEL PANEL DE PROYECTOS (Reutilizados) */
-    body { background-color: #1e1e2e !important; color: #fff !important; }
-    .container-fluid { padding: 40px; max-width: 1200px; }
+    /* =========================================
+       PANEL DE DESPACHO (Enterprise)
+       ========================================= */
     
-    .glass-panel {
-        background: #27293d;
-        border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 16px;
-        padding: 30px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    .panel-container {
+        display: flex; flex-direction: column; gap: 24px;
+        animation: fadeIn 0.4s ease-out;
+        max-width: 1200px; margin: 0 auto;
     }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .info-card {
-        background: rgba(78, 115, 223, 0.1);
-        border: 1px solid rgba(78, 115, 223, 0.2);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 25px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    /* Header con Info del REQ */
+    .req-header {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px;
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: var(--shadow-card);
     }
-    .info-label { color: #858796; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; display: block;}
-    .info-value { color: white; font-weight: 600; font-size: 15px; }
+    .rh-info h2 { font-size: 24px; color: var(--text-main); margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+    .rh-meta { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; display: flex; gap: 15px; align-items: center; }
+    .rh-badge { background: rgba(10, 132, 255, 0.1); color: var(--primary); padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 600; }
 
-    /* INPUTS CANTIDAD */
-    .form-control-qty {
-        background: #161620; 
-        border: 1px solid #3f4050; 
-        color: white; 
-        text-align: center; 
-        font-weight: bold;
-        font-size: 16px;
-        border-radius: 8px;
-        padding: 8px;
-        width: 100px;
-        margin: 0 auto;
-        transition: 0.2s;
+    /* Tabla de Despacho */
+    .dispatch-table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
     }
-    .form-control-qty:focus {
-        background: #1e1e2e; border-color: #4facfe; color: white; box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.25); outline: none;
-    }
-
-    /* TABLA NEON */
-    .table-neon { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
-    .table-neon th { color: #858796; font-size: 12px; text-transform: uppercase; padding: 10px; letter-spacing: 0.5px; }
-    .table-neon td { vertical-align: top; padding: 15px 10px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.02); }
-    .table-neon tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
-    .table-neon tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
     
-    .btn-confirm {
-        background: linear-gradient(45deg, #1cc88a, #13855c);
-        color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; border: none; margin-top: 20px; font-size: 16px; letter-spacing: 0.5px;
-        display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.3s;
+    table { width: 100%; border-collapse: collapse; }
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
     }
-    .btn-confirm:hover { box-shadow: 0 8px 20px rgba(28, 200, 138, 0.4); transform: translateY(-2px); }
+    td { padding: 20px 24px; border-bottom: 1px solid var(--border-light); vertical-align: top; color: var(--text-main); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
 
-    .stock-pill { padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: bold; }
-    .bg-blue-soft { background: rgba(78, 115, 223, 0.2); color: #4facfe; }
-    .bg-red-soft { background: rgba(231, 74, 59, 0.2); color: #e74a3b; }
+    /* Columnas Específicas */
+    .col-prod { width: 35%; }
+    .col-stock { width: 15%; text-align: center; }
+    .col-req { width: 15%; text-align: center; }
+    .col-action { width: 35%; }
 
-    /* ESTILOS SERIALIZADOS */
-    .serial-box {
-        background: rgba(0,0,0,0.3);
-        border: 1px dashed rgba(255,255,255,0.1);
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 5px;
-    }
-    .nav-tabs-custom { display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; padding-bottom: 5px; }
-    .tab-btn { background: none; border: none; color: #858796; padding: 5px 10px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 12px; transition: 0.2s;}
-    .tab-btn:hover { color: white; }
-    .tab-btn.active { color: #4facfe; border-bottom-color: #4facfe; font-weight: bold; }
-
-    .input-search { 
-        background: #161620; border: 1px solid #4facfe; color: white; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 13px; 
-    }
-    .input-search:focus { outline: none; box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
-    
-    .badge-item { 
-        background: #2f3542; border: 1px solid rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; 
-        display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; align-items: center;
-        transition: 0.2s;
-    }
-    .badge-item:hover { background: #3a4055; }
-    .badge-item strong { color: #4facfe; margin-right: 8px; font-size: 14px; }
-    
+    /* Producto */
+    .prod-name { font-weight: 600; font-size: 15px; color: var(--text-main); display: block; margin-bottom: 4px; }
+    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 12px; }
     .badge-serial { 
-        background: #4e73df; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; vertical-align: middle; 
+        background: var(--bg-input); border: 1px solid var(--border-light); 
+        color: var(--text-secondary); font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase;
+    }
+
+    /* Input Cantidad Simple */
+    .qty-display { 
+        font-size: 18px; font-weight: 700; color: var(--warning); 
+        background: rgba(255, 159, 10, 0.1); padding: 6px 12px; border-radius: 8px; display: inline-block;
+    }
+    .qty-input-simple {
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        text-align: center; font-weight: 700; border-radius: 8px; padding: 10px; width: 80px; font-size: 16px;
+    }
+    .qty-input-simple:focus { border-color: var(--primary); outline: none; }
+
+    /* CAJA DE SERIALES (Tabs + Scanner) */
+    .serial-box {
+        background: var(--bg-input); border: 1px dashed var(--border-light);
+        border-radius: 10px; padding: 15px; margin-top: 5px;
+    }
+    
+    .tabs-header { display: flex; gap: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; padding-bottom: 8px; }
+    .tab-link { 
+        background: none; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; 
+        transition: 0.2s; text-transform: uppercase;
+    }
+    .tab-link.active { color: var(--primary); }
+    .tab-link:hover { color: var(--text-main); }
+
+    .scanner-input {
+        width: 100%; background: #3a3a3c; border: 1px solid var(--primary); color: #fff;
+        padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 10px;
+    }
+    .scanner-input:focus { box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.3); outline: none; }
+
+    .picked-list { max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .picked-item {
+        background: var(--bg-card); padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
+        border: 1px solid var(--border-light); font-size: 12px;
+    }
+    .picked-item strong { color: var(--primary); font-family: monospace; }
+    .btn-remove-item { color: var(--text-secondary); cursor: pointer; transition: 0.2s; }
+    .btn-remove-item:hover { color: var(--danger); }
+
+    /* Botón Confirmar */
+    .btn-confirm {
+        width: 100%; background-color: var(--success); color: #000; border: none; padding: 16px;
+        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;
+    }
+    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); }
+
+    /* Footer Notes */
+    .notes-box { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
+    .notes-input { 
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 12px; border-radius: 10px; font-size: 14px; resize: vertical; 
+    }
+
+    @media (max-width: 992px) {
+        .req-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        th, td { display: block; width: 100%; box-sizing: border-box; }
+        th { display: none; } /* Ocultar headers en móvil */
+        td { padding: 10px 15px; border: none; }
+        tr { border-bottom: 1px solid var(--border-light); display: block; padding: 15px 0; }
+        .col-stock, .col-req { text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .col-stock::before { content: "Stock Almacén:"; color: var(--text-secondary); font-size: 12px; margin-right: 10px; }
+        .col-req::before { content: "Solicitado:"; color: var(--text-secondary); font-size: 12px; margin-right: 10px; }
     }
 </style>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="text-white m-0">📦 Confirmar Despacho (Técnico)</h3>
-            <p class="text-muted m-0 small">Escanea o selecciona los equipos específicos a entregar.</p>
+<div class="panel-container">
+    
+    <div class="req-header">
+        <div class="rh-info">
+            <h2>📦 Despacho de Material</h2>
+            <div class="rh-meta">
+                <span>REQ: <span class="rh-badge">{{ req.numero }}</span></span>
+                <span>Solicitante: <strong style="color:var(--text-main)">{{ req.responsable.get_full_name|default:req.responsable.username }}</strong></span>
+                <span>{{ req.fecha|date:"d M Y" }}</span>
+            </div>
         </div>
-        <a href="{% url 'dash_almacen' %}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
-    <div class="glass-panel">
-        <form method="POST">
-            {% csrf_token %}
-            
-            <div class="info-card">
-                <div>
-                    <span class="info-label">Requerimiento</span>
-                    <div class="info-value text-info">{{ req.numero }}</div>
-                </div>
-                <div>
-                    <span class="info-label">Solicitante</span>
-                    <div class="info-value">👷 {{ req.responsable.get_full_name|default:req.responsable.username }}</div>
-                </div>
-                <div class="text-end">
-                    <span class="info-label">Fecha Solicitud</span>
-                    <div class="info-value">{{ req.fecha|date:"d M Y" }}</div>
-                </div>
-            </div>
-
-            <table class="w-100 table-neon">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="dispatch-table-card">
+            <table>
                 <thead>
                     <tr>
-                        <th style="width: 35%;">Producto</th>
-                        <th class="text-center">Stock Almacén</th>
-                        <th class="text-center">Solicitado</th>
-                        <th class="text-center" style="width: 45%; color: #4facfe;">Selección para Despacho</th>
+                        <th class="col-prod">Producto</th>
+                        <th class="col-stock">Stock Disp.</th>
+                        <th class="col-req">Solicitado</th>
+                        <th class="col-action">Despachar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -137,37 +153,24 @@
                     {% with item=obj.req_item %}
                     <tr>
                         <td>
-                            <div class="d-flex align-items-start gap-3">
-                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                                    {% if item.producto.es_serializado %}
-                                        <i class='bx bx-barcode-reader text-primary fs-4'></i>
-                                    {% else %}
-                                        <i class='bx bx-cube text-white fs-4'></i>
-                                    {% endif %}
-                                </div>
-                                <div>
-                                    <strong class="d-block text-white">
-                                        {{ item.producto.nombre }}
-                                        {% if item.producto.es_serializado %}
-                                            <span class="badge-serial">SERIALIZADO</span>
-                                        {% endif %}
-                                    </strong>
-                                    <small class="text-muted">{{ item.producto.codigo_interno }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        
-                        <td class="text-center">
-                           <span class="stock-pill bg-blue-soft">Disponible</span>
+                            <span class="prod-name">
+                                {{ item.producto.nombre }}
+                                {% if item.producto.es_serializado %}<span class="badge-serial">SERIES</span>{% endif %}
+                            </span>
+                            <span class="prod-code">{{ item.producto.codigo_interno|default:"-" }}</span>
                         </td>
 
-                        <td class="text-center">
-                            <span class="text-warning fw-bold fs-5">{{ item.cantidad }}</span>
-                            <div class="small text-muted">{{ item.producto.unidad_medida }}</div>
+                        <td class="col-stock">
+                            <span style="font-weight: 600; color: var(--primary);">Disponible</span>
+                        </td>
+
+                        <td class="col-req">
+                            <span class="qty-display">{{ item.cantidad }}</span>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">{{ item.producto.unidad_medida }}</div>
                         </td>
 
                         <td>
-                            <input type="hidden" name="qty_{{ item.id }}" id="real_qty_{{ item.id }}" value="0">
+                            <input type="hidden" name="qty_{{ item.id }}" id="real_qty_{{ item.id }}" value="{% if not item.producto.es_serializado %}{{ item.cantidad }}{% else %}0{% endif %}">
                             <input type="hidden" name="rango_inicio_{{ item.id }}" id="input_rango_inicio_{{ item.id }}">
                             <input type="hidden" name="rango_fin_{{ item.id }}" id="input_rango_fin_{{ item.id }}">
                             <input type="hidden" name="detalles_json_{{ item.id }}" id="input_json_{{ item.id }}">
@@ -176,52 +179,42 @@
                                 <textarea id="stock_data_{{ item.id }}" style="display:none;">{{ obj.disponibles_json|safe }}</textarea>
 
                                 <div class="serial-box">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div class="nav-tabs-custom m-0">
-                                            <button type="button" class="tab-btn active" onclick="switchTab('{{ item.id }}', 'select')">📡 Selección (ONUs)</button>
-                                            <button type="button" class="tab-btn" onclick="switchTab('{{ item.id }}', 'rango')">🏷️ Rango (Precintos)</button>
-                                        </div>
-                                        <div class="text-end">
-                                            <small class="text-muted" style="font-size:10px;">DESPACHANDO:</small>
-                                            <div class="text-info fw-bold fs-5" id="display_qty_{{ item.id }}">0</div>
+                                    <div class="tabs-header">
+                                        <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'select')">Escanear (Individual)</button>
+                                        <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'rango')">Por Rango (Precintos)</button>
+                                        <div style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">
+                                            Despachando: <strong style="color: var(--primary);" id="display_qty_{{ item.id }}">0</strong>
                                         </div>
                                     </div>
 
                                     <div id="tab_select_{{ item.id }}">
-                                        <input type="text" class="input-search mb-2" 
-                                               placeholder="Escanear SN, MAC o Cód 44 y presionar ENTER..." 
+                                        <input type="text" class="scanner-input" 
+                                               placeholder="Escanear SN, MAC o Cód 44..." 
                                                id="search_input_{{ item.id }}"
                                                onkeydown="checkEnter(event, '{{ item.id }}')" autocomplete="off">
                                         
-                                        <div id="selected_list_{{ item.id }}" style="max-height: 150px; overflow-y: auto; padding-right: 5px;">
-                                            <div class="text-center text-muted small mt-2 fst-italic" id="empty_msg_{{ item.id }}">
-                                                Ningún equipo seleccionado.
+                                        <div id="selected_list_{{ item.id }}" class="picked-list">
+                                            <div class="text-center text-secondary small" id="empty_msg_{{ item.id }}" style="padding: 10px;">
+                                                Sin equipos seleccionados.
                                             </div>
                                         </div>
-                                        
                                         <script>window['picked_{{ item.id }}'] = [];</script>
                                     </div>
 
                                     <div id="tab_rango_{{ item.id }}" style="display:none;">
-                                        <div class="d-flex gap-2 align-items-center">
-                                            <input type="number" class="form-control bg-dark text-white border-secondary form-control-sm" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
-                                            <span>a</span>
-                                            <input type="number" class="form-control bg-dark text-white border-secondary form-control-sm" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                        <div style="display: flex; gap: 10px; align-items: center;">
+                                            <input type="number" class="qty-input-simple" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')" style="width: 100%;">
+                                            <span style="color: var(--text-secondary);">a</span>
+                                            <input type="number" class="qty-input-simple" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')" style="width: 100%;">
                                         </div>
-                                        <small class="text-muted d-block mt-1">* Se asignarán todos los seriales en este rango.</small>
+                                        <small style="color: var(--text-secondary); display: block; margin-top: 8px;">* Solo para series numéricas consecutivas.</small>
                                     </div>
                                 </div>
 
                             {% else %}
-                                <div class="text-center">
-                                    <input type="number" 
-                                           name="qty_{{ item.id }}" 
-                                           class="form-control-qty"
-                                           value="{{ item.cantidad }}" 
-                                           min="0"> 
-                                    <script>
-                                        document.getElementById('real_qty_{{ item.id }}').value = "{{ item.cantidad }}";
-                                    </script>
+                                <div style="display: flex; justify-content: center;">
+                                    <input type="number" name="qty_{{ item.id }}" class="qty-input-simple" 
+                                           value="{{ item.cantidad }}" min="0" onchange="document.getElementById('real_qty_{{ item.id }}').value = this.value">
                                 </div>
                             {% endif %}
                         </td>
@@ -230,19 +223,17 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            <div class="mt-4 pt-3 border-top border-secondary">
-                <label class="info-label mb-2">Notas de Despacho (Opcional)</label>
-                <textarea name="notas" class="form-control" rows="2" 
-                          style="background:#161620; border:1px solid #3f4050; color:white;"
-                          placeholder="Ej: Material entregado completo..."></textarea>
+            
+            <div class="notes-box" style="padding: 24px;">
+                <label style="color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 8px;">Notas de Entrega</label>
+                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Entregado completo a técnico..."></textarea>
+                
+                <button type="submit" class="btn-confirm">
+                    <i class='bx bx-check-double'></i> Confirmar Despacho
+                </button>
             </div>
-
-            <button type="submit" class="btn-confirm">
-                <i class='bx bx-check-double fs-4'></i> CONFIRMAR Y CARGAR A MOCHILA
-            </button>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
 <script>
@@ -251,8 +242,9 @@
         document.getElementById(`display_qty_${itemId}`).innerText = "0";
         document.getElementById(`real_qty_${itemId}`).value = 0;
         
+        // Estilos tabs
         const container = document.getElementById(`tab_select_${itemId}`).parentElement;
-        container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll('.tab-link').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
 
         if(mode === 'select') {
@@ -275,25 +267,23 @@
             const val = e.target.value.trim().toUpperCase();
             if(!val) return;
 
-            // 🟢 SOLUCIÓN AL ERROR: Leemos los datos desde el textarea oculto
             const stockJson = document.getElementById(`stock_data_${itemId}`).value;
-            const stock = JSON.parse(stockJson); // Convertimos texto a JSON real
+            const stock = JSON.parse(stockJson);
             
             const found = stock.find(x => x.serial === val || x.cod44 === val || x.mac === val);
 
             if(found) {
                 const picked = window[`picked_${itemId}`];
                 if(picked.find(x => x.id === found.id)) {
-                    alert('⚠️ ¡Este equipo ya está en la lista de despacho!');
+                    alert('⚠️ Equipo ya escaneado.');
                     e.target.value = "";
                     return;
                 }
-                
                 picked.push(found);
                 renderPicked(itemId);
                 e.target.value = ""; 
             } else {
-                alert('❌ Equipo no encontrado en stock disponible.\nVerifica que esté en "En Almacén" y en esta Sede.');
+                alert('❌ No encontrado en stock disponible.');
             }
         }
     }
@@ -303,15 +293,12 @@
         const emptyMsg = document.getElementById(`empty_msg_${itemId}`);
         const picked = window[`picked_${itemId}`];
         
-        if (picked.length > 0) {
-            emptyMsg.style.display = 'none';
-        } else {
+        if (picked.length > 0) emptyMsg.style.display = 'none';
+        else {
             emptyMsg.style.display = 'block';
             list.innerHTML = "";
             list.appendChild(emptyMsg);
-            document.getElementById(`display_qty_${itemId}`).innerText = "0";
-            document.getElementById(`real_qty_${itemId}`).value = 0;
-            document.getElementById(`input_json_${itemId}`).value = "";
+            updateCounters(itemId, 0, []);
             return;
         }
 
@@ -320,23 +307,19 @@
 
         picked.forEach((p, index) => {
             const div = document.createElement('div');
-            div.className = 'badge-item';
+            div.className = 'picked-item';
             div.innerHTML = `
                 <div>
-                    <strong>${p.cod44 || ''}</strong> 
-                    <span>${p.serial}</span>
-                    <span style="font-size:10px; color:#aaa; margin-left:5px;">${p.mac || ''}</span>
+                    <strong>${p.cod44 || p.serial}</strong> 
+                    <span style="color:var(--text-secondary); margin-left:6px;">${p.mac || ''}</span>
                 </div>
-                <i class='bx bx-x text-danger fs-5' style="cursor:pointer" onclick="removePicked('${itemId}', ${index})"></i>
+                <i class='bx bx-x btn-remove-item' onclick="removePicked('${itemId}', ${index})"></i>
             `;
             list.appendChild(div);
         });
 
-        document.getElementById(`display_qty_${itemId}`).innerText = picked.length;
-        document.getElementById(`real_qty_${itemId}`).value = picked.length;
-        
         const ids = picked.map(x => x.id);
-        document.getElementById(`input_json_${itemId}`).value = JSON.stringify(ids);
+        updateCounters(itemId, picked.length, ids);
     }
 
     function removePicked(itemId, index) {
@@ -344,7 +327,13 @@
         renderPicked(itemId);
     }
 
-    // --- LÓGICA RANGO (PRECINTOS) ---
+    function updateCounters(itemId, qty, jsonIds) {
+        document.getElementById(`display_qty_${itemId}`).innerText = qty;
+        document.getElementById(`real_qty_${itemId}`).value = qty;
+        document.getElementById(`input_json_${itemId}`).value = JSON.stringify(jsonIds);
+    }
+
+    // --- LÓGICA RANGO ---
     function calcRango(itemId) {
         const start = parseInt(document.getElementById(`start_${itemId}`).value) || 0;
         const end = parseInt(document.getElementById(`end_${itemId}`).value) || 0;
@@ -362,9 +351,5 @@
         document.getElementById(`display_qty_${itemId}`).innerText = qty;
         document.getElementById(`real_qty_${itemId}`).value = qty;
     }
-    
-    document.querySelectorAll('.form-control-qty').forEach(el => {
-        el.addEventListener('input', (e) => {});
-    });
 </script>
 {% endblock %}

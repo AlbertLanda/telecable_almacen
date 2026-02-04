@@ -3,168 +3,162 @@
 
 {% block content %}
 <style>
-    /* --- ENCABEZADO (Corrección de Posición) --- */
-    .page-header {
-        display: flex; 
-        justify-content: space-between; /* Separa los elementos a los extremos */
-        align-items: center;
-        margin-bottom: 25px; 
-        background: var(--bg-card);
-        padding: 20px; 
-        border-radius: var(--radius);
-        border: 1px solid var(--glass-border);
-    }
-    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
-    .header-content p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
-
-    /* --- LAYOUT PRINCIPAL (GRID) --- */
+    /* =========================================
+       SOLICITUD DE MATERIAL (Enterprise Style)
+       ========================================= */
+    
+    /* Layout Principal */
     .req-container {
         display: grid;
         grid-template-columns: 1fr 380px; /* Catálogo flexible, Carrito fijo */
-        gap: 25px;
+        gap: 24px;
         align-items: start;
-        animation: fadeIn 0.5s ease-out;
+        animation: fadeIn 0.4s ease-out;
     }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
     }
-
-    /* --- COLUMNA IZQUIERDA: CATÁLOGO --- */
-    .catalog-section {
-        background: var(--bg-card);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius);
-        padding: 20px;
-        min-height: 80vh;
-    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; gap: 8px; }
 
     /* Buscador */
-    .search-box { position: relative; margin-bottom: 20px; }
+    .search-box { position: relative; margin-bottom: 24px; }
     .search-input {
-        width: 100%; padding: 15px 15px 15px 45px; border-radius: 12px;
-        background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
-        color: #fff; font-size: 15px; outline: none; transition: 0.3s;
+        width: 100%; padding: 14px 16px 14px 48px; border-radius: 12px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        color: var(--text-main); font-size: 15px; outline: none; transition: 0.2s;
+        box-shadow: var(--shadow-card);
     }
-    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
+    .search-input:focus { border-color: var(--primary); background: #2c2c2e; }
     .search-icon {
-        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
-        color: var(--text-muted); font-size: 20px;
+        position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+        color: var(--text-secondary); font-size: 20px;
     }
 
     /* Grid de Productos */
     .catalog-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
     }
 
-    /* Tarjeta de Producto */
+    /* Tarjeta de Producto (Enterprise) */
     .prod-card {
-        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px; padding: 15px;
-        display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s;
+        background: var(--bg-card); 
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px;
+        display: flex; flex-direction: column; justify-content: space-between; 
+        transition: 0.2s; height: 100%; position: relative; overflow: hidden;
     }
-    .prod-card:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); border-color: var(--primary); }
-    .pc-title { font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 5px; line-height: 1.3; }
-    .pc-code { font-size: 11px; color: var(--text-muted); font-family: monospace; margin-bottom: 10px; }
+    .prod-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     
-    .pc-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; }
-    .badge-stock { padding: 4px 8px; border-radius: 6px; font-weight: 700; }
-    .bs-ok { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
-    .bs-low { background: rgba(255, 159, 10, 0.2); color: #FF9F0A; }
-    .bs-zero { background: rgba(255, 69, 58, 0.2); color: #ff4757; }
+    .pc-header { margin-bottom: 15px; }
+    .pc-title { font-weight: 600; color: var(--text-main); font-size: 15px; margin-bottom: 4px; line-height: 1.3; }
+    .pc-code { font-size: 12px; color: var(--text-secondary); font-family: monospace; }
+    
+    .pc-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 12px; }
+    .badge-stock { padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 11px; }
+    .bs-ok { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .bs-low { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .bs-zero { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
 
     /* Formulario de agregar */
-    .add-form { display: flex; gap: 5px; }
+    .add-form { display: flex; gap: 8px; margin-top: auto; }
     .qty-input {
-        width: 60px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-        color: #fff; border-radius: 8px; text-align: center; padding: 5px; font-weight: 700;
+        width: 60px; background: var(--bg-input); border: 1px solid var(--border-light);
+        color: var(--text-main); border-radius: 8px; text-align: center; padding: 8px; font-weight: 600;
+        transition: 0.2s;
     }
+    .qty-input:focus { border-color: var(--primary); outline: none; }
+    
     .btn-add {
-        flex: 1; background: var(--primary); color: #000; border: none; border-radius: 8px;
-        font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;
-        display: flex; align-items: center; justify-content: center; gap: 5px;
+        flex: 1; background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px solid rgba(10, 132, 255, 0.2);
+        border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-    .btn-add:hover { filter: brightness(1.1); }
-    .btn-add:disabled { background: #444; color: #888; cursor: not-allowed; }
+    .btn-add:hover { background: var(--primary); color: #fff; }
+    .btn-add:disabled { background: var(--bg-input); color: var(--text-tertiary); border-color: transparent; cursor: not-allowed; }
 
     /* --- COLUMNA DERECHA: CARRITO --- */
     .cart-section {
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius); padding: 20px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px;
         position: sticky; top: 90px;
-        display: flex; flex-direction: column; max-height: 85vh;
+        display: flex; flex-direction: column; max-height: calc(100vh - 120px);
+        box-shadow: var(--shadow-card);
     }
 
     .cart-header {
         display: flex; justify-content: space-between; align-items: center;
-        border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;
+        border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 16px;
     }
-    .cart-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
-
-    .cart-item {
-        background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px;
-        display: flex; align-items: center; justify-content: space-between;
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-    .ci-info { flex: 1; min-width: 0; margin-right: 10px; }
-    .ci-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ci-code { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+    .cart-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); }
     
-    .ci-actions { display: flex; align-items: center; gap: 5px; }
-    .cart-qty-input { width: 50px; text-align: center; padding: 5px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-size: 13px; }
-    .btn-remove { width: 28px; height: 28px; border-radius: 6px; background: rgba(255, 69, 58, 0.2); color: #ff4757; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .btn-remove:hover { background: rgba(255, 69, 58, 0.4); }
+    .cart-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
 
-    .cart-footer { border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px; padding-top: 15px; }
+    /* Item Carrito */
+    .cart-item {
+        background: var(--bg-input); border-radius: 10px; padding: 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        border: 1px solid transparent; transition: 0.2s;
+    }
+    .cart-item:hover { border-color: var(--border-light); background: #3a3a3c; }
+    
+    .ci-info { flex: 1; min-width: 0; margin-right: 12px; }
+    .ci-name { font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+    .ci-code { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+    
+    .ci-actions { display: flex; align-items: center; gap: 8px; }
+    .cart-qty-input { 
+        width: 50px; text-align: center; padding: 6px; background: var(--bg-body); 
+        border: 1px solid var(--border-light); border-radius: 6px; color: var(--text-main); font-size: 13px; font-weight: 600; 
+    }
+    .cart-qty-input:focus { border-color: var(--primary); outline: none; }
+    
+    .btn-remove { 
+        width: 28px; height: 28px; border-radius: 6px; 
+        background: transparent; color: var(--text-secondary); border: none; 
+        cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+    }
+    .btn-remove:hover { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+
+    .cart-footer { border-top: 1px solid var(--border-light); margin-top: 20px; padding-top: 20px; }
+    
     .btn-send {
-        width: 100%; background: linear-gradient(135deg, #4facfe, #00f2fe);
-        color: #000; font-weight: 800; padding: 12px; border-radius: 12px;
-        border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3); transition: 0.2s;
+        width: 100%; background-color: var(--primary);
+        color: #fff; font-weight: 600; padding: 14px; border-radius: 10px;
+        border: none; cursor: pointer; font-size: 15px;
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); transition: 0.2s;
     }
-    .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5); }
-    .btn-send:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
-
-    /* TOAST */
-    .custom-toast {
-        position: fixed; bottom: 20px; right: 20px;
-        background: rgba(30, 34, 50, 0.95); backdrop-filter: blur(10px);
-        color: #fff; padding: 15px 25px; border-radius: 12px;
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        display: none; z-index: 9999; animation: slideUp 0.3s ease;
-    }
-    .toast-success { border-left: 4px solid var(--success); }
-    .toast-error { border-left: 4px solid var(--danger); }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .btn-send:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+    .btn-send:disabled { background: var(--bg-input); color: var(--text-tertiary); box-shadow: none; cursor: not-allowed; }
 
     /* RESPONSIVE */
     @media (max-width: 992px) {
         .req-container { grid-template-columns: 1fr; }
-        .cart-section { position: relative; top: 0; order: -1; margin-bottom: 20px; }
-        .catalog-section { min-height: auto; }
-        
-        /* Ajuste de Header en Móvil */
-        .page-header { flex-direction: row; flex-wrap: wrap; gap: 15px; }
+        .cart-section { position: relative; top: 0; order: -1; margin-bottom: 24px; max-height: none; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
     }
 </style>
 
 <div class="page-header">
     <div class="header-content">
-        <h2><i class='bx bx-cart-add' style="color:var(--primary);"></i> Solicitar Material</h2>
+        <h2>Solicitar Material</h2>
         <p>
-            {% if sede %}Sede: <strong style="color:#fff">{{ sede.nombre }}</strong>{% endif %}
-            <span style="margin: 0 5px; opacity: 0.5;">|</span>
-            Tipo: <strong style="color:#fff">LOCAL</strong>
+            {% if sede %}Sede: <strong style="color:var(--text-main)">{{ sede.nombre }}</strong>{% endif %}
+            <span style="opacity: 0.3;">|</span>
+            Tipo: <strong style="color:var(--text-main)">LOCAL</strong>
         </p>
     </div>
     
     <div>
-        <a href="{% url 'tecnico_dashboard' %}" class="btn" style="background: rgba(255, 69, 58, 0.15); color: #ff6b6b; border: 1px solid rgba(255, 69, 58, 0.3);">
-            <i class='bx bx-log-out-circle'></i> Volver
+        <a href="{% url 'tecnico_dashboard' %}" class="btn btn-ghost">
+            <i class='bx bx-arrow-back'></i> Volver
         </a>
     </div>
 </div>
@@ -177,24 +171,26 @@
             <input id="catalogQuery" class="search-input" name="q" placeholder="Buscar material por nombre o código..." autocomplete="off">
         </form>
 
-        <div id="catalogMsg" style="display:none; padding:10px; color:var(--text-muted); text-align:center;"></div>
+        <div id="catalogMsg" style="display:none; padding:10px; color:var(--text-secondary); text-align:center;"></div>
 
         <div id="catalogGrid" class="catalog-grid">
-            <div style="text-align:center; grid-column: 1/-1; padding: 40px; color: var(--text-muted);">
-                <i class='bx bx-loader-alt bx-spin' style="font-size: 30px;"></i> Cargando catálogo...
+            <div style="text-align:center; grid-column: 1/-1; padding: 60px; color: var(--text-tertiary);">
+                <i class='bx bx-loader-alt bx-spin' style="font-size: 32px; margin-bottom: 10px;"></i>
+                <p>Cargando catálogo...</p>
             </div>
         </div>
     </div>
 
     <div class="cart-section">
         <div class="cart-header">
-            <h4 style="margin:0;"><i class='bx bx-basket'></i> Mi Pedido</h4>
-            <span id="cartCount" class="badge" style="background:var(--primary); color:#000;">0 ítems</span>
+            <h4><i class='bx bx-basket'></i> Mi Pedido</h4>
+            <span id="cartCount" class="badge" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border-light);">0 ítems</span>
         </div>
 
         <div id="cartList" class="cart-list">
-            <div style="text-align:center; padding:20px; color:var(--text-muted);">
-                Tu carrito está vacío.
+            <div style="text-align:center; padding:30px; color:var(--text-tertiary);">
+                <i class='bx bx-cart' style="font-size: 32px; margin-bottom: 5px;"></i>
+                <p>Tu carrito está vacío.</p>
             </div>
         </div>
 
@@ -203,21 +199,21 @@
                 <form method="post" action="{% url 'req_enviar' req.id %}">
                     {% csrf_token %}
                     <button id="btnEnviarReq" class="btn-send" type="submit" disabled>
-                        <i class='bx bx-send'></i> ENVIAR PEDIDO
+                        ENVIAR PEDIDO
                     </button>
                 </form>
             {% else %}
                 <button class="btn-send" disabled>Cargando...</button>
             {% endif %}
-            <div style="margin-top:10px; font-size:11px; color:var(--text-muted); text-align:center;">
-                * Al enviar, el almacén recibirá tu solicitud para aprobarla.
+            <div style="margin-top:12px; font-size:12px; color:var(--text-secondary); text-align:center;">
+                * El almacén recibirá tu solicitud para aprobación.
             </div>
         </div>
     </div>
 
 </div>
 
-<div id="toast" class="custom-toast"></div>
+<div id="toast" class="custom-toast" style="display:none;"></div>
 
 <script>
     const URL_CATALOGO = "{% url 'req_catalogo' %}";
@@ -238,23 +234,29 @@
     const cartListEl = document.getElementById("cartList");
     const cartCountEl = document.getElementById("cartCount");
     const btnEnviarReq = document.getElementById("btnEnviarReq");
-    const toastEl = document.getElementById("toast");
     const searchForm = document.getElementById("catalogSearchForm");
     const searchInput = document.getElementById("catalogQuery");
 
-    let toastTimer;
-
     function showToast(msg, type='success') {
-        toastEl.className = `custom-toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
-        toastEl.innerHTML = type === 'error' ? `<i class='bx bx-error'></i> ${msg}` : `<i class='bx bx-check-circle'></i> ${msg}`;
-        toastEl.style.display = 'block';
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { toastEl.style.display = 'none'; }, 3000);
+        const container = document.querySelector('.toast-container') || createToastContainer();
+        const div = document.createElement('div');
+        div.className = 'toast-msg';
+        div.style.borderLeft = type === 'error' ? '4px solid var(--danger)' : '4px solid var(--success)';
+        div.innerHTML = `<i class='bx ${type === 'error' ? 'bxs-error-circle' : 'bxs-check-circle'}' style="color:${type==='error'?'var(--danger)':'var(--success)'}; font-size:18px;"></i><span>${msg}</span>`;
+        container.appendChild(div);
+        setTimeout(() => { div.style.opacity = '0'; div.style.transform = 'translateY(-10px)'; setTimeout(() => div.remove(), 300); }, 3000);
+    }
+
+    function createToastContainer() {
+        const div = document.createElement('div');
+        div.className = 'toast-container';
+        document.body.appendChild(div);
+        return div;
     }
 
     function renderCatalog(items) {
         if (!items || items.length === 0) {
-            gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#888;">No se encontraron materiales.</div>`;
+            gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-tertiary);">No se encontraron materiales.</div>`;
             return;
         }
 
@@ -265,20 +267,22 @@
             
             return `
             <div class="prod-card">
-                <div>
+                <div class="pc-header">
                     <div class="pc-title">${p.nombre}</div>
-                    <div class="pc-code">${p.codigo || 'SIN CODIGO'}</div>
+                    <div class="pc-code">${p.codigo || 'S/C'}</div>
+                </div>
+                <div>
                     <div class="pc-meta">
-                        <span>Stock:</span>
+                        <span style="color:var(--text-secondary)">Stock Disp:</span>
                         <span class="badge-stock ${badgeClass}">${stock}</span>
                     </div>
+                    <form class="add-form" onsubmit="addToCart(event, ${p.producto_id})">
+                        <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
+                        <button type="submit" class="btn-add" ${disabled}>
+                            <i class='bx bx-plus'></i> Agregar
+                        </button>
+                    </form>
                 </div>
-                <form class="add-form" onsubmit="addToCart(event, ${p.producto_id})">
-                    <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
-                    <button type="submit" class="btn-add" ${disabled}>
-                        <i class='bx bx-plus'></i> Agregar
-                    </button>
-                </form>
             </div>
             `;
         }).join('');
@@ -291,7 +295,7 @@
         if (btnEnviarReq) btnEnviarReq.disabled = count === 0;
 
         if (!items || items.length === 0) {
-            cartListEl.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Tu carrito está vacío.</div>`;
+            cartListEl.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-tertiary);"><i class='bx bx-cart' style="font-size:24px; margin-bottom:5px;"></i><p>Carrito vacío.</p></div>`;
             return;
         }
 
@@ -320,7 +324,7 @@
             const data = await res.json();
             renderCatalog(data.results || []);
         } catch (e) {
-            gridEl.innerHTML = `<div style="color:red; text-align:center;">Error cargando catálogo.</div>`;
+            gridEl.innerHTML = `<div style="color:var(--danger); text-align:center;">Error cargando catálogo.</div>`;
         }
     }
 

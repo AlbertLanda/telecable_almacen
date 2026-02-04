@@ -1,242 +1,263 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Escanear | Telecable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    /* --- TEMA DARK --- */
-    :root{ --bg: #0b0f1a; --bg2: #0f172a; --panel: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.10); --text: #e6edf3; --muted: #8b949e; --primary: #4facfe; --primary-dark: #00d4ff; --success: #2ed573; --danger: #ff4757; --radius: 18px; }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Poppins', sans-serif; background: radial-gradient(1000px 500px at 20% 0%, rgba(79,172,254,0.18), transparent 60%), radial-gradient(900px 450px at 90% 10%, rgba(0,212,255,0.12), transparent 60%), linear-gradient(180deg, var(--bg), var(--bg2)); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+{% block content %}
+<style>
+    /* =========================================
+       MÓDULO DE ESCANEO (Enterprise Style)
+       ========================================= */
     
-    .sidebar{ width: 270px; padding: 20px; background: rgba(255,255,255,0.04); border-right: 1px solid var(--border); backdrop-filter: blur(12px); display:flex; flex-direction:column; gap: 10px; z-index: 10; }
-    .brand{ display:flex; align-items:center; gap: 12px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); margin-bottom: 20px; }
-    .brand img{ width: 44px; border-radius: 12px; background: rgba(255,255,255,0.08); padding: 6px; }
-    .menu-btn{ width: 100%; display:flex; align-items:center; gap: 12px; text-decoration:none; color: var(--muted); padding: 12px 14px; border-radius: 14px; transition: 0.2s; }
-    .menu-btn:hover{ background: rgba(255,255,255,0.06); color: var(--text); }
-    .menu-btn.active{ background: linear-gradient(135deg, rgba(79,172,254,0.22), rgba(0,212,255,0.12)); border-color: rgba(79,172,254,0.22); color: var(--text); }
-    .menu-btn.danger{ margin-top:auto; color: var(--danger); background: rgba(255,71,87,0.10); }
-
-    .main { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
-    .topbar{ width: 100%; display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; }
-    .user-pill{ display:flex; align-items:center; gap: 10px; padding: 10px 14px; border-radius: 99px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
-
-    .scanner-box { width: 100%; max-width: 600px; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 40px; margin-top: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center; backdrop-filter: blur(12px); }
-    .search-input { width: 100%; padding: 18px 20px 18px 55px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); border-radius: 16px; color: #fff; font-size: 18px; outline: none; text-transform: uppercase; transition: 0.3s; }
-    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 25px rgba(79, 172, 254, 0.15); }
-    
-    .alert-error { background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 20px; border-radius: 16px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .btn-create { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-    
-    .product-header { background: linear-gradient(90deg, rgba(79,172,254,0.1), rgba(0,212,255,0.05)); border: 1px solid var(--primary); padding: 20px; border-radius: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-    .stock-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    
-    .btn-save { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--success), #23a356); color: #fff; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; }
-    .input-qty { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; border-radius: 10px; text-align: center; font-size: 18px; font-weight: bold; outline: none; }
-
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; }
-    .modal-overlay.open { display: flex; }
-    .modal-card { background: #131a28; border: 1px solid var(--border); width: 450px; padding: 30px; border-radius: 24px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); }
-    .input-text { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; border-radius: 10px; outline: none; text-transform: uppercase; }
-    
-    /* ESTILOS PARA LOS SELECTS */
-    select.input-text {
-        appearance: none;
-        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300d4ff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        background-repeat: no-repeat;
-        background-position: right .7em top 50%;
-        background-size: .65em auto;
-        cursor: pointer;
+    .scan-container {
+        display: flex; flex-direction: column; align-items: center;
+        max-width: 800px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
     }
-    option { background-color: #131a28; color: #fff; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px 20px; border-radius: 10px; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <aside class="sidebar">
-    <div class="brand"><img src="{% static 'inventario/img/logo.png' %}" alt="Logo"><h3>TELECABLE</h3></div>
-    <nav class="menu">
-      <a href="{% url 'dash_admin' %}" class="menu-btn"><i class='bx bxs-dashboard'></i> <span>Dashboard</span></a>
-      <a href="{% url 'inventory_list' %}" class="menu-btn"><i class='bx bx-box'></i> <span>Inventario</span></a>
-      <a href="#" class="menu-btn active"><i class='bx bx-barcode-reader'></i> <span>Escanear</span></a>
-      <a href="/admin/" class="menu-btn"><i class='bx bxs-cog'></i> <span>Admin Django</span></a>
-      <a href="{% url 'logout' %}" class="menu-btn danger"><i class='bx bx-log-out-circle'></i> <span>Salir</span></a>
-    </nav>
-  </aside>
+    /* Header Centrado */
+    .scan-header { text-align: center; margin-bottom: 40px; }
+    .scan-header h2 { font-size: 28px; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.5px; }
+    .scan-header p { margin: 8px 0 0; font-size: 15px; color: var(--text-secondary); }
 
-  <main class="main">
-    <header class="topbar"><div><h2>Módulo de Escaneo</h2><p style="color:var(--muted)">Sede: <b style="color:var(--primary)">{{ sede.nombre }}</b></p></div><div class="user-pill"><i class='bx bxs-user-circle'></i> <span>{{ user.username }}</span></div></header>
+    /* Caja de Búsqueda Principal */
+    .scanner-box {
+        width: 100%; position: relative; margin-bottom: 30px;
+    }
+    .scanner-icon {
+        position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+        font-size: 24px; color: var(--text-tertiary);
+    }
+    .scanner-input {
+        width: 100%; padding: 20px 20px 20px 60px; border-radius: 16px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        color: var(--text-main); font-size: 18px; outline: none; transition: 0.2s;
+        box-shadow: var(--shadow-card);
+    }
+    .scanner-input:focus { border-color: var(--primary); background: #2c2c2e; }
+
+    /* Alerta Error / Crear */
+    .alert-box {
+        background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2);
+        border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 30px; width: 100%;
+    }
+    .alert-text { color: var(--danger); font-size: 15px; margin-bottom: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-create-modal {
+        background: var(--danger); color: #fff; border: none; padding: 10px 20px;
+        border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-create-modal:hover { background: #d63a30; }
+
+    /* Resultado Producto */
+    .product-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 30px; width: 100%;
+        box-shadow: var(--shadow-card); text-align: left;
+    }
     
-    <div class="scanner-box">
-        <div style="font-size:48px; color:var(--primary); margin-bottom:15px;"><i class='bx bx-qr-scan'></i></div>
-        <h2>Consultar y Agregar</h2>
-        <p>Escanea un código. Si no existe, podrás crearlo.</p>
+    .pc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 1px solid var(--border-light); padding-bottom: 20px; }
+    .pc-title h3 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text-main); }
+    .pc-code { font-family: monospace; color: var(--primary); font-size: 14px; font-weight: 600; background: rgba(10, 132, 255, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px; }
+    .pc-cat { text-align: right; }
+    .pc-cat span { display: block; font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; }
+    .pc-cat strong { font-size: 14px; color: var(--text-main); }
 
-        <form method="GET" style="position: relative; margin-bottom: 30px;">
-            <i class='bx bx-barcode' style="position: absolute; left: 20px; top: 18px; font-size: 24px; color: var(--muted);"></i>
-            <input type="text" name="q" class="search-input uppercase-input" placeholder="Escanea aquí..." value="{{ q }}" autofocus autocomplete="off" onfocus="this.select()">
-        </form>
+    /* Stock List */
+    .stock-list { margin-bottom: 30px; }
+    .stock-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px 16px; background: var(--bg-input); border-radius: 10px; margin-bottom: 8px;
+        border: 1px solid transparent;
+    }
+    .stock-row:hover { border-color: var(--border-light); }
+    .sr-sede { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-main); }
+    .sr-qty { font-size: 16px; font-weight: 700; color: var(--success); }
 
-        {% if error %}
-        <div class="alert-error">
-            <div><i class='bx bxs-error-circle'></i> {{ error }}</div>
-            <button onclick="openCreateModal('{{ q }}')" class="btn-create"><i class='bx bx-plus-circle'></i> CREAR PRODUCTO</button>
-        </div>
-        {% endif %}
+    /* Quick Add Form */
+    .quick-add-box {
+        background: rgba(10, 132, 255, 0.05); border: 1px dashed rgba(10, 132, 255, 0.3);
+        border-radius: 12px; padding: 20px;
+    }
+    .qa-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    
+    .qa-form { display: flex; gap: 15px; align-items: flex-end; }
+    .form-group { flex: 1; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; }
+    .form-control {
+        width: 100%; background: var(--bg-body); border: 1px solid var(--border-light);
+        color: var(--text-main); padding: 10px; border-radius: 8px; outline: none; transition: 0.2s; font-size: 14px;
+    }
+    .form-control:focus { border-color: var(--primary); }
 
-        {% if producto %}
-        <div style="text-align: left; animation: fadeIn 0.4s ease;">
-            
-            <div class="product-header">
-                <div>
-                    <h3 style="margin:0;">{{ producto.nombre }}</h3>
-                    <span style="font-family:monospace; color:var(--primary);">{{ producto.codigo_interno }}</span>
-                </div>
-                <div style="text-align:right;">
-                    <small style="color:var(--muted)">CATEGORÍA</small><br>
-                    <b>{{ producto.categoria.nombre|default:"General" }}</b>
-                </div>
-            </div>
-            
-            <div style="margin-bottom:20px;">
-                <p style="font-size:12px; color:var(--muted);">DISPONIBILIDAD:</p>
-                {% for st in stocks %}
-                <div class="stock-item">
-                    <span><i class='bx bxs-building-house' style="color:var(--primary)"></i> {{ st.sede.nombre }}</span>
-                    <span style="font-size: 18px; font-weight: 700; color: var(--success);">{{ st.cantidad }}</span>
-                </div>
-                {% empty %}
-                <div class="stock-item" style="justify-content:center; color:var(--muted);">Sin stock registrado.</div>
-                {% endfor %}
-            </div>
+    .btn-save {
+        background: var(--success); color: #000; border: none; padding: 10px 24px;
+        border-radius: 8px; font-weight: 700; cursor: pointer; height: 42px;
+        display: flex; align-items: center; gap: 8px; transition: 0.2s;
+    }
+    .btn-save:hover { background: #2bc063; transform: translateY(-1px); }
 
-            <div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:16px; border:1px solid var(--border);">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px;">
-                    <i class='bx bx-plus-circle' style="color:#fff;"></i>
-                    <span style="font-weight:600;">Ingreso Rápido</span>
-                </div>
-                
-                <form action="{% url 'add_stock_simple' %}" method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="origen" value="scan">
-                    <input type="hidden" name="producto_id" value="{{ producto.id }}">
-                    
-                    <div style="margin-bottom: 12px;">
-                        <label style="font-size:11px; color:var(--muted); margin-bottom:5px; display:block;">DESTINO</label>
-                        <select name="target_sede_id" class="input-text" style="width:100%; cursor:pointer;">
-                            {% for s in lista_sedes %}
-                                <option value="{{ s.id }}" {% if s.id == sede.id %}selected{% endif %}>
-                                    {{ s.nombre }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+    /* MODAL */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+        display: none; justify-content: center; align-items: center; z-index: 2000;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease-out; }
+    
+    .modal-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        width: 90%; max-width: 500px; padding: 30px; border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); }
+    
+    .btn-cancel { background: transparent; border: 1px solid var(--border-light); color: var(--text-secondary); padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+    .btn-create-submit { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-                    <div style="display:flex; gap:10px; align-items: flex-end;">
-                        <div style="width: 120px;">
-                            <label style="font-size:11px; color:var(--muted); margin-bottom:5px; display:block;">CANTIDAD</label>
-                            <input type="number" name="cantidad" class="input-qty" value="1" min="1" required>
-                        </div>
-                        <button type="submit" class="btn-save" style="margin-top:0; flex:1; height: 49px;">
-                            <i class='bx bx-save'></i> GUARDAR
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        {% endif %}
+</style>
+
+<div class="scan-container">
+    
+    <div class="scan-header">
+        <h2>Módulo de Escaneo</h2>
+        <p>Sede Actual: <strong style="color:var(--primary)">{{ sede.nombre }}</strong></p>
     </div>
-  </main>
 
-  <div class="modal-overlay" id="createModal">
-      <div class="modal-card">
-          <h3 style="margin-bottom:20px;">Registrar Nuevo Producto</h3>
-          
-          <form action="{% url 'create_product_simple' %}" method="POST">
-              {% csrf_token %}
-              
-              <div style="margin-bottom:15px;">
-                  <label style="font-size:11px; color:var(--muted);">CÓDIGO DETECTADO</label>
-                  <input type="text" name="codigo" id="newCode" class="input-text" readonly 
-                         style="background:rgba(79, 172, 254, 0.1); color:var(--primary); border-color:var(--primary);">
-              </div>
+    <div class="scanner-box">
+        <i class='bx bx-barcode scanner-icon'></i>
+        <form method="GET">
+            <input type="text" name="q" class="scanner-input" placeholder="Escanea código o escribe nombre..." value="{{ q }}" autofocus autocomplete="off" onfocus="this.select()">
+        </form>
+    </div>
 
-              <div style="margin-bottom:15px;">
-                  <label style="font-size:11px; color:var(--muted);">NOMBRE DEL PRODUCTO</label>
-                  <input type="text" name="nombre" class="input-text uppercase-input" required placeholder="EJ: CABLE UTP CAT6">
-              </div>
+    {% if error %}
+    <div class="alert-box">
+        <div class="alert-text"><i class='bx bxs-error-circle'></i> {{ error }}</div>
+        <button onclick="openCreateModal('{{ q }}')" class="btn-create-modal">
+            <i class='bx bx-plus-circle'></i> Crear Producto Nuevo
+        </button>
+    </div>
+    {% endif %}
 
-              <div style="display:flex; gap:15px; margin-bottom:15px;">
-                  <div style="flex:1;">
-                      <label style="font-size:11px; color:var(--muted); margin-bottom:6px; display:block;">CATEGORÍA</label>
-                      <select name="categoria_id" class="input-text uppercase-input" style="width:100%; cursor:pointer;" required>
-                          <option value="" disabled selected>SELECCIONAR...</option>
-                          {% for cat in lista_categorias %}
-                              <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-                          {% empty %}
-                              <option value="" disabled>Sin categorías</option>
-                          {% endfor %}
-                      </select>
-                  </div>
+    {% if producto %}
+    <div class="product-card">
+        
+        <div class="pc-header">
+            <div class="pc-title">
+                <h3>{{ producto.nombre }}</h3>
+                <span class="pc-code">{{ producto.codigo_interno }}</span>
+            </div>
+            <div class="pc-cat">
+                <span>Categoría</span>
+                <strong>{{ producto.categoria.nombre|default:"General" }}</strong>
+            </div>
+        </div>
 
-                  <div style="flex:1;">
-                      <label style="font-size:11px; color:var(--muted); margin-bottom:6px; display:block;">UNIDAD</label>
-                      <select name="unidad_medida" class="input-text uppercase-input" style="width:100%;">
-                          <option value="UNIDAD">UNIDAD</option>
-                          <option value="METROS">METROS</option>
-                          <option value="CAJAS">CAJAS</option>
-                          <option value="KIT">KIT</option>
-                          <option value="PIEZAS">PIEZAS</option>
-                          <option value="BOBINAS">BOBINAS</option>
-                      </select>
-                  </div>
-              </div>
+        <div class="stock-list">
+            <label class="form-label">Disponibilidad por Sede</label>
+            {% for st in stocks %}
+            <div class="stock-row">
+                <div class="sr-sede"><i class='bx bxs-building'></i> {{ st.sede.nombre }}</div>
+                <div class="sr-qty">{{ st.cantidad }}</div>
+            </div>
+            {% empty %}
+            <div style="padding:15px; text-align:center; color:var(--text-secondary); font-style:italic;">Sin stock registrado.</div>
+            {% endfor %}
+        </div>
 
-              <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; border:1px solid var(--border); margin-bottom:20px;">
-                  <label style="font-size:11px; color:var(--primary); font-weight:bold; display:block; margin-bottom:10px;">
-                      <i class='bx bxs-map'></i> UBICACIÓN INICIAL
-                  </label>
-                  
-                  <div style="display:flex; gap:10px;">
-                      <div style="flex:1;">
-                          <label style="font-size:10px; color:var(--muted);">SEDE DE DESTINO</label>
-                          <select name="target_sede_id" class="input-text" style="width:100%;">
-                              {% for s in lista_sedes %}
-                                  <option value="{{ s.id }}" {% if s.id == sede.id %}selected{% endif %}>
-                                      {{ s.nombre }}
-                                  </option>
-                              {% endfor %}
-                          </select>
-                      </div>
+        <div class="quick-add-box">
+            <div class="qa-title"><i class='bx bx-plus-circle'></i> Ingreso Rápido</div>
+            
+            <form action="{% url 'add_stock_simple' %}" method="POST" class="qa-form">
+                {% csrf_token %}
+                <input type="hidden" name="origen" value="scan">
+                <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                
+                <div class="form-group" style="flex: 2;">
+                    <label class="form-label">Destino</label>
+                    <select name="target_sede_id" class="form-control">
+                        {% for s in lista_sedes %}
+                            <option value="{{ s.id }}" {% if s.id == sede.id %}selected{% endif %}>{{ s.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                      <div style="width:100px;">
-                          <label style="font-size:10px; color:var(--muted);">CANTIDAD</label>
-                          <input type="number" name="cantidad" class="input-text" value="0" min="0" 
-                                 style="text-align:center; font-weight:bold; color:var(--success);">
-                      </div>
-                  </div>
-              </div>
+                <div class="form-group">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" class="form-control" value="1" min="1" required style="text-align:center; font-weight:700;">
+                </div>
 
-              <div style="display:flex; gap:10px;">
-                  <button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancelar</button>
-                  <button type="submit" class="btn-save" style="margin-top:0;">
-                      <i class='bx bx-save'></i> GUARDAR
-                  </button>
-              </div>
-          </form>
-      </div>
-  </div>
+                <button type="submit" class="btn-save">
+                    <i class='bx bx-check'></i> Guardar
+                </button>
+            </form>
+        </div>
 
-  <script>
-      document.querySelectorAll('.uppercase-input').forEach(i => i.addEventListener('input', function() { this.value = this.value.toUpperCase(); }));
-      function openCreateModal(code) { document.getElementById('newCode').value = code; document.getElementById('createModal').classList.add('open'); }
-      function closeCreateModal() { document.getElementById('createModal').classList.remove('open'); }
-  </script>
-</body>
-</html>
+    </div>
+    {% endif %}
+
+</div>
+
+<div class="modal-overlay" id="createModal">
+    <div class="modal-card">
+        <div class="modal-title">Registrar Nuevo Producto</div>
+        
+        <form action="{% url 'create_product_simple' %}" method="POST">
+            {% csrf_token %}
+            
+            <div style="margin-bottom:15px;">
+                <label class="form-label">Código Detectado</label>
+                <input type="text" name="codigo" id="newCode" class="form-control" readonly 
+                       style="background:rgba(10,132,255,0.1); border-color:var(--primary); color:var(--primary); font-weight:600;">
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label class="form-label">Nombre del Producto</label>
+                <input type="text" name="nombre" class="form-control uppercase-input" required placeholder="EJ: CABLE UTP...">
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:20px;">
+                <div style="flex:1;">
+                    <label class="form-label">Categoría</label>
+                    <select name="categoria_id" class="form-control" required>
+                        <option value="" disabled selected>Seleccionar...</option>
+                        {% for cat in lista_categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                        {% empty %}
+                            <option value="" disabled>Sin categorías</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label class="form-label">Unidad</label>
+                    <select name="unidad_medida" class="form-control">
+                        <option value="UNIDAD">UNIDAD</option>
+                        <option value="METROS">METROS</option>
+                        <option value="CAJAS">CAJAS</option>
+                        <option value="KIT">KIT</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-cancel" onclick="closeCreateModal()">Cancelar</button>
+                <button type="submit" class="btn-create-submit">Crear Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Auto-mayúsculas
+    document.querySelectorAll('.uppercase-input').forEach(i => i.addEventListener('input', function() { this.value = this.value.toUpperCase(); }));
+    
+    // Modal
+    function openCreateModal(code) { 
+        document.getElementById('newCode').value = code; 
+        document.getElementById('createModal').classList.add('open'); 
+    }
+    function closeCreateModal() { 
+        document.getElementById('createModal').classList.remove('open'); 
+    }
+</script>
+{% endblock %}

@@ -3,105 +3,132 @@
 
 {% block content %}
 <style>
-    /* HEADER */
+    /* =========================================
+       MI STOCK (Enterprise Style)
+       ========================================= */
+    
+    .stock-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
     .page-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 25px; background: var(--bg-card);
-        padding: 20px; border-radius: var(--radius);
-        border: 1px solid var(--glass-border);
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
     }
-    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
-    .header-content p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
 
-    /* BUSCADOR */
-    .search-bar {
-        margin-bottom: 20px; position: relative;
-    }
+    /* Buscador */
+    .search-box { position: relative; margin-bottom: 30px; }
     .search-input {
-        width: 100%; padding: 15px 15px 15px 45px;
-        background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px; color: #fff; outline: none; transition: 0.3s;
+        width: 100%; padding: 14px 16px 14px 48px; border-radius: 12px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        color: var(--text-main); font-size: 15px; outline: none; transition: 0.2s;
+        box-shadow: var(--shadow-card);
     }
-    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
+    .search-input:focus { border-color: var(--primary); background: #2c2c2e; }
     .search-icon {
-        position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
-        color: var(--text-muted); font-size: 20px;
+        position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+        color: var(--text-secondary); font-size: 20px;
     }
 
-    /* GRID DE PRODUCTOS */
+    /* Grid de Stock */
     .stock-grid {
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 15px;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
     }
 
-    /* TARJETA DE PRODUCTO */
+    /* Tarjeta de Stock */
     .stock-card {
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius); padding: 15px;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px;
         display: flex; justify-content: space-between; align-items: center;
-        transition: 0.2s;
+        transition: 0.2s; position: relative; overflow: hidden;
     }
-    .stock-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .stock-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
 
     .sc-info { flex: 1; min-width: 0; margin-right: 15px; }
-    .sc-name { font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sc-code { font-family: monospace; color: var(--text-muted); font-size: 11px; }
+    .sc-name { font-weight: 600; color: var(--text-main); font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-code { font-family: monospace; color: var(--text-secondary); font-size: 12px; }
 
-    .sc-qty {
-        text-align: center; background: rgba(255,255,255,0.05);
-        padding: 8px 12px; border-radius: 10px; min-width: 50px;
+    .sc-qty-box {
+        text-align: center; background: var(--bg-input);
+        padding: 8px 12px; border-radius: 10px; min-width: 60px;
+        border: 1px solid var(--border-light);
     }
-    .qty-val { display: block; font-size: 18px; font-weight: 700; color: #fff; }
-    .qty-lbl { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+    .qty-val { display: block; font-size: 20px; font-weight: 700; color: var(--text-main); line-height: 1; }
+    .qty-lbl { display: block; font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-top: 2px; font-weight: 600; }
 
-    /* ESTADOS DE STOCK */
-    .sc-low .qty-val { color: #FF9F0A; } /* Stock bajo */
-    .sc-zero .qty-val { color: #FF453A; } /* Sin stock */
+    /* Estados */
+    .sc-low .qty-val { color: var(--warning); }
+    .sc-low .sc-qty-box { border-color: rgba(255, 159, 10, 0.3); background: rgba(255, 159, 10, 0.1); }
+    
+    .sc-zero .qty-val { color: var(--danger); }
+    .sc-zero .sc-qty-box { border-color: rgba(255, 69, 58, 0.3); background: rgba(255, 69, 58, 0.1); }
+
+    /* Estado Vacío */
+    .empty-state {
+        grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-secondary);
+    }
+    .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
 
     @media (max-width: 768px) {
         .stock-grid { grid-template-columns: 1fr; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
     }
 </style>
 
-<div class="page-header">
-    <div class="header-content">
-        <h2><i class='bx bx-briefcase-alt-2' style="color: var(--primary);"></i> Mi Stock</h2>
-        <p>Inventario actual en mi poder</p>
-    </div>
-    <a href="{% url 'tecnico_dashboard' %}" class="btn btn-warning" style="background: rgba(255,255,255,0.1); color: #fff;">
-        <i class='bx bx-arrow-back'></i> Volver
-    </a>
-</div>
-
-<div class="search-bar">
-    <i class='bx bx-search search-icon'></i>
-    <input type="text" id="stockSearch" class="search-input" placeholder="Buscar material por nombre o código...">
-</div>
-
-<div class="stock-grid" id="stockContainer">
-    {% for item in stock_items %}
-    <div class="stock-card {% if item.cantidad <= 5 %}sc-low{% endif %} {% if item.cantidad == 0 %}sc-zero{% endif %}">
-        <div class="sc-info">
-            <div class="sc-name">{{ item.producto.nombre }}</div>
-            <div class="sc-code">{{ item.producto.codigo|default:"S/C" }}</div>
+<div class="stock-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class='bx bx-briefcase-alt-2' style="color: var(--primary);"></i> Mi Stock</h2>
+            <p>Inventario actual en mi poder</p>
         </div>
-        <div class="sc-qty">
-            <span class="qty-val">{{ item.cantidad }}</span>
-            <span class="qty-lbl">{{ item.producto.unidad|default:"UND" }}</span>
+        <div>
+            <a href="{% url 'tecnico_dashboard' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
         </div>
     </div>
-    {% empty %}
-    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-        <i class='bx bx-package' style="font-size: 40px; margin-bottom: 10px;"></i>
-        <p>No tienes materiales asignados actualmente.</p>
+
+    <div class="search-box">
+        <i class='bx bx-search search-icon'></i>
+        <input type="text" id="stockSearch" class="search-input" placeholder="Buscar material por nombre o código...">
     </div>
-    {% endfor %}
+
+    <div class="stock-grid" id="stockContainer">
+        {% for item in stock_items %}
+        <div class="stock-card {% if item.cantidad <= 5 %}sc-low{% endif %} {% if item.cantidad == 0 %}sc-zero{% endif %}">
+            <div class="sc-info">
+                <div class="sc-name">{{ item.producto.nombre }}</div>
+                <div class="sc-code">{{ item.producto.codigo|default:"S/C" }}</div>
+            </div>
+            <div class="sc-qty-box">
+                <span class="qty-val">{{ item.cantidad }}</span>
+                <span class="qty-lbl">{{ item.producto.unidad|default:"UND" }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class='bx bx-package'></i>
+            <h3>Mochila Vacía</h3>
+            <p>No tienes materiales asignados actualmente.</p>
+        </div>
+        {% endfor %}
+    </div>
+
 </div>
 
 <script>
     document.getElementById('stockSearch').addEventListener('input', function(e) {
         const term = e.target.value.toLowerCase();
         const cards = document.querySelectorAll('.stock-card');
+        let visibleCount = 0;
         
         cards.forEach(card => {
             const name = card.querySelector('.sc-name').textContent.toLowerCase();
@@ -109,10 +136,25 @@
             
             if (name.includes(term) || code.includes(term)) {
                 card.style.display = 'flex';
+                visibleCount++;
             } else {
                 card.style.display = 'none';
             }
         });
+
+        // Manejo de mensaje si no hay resultados
+        let noResultMsg = document.getElementById('noResultMsg');
+        if (visibleCount === 0 && term !== "") {
+            if (!noResultMsg) {
+                noResultMsg = document.createElement('div');
+                noResultMsg.id = 'noResultMsg';
+                noResultMsg.className = 'empty-state';
+                noResultMsg.innerHTML = "<p>No se encontraron coincidencias.</p>";
+                document.getElementById('stockContainer').appendChild(noResultMsg);
+            }
+        } else if (noResultMsg) {
+            noResultMsg.remove();
+        }
     });
 </script>
 {% endblock %}

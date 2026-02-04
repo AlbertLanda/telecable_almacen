@@ -11,178 +11,122 @@
 
     <style>
         /* --- CONFIGURACIÓN DE IMPRESIÓN --- */
-        @page {
-            size: A4;
-            margin: 10mm; /* Márgenes de la hoja física */
-        }
+        @page { size: A4; margin: 10mm; }
 
-        /* --- ESTILOS GENERALES --- */
+        /* --- ESTILOS PANTALLA --- */
         body {
-            background-color: #525659; /* Fondo gris oscuro (como visor de PDF) */
+            background-color: #525659; /* Gris visor PDF */
             font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
             min-height: 100vh;
         }
 
-        /* --- HOJA DE PAPEL (El lienzo) --- */
+        /* --- HOJA DE PAPEL --- */
         .sheet {
             background-color: white;
-            width: 210mm; /* Ancho A4 */
-            min-height: 297mm; /* Alto A4 */
-            padding: 15mm; /* Margen interno del contenido */
-            margin: 20mm auto;
-            box-shadow: 0 0 15px rgba(0,0,0,0.3);
-            box-sizing: border-box;
-            position: relative;
+            width: 210mm; min-height: 297mm;
+            padding: 15mm 20mm;
+            margin: 30px auto 100px auto; /* Margen inferior para barra flotante */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative; box-sizing: border-box;
         }
 
-        /* --- RESPONSIVIDAD (Para que se vea en el celular) --- */
-        @media screen and (max-width: 215mm) {
-            body { padding: 10px; }
-            .sheet {
-                width: 100%; /* Ocupa el ancho del cel */
-                min-height: auto; /* Altura automática */
-                margin: 0;
-                padding: 10px;
-            }
-        }
-
-        /* --- LOGO Y ENCABEZADO SUPERIOR --- */
+        /* --- ENCABEZADO --- */
         .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            display: flex; justify-content: space-between; align-items: flex-start;
             margin-bottom: 20px;
-            border-bottom: 2px solid #fff; /* Espacio invisible */
         }
-        .logo-section { display: flex; align-items: center; gap: 15px; }
-        .logo-img { height: 50px; object-fit: contain; }
-        .company-name { font-size: 22px; font-weight: 900; color: #000; letter-spacing: -0.5px; line-height: 1; }
-        .doc-type { font-size: 12px; color: #555; margin-top: 3px; font-weight: 400; }
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        .logo-img { height: 45px; object-fit: contain; }
+        .company-name { font-size: 20px; font-weight: 900; color: #000; letter-spacing: -0.5px; line-height: 1; }
+        .doc-type { font-size: 11px; color: #666; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .meta-data { text-align: right; font-size: 11px; color: #000; line-height: 1.4; }
+        .meta-data { text-align: right; font-size: 10px; color: #000; line-height: 1.4; }
 
-        /* --- TÍTULO DEL DOCUMENTO --- */
-        .doc-title {
-            text-align: center;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-        }
-        .doc-title h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
-        .doc-title h2 { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: #333; }
+        /* --- TÍTULO --- */
+        .doc-title { text-align: center; margin-bottom: 20px; }
+        .doc-title h1 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; }
+        .doc-title h2 { margin: 4px 0 0; font-size: 12px; font-weight: 500; color: #444; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- CAJA DE DATOS (La cápsula redondeada) --- */
+        /* --- CAJA DE DATOS --- */
         .info-box {
-            border: 1px solid #000;
-            border-radius: 12px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* Dos columnas */
-            gap: 5px 30px; /* Espacio entre filas y columnas */
+            border: 1px solid #000; border-radius: 12px; padding: 15px;
+            margin-bottom: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px;
         }
-
         .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            line-height: 1.8;
+            display: flex; justify-content: space-between; font-size: 10px; line-height: 2;
+            border-bottom: 1px dotted #ccc;
         }
-        .label { font-weight: 800; color: #000; width: 140px; }
-        .value { flex: 1; border-bottom: 1px dashed #ccc; color: #000; }
+        .info-row:last-child { border-bottom: none; }
+        .label { font-weight: 800; color: #000; width: 130px; }
+        .value { flex: 1; color: #000; text-align: left; padding-left: 10px; }
 
-        /* --- TABLA DE ÍTEMS --- */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            font-size: 11px;
+        /* --- TABLA --- */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 10px; }
+        th { 
+            border: 1px solid #000; background-color: #fff; padding: 8px; 
+            text-transform: uppercase; font-weight: 800; text-align: center; 
         }
-        table, th, td { border: 1px solid #000; }
-        
-        th {
-            background-color: #fff; /* Blanco limpio */
-            padding: 8px;
-            text-transform: uppercase;
-            font-weight: 800;
-            text-align: center;
-        }
-        td { padding: 8px; vertical-align: middle; }
+        td { border: 1px solid #000; padding: 8px; vertical-align: middle; }
         
         .col-center { text-align: center; }
         .col-right { text-align: right; }
-        .font-mono { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
+        .total-row td { border-top: 2px solid #000; font-weight: 800; font-size: 11px; }
 
         /* --- OBSERVACIONES --- */
         .obs-section {
-            border: 1px solid #000;
-            border-radius: 12px;
-            padding: 10px 15px;
-            font-size: 11px;
-            min-height: 60px;
-            margin-bottom: 40px;
+            border: 1px solid #000; border-radius: 10px; padding: 12px;
+            font-size: 10px; min-height: 60px; margin-bottom: 60px;
         }
         .obs-title { font-weight: 800; margin-bottom: 5px; text-transform: uppercase; }
 
         /* --- FIRMAS --- */
-        .signatures {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 50px;
-            padding: 0 20px;
-        }
-        .sign-box {
-            width: 40%;
-            text-align: center;
-            border-top: 1px solid #000;
-            padding-top: 5px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
+        .signatures { display: flex; justify-content: space-between; padding: 0 30px; }
+        .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
 
-        /* --- BOTONES DE ACCIÓN (No se imprimen) --- */
-        .action-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(30, 34, 50, 0.9);
-            padding: 10px 20px;
-            border-radius: 50px;
-            display: flex;
-            gap: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
+        /* --- BARRA FLOTANTE (Solo Pantalla) --- */
+        .floating-actions {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #2d3748; padding: 12px 25px; border-radius: 50px;
+            display: flex; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000; border: 1px solid rgba(255,255,255,0.1);
         }
-        .btn-print {
-            background: #4facfe; color: white; border: none; padding: 10px 20px;
-            border-radius: 20px; cursor: pointer; font-weight: 700; text-decoration: none;
-            display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        .btn-float {
+            background: transparent; border: none; color: white; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+            padding: 8px 16px; border-radius: 30px; transition: 0.2s; text-decoration: none;
         }
-        .btn-back {
-            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);
-            padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600;
-            text-decoration: none; display: flex; align-items: center; gap: 8px; transition: 0.2s;
-        }
-        .btn-print:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4); }
+        .btn-back { background: rgba(255,255,255,0.1); }
         .btn-back:hover { background: rgba(255,255,255,0.2); }
+        .btn-print { background: #4299e1; color: white; }
+        .btn-print:hover { background: #3182ce; }
 
-        /* --- MODO IMPRESIÓN (Limpia todo) --- */
+        /* --- MODO IMPRESIÓN --- */
         @media print {
-            body { background: none; margin: 0; }
-            .sheet { margin: 0; padding: 0; box-shadow: none; border: none; width: 100%; }
-            .action-bar { display: none !important; }
-            @page { margin: 10mm; }
+            body { background: none; display: block; }
+            .sheet { margin: 0; padding: 0; box-shadow: none; width: 100%; border: none; }
+            .floating-actions { display: none !important; }
+            @page { margin: 15mm 15mm; }
+        }
+        
+        /* Ajuste móvil */
+        @media screen and (max-width: 768px) {
+            .sheet { width: 100%; margin: 0; padding: 10px; }
+            .info-box { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+
+    <div class="floating-actions">
+        <a href="javascript:history.back()" class="btn-float btn-back">
+            <i class='bx bx-arrow-back'></i> Volver
+        </a>
+        <button onclick="window.print()" class="btn-float btn-print">
+            <i class='bx bx-printer'></i> Imprimir Nota
+        </button>
+    </div>
 
     <div class="sheet">
         
@@ -208,48 +152,19 @@
         </div>
 
         <div class="info-box">
-            <div class="col">
-                <div class="info-row">
-                    <span class="label">FECHA</span>
-                    <span class="value">{{ sal.fecha|date:"d/m/Y" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">TIPO DE MOVIMIENTO</span>
-                    <span class="value">REQUERIMIENTO</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">ALMACÉN</span>
-                    <span class="value">{{ sal.sede.nombre }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">UBICACIÓN</span>
-                    <span class="value">{% if sal.ubicacion %}{{ sal.ubicacion.nombre }}{% else %}(sin ubicación){% endif %}</span>
-                </div>
+            <div>
+                <div class="info-row"><span class="label">FECHA</span><span class="value">{{ sal.fecha|date:"d/m/Y" }}</span></div>
+                <div class="info-row"><span class="label">TIPO DE MOVIMIENTO</span><span class="value">REQUERIMIENTO</span></div>
+                <div class="info-row"><span class="label">ALMACÉN</span><span class="value">{{ sal.sede.nombre }}</span></div>
+                <div class="info-row"><span class="label">UBICACIÓN</span><span class="value">{{ sal.ubicacion.nombre|default:"(sin ubicación)" }}</span></div>
             </div>
-
-            <div class="col">
-                <div class="info-row">
-                    <span class="label">NÚMERO DE DOCUMENTO</span>
-                    <span class="value">{{ sal.numero|default:"(sin número)" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">RESPONSABLE</span>
-                    <span class="value">
-                        {% if sal.origen and sal.origen.responsable %}
-                            {{ sal.origen.responsable.first_name }} {{ sal.origen.responsable.last_name }} ({{ sal.origen.responsable.username }})
-                        {% else %}
-                            {{ sal.responsable.username }}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="info-row">
-                    <span class="label">CENTRO DE COSTO</span>
-                    <span class="value">{{ sal.centro_costo|default:"OPERACIONES" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">ORIGEN (REQ)</span>
-                    <span class="value">{% if sal.origen %}{{ sal.origen.numero }}{% else %} DIRECTO {% endif %}</span>
-                </div>
+            <div>
+                <div class="info-row"><span class="label">NÚMERO DE DOCUMENTO</span><span class="value">{{ sal.numero }}</span></div>
+                <div class="info-row"><span class="label">RESPONSABLE</span><span class="value">
+                    {% if sal.responsable.get_full_name %}{{ sal.responsable.get_full_name }}{% else %}{{ sal.responsable.username }}{% endif %}
+                </span></div>
+                <div class="info-row"><span class="label">CENTRO DE COSTO</span><span class="value">{{ sal.centro_costo|default:"OPERACIONES" }}</span></div>
+                <div class="info-row"><span class="label">ORIGEN (REQ)</span><span class="value">{{ sal.origen.numero|default:"-" }}</span></div>
             </div>
         </div>
 
@@ -257,36 +172,35 @@
             <thead>
                 <tr>
                     <th style="width: 15%;">CÓDIGO</th>
-                    <th>DESCRIPCIÓN</th>
-                    <th style="width: 10%;">U.M</th>
-                    <th style="width: 10%;">CANTIDAD</th>
+                    <th style="width: 55%;">DESCRIPCIÓN</th>
+                    <th style="width: 15%;">U.M</th>
+                    <th style="width: 15%;">CANTIDAD</th>
                 </tr>
             </thead>
             <tbody>
                 {% for it in items %}
                 <tr>
-                    <td class="col-center font-mono">
-                        {{ it.producto.codigo|default:"-" }}
-                    </td>
+                    <td class="col-center">{{ it.producto.codigo|default:"-" }}</td>
                     <td>
                         {{ it.producto.nombre }}
                         {% if it.observacion %}
-                            <br><i style="font-size:10px; color:#555;">({{ it.observacion }})</i>
+                            <br><i style="font-size:9px;">({{ it.observacion }})</i>
+                        {% endif %}
+                        {% if it.series %}
+                            <br><span style="font-family:monospace; font-size:9px;">SN: {{ it.series }}</span>
                         {% endif %}
                     </td>
                     <td class="col-center">{{ it.producto.unidad|default:"UND" }}</td>
                     <td class="col-center" style="font-weight:bold;">{{ it.cantidad }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="4" class="col-center" style="padding: 20px;">Sin ítems registrados.</td>
-                </tr>
+                <tr><td colspan="4" class="col-center" style="padding:20px;">Sin ítems</td></tr>
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr>
-                    <td colspan="3" class="col-right" style="border-right: none;"><b>TOTAL</b></td>
-                    <td class="col-center" style="font-weight: 900; font-size: 12px;">{{ total_cantidad }}</td>
+                <tr class="total-row">
+                    <td colspan="3" class="col-right">TOTAL</td>
+                    <td class="col-center">{{ total_cantidad }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -294,31 +208,18 @@
         <div class="obs-section">
             <div class="obs-title">OBSERVACIONES</div>
             <div>
-                Técnico / Solicitante: 
-                {% if sal.origen %} {{ sal.origen.responsable.username }} {% else %} {{ sal.responsable.username }} {% endif %}
+                Técnico / Solicitante: {% if sal.origen %}{{ sal.origen.responsable.username }}{% else %}{{ sal.responsable.username }}{% endif %}
                 <br>
                 Estado del Documento: {{ sal.get_estado_display }}
-                <br>
-                {% if sal.observaciones %} Nota: {{ sal.observaciones }} {% endif %}
+                {% if sal.observaciones %} <br> Nota: {{ sal.observaciones }} {% endif %}
             </div>
         </div>
 
         <div class="signatures">
-            <div class="sign-box">
-                FIRMA DEL SOLICITANTE
-            </div>
-            <div class="sign-box">
-                FIRMA ENCARGADO DE ALMACÉN
-            </div>
+            <div class="sign-box">FIRMA DEL SOLICITANTE</div>
+            <div class="sign-box">FIRMA ENCARGADO DE ALMACÉN</div>
         </div>
 
-    </div> <div class="action-bar">
-        <a href="{% url 'sal_detail' sal.id %}" class="btn-back">
-            <i class='bx bx-arrow-back'></i> Volver
-        </a>
-        <button onclick="window.print()" class="btn-print">
-            <i class='bx bx-printer'></i> Imprimir Nota
-        </button>
     </div>
 
 </body>

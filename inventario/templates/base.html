@@ -1,322 +1,235 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
-
-    <title>{% block title %}Telecable Inventario{% endblock %}</title>
+    <title>{% block title %}Telecable | Gestión{% endblock %}</title>
     
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    
+
     <style>
+        /* =========================================
+           ADN EMPRESARIAL (Enterprise Dark Mode)
+           Inspirado en: Apple Human Interface & Tesla UI
+           ========================================= */
         :root {
-            /* --- PALETA NEON DARK --- */
-            --bg-body: #0f1220;       /* Azul muy oscuro (Fondo Principal) */
-            --bg-card: rgba(30, 34, 50, 0.6); /* Cristal Oscuro */
-            --bg-input: rgba(255, 255, 255, 0.05);
+            /* --- FONDOS (Jerarquía de Grises) --- */
+            --bg-body: #000000;       /* Fondo absoluto (OLED Black) */
+            --bg-nav: #161618;        /* Barra de navegación */
+            --bg-card: #1c1c1e;       /* Tarjetas y Paneles (Titanio) */
+            --bg-input: #2c2c2e;      /* Inputs y elementos secundarios */
+            --bg-hover: #3a3a3c;      /* Estados Hover */
+
+            /* --- ACENTOS (Sólidos y Profesionales) --- */
+            --primary: #0A84FF;       /* Azul iOS System (Confianza/Acción) */
+            --primary-dark: #0071e3;  /* Azul Hover */
             
-            /* --- COLORES NEON --- */
-            --primary: #4facfe;       /* Azul Neón */
-            --primary-hover: #00f2fe; /* Cyan Brillante */
-            --success: #00d2ff;       /* Verde/Azul éxito */
-            --danger: #ff6b6b;        /* Rojo suave */
-            --warning: #fbc2eb;       /* Rosa/Púrpura suave */
-            
-            /* --- TEXTOS --- */
-            --text-main: #ffffff;
-            --text-muted: #8b9bb4;
+            /* --- ESTADOS --- */
+            --success: #30D158;       /* Verde Éxito */
+            --danger: #FF453A;        /* Rojo Alerta */
+            --warning: #FF9F0A;       /* Naranja Precaución */
+
+            /* --- TEXTO --- */
+            --text-main: #FFFFFF;     /* Blanco Puro */
+            --text-secondary: #98989D;/* Gris Metálico (Subtítulos) */
+            --text-tertiary: #636366; /* Gris Oscuro (Placeholders) */
+
+            /* --- BORDES Y SOMBRAS --- */
+            --border-light: rgba(255, 255, 255, 0.1);
+            --border-focus: rgba(10, 132, 255, 0.5);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4); /* Sombra negra suave, no glow */
             
             /* --- UI --- */
-            --radius: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --font-stack: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --radius: 14px;           /* Bordes modernos pero no exagerados */
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* --- RESET Y BASE --- */
+        /* --- RESET --- */
         body {
             font-family: var(--font-stack);
             background-color: var(--bg-body);
             color: var(--text-main);
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            /* Fondo sutil degradado */
-            background-image: radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.05) 0%, transparent 20%),
-                              radial-gradient(circle at 90% 80%, rgba(251, 194, 235, 0.05) 0%, transparent 20%);
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased; /* Texto nítido */
         }
 
         a { text-decoration: none; color: inherit; transition: 0.2s; }
         ul { list-style: none; padding: 0; margin: 0; }
 
-        /* --- NAVBAR GLASS --- */
+        /* --- NAVBAR (Barra Superior Minimalista) --- */
         .navbar {
-            background: rgba(15, 18, 32, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--glass-border);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            background-color: var(--bg-nav);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0 24px;
+            height: 64px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 1000;
         }
 
         .navbar-brand {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            letter-spacing: 0.5px;
+            font-size: 18px; font-weight: 700; color: var(--text-main);
+            display: flex; align-items: center; gap: 10px; letter-spacing: -0.5px;
         }
-        .navbar-brand i { 
-            color: var(--primary); 
-            font-size: 24px; 
-            text-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
-        }
+        .navbar-brand i { color: var(--primary); font-size: 22px; }
+
+        .nav-right { display: flex; align-items: center; gap: 20px; }
 
         .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            color: var(--text-muted);
+            display: flex; align-items: center; gap: 12px;
+            font-size: 13px; color: var(--text-secondary);
         }
         .user-info strong { color: var(--text-main); font-weight: 600; }
+        
+        .role-badge {
+            background: var(--bg-input); padding: 4px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            border: 1px solid var(--border-light);
+        }
 
         .btn-logout-nav {
-            color: var(--danger);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            background: rgba(255, 107, 107, 0.1);
-            transition: 0.2s;
+            color: var(--danger); font-size: 13px; font-weight: 500;
+            padding: 8px 16px; border-radius: 8px; transition: 0.2s;
+            background: rgba(255, 69, 58, 0.1);
         }
-        .btn-logout-nav:hover { 
-            background: rgba(255, 107, 107, 0.2); 
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.2);
-        }
+        .btn-logout-nav:hover { background: rgba(255, 69, 58, 0.2); }
 
-        /* --- LAYOUT PRINCIPAL --- */
+        /* --- CONTENEDOR PRINCIPAL --- */
         .main-container {
             flex: 1;
-            padding: 40px 20px;
-            max-width: 1200px;
+            padding: 32px 24px; /* Espaciado amplio */
+            max-width: 1400px;  /* Ancho máximo para pantallas grandes */
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
-            animation: fadeIn 0.6s ease-out;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* --- COMPONENTES GLOBALES REFINADOS --- */
 
-        /* --- COMPONENTES GLOBALES --- */
-        
-        /* 1. Tarjetas de Vidrio (Glassmorphism) */
-        .card, .step, .glass-panel, .section-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 25px;
-            margin-bottom: 25px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover, .glass-panel:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        /* 2. Botones Neon */
+        /* Botones (Sólidos y Limpios) */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            background-color: var(--bg-input);
-            color: var(--text-main);
-            border: none;
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            letter-spacing: 0.5px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
+            padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; border: none; transition: 0.2s; text-decoration: none;
         }
-        
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
 
-        .btn-primary, .btn.ok {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-            color: #0f1220; /* Texto oscuro para contraste */
-        }
-        .btn-success {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: #0f1220;
-        }
-        .btn-danger, .btn.danger {
-            background: rgba(255, 107, 107, 0.15); color: var(--danger); border: 1px solid var(--danger);
-        }
-        .btn-warning {
-            background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%);
-            color: #0f1220;
-        }
+        .btn-primary { background-color: var(--primary); color: #fff; }
+        .btn-primary:hover { background-color: var(--primary-dark); }
 
-        /* 3. Inputs Modernos */
+        .btn-success { background-color: var(--success); color: #000; } /* Letra negra para contraste */
+        .btn-danger { background-color: rgba(255, 69, 58, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .btn-ghost { 
+            background: var(--bg-input); color: var(--text-main); 
+            border: 1px solid var(--border-light); 
+        }
+        .btn-ghost:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
+
+        /* Inputs (Estilo Apple) */
         input, select, textarea {
             background-color: var(--bg-input);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid transparent; /* Sin borde inicial */
             color: var(--text-main);
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-family: inherit;
-            font-size: 14px;
-            width: 100%;
-            box-sizing: border-box;
-            transition: 0.3s;
+            border-radius: 10px; padding: 12px 16px;
+            font-family: inherit; font-size: 14px;
+            width: 100%; box-sizing: border-box; transition: 0.2s;
         }
-
         input:focus, select:focus, textarea:focus {
-            outline: none;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.25);
+            outline: none; background-color: #3a3a3c;
+            border-color: var(--primary); /* Solo borde azul al foco */
         }
+        input::placeholder { color: var(--text-tertiary); }
 
-        /* 4. Tablas Flotantes */
-        .table-modern, .table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 8px;
-        }
-        .table-modern th, .table th {
-            text-align: left;
-            padding: 10px 15px;
-            color: var(--text-muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .table-modern tbody tr, .table tbody tr {
-            background: rgba(255, 255, 255, 0.03);
-            transition: transform 0.2s, background 0.2s;
-        }
-        .table-modern tbody tr:hover, .table tbody tr:hover {
-            transform: scale(1.01);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        .table-modern td, .table td {
-            padding: 15px;
-            border: none;
-        }
-        .table-modern td:first-child, .table td:first-child { border-radius: 10px 0 0 10px; }
-        .table-modern td:last-child, .table td:last-child { border-radius: 0 10px 10px 0; }
-
-        /* 5. Utilidades */
-        h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.5px; }
-        .text-muted { color: var(--text-muted); font-size: 13px; }
-        .hr { height: 1px; background: var(--glass-border); margin: 20px 0; }
-
-        /* --- FOOTER --- */
+        /* Footer Discreto */
         footer {
-            border-top: 1px solid var(--glass-border);
-            padding: 25px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 12px;
-            background: rgba(15, 18, 32, 0.5);
+            border-top: 1px solid var(--border-light);
+            padding: 24px; text-align: center;
+            color: var(--text-tertiary); font-size: 12px;
+            background-color: var(--bg-body);
         }
 
-        /* --- TOASTS (Notificaciones) --- */
+        /* --- TOASTS (Notificaciones Estilo Sistema) --- */
         .toast-container {
-            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            position: fixed; top: 24px; right: 24px; z-index: 9999;
             display: flex; flex-direction: column; gap: 10px;
         }
         .toast-msg {
-            background: rgba(30, 34, 50, 0.9);
+            background: rgba(44, 44, 46, 0.95); /* Casi opaco */
             backdrop-filter: blur(10px);
             color: var(--text-main);
-            padding: 16px 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-left: 4px solid var(--primary);
+            padding: 14px 20px; border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
             display: flex; align-items: center; gap: 12px;
-            font-size: 14px;
-            animation: slideIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            font-size: 14px; font-weight: 500;
+            border: 1px solid var(--border-light);
+            animation: slideIn 0.3s ease-out;
         }
-        .toast-success { border-color: var(--success); }
-        .toast-success i { color: var(--success); }
+        @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Mobile Responsive */
+        .nav-toggle { display: none; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; }
         
-        .toast-error { border-color: var(--danger); }
-        .toast-error i { color: var(--danger); }
-        
-        @keyframes slideIn {
-            from { transform: translateX(50px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        @media (max-width: 768px) {
+            .nav-toggle { display: block; }
+            .nav-right { 
+                display: none; position: absolute; top: 64px; left: 0; right: 0;
+                background: var(--bg-nav); border-bottom: 1px solid var(--border-light);
+                padding: 20px; flex-direction: column; align-items: stretch;
+            }
+            .nav-right.open { display: flex; }
+            .user-info { justify-content: space-between; }
+            .main-container { padding: 20px 16px; }
         }
     </style>
 </head>
-<body>
 
+<body>
     <nav class="navbar">
         <a href="/" class="navbar-brand">
             <i class='bx bxs-cube-alt'></i> Telecable
         </a>
 
         {% if user.is_authenticated %}
-        <div style="display:flex; gap:20px; align-items:center;">
-            <div class="user-info">
-                <span>{{ user.username }}</span>
-                {% if user.profile.rol %}
-                    <span style="background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;">
-                        {{ user.profile.get_rol_display }}
-                    </span>
-                {% endif %}
+            <button class="nav-toggle"><i class='bx bx-menu'></i></button>
+
+            <div class="nav-right" id="navRight">
+                <div class="user-info">
+                    <span>{{ user.username }}</span>
+                    {% if user.profile.rol %}
+                        <span class="role-badge">{{ user.profile.get_rol_display }}</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'logout' %}" class="btn-logout-nav">
+                    <i class='bx bx-log-out'></i> Salir
+                </a>
             </div>
-            
-            <a href="{% url 'logout' %}" class="btn-logout-nav">
-                <i class='bx bx-log-out'></i> Salir
-            </a>
-        </div>
         {% endif %}
     </nav>
 
     <div class="main-container">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </div>
 
     <footer>
-        &copy; 2026 Telecable S.A.C. | Sistema de Gestión de Almacén v2.0
+        &copy; 2026 Telecable S.A.C. | Enterprise System v2.0
     </footer>
 
     {% if messages %}
     <div class="toast-container">
         {% for message in messages %}
-        <div class="toast-msg {% if message.tags == 'success' %}toast-success{% elif message.tags == 'error' %}toast-error{% endif %}">
+        <div class="toast-msg">
             {% if message.tags == 'success' %}
-                <i class='bx bxs-check-circle' style="font-size: 20px;"></i>
+                <i class='bx bxs-check-circle' style="color: var(--success); font-size: 18px;"></i>
+            {% elif message.tags == 'error' %}
+                <i class='bx bxs-error-circle' style="color: var(--danger); font-size: 18px;"></i>
             {% else %}
-                <i class='bx bxs-error-circle' style="font-size: 20px;"></i>
+                <i class='bx bxs-info-circle' style="color: var(--primary); font-size: 18px;"></i>
             {% endif %}
             <span>{{ message }}</span>
         </div>
@@ -324,13 +237,19 @@
     </div>
     <script>
         setTimeout(() => {
-            document.querySelectorAll('.toast-msg').forEach(t => {
-                t.style.opacity = '0';
-                t.style.transform = 'translateX(20px)';
-                setTimeout(() => t.style.display = 'none', 300); // Espera la animación
-            });
+            const toasts = document.querySelectorAll('.toast-msg');
+            toasts.forEach(t => { t.style.opacity = '0'; t.style.transform = 'translateY(-10px)'; setTimeout(() => t.remove(), 300); });
         }, 4000);
     </script>
     {% endif %}
+
+    <script>
+        // Toggle Menú Móvil
+        const toggleBtn = document.querySelector('.nav-toggle');
+        const navPanel = document.getElementById('navRight');
+        if(toggleBtn && navPanel) {
+            toggleBtn.addEventListener('click', () => navPanel.classList.toggle('open'));
+        }
+    </script>
 </body>
 </html>

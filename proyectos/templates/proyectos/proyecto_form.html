@@ -3,129 +3,108 @@
 
 {% block content %}
 <style>
-    /* 🔴 FORZAMOS MODO OSCURO GLOBAL */
-    body {
-        background-color: #1e1e2e !important;
-        color: #ffffff !important;
-    }
-
-    :root {
-        --bg-panel: #27293d;
-        --primary: #4e73df;
-        --text-muted: #9a9a9a;
-        --input-bg: #161620;
-        --border-color: #3f4050;
-    }
-
+    /* =========================================
+       FORMULARIO ESTILO ENTERPRISE
+       ========================================= */
+    
     .form-wrapper {
-        min-height: 100vh;
+        min-height: 80vh;
         display: flex;
         justify-content: center;
-        padding-top: 40px;
+        align-items: flex-start; /* Alineado arriba para no centrar verticalmente si es largo */
+        padding-top: 20px;
     }
 
     .form-card {
-        background-color: var(--bg-panel);
-        border-radius: 16px;
-        padding: 30px;
+        background-color: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 40px;
         width: 100%;
         max-width: 800px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-card);
     }
 
     .form-title {
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+        display: flex; align-items: center; gap: 15px;
     }
-    .form-title h3 { font-weight: 600; margin: 0; color: white; }
-    .form-title i { color: var(--primary); font-size: 24px; }
+    .form-title h3 { font-weight: 700; font-size: 24px; margin: 0; color: var(--text-main); letter-spacing: -0.5px; }
+    .form-title i { color: var(--primary); font-size: 28px; }
 
-    /* ESTILOS DE INPUTS DARK - FORZADOS CON !IMPORTANT PARA EVITAR CONFLICTOS */
+    /* Inputs y Labels */
     .form-label {
-        color: var(--text-muted);
-        font-size: 13px;
-        margin-bottom: 8px;
-        display: block;
-        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 13px; margin-bottom: 8px; display: block; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.5px;
     }
 
-    .form-control, .form-select {
-        background-color: var(--input-bg) !important;
-        border: 1px solid var(--border-color) !important;
-        color: white !important;
-        border-radius: 8px;
-        padding: 12px 15px;
+    /* Sobreescribimos estilos de Django Forms si es necesario */
+    .form-control, .form-select, textarea, input {
+        background-color: var(--bg-input);
+        border: 1px solid transparent;
+        color: var(--text-main);
+        border-radius: 10px;
+        padding: 14px 16px;
         width: 100%;
-        font-size: 14px;
+        font-size: 15px;
         transition: 0.2s;
+        font-family: inherit;
     }
     
-    .form-control:focus, .form-select:focus {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2) !important;
+    .form-control:focus, .form-select:focus, textarea:focus, input:focus {
+        border-color: var(--primary);
+        background-color: #3a3a3c;
         outline: none;
-        background-color: #1a1a24 !important;
     }
 
-    /* Icono de archivo */
+    /* Input File Personalizado */
+    input[type="file"] { padding: 10px; background: transparent; border: 1px dashed var(--border-light); }
     input[type="file"]::file-selector-button {
-        background-color: var(--primary);
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-right: 15px;
-        cursor: pointer;
-        transition: 0.2s;
+        background-color: var(--bg-input);
+        color: var(--text-main);
+        border: 1px solid var(--border-light);
+        padding: 8px 16px; border-radius: 8px; margin-right: 15px; cursor: pointer; transition: 0.2s;
     }
-    input[type="file"]::file-selector-button:hover { background-color: #375a7f; }
+    input[type="file"]::file-selector-button:hover { background-color: var(--bg-hover); }
+
+    /* Botones de Acción */
+    .form-actions {
+        margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-light);
+        display: flex; gap: 15px; justify-content: flex-end;
+    }
 
     .btn-save {
-        background: linear-gradient(45deg, #1cc88a, #13855c);
-        color: white;
-        border: none;
-        padding: 12px 30px;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s;
-        width: 100%;
-        margin-top: 20px;
+        background-color: var(--primary); color: #fff; border: none; padding: 12px 30px;
+        border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px;
     }
-    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(28, 200, 138, 0.3); }
+    .btn-save:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
 
     .btn-cancel {
-        background: transparent;
-        color: var(--text-muted);
-        border: 1px solid var(--border-color);
-        padding: 12px 30px;
-        border-radius: 10px;
-        text-decoration: none;
-        display: inline-block;
-        text-align: center;
-        width: 100%;
-        margin-top: 10px;
+        background: transparent; color: var(--text-secondary); border: 1px solid var(--border-light);
+        padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 500;
+        display: inline-flex; align-items: center; justify-content: center;
     }
-    .btn-cancel:hover { background: rgba(255,255,255,0.05); color: white; }
+    .btn-cancel:hover { background: var(--bg-hover); color: var(--text-main); }
 
     /* Grid Layout */
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .full-width { grid-column: span 2; }
     
-    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
+    @media (max-width: 768px) { 
+        .form-grid { grid-template-columns: 1fr; } 
+        .full-width { grid-column: span 1; } 
+        .form-card { padding: 24px; }
+        .form-actions { flex-direction: column-reverse; }
+        .btn-save, .btn-cancel { width: 100%; text-align: center; }
+    }
 </style>
 
 <div class="form-wrapper">
     <div class="form-card">
+        
         <div class="form-title">
             <i class='bx bx-layer-plus'></i>
             <h3>Crear Nuevo Proyecto</h3>
@@ -144,33 +123,39 @@
                     <label class="form-label">Sede</label>
                     {{ form.sede }}
                 </div>
+                
                 <div>
-                    <label class="form-label">👷 Técnico Responsable</label>
+                    <label class="form-label">Técnico Responsable</label>
                     {{ form.responsable }}
                 </div>
 
                 <div class="full-width">
-                    <label class="form-label">📄 Subir Plano (PDF)</label>
+                    <label class="form-label">Plano (PDF)</label>
                     {{ form.plano }}
+                    <small style="color: var(--text-tertiary); display: block; margin-top: 5px;">
+                        <i class='bx bx-info-circle'></i> Sube el plano aprobado para que el técnico pueda consultarlo.
+                    </small>
                 </div>
 
                 <div>
-                    <label class="form-label">Fecha Inicio Estimada</label>
+                    <label class="form-label">Fecha Inicio</label>
                     {{ form.inicio }}
                 </div>
                 <div>
-                    <label class="form-label">Fecha Fin (Opcional)</label>
+                    <label class="form-label">Fecha Fin (Estimada)</label>
                     {{ form.fin }}
                 </div>
 
                 <div class="full-width">
-                    <label class="form-label">Descripción / Notas</label>
+                    <label class="form-label">Notas Adicionales</label>
                     {{ form.descripcion }}
                 </div>
             </div>
 
-            <button type="submit" class="btn-save">Guardar Proyecto</button>
-            <a href="{% url 'disenador_dashboard' %}" class="btn-cancel">Cancelar</a>
+            <div class="form-actions">
+                <a href="{% url 'disenador_dashboard' %}" class="btn-cancel">Cancelar</a>
+                <button type="submit" class="btn-save">Guardar Proyecto</button>
+            </div>
         </form>
     </div>
 </div>

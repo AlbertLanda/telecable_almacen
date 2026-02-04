@@ -1,86 +1,175 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container-fluid p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="text-white mb-0">📊 Auditoría de Costos</h3>
-            <span class="text-muted">{{ proyecto.codigo }} - {{ proyecto.nombre }}</span>
+<style>
+    /* =========================================
+       DETALLE FINANCIERO (Enterprise Style)
+       ========================================= */
+    
+    .financial-container {
+        max-width: 1100px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    
+    .project-code { font-family: monospace; background: var(--bg-input); padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 12px; }
+
+    /* KPI Card */
+    .kpi-row { margin-bottom: 30px; display: flex; gap: 20px; }
+    
+    .kpi-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px;
+        display: flex; align-items: center; gap: 20px; min-width: 250px;
+        box-shadow: var(--shadow-card);
+    }
+    .kpi-icon {
+        width: 50px; height: 50px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; font-size: 24px;
+        background: rgba(48, 209, 88, 0.15); color: var(--success);
+    }
+    .kpi-info h3 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); line-height: 1; }
+    .kpi-info p { margin: 0 0 4px; font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; }
+
+    /* Tabla Financiera */
+    .table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    .th-center { text-align: center; }
+    .th-right { text-align: right; }
+    
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .col-center { text-align: center; }
+    .col-right { text-align: right; }
+
+    /* Estilos de Celda */
+    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 12px; display: block; }
+    .prod-name { font-weight: 600; color: var(--text-main); font-size: 14px; }
+
+    .price-tag { font-family: monospace; font-weight: 600; color: var(--text-main); }
+    .subtotal { font-family: monospace; font-weight: 700; color: var(--success); font-size: 15px; }
+
+    .badge-no-price { 
+        background: rgba(255, 69, 58, 0.1); color: var(--danger); 
+        padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; 
+    }
+
+    /* Footer Tabla */
+    .table-footer { background: var(--bg-input); font-weight: 700; }
+    .total-label { text-align: right; padding-right: 24px; color: var(--text-secondary); text-transform: uppercase; font-size: 12px; }
+    .total-val { text-align: right; font-size: 18px; color: var(--success); padding: 20px 24px; }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .kpi-row { flex-direction: column; }
+    }
+</style>
+
+<div class="financial-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Auditoría de Costos</h2>
+            <p>
+                <span class="project-code">{{ proyecto.codigo }}</span>
+                {{ proyecto.nombre }}
+            </p>
         </div>
-        <a href="{% url 'admin_reporte_lista' %}" class="btn btn-outline-secondary">Volver</a>
+        <div>
+            <a href="{% url 'admin_reporte_lista' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="glass-panel p-3 d-flex align-items-center gap-3">
-                <div class="icon-box bg-success text-white"><i class='bx bx-money'></i></div>
-                <div>
-                    <small class="text-muted">COSTO TOTAL</small>
-                    <h3 class="text-success m-0">S/ {{ proyecto.costo_total_real }}</h3>
-                </div>
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class='bx bx-dollar-circle'></i></div>
+            <div class="kpi-info">
+                <p>Costo Total Real</p>
+                <h3>S/ {{ proyecto.costo_total_real }}</h3>
             </div>
         </div>
     </div>
 
-    <div class="glass-panel p-0 overflow-hidden">
-        <table class="table table-dark table-hover mb-0">
-            <thead class="bg-secondary text-white">
-                <tr>
-                    <th class="p-3">Material</th>
-                    <th class="p-3 text-center">Planificado</th>
-                    <th class="p-3 text-center">Instalado Real</th>
-                    <th class="p-3 text-end">Costo Unit.</th>
-                    <th class="p-3 text-end">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in materiales %}
-                <tr>
-                    <td class="p-3">
-                        <div class="fw-bold">{{ m.producto.nombre }}</div>
-                        <small class="text-muted">{{ m.producto.codigo_interno }}</small>
-                    </td>
-                    <td class="p-3 text-center text-muted">{{ m.cantidad_planificada }}</td>
-                    
-                    <td class="p-3 text-center fw-bold">
-                        {% if m.cantidad_usada > 0 %}
-                            {{ m.cantidad_usada }}
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
+    <div class="table-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th class="th-center">Planificado</th>
+                        <th class="th-center">Instalado Real</th>
+                        <th class="th-right">Costo Unit.</th>
+                        <th class="th-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in materiales %}
+                    <tr>
+                        <td>
+                            <div class="prod-name">{{ m.producto.nombre }}</div>
+                            <small class="prod-code">{{ m.producto.codigo_interno }}</small>
+                        </td>
+                        
+                        <td class="col-center" style="color: var(--text-secondary);">
+                            {{ m.cantidad_planificada }}
+                        </td>
+                        
+                        <td class="col-center">
+                            {% if m.cantidad_usada > 0 %}
+                                <strong style="color: var(--text-main);">{{ m.cantidad_usada }}</strong>
+                            {% else %}
+                                <span style="color: var(--text-tertiary);">-</span>
+                            {% endif %}
+                        </td>
 
-                    <td class="p-3 text-end text-info">
-                        {% if m.costo_unitario %}
-                            S/ {{ m.costo_unitario }}
-                        {% else %}
-                            <span class="badge bg-danger">Sin Precio</span>
-                        {% endif %}
-                    </td>
-                    <td class="p-3 text-end text-success fw-bold">
-                        S/ {{ m.costo_total_real }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr style="border-top: 2px solid #4e73df;">
-                    <td colspan="4" class="p-3 text-end fw-bold text-white">TOTAL OBRA:</td>
-                    <td class="p-3 text-end fw-bold text-success fs-5">S/ {{ proyecto.costo_total_real }}</td>
-                </tr>
-            </tfoot>
-        </table>
+                        <td class="col-right">
+                            {% if m.costo_unitario %}
+                                <span class="price-tag">S/ {{ m.costo_unitario }}</span>
+                            {% else %}
+                                <span class="badge-no-price">Sin Precio</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="col-right">
+                            <span class="subtotal">S/ {{ m.costo_total_real }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-footer">
+                        <td colspan="4" class="total-label">Costo Total de Obra:</td>
+                        <td class="total-val">S/ {{ proyecto.costo_total_real }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     </div>
-</div>
 
-<style>
-    .glass-panel {
-        background: #27293d; border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 16px;
-    }
-    .icon-box {
-        width: 50px; height: 50px; border-radius: 12px;
-        display: flex; align-items: center; justify-content: center; font-size: 24px;
-    }
-</style>
+</div>
 {% endblock %}

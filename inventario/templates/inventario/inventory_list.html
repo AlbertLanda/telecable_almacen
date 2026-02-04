@@ -1,226 +1,195 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Inventario | Telecable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --bg-body: #1e1e2e;
-      --bg-sidebar: #181824;
-      --bg-panel: #27293d;
-      --primary-grad: linear-gradient(45deg, #0066cc 0%, #00d4ff 100%);
-      --primary-solid: #00d4ff;
-      --text-main: #ffffff;
-      --text-muted: #9a9a9a;
-      --danger: #ff4757;
-      --success: #2ed573;
-      --warning: #ffa502;
+{% block content %}
+<style>
+    /* =========================================
+       LISTA DE INVENTARIO (Enterprise Style)
+       ========================================= */
+    
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+        flex-wrap: wrap; gap: 15px;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+    .header-title h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-title p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
 
-    .sidebar { width: 260px; background-color: var(--bg-sidebar); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
-    .brand { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .brand img { width: 50px; height: 50px; object-fit: contain; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 10px; }
-    .brand span { font-size: 18px; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
-
-    .menu-btn { background: transparent; border: none; width: 100%; padding: 16px 20px; text-align: left; color: var(--text-muted); font-size: 14px; cursor: pointer; border-radius: 12px; display: flex; align-items: center; gap: 15px; transition: all 0.3s ease; margin-bottom: 8px; text-decoration: none; font-weight: 500;}
-    .menu-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; padding-left: 25px; }
-    .menu-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4); }
-    .logout-btn { margin-top: auto; color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.2); }
-
-    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-
-    .header-page { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
-    .header-page h2 { font-size: 28px; font-weight: 600; }
-
-    .search-bar { background: var(--bg-panel); display: flex; align-items: center; padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 420px; }
-    .search-bar input { background: transparent; border: none; color: white; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
-    .search-bar i { color: var(--text-muted); }
-
-    .filters { margin-top: 10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .select {
-      background: var(--bg-panel);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #fff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      outline: none;
+    /* Barra de Filtros */
+    .filter-bar {
+        display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
     }
-    .select option { color: #111; }
-    .btn-mini{
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.10);
-      color:#fff;
-      border-radius:10px;
-      padding:10px 12px;
-      cursor:pointer;
-      font-weight:700;
+    
+    .search-box {
+        position: relative; display: flex; align-items: center;
+        background: var(--bg-input); border-radius: 10px; padding: 0 12px;
+        border: 1px solid transparent; transition: 0.2s;
+        width: 300px;
+    }
+    .search-box:focus-within { border-color: var(--primary); background: #3a3a3c; }
+    .search-box i { color: var(--text-tertiary); font-size: 18px; margin-right: 8px; }
+    .search-box input {
+        border: none; background: transparent; color: var(--text-main); width: 100%;
+        padding: 12px 0; font-size: 14px; outline: none;
     }
 
-    .table-container { background: var(--bg-panel); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; color: var(--primary-solid); padding: 15px; border-bottom: 2px solid rgba(255,255,255,0.05); font-size: 12px; text-transform: uppercase; }
-    td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #ddd; vertical-align: middle; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .bg-ok { background: rgba(46, 213, 115, 0.15); color: #2ed573; }
-    .bg-low { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
-
-    .msg{
-      margin: 0 0 14px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(79,172,254,0.22);
-      background: rgba(79,172,254,0.10);
-      color: #cfe8ff;
-      font-size: 13px;
+    .select-sede {
+        background: var(--bg-input); border: 1px solid transparent; color: var(--text-main);
+        padding: 10px 30px 10px 14px; border-radius: 10px; font-size: 14px; outline: none; cursor: pointer;
+        appearance: none; -webkit-appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2398989D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 10px;
     }
-    .msg.err{
-      border-color: rgba(255,71,87,0.22);
-      background: rgba(255,71,87,0.08);
-      color: #ffd0d5;
+    .select-sede:hover { background-color: var(--bg-hover); }
+
+    /* Tarjeta Contenedora */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
     }
-  </style>
-</head>
-<body>
 
-  <div class="sidebar">
-    <div class="brand">
-      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo"
-           onerror="this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRR2u00YQVbhLVgNlKIb0kFHTfj8QRLZSyrew&s'">
-      <span>TELECABLE</span>
-    </div>
+    /* Tabla */
+    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); 
+    }
+    
+    td { 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 14px; 
+        color: var(--text-main); vertical-align: middle; 
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
 
-    <a href="{% url 'dash_admin' %}" class="menu-btn">
-      <i class='bx bxs-dashboard'></i> <span>Dashboard</span>
-    </a>
+    /* Badges de Estado */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-ok { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .badge-low { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
 
-    <a href="{% url 'inventory_list' %}" class="menu-btn active">
-      <i class='bx bx-box'></i> <span>Ver Inventario</span>
-    </a>
+    /* Código Monoespaciado */
+    .code-text { font-family: monospace; color: var(--text-secondary); font-size: 13px; }
 
-    <a href="{% url 'scan' %}" class="menu-btn" style="color: var(--primary-solid);">
-      <i class='bx bx-barcode-reader'></i> <span>Escanear</span>
-    </a>
+    /* Estado Vacío */
+    .empty-state { padding: 60px 20px; text-align: center; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.3; }
 
-    <a href="/admin/" class="menu-btn">
-      <i class='bx bxs-cog'></i> <span>Admin Avanzado</span>
-    </a>
+    /* Móvil */
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .filter-bar { width: 100%; }
+        .search-box { width: 100%; }
+        .select-sede { width: 100%; }
+    }
+</style>
 
-    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
-      <i class='bx bx-log-out-circle'></i> <span>Salir</span>
-    </a>
-  </div>
-
-  <div class="main-content">
-
-    {% if messages %}
-      {% for message in messages %}
-        <div class="msg {% if message.tags == 'error' %}err{% endif %}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-
-    <div class="header-page">
-      <div>
+<div class="page-header">
+    <div class="header-title">
         <h2>Inventario General</h2>
-        <p style="color: var(--text-muted);">
-          Sede: <b>{{ sede_actual.nombre }}</b>
-        </p>
+        <p>Sede Actual: <strong style="color: var(--text-main);">{{ sede_actual.nombre }}</strong></p>
+    </div>
 
-        {# ✅ Selector de sedes permitidas #}
+    <form class="filter-bar" method="GET" action="{% url 'inventory_list' %}">
         {% if sedes %}
-          <form class="filters" method="get" action="{% url 'inventory_list' %}">
-            <select class="select" name="sede_id">
-              {% for s in sedes %}
-                <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
-                  {{ s.nombre }}
-                </option>
-              {% endfor %}
+            <select name="sede_id" class="select-sede" onchange="this.form.submit()">
+                {% for s in sedes %}
+                    <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
+                        {{ s.nombre }}
+                    </option>
+                {% endfor %}
             </select>
-
-            {# Mantener el search al cambiar sede #}
-            <input type="hidden" name="q" value="{{ query|default:'' }}">
-
-            <button class="btn-mini" type="submit">Cambiar sede</button>
-          </form>
         {% endif %}
-      </div>
 
-      <form method="GET" class="search-bar" action="{% url 'inventory_list' %}">
-        {# Mantener sede_id cuando buscas #}
-        {% if sede_actual %}
-          <input type="hidden" name="sede_id" value="{{ sede_actual.id }}">
-        {% endif %}
-        <i class='bx bx-search'></i>
-        <input type="text" name="q" placeholder="Buscar producto..." value="{{ query }}">
-      </form>
+        <div class="search-box">
+            <i class='bx bx-search'></i>
+            <input type="text" name="q" placeholder="Buscar producto..." value="{{ query|default:'' }}" autocomplete="off">
+        </div>
+    </form>
+</div>
+
+<div class="content-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th style="text-align: right;">Stock Actual</th>
+                    <th style="text-align: right;">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr>
+                    <td class="code-text">
+                        {% if stock.producto.codigo_interno %}
+                            {{ stock.producto.codigo_interno }}
+                        {% elif stock.producto.barcode %}
+                            {{ stock.producto.barcode }}
+                        {% else %}
+                            <span style="opacity:0.3;">---</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        <div style="font-weight: 600;">{{ stock.producto.nombre }}</div>
+                        {% if stock.producto.marca %}
+                            <div style="font-size: 12px; color: var(--text-secondary);">{{ stock.producto.marca }}</div>
+                        {% endif %}
+                    </td>
+                    
+                    <td style="color: var(--text-secondary);">
+                        {{ stock.producto.categoria|default:"General" }}
+                    </td>
+                    
+                    <td style="text-align: right;">
+                        <span style="font-size: 16px; font-weight: 700;">{{ stock.cantidad }}</span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">{{ stock.producto.unidad|default:"UND" }}</span>
+                    </td>
+                    
+                    <td style="text-align: right;">
+                        {% if stock.cantidad <= stock.producto.stock_minimo %}
+                            <span class="badge badge-low">Bajo Stock</span>
+                        {% else %}
+                            <span class="badge badge-ok">Normal</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class='bx bx-search-alt'></i>
+                            <h3>No se encontraron productos</h3>
+                            <p>Intenta con otro término o cambia de sede.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Producto</th>
-            <th>Categoría</th>
-            <th>Stock Actual</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for stock in stocks %}
-            <tr>
-              <td style="font-family: monospace; color: var(--text-muted);">
-                {# En tu modelo: codigo_interno / barcode #}
-                {% if stock.producto.codigo_interno %}
-                  {{ stock.producto.codigo_interno }}
-                {% elif stock.producto.barcode %}
-                  {{ stock.producto.barcode }}
-                {% else %}
-                  --
-                {% endif %}
-              </td>
+{% if is_paginated %}
+<div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="btn btn-ghost">Anterior</a>
+    {% endif %}
+    
+    <span class="btn" style="background: transparent; color: var(--text-secondary); cursor: default;">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </span>
 
-              <td style="font-weight: 500; color: white;">
-                {{ stock.producto.nombre }}
-              </td>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="btn btn-ghost">Siguiente</a>
+    {% endif %}
+</div>
+{% endif %}
 
-              <td>{{ stock.producto.categoria|default:"--" }}</td>
-
-              <td style="font-size: 16px;">
-                {{ stock.cantidad }}
-                <span style="font-size: 12px; color: var(--text-muted);">
-                  {{ stock.producto.unidad|default:"" }}
-                </span>
-              </td>
-
-              <td>
-                {% if stock.cantidad <= stock.producto.stock_minimo %}
-                  <span class="badge bg-low">Bajo Stock</span>
-                {% else %}
-                  <span class="badge bg-ok">Normal</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 30px;">
-                No se encontraron productos con ese nombre.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-  </div>
-
-</body>
-</html>
+{% endblock %}

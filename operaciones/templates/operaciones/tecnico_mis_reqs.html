@@ -3,171 +3,160 @@
 
 {% block content %}
 <style>
-    /* --- ENCABEZADO --- */
+    /* =========================================
+       MIS REQUERIMIENTOS (Enterprise Style)
+       ========================================= */
+    
+    .reqs-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
     .page-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 25px; background: var(--bg-card);
-        padding: 20px; border-radius: var(--radius);
-        border: 1px solid var(--glass-border);
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
     }
-    .header-title h2 { margin: 0; font-size: 24px; font-weight: 700; color: #fff; }
-    .header-title p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
 
-    /* --- ESTILOS DE TABLA PC --- */
-    .table-responsive-desktop {
-        width: 100%;
-        overflow-x: auto;
+    /* Botones Header */
+    .header-actions { display: flex; gap: 12px; }
+    .btn-new {
+        background: var(--primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600;
+        text-decoration: none; display: flex; align-items: center; gap: 8px; transition: 0.2s; border: none;
+    }
+    .btn-new:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Tarjeta Principal */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Tabla PC */
+    .table-responsive-desktop { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
     }
     
-    table { 
-        width: 100% !important; 
-        border-collapse: separate; 
-        border-spacing: 0 8px; 
-    }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .code-text { font-family: monospace; font-weight: 600; color: var(--text-main); font-size: 14px; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .st-atendido { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .st-pendiente { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+    .st-borrador { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+
+    /* Botones Acción en Tabla (MODIFICADO PARA TEXTO) */
+    .action-group { display: flex; gap: 8px; justify-content: flex-end; }
     
-    th {
-        color: var(--text-muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 15px;
-        font-weight: 600;
-        text-align: left;
-    }
-
-    td {
-        padding: 15px;
-        vertical-align: middle;
-        background: rgba(255, 255, 255, 0.03);
-        border: none;
-        transition: 0.2s;
-    }
-    
-    td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
-    td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
-
-    .col-center { text-align: center; }
-    .col-right  { text-align: right; }
-
-    tr:hover td { background: rgba(255, 255, 255, 0.08); transform: scale(1.005); }
-
-    /* --- BOTONES DE ACCIÓN (Texto + Icono) --- */
-    .btn-action {
+    .btn-table {
         display: inline-flex; align-items: center; gap: 6px;
-        padding: 8px 14px; border-radius: 8px;
-        text-decoration: none; font-size: 13px; font-weight: 600;
-        border: 1px solid transparent; transition: 0.2s;
-        cursor: pointer;
-    }
-    .btn-action:hover { transform: translateY(-2px); filter: brightness(1.1); }
-
-    .btn-repeat { 
-        background: rgba(46, 213, 115, 0.15); 
-        color: #2ed573; 
-        border-color: rgba(46, 213, 115, 0.3); 
+        padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        text-decoration: none; transition: 0.2s; border: 1px solid transparent;
     }
     
-    .btn-delete { 
-        background: rgba(255, 69, 58, 0.15); 
-        color: #ff4757; 
-        border-color: rgba(255, 69, 58, 0.3); 
-    }
+    .btn-repeat { color: var(--primary); background: rgba(10, 132, 255, 0.1); }
+    .btn-repeat:hover { background: var(--primary); color: #fff; }
+    
+    .btn-delete { color: var(--danger); background: rgba(255, 69, 58, 0.1); }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
 
-    /* --- TARJETAS MÓVILES --- */
-    .mobile-card-list { display: none; flex-direction: column; gap: 15px; }
+    /* --- VISTA MÓVIL (Tarjetas) --- */
+    .mobile-list { display: none; flex-direction: column; gap: 15px; }
     
     .req-card {
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius); padding: 15px;
-        position: relative; overflow: hidden;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
     }
+    .rc-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
     
-    .rc-header { 
-        display: flex; justify-content: space-between; align-items: center; 
-        margin-bottom: 10px; padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .rc-code { font-family: monospace; font-weight: 700; color: #fff; font-size: 15px; }
-    
-    .rc-body { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #ccc; }
-    .rc-row { display: flex; justify-content: space-between; }
-    .rc-label { color: var(--text-muted); }
+    .rc-row { display: flex; justify-content: space-between; font-size: 13px; }
+    .rc-label { color: var(--text-secondary); }
+    .rc-val { color: var(--text-main); font-weight: 500; }
 
-    .rc-footer { 
-        margin-top: 12px; padding-top: 10px; 
-        border-top: 1px solid rgba(255,255,255,0.05); 
-        display: flex; justify-content: flex-end; gap: 10px;
-    }
-    
-    /* --- RESPONSIVE --- */
+    .rc-actions { margin-top: 5px; display: flex; gap: 10px; }
+    .btn-mobile { flex: 1; text-align: center; justify-content: center; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+
+    /* Estado Vacío */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
+
     @media (max-width: 992px) {
+        .table-responsive-desktop { display: none; }
+        .mobile-list { display: flex; }
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .table-responsive-desktop { display: none; } 
-        .mobile-card-list { display: flex; } 
+        .header-actions { width: 100%; }
+        .btn-new, .btn-ghost { flex: 1; justify-content: center; }
     }
 </style>
 
-<div class="page-header">
-    <div class="header-title">
-        <h2><i class='bx bx-cart-alt' style="color: var(--primary);"></i> Mis Requerimientos</h2>
-        <p>Historial de solicitudes de material</p>
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <a href="{% url 'req_home' %}" class="btn btn-primary">
-            <i class='bx bx-plus'></i> Nuevo
-        </a>
-        <a href="{% url 'tecnico_dashboard' %}" class="btn btn-warning" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
-            <i class='bx bx-arrow-back'></i> Panel
-        </a>
-    </div>
-</div>
-
-<div class="section-card">
+<div class="reqs-container">
     
-    <div class="table-responsive-desktop">
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Mis Requerimientos</h2>
+            <p>Historial de solicitudes de material</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'req_home' %}" class="btn-new">
+                <i class='bx bx-plus'></i> Nuevo Pedido
+            </a>
+            <a href="{% url 'tecnico_dashboard' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="content-card table-responsive-desktop">
         <table>
             <thead>
                 <tr>
                     <th>Código REQ</th>
-                    <th class="col-center">Fecha</th>
-                    <th class="col-center">Estado</th>
-                    <th class="col-right">Acciones</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th style="text-align: right;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in reqs %}
                 <tr>
                     <td>
-                        <strong style="font-family: monospace; font-size: 14px; color: #fff;">
-                            {{ r.numero|default:"(Borrador)" }}
-                        </strong>
+                        <span class="code-text">{{ r.numero|default:"(Borrador)" }}</span>
                     </td>
-                    
-                    <td class="col-center text-muted">{{ r.fecha|date:"d/m/Y H:i" }}</td>
-                    
-                    <td class="col-center">
+                    <td style="color: var(--text-secondary);">{{ r.fecha|date:"d M Y, H:i" }}</td>
+                    <td>
                         {% if r.estado == "REQ_BORRADOR" %}
-                            <span class="badge" style="background:rgba(255, 159, 10, 0.15); color:#FF9F0A; border: 1px solid rgba(255, 159, 10, 0.3);">Borrador</span>
+                            <span class="badge st-borrador">Borrador</span>
                         {% elif r.estado == "REQ_PENDIENTE" %}
-                            <span class="badge" style="background:rgba(255, 107, 107, 0.15); color:#ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3);">Pendiente</span>
+                            <span class="badge st-pendiente">Pendiente</span>
                         {% elif r.estado == "REQ_ATENDIDO" %}
-                            <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); border: 1px solid rgba(48, 209, 88, 0.3);">Atendido</span>
+                            <span class="badge st-atendido">Atendido</span>
                         {% else %}
-                            <span class="badge" style="background:rgba(255, 255, 255, 0.1);">{{ r.get_estado_display }}</span>
+                            <span class="badge" style="background:var(--bg-input);">{{ r.get_estado_display }}</span>
                         {% endif %}
                     </td>
-                    
-                    <td class="col-right">
-                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                            <a href="{% url 'req_clonar' r.id %}" class="btn-action btn-repeat" title="Repetir Pedido">
+                    <td>
+                        <div class="action-group">
+                            <a href="{% url 'req_clonar' r.id %}" class="btn-table btn-repeat">
                                 <i class='bx bx-refresh'></i> Repetir
                             </a>
 
                             {% if r.estado == "REQ_BORRADOR" %}
                                 <a href="{% url 'req_eliminar' r.id %}" 
-                                   class="btn-action btn-delete" 
-                                   title="Eliminar Borrador"
-                                   onclick="return confirm('¿Estás seguro de eliminar este borrador?');">
+                                   class="btn-table btn-delete" 
+                                   onclick="return confirm('¿Eliminar este borrador?');">
                                     <i class='bx bx-trash'></i> Eliminar
                                 </a>
                             {% endif %}
@@ -176,9 +165,12 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 50px; color: var(--text-muted);">
-                        <i class='bx bx-ghost' style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
-                        <p style="font-size: 16px;">No tienes requerimientos registrados.</p>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <i class='bx bx-cart'></i>
+                            <h3>Sin Solicitudes</h3>
+                            <p>No has realizado pedidos aún.</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -186,38 +178,32 @@
         </table>
     </div>
 
-    <div class="mobile-card-list">
+    <div class="mobile-list">
         {% for r in reqs %}
         <div class="req-card">
-            <div class="rc-header">
-                <div class="rc-code">
-                    <i class='bx bx-file' style="color: var(--primary);"></i> {{ r.numero|default:"(Borrador)" }}
-                </div>
-                
+            <div class="rc-top">
+                <span class="code-text">{{ r.numero|default:"(Borrador)" }}</span>
                 {% if r.estado == "REQ_BORRADOR" %}
-                    <span class="badge" style="background:rgba(255, 159, 10, 0.15); color:#FF9F0A; font-size: 11px;">Borrador</span>
+                    <span class="badge st-borrador">Borrador</span>
                 {% elif r.estado == "REQ_PENDIENTE" %}
-                    <span class="badge" style="background:rgba(255, 107, 107, 0.15); color:#ff6b6b; font-size: 11px;">Pendiente</span>
+                    <span class="badge st-pendiente">Pendiente</span>
                 {% elif r.estado == "REQ_ATENDIDO" %}
-                    <span class="badge" style="background:rgba(48, 209, 88, 0.15); color:var(--success); font-size: 11px;">Atendido</span>
+                    <span class="badge st-atendido">Atendido</span>
                 {% endif %}
             </div>
             
-            <div class="rc-body">
-                <div class="rc-row">
-                    <span class="rc-label">Fecha:</span>
-                    <span>{{ r.fecha|date:"d/m/Y H:i" }}</span>
-                </div>
+            <div class="rc-row">
+                <span class="rc-label">Fecha:</span>
+                <span class="rc-val">{{ r.fecha|date:"d M, H:i" }}</span>
             </div>
 
-            <div class="rc-footer">
-                <a href="{% url 'req_clonar' r.id %}" class="btn-action btn-repeat">
+            <div class="rc-actions">
+                <a href="{% url 'req_clonar' r.id %}" class="btn-mobile btn-repeat">
                     <i class='bx bx-refresh'></i> Repetir
                 </a>
-
+                
                 {% if r.estado == "REQ_BORRADOR" %}
-                    <a href="{% url 'req_eliminar' r.id %}" 
-                       class="btn-action btn-delete" 
+                    <a href="{% url 'req_eliminar' r.id %}" class="btn-mobile btn-delete" 
                        onclick="return confirm('¿Eliminar borrador?');">
                         <i class='bx bx-trash'></i> Eliminar
                     </a>
@@ -225,8 +211,10 @@
             </div>
         </div>
         {% empty %}
-        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-            <p>No hay requerimientos.</p>
+        <div class="empty-state">
+            <i class='bx bx-cart'></i>
+            <h3>Sin Solicitudes</h3>
+            <p>No has realizado pedidos.</p>
         </div>
         {% endfor %}
     </div>

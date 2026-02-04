@@ -3,169 +3,214 @@
 
 {% block content %}
 <style>
-    /* --- ENCABEZADO Y ACCIONES --- */
+    /* =========================================
+       DETALLE DE SALIDA (Enterprise)
+       ========================================= */
+    
+    .detail-container {
+        display: flex; flex-direction: column; gap: 24px;
+        animation: fadeIn 0.4s ease-out;
+        max-width: 1000px; margin: 0 auto;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
     .detail-header {
         display: flex; justify-content: space-between; align-items: center;
-        background: var(--bg-card); padding: 20px;
-        border-radius: var(--radius); border: 1px solid var(--glass-border);
-        margin-bottom: 25px; gap: 15px;
+        background: var(--bg-card); padding: 24px; border-radius: var(--radius);
+        border: 1px solid var(--border-light); box-shadow: var(--shadow-card);
+        flex-wrap: wrap; gap: 20px;
     }
-    .dh-title h1 { margin: 0; font-size: 24px; color: #fff; font-family: monospace; }
-    .dh-title p { margin: 5px 0 0; font-size: 13px; color: var(--text-muted); }
+    .dh-title h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .dh-meta { margin: 6px 0 0; font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
     
-    .dh-actions { display: flex; gap: 10px; }
+    .dh-actions { display: flex; gap: 12px; }
 
-    /* --- TARJETA DE INFO PRINCIPAL --- */
+    /* Badges de Estado */
+    .badge-lg { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .st-confirmado { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .st-borrador { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .st-anulado { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+
+    /* Info Grid */
     .info-grid {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px; margin-bottom: 25px;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;
     }
     .info-box {
-        background: var(--bg-input); padding: 15px; border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.05);
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px;
     }
-    .ib-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
-    .ib-val { font-size: 15px; font-weight: 600; color: #fff; }
+    .ib-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+    .ib-val { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .ib-val i { font-size: 18px; color: var(--text-tertiary); }
 
-    /* --- TABLA DE ÍTEMS --- */
+    /* Tabla de Ítems */
     .items-card {
-        background: var(--bg-card); border-radius: var(--radius);
-        border: 1px solid var(--glass-border); padding: 20px;
-        overflow: hidden;
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
     }
+    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
+    .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); }
+
     .table-responsive { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 500px; } /* Min width para scroll en móvil */
-    th { text-align: left; padding: 12px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #ddd; font-size: 14px; }
-    tr:last-child td { border-bottom: none; }
-    
-    .col-qty { text-align: right; font-weight: 700; color: #fff; }
-
-    /* --- CAJA DE RECEPCIÓN (DESTACADA) --- */
-    .reception-box {
-        margin-top: 25px; padding: 25px; border-radius: 16px;
-        background: rgba(46, 213, 115, 0.1); border: 1px solid rgba(46, 213, 115, 0.3);
-        text-align: center;
+    table { width: 100%; border-collapse: collapse; }
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
     }
-    .reception-box h4 { color: var(--success); margin-bottom: 10px; font-size: 18px; }
-    .reception-box p { color: #ccc; margin-bottom: 15px; font-size: 14px; }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); color: var(--text-main); vertical-align: top; font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
 
-    /* --- ESTADOS --- */
-    .badge-lg { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; display: inline-block; }
-    .st-confirmado { background: rgba(48, 209, 88, 0.2); color: var(--success); border: 1px solid rgba(48, 209, 88, 0.3); }
-    .st-borrador { background: rgba(255, 159, 10, 0.2); color: #FF9F0A; border: 1px solid rgba(255, 159, 10, 0.3); }
+    /* Caja de Recepción (Call to Action) */
+    .reception-box {
+        background: rgba(10, 132, 255, 0.1); border: 1px dashed rgba(10, 132, 255, 0.3);
+        border-radius: var(--radius); padding: 30px; text-align: center; margin-top: 10px;
+    }
+    .rb-title { color: var(--primary); font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .rb-text { color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; }
+
+    /* Botones */
+    .btn-action {
+        padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .btn-ghost { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-light); }
+    .btn-ghost:hover { background: var(--bg-hover); }
     
-    /* --- RESPONSIVE --- */
+    .btn-primary-solid { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); }
+    .btn-primary-solid:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    .btn-success-solid { background: var(--success); color: #000; box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3); }
+    .btn-success-solid:hover { background: #2bc063; transform: translateY(-1px); }
+
+    /* Print Hide */
+    @media print {
+        .no-print, .dh-actions, .btn { display: none !important; }
+        body, .detail-header, .items-card, .info-box { background: #fff !important; color: #000 !important; border: 1px solid #ddd !important; box-shadow: none !important; }
+        .detail-container { max-width: 100%; }
+    }
+
     @media (max-width: 768px) {
         .detail-header { flex-direction: column; align-items: flex-start; }
         .dh-actions { width: 100%; justify-content: space-between; margin-top: 10px; }
-        .btn { flex: 1; justify-content: center; }
-        .info-grid { grid-template-columns: 1fr; } /* Info en una columna */
-    }
-    @media print {
-        .no-print { display: none !important; }
-        body, .detail-header, .items-card { background: #fff !important; color: #000 !important; border: none !important; }
+        .btn-action { flex: 1; justify-content: center; }
     }
 </style>
 
-<div class="detail-header no-print">
-    <div class="dh-title">
-        <h1>{{ sal.numero|default:"(Borrador)" }}</h1>
-        <p>
-            {% if sal.estado == 'CONFIRMADO' %}
-                <span class="badge-lg st-confirmado"><i class='bx bx-check'></i> CONFIRMADO</span>
-            {% else %}
-                <span class="badge-lg st-borrador">{{ sal.get_estado_display }}</span>
-            {% endif %}
-            &nbsp; · &nbsp; {{ sal.fecha|date:"d M Y, H:i" }}
-        </p>
-    </div>
+<div class="detail-container">
     
-    <div class="dh-actions">
-        {% if request.user.profile.rol == "ALMACEN" %}
-            <a href="{% url 'dash_almacen' %}" class="btn btn-warning"><i class='bx bx-arrow-back'></i> Volver</a>
-        {% else %}
-            <a href="{% url 'tecnico_mis_entregas' %}" class="btn btn-warning"><i class='bx bx-arrow-back'></i> Volver</a>
-        {% endif %}
-
-        <a href="{% url 'sal_print' sal.id %}" target="_blank" class="btn" style="background: rgba(255,255,255,0.1); color: #fff;">
-            <i class='bx bx-printer'></i> Imprimir
-        </a>
-    </div>
-</div>
-
-<div class="info-grid">
-    <div class="info-box">
-        <div class="ib-label">Origen (Almacén)</div>
-        <div class="ib-val">{{ sal.sede.nombre }}</div>
-    </div>
-    <div class="info-box">
-        <div class="ib-label">Destino / Técnico</div>
-        <div class="ib-val">
-            {% if sal.sede_destino %}
-                <i class='bx bxs-business'></i> {{ sal.sede_destino.nombre }}
+    <div class="detail-header no-print">
+        <div class="dh-title">
+            <h1>{{ sal.numero|default:"(Borrador)" }}</h1>
+            <div class="dh-meta">
+                {% if sal.estado == 'CONFIRMADO' %}
+                    <span class="badge-lg st-confirmado"><i class='bx bx-check'></i> Confirmado</span>
+                {% elif sal.estado == 'ANULADO' %}
+                    <span class="badge-lg st-anulado"><i class='bx bx-x'></i> Anulado</span>
+                {% else %}
+                    <span class="badge-lg st-borrador">Borrador</span>
+                {% endif %}
+                <span>·</span>
+                <span>{{ sal.fecha|date:"d M Y, H:i" }}</span>
+            </div>
+        </div>
+        
+        <div class="dh-actions">
+            {% if request.user.profile.rol == "ALMACEN" %}
+                <a href="{% url 'dash_almacen' %}" class="btn-action btn-ghost"><i class='bx bx-arrow-back'></i> Volver</a>
             {% else %}
-                <i class='bx bxs-user'></i> {{ sal.responsable.username }} (Técnico)
+                <a href="{% url 'tecnico_mis_entregas' %}" class="btn-action btn-ghost"><i class='bx bx-arrow-back'></i> Volver</a>
             {% endif %}
+
+            <a href="{% url 'sal_print' sal.id %}" target="_blank" class="btn-action btn-ghost">
+                <i class='bx bx-printer'></i> Imprimir
+            </a>
         </div>
     </div>
-    <div class="info-box">
-        <div class="ib-label">Documento Origen</div>
-        <div class="ib-val" style="color: var(--primary);">
-            {% if sal.origen %}
-                <i class='bx bx-file'></i> {{ sal.origen.numero }}
-            {% else %}
-                <span class="text-muted">Entrega Directa</span>
-            {% endif %}
+
+    <div class="info-grid">
+        <div class="info-box">
+            <div class="ib-label">Origen (Almacén)</div>
+            <div class="ib-val"><i class='bx bxs-store'></i> {{ sal.sede.nombre }}</div>
+        </div>
+        <div class="info-box">
+            <div class="ib-label">Destino / Técnico</div>
+            <div class="ib-val">
+                {% if sal.sede_destino %}
+                    <i class='bx bxs-business'></i> {{ sal.sede_destino.nombre }}
+                {% else %}
+                    <i class='bx bxs-user-pin'></i> {{ sal.responsable.get_full_name|default:sal.responsable.username }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="ib-label">Referencia</div>
+            <div class="ib-val" style="color: var(--primary);">
+                {% if sal.origen %}
+                    <i class='bx bx-file-blank'></i> {{ sal.origen.numero }}
+                {% else %}
+                    <span style="color: var(--text-muted); font-weight: 400;">Entrega Directa</span>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 
-<div class="items-card">
-    <h4 style="margin-top: 0; margin-bottom: 20px;"><i class='bx bx-list-check' style="color: var(--primary);"></i> Ítems Entregados</h4>
-    
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Material</th>
-                    <th>Código</th>
-                    <th class="col-qty">Cant.</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for it in items %}
-                <tr>
-                    <td>
-                        <strong style="color: #fff; font-size: 15px;">{{ it.producto.nombre }}</strong>
-                        {% if it.observacion %}
-                            <br><small class="text-muted">{{ it.observacion }}</small>
-                        {% endif %}
-                    </td>
-                    <td style="font-family: monospace;">{{ it.producto.codigo|default:"-" }}</td>
-                    <td class="col-qty" style="font-size: 16px;">{{ it.cantidad }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center p-4">No hay ítems registrados.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="items-card">
+        <div class="card-header">
+            <h4><i class='bx bx-list-check'></i> Materiales Entregados</h4>
+        </div>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Código</th>
+                        <th style="text-align: right;">Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for it in items %}
+                    <tr>
+                        <td>
+                            <strong style="display: block; font-size: 15px;">{{ it.producto.nombre }}</strong>
+                            {% if it.observacion %}
+                                <small style="color: var(--text-secondary);">{{ it.observacion }}</small>
+                            {% endif %}
+                            {% if it.series %}
+                                <div style="margin-top: 4px; font-size: 11px; font-family: monospace; color: var(--text-secondary); background: var(--bg-input); padding: 4px; border-radius: 4px; display: inline-block;">
+                                    SN: {{ it.series }}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td style="font-family: monospace; color: var(--text-secondary);">{{ it.producto.codigo|default:"-" }}</td>
+                        <td style="text-align: right; font-weight: 700; font-size: 16px;">{{ it.cantidad }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                            No hay ítems registrados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% if sal.estado == "BORRADOR" %}
         {% if request.user.profile.rol == "ALMACEN" or request.user.profile.rol == "JEFA" or request.user.profile.rol == "ADMIN" %}
-            <div style="margin-top: 25px; text-align: right;">
+            <div style="text-align: right; margin-top: 10px;">
                 <form method="post" action="{% url 'sal_confirmar' sal.id %}">
                     {% csrf_token %}
-                    <button class="btn btn-primary" type="submit">
+                    <button class="btn-action btn-primary-solid" type="submit">
                         <i class='bx bx-check-double'></i> Confirmar Salida y Descontar Stock
                     </button>
                 </form>
             </div>
         {% else %}
-            <div class="alert alert-warning mt-3">
+            <div style="padding: 15px; background: rgba(255, 159, 10, 0.1); color: var(--warning); border-radius: 8px; border: 1px dashed var(--warning); text-align: center;">
                 <i class='bx bx-time'></i> Pendiente de confirmación por Almacén.
             </div>
         {% endif %}
@@ -174,12 +219,12 @@
     {% if sal.estado == "CONFIRMADO" and not sal.recibido and sal.sede_destino %}
         {% if request.user.profile.get_sede_operativa.id == sal.sede_destino.id %}
             <div class="reception-box no-print">
-                <h4><i class='bx bxs-truck'></i> Mercadería en Puerta</h4>
-                <p>Verifica que los ítems coincidan con lo físico antes de ingresar al stock.</p>
+                <div class="rb-title"><i class='bx bxs-truck'></i> Mercadería en Puerta</div>
+                <div class="rb-text">Verifica que los ítems coincidan con lo físico antes de ingresarlos a tu stock.</div>
                 
                 <form method="post" action="{% url 'almacen_recepcionar_traspaso' sal.id %}">
                     {% csrf_token %}
-                    <button class="btn btn-success" style="width: 100%; justify-content: center; padding: 15px;">
+                    <button class="btn-action btn-success-solid" style="width: 100%; justify-content: center;">
                         <i class='bx bx-check-circle'></i> CONFIRMAR INGRESO AL ALMACÉN
                     </button>
                 </form>
@@ -188,7 +233,7 @@
     {% endif %}
 
     {% if sal.recibido %}
-        <div style="margin-top: 20px; text-align: center; padding: 15px; background: rgba(48, 209, 88, 0.1); border-radius: 12px; border: 1px solid var(--success);">
+        <div style="text-align: center; padding: 20px; background: rgba(48, 209, 88, 0.1); border-radius: 12px; border: 1px solid var(--success);">
             <p style="margin: 0; color: var(--success); font-weight: 600;">
                 <i class='bx bx-user-check'></i> Recepcionado por {{ sal.recibido_por.username }} el {{ sal.recibido_en|date:"d/m/Y H:i" }}
             </p>

@@ -1,57 +1,195 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+{% load static %}
 <html>
 <head>
     <title>Vale de Salida {{ proyecto.codigo }}</title>
     <style type="text/css">
-        @page { size: A4; margin: 2cm; }
-        body { font-family: Helvetica, sans-serif; font-size: 12px; color: #333; }
+        /* --- CONFIGURACIÓN DE PÁGINA --- */
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: Helvetica, sans-serif;
+                font-size: 9px;
+                color: #888;
+            }
+        }
+
+        /* --- TIPOGRAFÍA --- */
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11px;
+            color: #000;
+            line-height: 1.3;
+        }
+
+        /* --- ENCABEZADO --- */
+        .header-container {
+            width: 100%;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header-logo {
+            width: 150px;
+            vertical-align: top;
+        }
+        .header-text {
+            text-align: right;
+            vertical-align: top;
+        }
+        .company-name { font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .doc-title { font-size: 14px; font-weight: bold; margin-top: 5px; color: #444; }
+        .meta-date { font-size: 10px; color: #666; margin-top: 5px; }
+
+        /* --- INFO PROYECTO --- */
+        .info-table {
+            width: 100%;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+        .label {
+            color: #666;
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        /* --- TABLA DE MATERIALES --- */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .items-table th {
+            background-color: #eee;
+            border-bottom: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .items-table th.left { text-align: left; }
         
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4e73df; padding-bottom: 10px; }
-        .header h1 { margin: 0; color: #1a1a2e; font-size: 20px; text-transform: uppercase; }
-        .header p { margin: 2px 0; color: #666; font-size: 10px; }
+        .items-table td {
+            border-bottom: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            font-size: 10px;
+        }
+        .items-table td.left { text-align: left; }
         
-        .info-box { width: 100%; margin-bottom: 20px; background-color: #f8f9fc; padding: 10px; border: 1px solid #ddd; }
-        .info-row { margin-bottom: 5px; }
-        .label { font-weight: bold; color: #4e73df; width: 120px; display: inline-block; }
+        /* Resaltar la columna importante */
+        .col-entregado { font-weight: bold; background-color: #f4f4f4; border-left: 1px solid #ddd; border-right: 1px solid #ddd; }
+
+        /* --- FIRMAS --- */
+        .signatures-wrapper {
+            width: 100%;
+            margin-top: 60px;
+            page-break-inside: avoid;
+        }
+        .sig-box {
+            width: 40%;
+            display: inline-block;
+            vertical-align: top;
+            text-align: center;
+        }
+        .sig-line {
+            border-top: 1px solid #000;
+            margin-bottom: 8px;
+            width: 90%;
+            margin-left: 5%;
+        }
+        .sig-role { font-weight: bold; font-size: 10px; margin-bottom: 2px; }
+        .sig-name { font-size: 9px; text-transform: uppercase; }
         
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th { background-color: #4e73df; color: white; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
-        td { border-bottom: 1px solid #ddd; padding: 8px; font-size: 11px; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        
-        .signatures { width: 100%; margin-top: 50px; }
-        .sig-box { width: 45%; float: left; text-align: center; }
-        .sig-line { border-top: 1px solid #000; margin-bottom: 5px; width: 80%; margin-left: 10%; }
-        .sig-role { font-size: 10px; color: #666; font-weight: bold; }
-        
-        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 5px; }
+        /* --- PIE DE PÁGINA --- */
+        .legal-footer {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            font-size: 8px;
+            color: #888;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>TELECABLE - ALMACÉN CENTRAL</h1>
-        <p>CONTROL DE SALIDA DE MATERIALES PARA OBRA</p>
-        <p>Generado el: {{ fecha_impresion|date:"d/m/Y H:i" }} por {{ usuario.username|upper }}</p>
-    </div>
+    <table class="header-container">
+        <tr>
+            <td class="header-logo">
+                <img src="{% static 'inventario/img/logo_black.png' %}" alt="TELECABLE" style="height: 40px;" 
+                     onerror="this.style.display='none'">
+            </td>
+            <td class="header-text">
+                <div class="company-name">TELECABLE SERVICIOS</div>
+                <div class="doc-title">VALE DE SALIDA DE MATERIALES</div>
+                <div class="meta-date">Fecha de Emisión: {{ fecha_impresion|date:"d/m/Y H:i" }}</div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="info-box">
-        <div class="info-row"><span class="label">PROYECTO:</span> {{ proyecto.nombre|upper }}</div>
-        <div class="info-row"><span class="label">CÓDIGO:</span> <strong>{{ proyecto.codigo }}</strong></div>
-        <div class="info-row"><span class="label">SEDE:</span> {{ proyecto.sede.nombre }}</div>
-        <div class="info-row"><span class="label">RESPONSABLE:</span> {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}</div>
-    </div>
+    <table class="info-table">
+        <tr>
+            <td style="width: 25%;">
+                <span class="label">CÓDIGO DE OBRA</span>
+                <span class="value">{{ proyecto.codigo }}</span>
+            </td>
+            <td style="width: 50%;">
+                <span class="label">PROYECTO</span>
+                <span class="value">{{ proyecto.nombre|upper }}</span>
+            </td>
+            <td style="width: 25%;">
+                <span class="label">SEDE ORIGEN</span>
+                <span class="value">{{ proyecto.sede.nombre }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <span class="label">RESPONSABLE TÉCNICO (RECEPTOR)</span>
+                <span class="value">
+                    {% if proyecto.responsable %}
+                        {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+                    {% else %}
+                        -- SIN ASIGNAR --
+                    {% endif %}
+                </span>
+            </td>
+            <td>
+                <span class="label">USUARIO EMISOR</span>
+                <span class="value">{{ usuario.username|upper }}</span>
+            </td>
+        </tr>
+    </table>
 
-    <h3>DETALLE DE MATERIALES ENTREGADOS</h3>
-    <table>
+    <h4 style="margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; display: inline-block;">
+        Detalle de Materiales
+    </h4>
+
+    <table class="items-table">
         <thead>
             <tr>
-                <th>#</th>
-                <th>CÓDIGO</th>
-                <th>DESCRIPCIÓN / MATERIAL</th>
-                <th style="text-align: center;">CANT. PLANIFICADA</th>
-                <th style="text-align: center;">ENTREGADO TOTAL</th>
-                <th style="text-align: center;">U.M.</th>
+                <th style="width: 5%;">#</th>
+                <th style="width: 15%;">CÓDIGO</th>
+                <th class="left" style="width: 45%;">DESCRIPCIÓN DEL MATERIAL</th>
+                <th style="width: 10%;">U.M.</th>
+                <th style="width: 12%;">PLANIFICADO</th>
+                <th style="width: 13%;">ENTREGADO</th>
             </tr>
         </thead>
         <tbody>
@@ -59,40 +197,48 @@
             <tr>
                 <td>{{ forloop.counter }}</td>
                 <td>{{ item.producto.codigo_interno }}</td>
-                <td>{{ item.producto.nombre }}</td>
-                <td style="text-align: center; color: #666;">{{ item.cantidad_planificada }}</td>
-                <td style="text-align: center; font-weight: bold;">{{ item.cantidad_entregada }}</td>
-                <td style="text-align: center;">{{ item.producto.unidad }}</td>
+                <td class="left">{{ item.producto.nombre }}</td>
+                <td>{{ item.producto.unidad|default:"UND" }}</td>
+                <td style="color: #666;">{{ item.cantidad_planificada }}</td>
+                <td class="col-entregado">{{ item.cantidad_entregada }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" style="text-align: center; padding: 20px;">
-                    Aún no se han entregado materiales para este proyecto.
-                </td>
+                <td colspan="6" style="padding: 20px;">No se han registrado entregas aún.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <div class="signatures">
-        <div class="sig-box">
-            <div style="height: 40px;"></div> <div class="sig-line"></div>
-            <div>ENTREGADO POR</div>
-            <div class="sig-role">ALMACÉN - {{ proyecto.sede.nombre }}</div>
-        </div>
+    <div class="signatures-wrapper">
+        <table style="width: 100%;">
+            <tr>
+                <td class="sig-box">
+                    <div style="height: 50px;"></div>
+                    <div class="sig-line"></div>
+                    <div class="sig-role">ENTREGADO POR</div>
+                    <div class="sig-name">ALMACÉN - {{ proyecto.sede.nombre }}</div>
+                </td>
 
-        <div class="sig-box" style="float: right;">
-            <div style="height: 40px;"></div>
-            <div class="sig-line"></div>
-            <div>RECIBIDO CONFORME</div>
-            <div class="sig-role">{{ proyecto.responsable.get_full_name|upper }}</div>
-            <div class="sig-role">DNI: __________________</div>
-        </div>
+                <td style="width: 20%;"></td> <td class="sig-box">
+                    <div style="height: 50px;"></div>
+                    <div class="sig-line"></div>
+                    <div class="sig-role">RECIBIDO CONFORME</div>
+                    <div class="sig-name">
+                        {% if proyecto.responsable %}
+                            {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+                        {% else %}
+                            RESPONSABLE TÉCNICO
+                        {% endif %}
+                    </div>
+                    <div class="sig-role" style="font-weight:normal; font-size:9px; margin-top:2px;">DNI: _________________</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div class="footer">
-        Este documento certifica la salida de materiales del almacén de Telecable. 
-        Página 1 de 1
+    <div class="legal-footer">
+        Al firmar este documento, el responsable técnico declara haber recibido los materiales en buen estado y en las cantidades descritas, asumiendo la responsabilidad de su custodia y uso exclusivo para el proyecto indicado.
     </div>
 
 </body>

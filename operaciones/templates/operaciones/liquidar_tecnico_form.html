@@ -1,77 +1,170 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container p-4">
-    <div class="d-flex justify-content-between mb-4">
-        <h3 class="text-white">⚖️ Liquidar: <span class="text-info">{{ tecnico.username }}</span></h3>
-        <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-secondary">Cancelar</a>
-    </div>
+<style>
+    /* =========================================
+       LIQUIDACIÓN DE TÉCNICO (Enterprise)
+       ========================================= */
     
+    .liquidate-container {
+        max-width: 1000px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-title h3 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-title span { color: var(--primary); font-weight: 600; }
+
+    /* Tabla de Liquidación */
+    .table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: center; color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; 
+        padding: 16px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); vertical-align: bottom;
+    }
+    th.th-left { text-align: left; padding-left: 24px; }
+    
+    td { padding: 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); }
+    td.td-left { padding-left: 24px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    /* Columnas Específicas */
+    .col-material { width: 30%; }
+    .col-mochila { width: 15%; text-align: center; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .col-input { width: 15%; text-align: center; }
+    .col-consumo { width: 15%; text-align: center; font-weight: 800; font-size: 18px; color: var(--primary); }
+
+    /* Inputs de Cantidad */
+    .qty-input {
+        width: 80px; text-align: center; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 15px;
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); transition: 0.2s;
+    }
+    .qty-input:focus { outline: none; border-color: var(--primary); background: #3a3a3c; }
+    
+    .input-green { border-color: rgba(48, 209, 88, 0.3); color: var(--success); }
+    .input-green:focus { border-color: var(--success); }
+    
+    .input-red { border-color: rgba(255, 69, 58, 0.3); color: var(--danger); }
+    .input-red:focus { border-color: var(--danger); }
+
+    .is-invalid { border-color: var(--danger) !important; background: rgba(255, 69, 58, 0.1) !important; }
+
+    /* Badges */
+    .badge-mochila { 
+        background: var(--bg-input); padding: 6px 12px; border-radius: 6px; 
+        border: 1px solid var(--border-light); display: inline-block;
+    }
+
+    /* Footer / Observaciones */
+    .footer-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
+    .notes-input { 
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 12px; border-radius: 10px; font-size: 14px; margin-bottom: 20px;
+    }
+
+    .btn-confirm {
+        width: 100%; background-color: var(--primary); color: #fff; border: none; padding: 16px;
+        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 10px;
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+    }
+    .btn-confirm:hover { background-color: var(--primary-dark); transform: translateY(-2px); }
+
+    .error-text { color: var(--danger) !important; text-decoration: line-through; }
+
+</style>
+
+<div class="liquidate-container">
+    
+    <div class="page-header">
+        <div class="header-title">
+            <h3>⚖️ Liquidar: <span>{{ tecnico.username }}</span></h3>
+        </div>
+        <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+
     <form method="POST">
         {% csrf_token %}
-        <div class="glass-panel p-0 overflow-hidden">
-            <table class="table table-dark mb-0 align-middle">
-                <thead>
-                    <tr>
-                        <th class="p-3">MATERIAL</th>
-                        <th class="p-3 text-center">MOCHILA</th>
-                        <th class="p-3 text-center" style="width:140px; color:#1cc88a;">
-                            <i class='bx bx-archive-in'></i> BUENOS<br><small>(Al Stock)</small>
-                        </th>
-                        <th class="p-3 text-center" style="width:140px; color:#e74a3b;">
-                            <i class='bx bx-trash'></i> MERMA<br><small>(Dañado)</small>
-                        </th>
-                        <th class="p-3 text-center text-white">
-                            <i class='bx bx-wrench'></i> INSTALADO<br><small>(Consumo)</small>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in mochila %}
-                    <tr>
-                        <td class="p-3">
-                            <strong class="d-block text-white">{{ item.producto.nombre }}</strong>
-                            <small class="text-muted">{{ item.producto.codigo_interno }}</small>
-                        </td>
-                        
-                        <td class="p-3 text-center">
-                            <span class="badge bg-primary fs-6 badge-total" data-val="{{ item.cantidad }}">
-                                {{ item.cantidad }}
-                            </span>
-                        </td>
-                        
-                        <td class="p-3">
-                            <input type="number" 
-                                   name="devuelto_{{ item.id }}" 
-                                   class="form-control text-center bg-dark text-success border-success input-calc"
-                                   min="0" max="{{ item.cantidad }}" value="0">
-                        </td>
-
-                        <td class="p-3">
-                            <input type="number" 
-                                   name="merma_{{ item.id }}" 
-                                   class="form-control text-center bg-dark text-danger border-danger input-calc"
-                                   min="0" max="{{ item.cantidad }}" value="0">
-                        </td>
-
-                        <td class="p-3 text-center">
-                            <strong class="fs-5 span-consumo text-info">{{ item.cantidad }}</strong>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-4">
-            <label class="text-white mb-2">Observaciones de Liquidación:</label>
-            <textarea name="observaciones" class="form-control bg-dark text-white" rows="2" 
-                      placeholder="Ej: Se descontaron 2 conectores rotos..."></textarea>
-        </div>
         
-        <button type="submit" class="btn btn-warning w-100 mt-4 p-3 fw-bold"
-                onclick="return confirm('¿Confirmas el cierre de semana? El stock del técnico quedará en CERO.')">
-            <i class='bx bx-check-double'></i> CONFIRMAR CIERRE DE SEMANA
-        </button>
+        <div class="table-card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="th-left col-material">MATERIAL</th>
+                            <th class="col-mochila">MOCHILA</th>
+                            <th class="col-input" style="color:var(--success);">
+                                <i class='bx bx-archive-in'></i> BUENOS<br><small>(Retorno)</small>
+                            </th>
+                            <th class="col-input" style="color:var(--danger);">
+                                <i class='bx bx-trash'></i> MERMA<br><small>(Dañado)</small>
+                            </th>
+                            <th class="col-consumo">
+                                <i class='bx bx-wrench'></i> CONSUMO<br><small>(Instalado)</small>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in mochila %}
+                        <tr>
+                            <td class="td-left">
+                                <strong style="display:block; font-size:15px;">{{ item.producto.nombre }}</strong>
+                                <small style="color:var(--text-secondary); font-family:monospace;">{{ item.producto.codigo_interno }}</small>
+                            </td>
+
+                            <td class="col-mochila">
+                                <span class="badge-mochila badge-total" data-val="{{ item.cantidad }}">
+                                    {{ item.cantidad }}
+                                </span>
+                            </td>
+
+                            <td class="col-input">
+                                <input type="number" name="devuelto_{{ item.id }}" 
+                                       class="qty-input input-green input-calc" 
+                                       min="0" max="{{ item.cantidad }}" value="0">
+                            </td>
+
+                            <td class="col-input">
+                                <input type="number" name="merma_{{ item.id }}" 
+                                       class="qty-input input-red input-calc" 
+                                       min="0" max="{{ item.cantidad }}" value="0">
+                            </td>
+
+                            <td class="col-consumo">
+                                <span class="span-consumo">{{ item.cantidad }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="padding: 24px;">
+                <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
+                    Observaciones de Liquidación
+                </label>
+                <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos..."></textarea>
+                
+                <button type="submit" class="btn-confirm" onclick="return confirm('¿Confirmas el cierre de semana? El stock del técnico quedará en CERO.')">
+                    <i class='bx bx-check-double'></i> CONFIRMAR CIERRE DE SEMANA
+                </button>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -95,15 +188,13 @@
             // Validación Visual
             if (suma > total) {
                 span.innerText = "Error";
-                span.classList.remove('text-info');
-                span.classList.add('text-danger');
+                span.classList.add('error-text');
                 devueltoInput.classList.add('is-invalid');
                 mermaInput.classList.add('is-invalid');
             } else {
                 let consumo = total - suma;
                 span.innerText = consumo;
-                span.classList.remove('text-danger');
-                span.classList.add('text-info');
+                span.classList.remove('error-text');
                 devueltoInput.classList.remove('is-invalid');
                 mermaInput.classList.remove('is-invalid');
             }
