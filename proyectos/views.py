@@ -404,7 +404,8 @@ def eliminar_proyecto(request, pk):
 @login_required
 def proyecto_pdf_salida(request, proyecto_id):
     """
-    Genera un PDF con el resumen de materiales entregados para firmar.
+    Muestra la vista de impresión (HTML) del Vale de Salida.
+    Ya no genera PDF en el servidor, usa el navegador del cliente.
     """
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     
@@ -419,20 +420,12 @@ def proyecto_pdf_salida(request, proyecto_id):
         'materiales': materiales_entregados,
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
-        'host': request.get_host(), # Para rutas absolutas si pones imágenes
     }
     
-    pdf = render_to_pdf('proyectos/pdf_vale_salida.html', data)
-    
-    if pdf:
-        # Esto hace que se descargue con el nombre correcto
-        response = HttpResponse(pdf, content_type='application/pdf')
-        filename = f"Vale_Salida_{proyecto.codigo}.pdf"
-        content = f"inline; filename={filename}"
-        response['Content-Disposition'] = content
-        return response
-    
-    return HttpResponse("Error al generar el PDF", status=404)
+    # CAMBIO CLAVE: Usamos render normal, no render_to_pdf
+    # Asegúrate de que la ruta del template coincida con donde guardaste el archivo nuevo
+    return render(request, 'proyectos/pdf_vale_salida.html', data)
+
 
 @login_required
 def almacen_liquidacion_lista(request):

@@ -22,7 +22,7 @@
     .header-title h3 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
     .header-title span { color: var(--primary); font-weight: 600; }
 
-    /* Tabla de Liquidación */
+    /* Tabla */
     .table-card {
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); overflow: hidden;
@@ -43,13 +43,13 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
-    /* Columnas Específicas */
+    /* Columnas */
     .col-material { width: 30%; }
     .col-mochila { width: 15%; text-align: center; font-weight: 700; font-size: 16px; color: var(--text-main); }
     .col-input { width: 15%; text-align: center; }
     .col-consumo { width: 15%; text-align: center; font-weight: 800; font-size: 18px; color: var(--primary); }
 
-    /* Inputs de Cantidad */
+    /* Inputs */
     .qty-input {
         width: 80px; text-align: center; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 15px;
         background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); transition: 0.2s;
@@ -70,8 +70,7 @@
         border: 1px solid var(--border-light); display: inline-block;
     }
 
-    /* Footer / Observaciones */
-    .footer-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
+    /* Footer */
     .notes-input { 
         width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
         padding: 12px; border-radius: 10px; font-size: 14px; margin-bottom: 20px;
@@ -84,9 +83,9 @@
         box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
     }
     .btn-confirm:hover { background-color: var(--primary-dark); transform: translateY(-2px); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: wait; transform: none; box-shadow: none; }
 
     .error-text { color: var(--danger) !important; text-decoration: line-through; }
-
 </style>
 
 <div class="liquidate-container">
@@ -98,7 +97,7 @@
         <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
-    <form method="POST">
+    <form method="POST" id="liquidationForm">
         {% csrf_token %}
         
         <div class="table-card">
@@ -160,7 +159,7 @@
                 </label>
                 <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos..."></textarea>
                 
-                <button type="submit" class="btn-confirm" onclick="return confirm('¿Confirmas el cierre de semana? El stock del técnico quedará en CERO.')">
+                <button type="submit" id="btnConfirm" class="btn-confirm">
                     <i class='bx bx-check-double'></i> CONFIRMAR CIERRE DE SEMANA
                 </button>
             </div>
@@ -169,12 +168,10 @@
 </div>
 
 <script>
-    // 🧮 CÁLCULO EN TIEMPO REAL: Consumo = Mochila - (Devuelto + Merma)
+    // 🧮 CÁLCULO EN TIEMPO REAL
     document.querySelectorAll('.input-calc').forEach(input => {
         input.addEventListener('input', function() {
             let row = this.closest('tr');
-            
-            // Obtenemos valores
             let total = parseInt(row.querySelector('.badge-total').dataset.val);
             let devueltoInput = row.querySelector(`input[name^="devuelto_"]`);
             let mermaInput = row.querySelector(`input[name^="merma_"]`);
@@ -185,7 +182,6 @@
 
             let span = row.querySelector('.span-consumo');
 
-            // Validación Visual
             if (suma > total) {
                 span.innerText = "Error";
                 span.classList.add('error-text');
@@ -199,6 +195,21 @@
                 mermaInput.classList.remove('is-invalid');
             }
         });
+    });
+
+    // 🔒 EVITAR DOBLE SUBMIT (Script Anti-Doble Clic)
+    document.getElementById('liquidationForm').addEventListener('submit', function(e) {
+        // Pedir confirmación primero
+        if (!confirm('¿Confirmas el cierre de semana? El stock del técnico quedará en CERO.')) {
+            e.preventDefault(); // Si cancela, no enviamos nada
+            return;
+        }
+
+        // Si acepta, bloqueamos el botón
+        const btn = document.getElementById('btnConfirm');
+        btn.disabled = true;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
+        btn.style.opacity = "0.7";
     });
 </script>
 {% endblock %}
