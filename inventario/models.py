@@ -117,6 +117,11 @@ class Producto(TimeStampedModel):
         help_text="True para equipos con serial (ONU/Router). False para consumibles.",
     )
 
+    es_activo = models.BooleanField(
+        default=False, 
+        help_text="Si es True, el técnico NO lo consume, se queda en su poder (Ej: Herramientas)."
+    )
+
     class Meta:
         verbose_name = "Producto"
         verbose_name_plural = "Productos"

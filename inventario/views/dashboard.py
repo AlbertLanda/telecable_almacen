@@ -13,6 +13,8 @@ from ..models import Stock, MovimientoInventario
 from django.db.models import Case, When, IntegerField
 from django.db.models.functions import TruncDate
 from django.db.models import Count
+from itertools import chain
+from operator import attrgetter
 
 from inventario.models import (
     UserProfile,
@@ -381,26 +383,81 @@ def dash_almacen(request):
 # DASH SOLICITANTE (SOLICITANTE/JEFA)
 # --------------------
 @login_required
-def dash_solicitante(request):
-    """
-    Vista de respaldo si el técnico entra a /dashboard/solicitante/
-    aunque lo ideal es que use /operaciones/tecnico/
-    """
-    profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
-    sede = _require_sede(profile)
+def almacen_historial_global(request):
+    try:
+        profile = request.user.profile
+        sede = profile.get_sede_operativa()
+    except:
+        return redirect('home')
 
-    mis_reqs = (
-        DocumentoInventario.objects.filter(
-            tipo=TipoDocumento.REQ,
-            responsable=request.user,
-        )
-        .order_by("-fecha")[:12]
+    # 1. Liquidaciones de Técnicos (ING con referencia LIQ-SEMANAL)
+    liquidaciones = DocumentoInventario.objects.filter(
+        sede=sede,
+        tipo=TipoDocumento.ING,
+        referencia__icontains="LIQ-SEMANAL"
+    ).select_related('responsable', 'solicitante')
+
+    for l in liquidaciones:
+        l.tipo_movimiento = 'LIQ_TECNICO'
+        if l.solicitante:
+            l.tecnico_nombre = l.solicitante.get_full_name() or l.solicitante.username
+        else:
+            l.tecnico_nombre = "Desconocido"
+
+    # 2. Compras a Proveedores (ING que NO son Liquidaciones NI Traslados)
+    compras = DocumentoInventario.objects.filter(
+        sede=sede,
+        tipo=TipoDocumento.ING
+    ).exclude(
+        referencia__icontains="LIQ-SEMANAL" # Excluir liquidaciones
+    ).exclude(
+        sede_origen__isnull=False # Excluir traslados desde otra sede
+    ).select_related('responsable', 'proveedor')
+
+    for c in compras:
+        c.tipo_movimiento = 'COMPRA'
+        # Mostrar nombre del proveedor en la columna "Técnico/Responsable"
+        if c.proveedor:
+            c.tecnico_nombre = c.proveedor.razon_social
+        elif c.proveedor_manual:
+            c.tecnico_nombre = c.proveedor_manual
+        else:
+            c.tecnico_nombre = "Proveedor Externo"
+
+    # 3. Proyectos Cerrados
+    proyectos = Proyecto.objects.filter(
+        sede=sede,
+        estado=EstadoProyecto.FINALIZADO
+    ).select_related('responsable')
+
+    for p in proyectos:
+        p.tipo_movimiento = 'CIERRE_OBRA'
+        p.fecha = p.fin or p.actualizado_en
+        if p.responsable:
+            p.tecnico_nombre = p.responsable.get_full_name() or p.responsable.username
+        else:
+            p.tecnico_nombre = "Sin Asignar"
+
+    # 4. Transferencias (Salidas a otras sedes)
+    transferencias = DocumentoInventario.objects.filter(
+        sede=sede,
+        tipo=TipoDocumento.SAL,
+        sede_destino__isnull=False,
+        estado=EstadoDocumento.CONFIRMADO
+    ).select_related('responsable', 'sede_destino')
+
+    for t in transferencias:
+        t.tipo_movimiento = 'TRANSFERENCIA'
+        t.tecnico_nombre = f"Destino: {t.sede_destino.nombre}"
+
+    # 5. Unificar todo
+    historial = sorted(
+        chain(liquidaciones, compras, proyectos, transferencias),
+        key=attrgetter('fecha'),
+        reverse=True
     )
 
-    return render(
-        request,
-        "inventario/dash_solicitante.html",
-        {"profile": profile, "sede": sede, "mis_reqs": mis_reqs},
-    )
-
-
+    return render(request, 'inventario/almacen_historial_global.html', {
+        'historial': historial,
+        'sede': sede
+    })

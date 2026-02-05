@@ -7,7 +7,8 @@ from .views.dashboard import (
     dashboard_redirect, 
     dash_almacen, 
     dash_admin, 
-    inventory_list
+    inventory_list,
+    almacen_historial_global
 )
 
 # 2. Importaciones de API
@@ -63,6 +64,7 @@ urlpatterns = [
     
     # Paneles Específicos
     path("dashboard/almacen/", dash_almacen, name="dash_almacen"),
+    path("dashboard/almacen/historial/", almacen_historial_global, name="almacen_historial_global"),
     path("dashboard/admin/", dash_admin, name="dash_admin"),
     
     # Listado de inventario general

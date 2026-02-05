@@ -4,7 +4,7 @@
 {% block content %}
 <style>
     /* =========================================
-       PANEL DE DESPACHO (Enterprise)
+       PANEL DE DESPACHO (Enterprise Refined)
        ========================================= */
     
     .panel-container {
@@ -14,7 +14,7 @@
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Header con Info del REQ */
+    /* Header */
     .req-header {
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); padding: 24px;
@@ -36,15 +36,18 @@
         text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
         padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
     }
-    td { padding: 20px 24px; border-bottom: 1px solid var(--border-light); vertical-align: top; color: var(--text-main); }
+    /* Centrado de celdas */
+    th.text-center, td.text-center { text-align: center; }
+    
+    td { padding: 20px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
     /* Columnas Específicas */
-    .col-prod { width: 35%; }
-    .col-stock { width: 15%; text-align: center; }
-    .col-req { width: 15%; text-align: center; }
-    .col-action { width: 35%; }
+    .col-prod { width: 40%; }
+    .col-stock { width: 20%; text-align: center; }
+    .col-req { width: 20%; text-align: center; }
+    .col-action { width: 20%; text-align: center; }
 
     /* Producto */
     .prod-name { font-weight: 600; font-size: 15px; color: var(--text-main); display: block; margin-bottom: 4px; }
@@ -54,6 +57,13 @@
         color: var(--text-secondary); font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase;
     }
 
+    /* STOCK DISPONIBLE (Nuevo Estilo) */
+    .stock-pill { 
+        font-size: 16px; font-weight: 700; padding: 8px 14px; border-radius: 8px; display: inline-block; 
+    }
+    .sp-ok { color: var(--primary); background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.2); }
+    .sp-low { color: var(--danger); background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2); }
+
     /* Input Cantidad Simple */
     .qty-display { 
         font-size: 18px; font-weight: 700; color: var(--warning); 
@@ -62,13 +72,15 @@
     .qty-input-simple {
         background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
         text-align: center; font-weight: 700; border-radius: 8px; padding: 10px; width: 80px; font-size: 16px;
+        margin: 0 auto; /* Centrado horizontal */
+        display: block;
     }
     .qty-input-simple:focus { border-color: var(--primary); outline: none; }
 
     /* CAJA DE SERIALES (Tabs + Scanner) */
     .serial-box {
         background: var(--bg-input); border: 1px dashed var(--border-light);
-        border-radius: 10px; padding: 15px; margin-top: 5px;
+        border-radius: 10px; padding: 15px; margin-top: 5px; text-align: left;
     }
     
     .tabs-header { display: flex; gap: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; padding-bottom: 8px; }
@@ -101,6 +113,7 @@
         display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;
     }
     .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: wait; transform: none; }
 
     /* Footer Notes */
     .notes-box { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
@@ -112,12 +125,16 @@
     @media (max-width: 992px) {
         .req-header { flex-direction: column; align-items: flex-start; gap: 15px; }
         th, td { display: block; width: 100%; box-sizing: border-box; }
-        th { display: none; } /* Ocultar headers en móvil */
-        td { padding: 10px 15px; border: none; }
+        th { display: none; } 
+        td { padding: 10px 15px; border: none; text-align: left; }
         tr { border-bottom: 1px solid var(--border-light); display: block; padding: 15px 0; }
-        .col-stock, .col-req { text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        
+        .col-stock, .col-req, .col-action { width: 100%; display: flex; justify-content: space-between; align-items: center; text-align: left; }
         .col-stock::before { content: "Stock Almacén:"; color: var(--text-secondary); font-size: 12px; margin-right: 10px; }
         .col-req::before { content: "Solicitado:"; color: var(--text-secondary); font-size: 12px; margin-right: 10px; }
+        .col-action { display: block; margin-top: 10px; }
+        
+        .qty-input-simple { margin: 0; }
     }
 </style>
 
@@ -135,7 +152,7 @@
         <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
-    <form method="POST">
+    <form method="POST" id="dispatchForm">
         {% csrf_token %}
         
         <div class="dispatch-table-card">
@@ -143,9 +160,9 @@
                 <thead>
                     <tr>
                         <th class="col-prod">Producto</th>
-                        <th class="col-stock">Stock Disp.</th>
-                        <th class="col-req">Solicitado</th>
-                        <th class="col-action">Despachar</th>
+                        <th class="col-stock text-center">Stock Disp.</th>
+                        <th class="col-req text-center">Solicitado</th>
+                        <th class="col-action text-center">Despachar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -160,16 +177,20 @@
                             <span class="prod-code">{{ item.producto.codigo_interno|default:"-" }}</span>
                         </td>
 
-                        <td class="col-stock">
-                            <span style="font-weight: 600; color: var(--primary);">Disponible</span>
+                        <td class="col-stock text-center">
+                            {% if obj.stock_total > 0 %}
+                                <span class="stock-pill sp-ok">{{ obj.stock_total }}</span>
+                            {% else %}
+                                <span class="stock-pill sp-low">0</span>
+                            {% endif %}
                         </td>
 
-                        <td class="col-req">
+                        <td class="col-req text-center">
                             <span class="qty-display">{{ item.cantidad }}</span>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">{{ item.producto.unidad_medida }}</div>
                         </td>
 
-                        <td>
+                        <td class="col-action">
                             <input type="hidden" name="qty_{{ item.id }}" id="real_qty_{{ item.id }}" value="{% if not item.producto.es_serializado %}{{ item.cantidad }}{% else %}0{% endif %}">
                             <input type="hidden" name="rango_inicio_{{ item.id }}" id="input_rango_inicio_{{ item.id }}">
                             <input type="hidden" name="rango_fin_{{ item.id }}" id="input_rango_fin_{{ item.id }}">
@@ -180,34 +201,33 @@
 
                                 <div class="serial-box">
                                     <div class="tabs-header">
-                                        <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'select')">Escanear (Individual)</button>
-                                        <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'rango')">Por Rango (Precintos)</button>
+                                        <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'select')">Individual</button>
+                                        <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'rango')">Rango</button>
                                         <div style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">
-                                            Despachando: <strong style="color: var(--primary);" id="display_qty_{{ item.id }}">0</strong>
+                                            Cant: <strong style="color: var(--primary);" id="display_qty_{{ item.id }}">0</strong>
                                         </div>
                                     </div>
 
                                     <div id="tab_select_{{ item.id }}">
                                         <input type="text" class="scanner-input" 
-                                               placeholder="Escanear SN, MAC o Cód 44..." 
+                                               placeholder="Escanear SN..." 
                                                id="search_input_{{ item.id }}"
                                                onkeydown="checkEnter(event, '{{ item.id }}')" autocomplete="off">
                                         
                                         <div id="selected_list_{{ item.id }}" class="picked-list">
                                             <div class="text-center text-secondary small" id="empty_msg_{{ item.id }}" style="padding: 10px;">
-                                                Sin equipos seleccionados.
+                                                0 seleccionados.
                                             </div>
                                         </div>
                                         <script>window['picked_{{ item.id }}'] = [];</script>
                                     </div>
 
                                     <div id="tab_rango_{{ item.id }}" style="display:none;">
-                                        <div style="display: flex; gap: 10px; align-items: center;">
-                                            <input type="number" class="qty-input-simple" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')" style="width: 100%;">
-                                            <span style="color: var(--text-secondary);">a</span>
-                                            <input type="number" class="qty-input-simple" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')" style="width: 100%;">
+                                        <div style="display: flex; gap: 5px; align-items: center;">
+                                            <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                            <span style="color: var(--text-secondary);">-</span>
+                                            <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
                                         </div>
-                                        <small style="color: var(--text-secondary); display: block; margin-top: 8px;">* Solo para series numéricas consecutivas.</small>
                                     </div>
                                 </div>
 
@@ -228,7 +248,7 @@
                 <label style="color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 8px;">Notas de Entrega</label>
                 <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Entregado completo a técnico..."></textarea>
                 
-                <button type="submit" class="btn-confirm">
+                <button type="submit" id="btnSubmit" class="btn-confirm">
                     <i class='bx bx-check-double'></i> Confirmar Despacho
                 </button>
             </div>
@@ -237,16 +257,12 @@
 </div>
 
 <script>
-    // --- LÓGICA DE PESTAÑAS ---
     function switchTab(itemId, mode) {
         document.getElementById(`display_qty_${itemId}`).innerText = "0";
         document.getElementById(`real_qty_${itemId}`).value = 0;
-        
-        // Estilos tabs
         const container = document.getElementById(`tab_select_${itemId}`).parentElement;
         container.querySelectorAll('.tab-link').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
-
         if(mode === 'select') {
             document.getElementById(`tab_select_${itemId}`).style.display = 'block';
             document.getElementById(`tab_rango_${itemId}`).style.display = 'none';
@@ -260,31 +276,23 @@
         }
     }
 
-    // --- LÓGICA SCANNER (ONUS) ---
     function checkEnter(e, itemId) {
         if(e.key === 'Enter') {
             e.preventDefault();
             const val = e.target.value.trim().toUpperCase();
             if(!val) return;
-
             const stockJson = document.getElementById(`stock_data_${itemId}`).value;
             const stock = JSON.parse(stockJson);
-            
             const found = stock.find(x => x.serial === val || x.cod44 === val || x.mac === val);
-
             if(found) {
                 const picked = window[`picked_${itemId}`];
                 if(picked.find(x => x.id === found.id)) {
-                    alert('⚠️ Equipo ya escaneado.');
-                    e.target.value = "";
-                    return;
+                    alert('⚠️ Equipo ya escaneado.'); e.target.value = ""; return;
                 }
                 picked.push(found);
                 renderPicked(itemId);
                 e.target.value = ""; 
-            } else {
-                alert('❌ No encontrado en stock disponible.');
-            }
+            } else { alert('❌ No encontrado en stock disponible.'); }
         }
     }
 
@@ -292,32 +300,15 @@
         const list = document.getElementById(`selected_list_${itemId}`);
         const emptyMsg = document.getElementById(`empty_msg_${itemId}`);
         const picked = window[`picked_${itemId}`];
-        
         if (picked.length > 0) emptyMsg.style.display = 'none';
-        else {
-            emptyMsg.style.display = 'block';
-            list.innerHTML = "";
-            list.appendChild(emptyMsg);
-            updateCounters(itemId, 0, []);
-            return;
-        }
-
-        list.innerHTML = ""; 
-        list.appendChild(emptyMsg); 
-
+        else { emptyMsg.style.display = 'block'; list.innerHTML = ""; list.appendChild(emptyMsg); updateCounters(itemId, 0, []); return; }
+        list.innerHTML = ""; list.appendChild(emptyMsg); 
         picked.forEach((p, index) => {
             const div = document.createElement('div');
             div.className = 'picked-item';
-            div.innerHTML = `
-                <div>
-                    <strong>${p.cod44 || p.serial}</strong> 
-                    <span style="color:var(--text-secondary); margin-left:6px;">${p.mac || ''}</span>
-                </div>
-                <i class='bx bx-x btn-remove-item' onclick="removePicked('${itemId}', ${index})"></i>
-            `;
+            div.innerHTML = `<div><strong>${p.cod44 || p.serial}</strong></div><i class='bx bx-x btn-remove-item' onclick="removePicked('${itemId}', ${index})"></i>`;
             list.appendChild(div);
         });
-
         const ids = picked.map(x => x.id);
         updateCounters(itemId, picked.length, ids);
     }
@@ -333,12 +324,10 @@
         document.getElementById(`input_json_${itemId}`).value = JSON.stringify(jsonIds);
     }
 
-    // --- LÓGICA RANGO ---
     function calcRango(itemId) {
         const start = parseInt(document.getElementById(`start_${itemId}`).value) || 0;
         const end = parseInt(document.getElementById(`end_${itemId}`).value) || 0;
         let qty = 0;
-
         if (end >= start && start > 0) {
             qty = (end - start) + 1;
             document.getElementById(`input_rango_inicio_${itemId}`).value = start;
@@ -347,9 +336,13 @@
             document.getElementById(`input_rango_inicio_${itemId}`).value = "";
             document.getElementById(`input_rango_fin_${itemId}`).value = "";
         }
-
         document.getElementById(`display_qty_${itemId}`).innerText = qty;
         document.getElementById(`real_qty_${itemId}`).value = qty;
     }
+
+    document.getElementById('dispatchForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO..."; btn.style.opacity = "0.7";
+    });
 </script>
 {% endblock %}

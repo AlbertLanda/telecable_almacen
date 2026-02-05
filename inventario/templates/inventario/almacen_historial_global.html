@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .history-container { max-width: 1200px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
+    }
+    .header-title h2 { margin: 0; font-size: 28px; color: var(--text-main); font-weight: 700; }
+    .header-title p { margin: 5px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Tabla */
+    .table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    /* Badges */
+    .type-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
+    .tb-liq { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .tb-compra { background: rgba(100, 210, 255, 0.15); color: #0091ff; } /* Azul Cian */
+    .tb-obra { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+    .tb-trans { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+
+    /* Botón PDF */
+    .btn-pdf {
+        display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        text-decoration: none; border: 1px solid var(--border-light); color: var(--text-secondary); transition: 0.2s; background: var(--bg-input);
+    }
+    .btn-pdf:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    .user-info { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-input); display: flex; align-items: center; justify-content: center; }
+</style>
+
+<div class="history-container">
+    
+    <div class="page-header">
+        <div class="header-title">
+            <h2>Historial de Movimientos</h2>
+            <p>Registro centralizado de {{ sede.nombre }}</p>
+        </div>
+        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">
+            <i class='bx bx-arrow-back'></i> Volver
+        </a>
+    </div>
+
+    <div class="table-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Referencia / Código</th>
+                        <th>Responsable / Técnico</th>
+                        <th style="text-align: right;">Documento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in historial %}
+                    <tr>
+                        <td style="color: var(--text-secondary); font-family: monospace;">
+                            {{ item.fecha|date:"d/m/Y H:i" }}
+                        </td>
+
+                        <td>
+                            {% if item.tipo_movimiento == 'LIQ_TECNICO' %}
+                                <span class="type-badge tb-liq"><i class='bx bx-user-check'></i> Liq. Semanal</span>
+                            {% elif item.tipo_movimiento == 'CIERRE_OBRA' %}
+                                <span class="type-badge tb-obra"><i class='bx bx-building'></i> Cierre Obra</span>
+                            {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
+                                <span class="type-badge tb-trans"><i class='bx bx-transfer'></i> Traslado</span>
+                            {% elif item.tipo_movimiento == 'COMPRA' %}
+                                <span class="type-badge tb-compra"><i class='bx bxs-shopping-bag'></i> Compra</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
+                                <strong style="color:var(--text-main)">{{ item.codigo }}</strong>
+                                <div style="font-size:12px; color:var(--text-secondary);">{{ item.nombre }}</div>
+                            {% else %}
+                                {{ item.referencia|default:item.numero }}
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    {% if item.tipo_movimiento == 'COMPRA' %}
+                                        <i class='bx bxs-truck'></i>
+                                    {% else %}
+                                        <i class='bx bxs-user'></i>
+                                    {% endif %}
+                                </div>
+                                <span>{{ item.tecnico_nombre }}</span>
+                            </div>
+                        </td>
+
+                        <td style="text-align: right;">
+                            {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
+                                <a href="{% url 'proyecto_pdf_liquidacion' item.id %}" target="_blank" class="btn-pdf">
+                                    <i class='bx bxs-file-pdf'></i> Acta Cierre
+                                </a>
+                            
+                            {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
+                                <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-pdf">
+                                    <i class='bx bxs-file-pdf'></i> Guía Salida
+                                </a>
+                            
+                            {% elif item.tipo_movimiento == 'LIQ_TECNICO' %}
+                                <a href="{% url 'liquidacion_tecnico_print' item.id %}" target="_blank" class="btn-pdf">
+                                    <i class='bx bxs-file-pdf'></i> Acta Liq.
+                                </a>
+
+                            {% elif item.tipo_movimiento == 'COMPRA' %}
+                                {% if item.origen %}
+                                    <a href="{% url 'req_print' item.origen.id %}" target="_blank" class="btn-pdf">
+                                        <i class='bx bxs-file-pdf'></i> Ver Orden
+                                    </a>
+                                {% else %}
+                                    <span style="font-size:11px; color:var(--text-secondary);">Ingreso Manual</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                            No hay movimientos registrados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

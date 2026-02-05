@@ -851,6 +851,7 @@ def req_atender(request, req_id: int):
         if sede_user and req.sede_id != sede_user.id:
             raise PermissionDenied("No puedes atender REQ de otra sede.")
     
+    # --- PROCESO POST (Guardar Despacho) ---
     if request.method == "POST":
         try:
             with transaction.atomic():
@@ -916,20 +917,23 @@ def req_atender(request, req_id: int):
                             rango_fin = request.POST.get(f'rango_fin_{item.id}')
                             
                             if rango_inicio and rango_fin:
-                                start = int(rango_inicio)
-                                end = int(rango_fin)
-                                items_to_update = ItemSerializado.objects.filter(
-                                    producto=item.producto,
-                                    ubicacion__sede=sede_origen,
-                                    estado=ItemSerializado.Estado.EN_ALMACEN,
-                                    serial__gte=str(start), 
-                                    serial__lte=str(end)
-                                )
-                                items_to_update.update(
-                                    estado=ItemSerializado.Estado.ASIGNADO,
-                                    asignado_a=req.responsable, 
-                                    ubicacion=None 
-                                )
+                                try:
+                                    start = int(rango_inicio)
+                                    end = int(rango_fin)
+                                    items_to_update = ItemSerializado.objects.filter(
+                                        producto=item.producto,
+                                        ubicacion__sede=sede_origen,
+                                        estado=ItemSerializado.Estado.EN_ALMACEN,
+                                        serial__gte=str(start), 
+                                        serial__lte=str(end)
+                                    )
+                                    items_to_update.update(
+                                        estado=ItemSerializado.Estado.ASIGNADO,
+                                        asignado_a=req.responsable, 
+                                        ubicacion=None 
+                                    )
+                                except ValueError:
+                                    pass
 
                             # --- DETALLE ONUs ---
                             json_ids = request.POST.get(f'detalles_json_{item.id}')
@@ -953,7 +957,6 @@ def req_atender(request, req_id: int):
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save()
 
-                # 🟢 FIX 3: Nombre del técnico si first_name está vacío
                 nombre_tecnico = req.responsable.get_full_name() or req.responsable.username
                 messages.success(request, f"✅ Despacho realizado. Material cargado a {nombre_tecnico}.")
                 
@@ -963,11 +966,16 @@ def req_atender(request, req_id: int):
             messages.error(request, f"Error al despachar: {str(e)}")
             return redirect("dash_almacen")
 
-    # --- GET: Preparar datos ---
+    # --- GET: Preparar datos para el Template ---
     items_context = []
     sede_visualizar = request.user.profile.get_sede_operativa()
 
     for item in req.items.all():
+        # 1. Obtener Stock Real (CORRECCIÓN APLICADA)
+        stock_obj = Stock.objects.filter(producto=item.producto, sede=sede_visualizar).first()
+        stock_total = stock_obj.cantidad if stock_obj else 0
+
+        # 2. Obtener Seriales si aplica
         disponibles = []
         if item.producto.es_serializado:
             qs = ItemSerializado.objects.filter(
@@ -988,7 +996,8 @@ def req_atender(request, req_id: int):
         
         items_context.append({
             'req_item': item,
-            'disponibles_json': json.dumps(disponibles)
+            'disponibles_json': json.dumps(disponibles),
+            'stock_total': stock_total  # 👈 AQUÍ ESTÁ EL DATO CLAVE
         })
 
     context = {

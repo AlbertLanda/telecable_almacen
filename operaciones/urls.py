@@ -16,7 +16,8 @@ from .views import (
     LiquidacionListView,
     liquidacion_tecnico_lista,
     liquidar_tecnico,
-    tecnico_mi_stock
+    tecnico_mi_stock,
+    liquidacion_tecnico_print
 )
 
 urlpatterns = [
@@ -41,4 +42,5 @@ urlpatterns = [
     # RUTAS DE LIQUIDACIÓN DE TÉCNICOS
     path('liquidacion/tecnicos/', liquidacion_tecnico_lista, name='liquidacion_tecnico_lista'),
     path('liquidacion/tecnico/<int:tecnico_id>/', liquidar_tecnico, name='liquidar_tecnico'),
+    path('liquidacion/print/<int:doc_id>/', liquidacion_tecnico_print, name='liquidacion_tecnico_print'),
 ]
