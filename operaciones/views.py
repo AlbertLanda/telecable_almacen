@@ -429,19 +429,31 @@ def liquidar_tecnico(request, tecnico_id):
 @login_required
 def tecnico_mi_stock(request):
     """
-    Muestra el inventario actual en poder del técnico (Mochila).
+    Muestra el inventario actual en poder del técnico (Mochila),
+    separado en Herramientas (Activos) y Materiales (Consumibles).
     """
     # 1. Seguridad: Solo técnicos o jefes
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     
-    # 2. Consultar el modelo correcto: StockTecnico
-    stock_items = StockTecnico.objects.filter(
+    # 2. Consultar todo el stock positivo
+    stock_qs = StockTecnico.objects.filter(
         tecnico=request.user, 
         cantidad__gt=0
     ).select_related('producto').order_by('producto__nombre')
     
+    # 3. Separar en dos listas (Python lo hace rápido en memoria)
+    herramientas = []
+    materiales = []
+    
+    for item in stock_qs:
+        if item.producto.es_activo:
+            herramientas.append(item)
+        else:
+            materiales.append(item)
+    
     return render(request, 'operaciones/tecnico_mi_stock.html', {
-        'stock_items': stock_items
+        'herramientas': herramientas,
+        'materiales': materiales
     })
 
 
