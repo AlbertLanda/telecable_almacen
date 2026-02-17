@@ -22,6 +22,8 @@ from operaciones.models import LiquidacionSemanal, LiquidacionLog
 # Importamos servicios
 from operaciones.services import LiquidacionService
 
+from proyectos.models import Proyecto, EstadoProyecto
+
 User = get_user_model()
 
 # ========================================================
@@ -476,4 +478,42 @@ def liquidacion_tecnico_print(request, doc_id):
     return render(request, 'operaciones/pdf_liquidacion_tecnico.html', {
         'doc': doc,
         'items': items,
+    })
+
+@login_required
+def tecnico_dashboard(request):
+    """
+    Dashboard del técnico.
+    """
+    profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    sede = profile.get_sede_operativa()
+    
+    # ... (KPIs existentes se mantienen igual) ...
+    reqs_qs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, responsable=request.user)
+    
+    kpis = {
+        # ... (Tus KPIs actuales) ...
+        "reqs_activos": reqs_qs.filter(estado__in=[EstadoDocumento.REQ_BORRADOR, EstadoDocumento.REQ_PENDIENTE]).count(),
+        "reqs_atendidos": reqs_qs.filter(estado=EstadoDocumento.REQ_ATENDIDO).count(),
+        "entregas": DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.SAL, 
+            estado=EstadoDocumento.CONFIRMADO
+        ).filter(
+            models.Q(responsable=request.user) | models.Q(origen__responsable=request.user)
+        ).count(),
+    }
+
+    # 🚀 NUEVO: Buscar Proyectos asignados a este técnico
+    # Le mostramos los que están "En Revisión" (Prioridad) y los "En Proceso"
+    proyectos_asignados = Proyecto.objects.filter(
+        responsable=request.user
+    ).exclude(
+        estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+    ).order_by('estado', '-creado_en') # Ordenar para que 'En Revisión' salga o se note
+
+    return render(request, "operaciones/tecnico_dashboard.html", {
+        "sede": sede, 
+        "kpis": kpis, 
+        # "chart": chart,  <-- Si quitaste los gráficos, puedes borrar esto
+        "proyectos": proyectos_asignados, # <--- PASAMOS LOS PROYECTOS
     })

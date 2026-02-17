@@ -14,8 +14,8 @@ class ProyectoAsignacionInline(admin.TabularInline):
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nombre', 'sede', 'estado', 'inicio', 'fin')
-    list_filter = ('estado', 'sede', 'creado_en')
+    list_display = ('codigo', 'nombre', 'estado', 'responsable', 'creado_por')
+    list_filter = ('estado', 'sede')
     search_fields = ('codigo', 'nombre', 'centro_costo')
     inlines = [ProyectoAsignacionInline, ProyectoMaterialInline]
     

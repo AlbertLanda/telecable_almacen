@@ -1,277 +1,246 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 {% load static %}
-<html>
+<!DOCTYPE html>
+<html lang="es">
 <head>
-    <title>Acta de Cierre {{ proyecto.codigo }}</title>
-    <style type="text/css">
-        /* --- CONFIGURACIÓN DE PÁGINA --- */
-        @page {
-            size: A4;
-            margin: 1.5cm;
-            @bottom-center {
-                content: "Página " counter(page) " de " counter(pages);
-                font-family: Helvetica, sans-serif;
-                font-size: 9px;
-                color: #888;
-            }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta Cierre {{ proyecto.codigo }}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        /* --- CONFIGURACIÓN DE IMPRESIÓN --- */
+        @page { size: A4; margin: 10mm; }
+
+        /* --- ESTILOS PANTALLA --- */
+        body {
+            background-color: #525659; /* Gris visor PDF */
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
+            min-height: 100vh;
         }
 
-        /* --- TIPOGRAFÍA Y CUERPO --- */
-        body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 11px;
-            color: #000;
-            line-height: 1.3;
+        /* --- HOJA DE PAPEL --- */
+        .sheet {
+            background-color: white;
+            width: 210mm; min-height: 297mm;
+            padding: 15mm 20mm;
+            margin: 30px auto 100px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative; box-sizing: border-box;
         }
 
         /* --- ENCABEZADO --- */
-        .header-container {
-            width: 100%;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+        .header-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 15px;
         }
-        .header-logo {
-            width: 150px;
-            vertical-align: top;
-        }
-        .header-text {
-            text-align: right;
-            vertical-align: top;
-        }
-        .company-name { font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        .doc-title { font-size: 14px; font-weight: bold; margin-top: 5px; color: #444; }
-        .meta-date { font-size: 10px; color: #666; margin-top: 5px; }
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        .logo-img { height: 45px; object-fit: contain; }
+        .company-name { font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; line-height: 1; }
+        .doc-type { font-size: 11px; color: #666; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- CAJA DE INFORMACIÓN DEL PROYECTO --- */
-        .info-table {
-            width: 100%;
-            border: 1px solid #ccc;
-            margin-bottom: 25px;
-            background-color: #f9f9f9;
-        }
-        .info-table td {
-            padding: 8px 12px;
-            vertical-align: top;
-        }
-        .label {
-            color: #666;
-            font-size: 9px;
-            text-transform: uppercase;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .value {
-            font-size: 12px;
-            font-weight: bold;
-            color: #000;
-        }
+        .meta-data { text-align: right; font-size: 10px; color: #000; line-height: 1.4; }
 
-        /* --- TABLA DE MATERIALES --- */
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
+        /* --- TÍTULO --- */
+        .doc-title { text-align: center; margin-bottom: 25px; }
+        .doc-title h1 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #ccc; display: inline-block; padding-bottom: 5px; }
+        .doc-title h2 { margin: 4px 0 0; font-size: 11px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- CAJA DE DATOS --- */
+        .info-box {
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px;
+            margin-bottom: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px;
         }
-        .items-table th {
-            background-color: #eee;
-            border-bottom: 1px solid #000;
-            padding: 8px;
-            text-align: center;
-            font-size: 9px;
-            font-weight: bold;
-            text-transform: uppercase;
+        .info-row {
+            display: flex; justify-content: space-between; font-size: 10px; line-height: 2;
+            border-bottom: 1px dotted #ccc;
         }
-        .items-table th.left { text-align: left; }
+        .label { font-weight: 800; color: #444; width: 130px; text-transform: uppercase; }
+        .value { flex: 1; color: #000; text-align: right; font-weight: 600; }
+
+        /* --- TABLA --- */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 10px; }
+        th { 
+            background-color: #1a1a2e; color: white; padding: 8px; 
+            text-transform: uppercase; font-weight: 700; text-align: center; border: 1px solid #000;
+        }
+        th.left { text-align: left; }
         
-        .items-table td {
-            border-bottom: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-            font-size: 10px;
-        }
-        .items-table td.left { text-align: left; }
+        td { border: 1px solid #ddd; padding: 8px; vertical-align: middle; text-align: center; color: #333; }
+        td.left { text-align: left; }
+        
+        tr:nth-child(even) { background-color: #f9f9f9; }
 
-        /* Colores sutiles para impresión */
-        .col-devuelto { color: #2e7d32; } /* Verde oscuro */
-        .col-merma { color: #c62828; }    /* Rojo oscuro */
-        .col-consumo { font-weight: bold; background-color: #f4f4f4; border-left: 1px solid #ddd; }
+        /* Colores de columnas */
+        .bg-gray { background-color: #f3f4f6 !important; }
+        .bg-green { background-color: #f0fdf4 !important; color: #166534; font-weight: 700; }
+        .bg-red { background-color: #fef2f2 !important; color: #991b1b; }
+        .bg-orange { background-color: #fff7ed !important; color: #9a3412; font-weight: 700; border-left: 2px solid #000; }
 
         /* --- TOTALES --- */
-        .total-box {
-            width: 100%;
-            text-align: right;
-            margin-top: 5px;
-            margin-bottom: 40px;
-        }
-        .total-text {
-            font-size: 12px;
-            font-weight: bold;
-            padding: 8px 15px;
-            background-color: #000;
-            color: #fff;
-            display: inline-block;
+        .total-box { text-align: right; margin-bottom: 50px; }
+        .total-badge { 
+            background: #000; color: #fff; padding: 8px 15px; 
+            font-size: 12px; font-weight: 700; display: inline-block; 
         }
 
-        /* --- SECCIÓN DE FIRMAS --- */
-        .signatures-wrapper {
-            width: 100%;
-            margin-top: 80px;
-            page-break-inside: avoid; /* Evita que las firmas se corten */
-        }
-        .sig-box {
-            width: 40%;
-            display: inline-block;
-            vertical-align: top;
-            text-align: center;
-        }
-        .sig-line {
-            border-top: 1px solid #000;
-            margin-bottom: 8px;
-            width: 90%;
-            margin-left: 5%;
-        }
-        .sig-role { font-weight: bold; font-size: 10px; margin-bottom: 2px; }
-        .sig-name { font-size: 9px; text-transform: uppercase; }
-        .sig-dni { font-size: 9px; color: #666; margin-top: 2px; }
+        /* --- FIRMAS --- */
+        .signatures { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 60px; }
+        .sign-box { width: 40%; text-align: center; }
+        .sign-line { border-top: 1px solid #000; margin-bottom: 5px; }
+        .sign-role { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .sign-name { font-size: 9px; margin-bottom: 2px; }
 
-        /* --- NOTA LEGAL --- */
-        .legal-footer {
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-            font-size: 8px;
-            color: #888;
-            text-align: justify;
+        /* --- LEGAL --- */
+        .legal { 
+            margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; 
+            font-size: 8px; color: #888; text-align: justify; 
+        }
+
+        /* --- BARRA FLOTANTE (Solo Pantalla) --- */
+        .floating-actions {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; padding: 12px 25px; border-radius: 50px;
+            display: flex; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-float {
+            background: transparent; border: none; color: white; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+            padding: 8px 16px; border-radius: 30px; transition: 0.2s; text-decoration: none;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.1); }
+        .btn-print { background: #3b82f6; }
+        .btn-print:hover { background: #2563eb; }
+
+        /* --- MODO IMPRESIÓN --- */
+        @media print {
+            body { background: none; display: block; }
+            .sheet { margin: 0; padding: 0; box-shadow: none; width: 100%; border: none; }
+            .floating-actions { display: none !important; }
+            @page { margin: 15mm; }
         }
     </style>
 </head>
 <body>
 
-    <table class="header-container">
-        <tr>
-            <td class="header-logo">
-                <img src="{% static 'inventario/img/logo_black.png' %}" alt="TELECABLE" style="height: 40px;" 
-                     onerror="this.style.display='none'">
-            </td>
-            <td class="header-text">
-                <div class="company-name">TELECABLE SERVICIOS</div>
-                <div class="doc-title">ACTA DE LIQUIDACIÓN Y CIERRE DE OBRA</div>
-                <div class="meta-date">Fecha de Emisión: {{ fecha_impresion|date:"d/m/Y H:i" }}</div>
-            </td>
-        </tr>
-    </table>
+    <div class="floating-actions">
+        <a href="javascript:history.back()" class="btn-float btn-back">
+            <i class='bx bx-arrow-back'></i> Volver
+        </a>
+        <button onclick="window.print()" class="btn-float btn-print">
+            <i class='bx bx-printer'></i> Imprimir
+        </button>
+    </div>
 
-    <table class="info-table">
-        <tr>
-            <td style="width: 20%;">
-                <span class="label">CÓDIGO DE OBRA</span>
-                <span class="value">{{ proyecto.codigo }}</span>
-            </td>
-            <td style="width: 50%;">
-                <span class="label">NOMBRE DEL PROYECTO</span>
-                <span class="value">{{ proyecto.nombre|upper }}</span>
-            </td>
-            <td style="width: 30%;">
-                <span class="label">ESTADO ACTUAL</span>
-                <span class="value">{{ proyecto.get_estado_display|upper }}</span>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <span class="label">RESPONSABLE TÉCNICO</span>
-                <span class="value">
+    <div class="sheet">
+        
+        <div class="header-top">
+            <div class="logo-section">
+                <img src="{% static 'inventario/img/logo.png' %}" alt="Logo" class="logo-img"
+                     onerror="this.src='https://cdn-icons-png.flaticon.com/512/3616/3616927.png'"> 
+                <div>
+                    <div class="company-name">TELECABLE</div>
+                    <div class="doc-type">Servicios Generales</div>
+                </div>
+            </div>
+            <div class="meta-data">
+                <div><b>Emisión:</b> {{ fecha_impresion|date:"d/m/Y H:i" }}</div>
+                <div><b>Usuario:</b> {{ usuario.username|upper }}</div>
+            </div>
+        </div>
+
+        <div class="doc-title">
+            <h1>ACTA DE LIQUIDACIÓN Y CIERRE DE OBRA</h1>
+            <h2>Balance final de materiales</h2>
+        </div>
+
+        <div class="info-box">
+            <div>
+                <div class="info-row"><span class="label">CÓDIGO DE OBRA</span><span class="value">{{ proyecto.codigo }}</span></div>
+                <div class="info-row"><span class="label">NOMBRE PROYECTO</span><span class="value">{{ proyecto.nombre|upper }}</span></div>
+                <div class="info-row"><span class="label">SEDE</span><span class="value">{{ proyecto.sede.nombre }}</span></div>
+            </div>
+            <div>
+                <div class="info-row"><span class="label">RESPONSABLE</span><span class="value">{{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}</span></div>
+                <div class="info-row"><span class="label">ESTADO ACTUAL</span><span class="value">{{ proyecto.get_estado_display|upper }}</span></div>
+                <div class="info-row"><span class="label">FECHA CIERRE</span><span class="value">
+                    {% if proyecto.fin %}{{ proyecto.fin|date:"d/m/Y" }}{% else %}--{% endif %}
+                </span></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="left" style="width: 35%;">DESCRIPCIÓN DEL MATERIAL</th>
+                    <th style="width: 10%;">U.M.</th>
+                    <th style="width: 12%;">ENTREGADO</th>
+                    <th style="width: 12%;">DEVUELTO</th>
+                    <th style="width: 12%;">MERMA</th>
+                    <th style="width: 15%;">CONSUMO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in materiales %}
+                <tr>
+                    <td class="left">
+                        <strong>{{ m.producto.nombre }}</strong>
+                        <br><span style="font-size: 8px; color: #666;">{{ m.producto.codigo_interno }}</span>
+                    </td>
+                    <td>{{ m.producto.unidad|default:"UND" }}</td>
+                    <td class="bg-gray">{{ m.cantidad_entregada }}</td>
+                    <td class="bg-green">
+                        {% if m.cantidad_devuelta > 0 %}{{ m.cantidad_devuelta }}{% else %}-{% endif %}
+                    </td>
+                    <td class="bg-red">
+                        {% if m.cantidad_merma > 0 %}{{ m.cantidad_merma }}{% else %}-{% endif %}
+                    </td>
+                    <td class="bg-orange">{{ m.cantidad_usada }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 20px;">No se registraron movimientos de materiales.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-box">
+            <span class="total-badge">TOTAL ÍTEMS INSTALADOS: {{ total_consumido }}</span>
+        </div>
+
+        <div class="signatures">
+            <div class="sign-box">
+                <br><br><br>
+                <div class="sign-line"></div>
+                <div class="sign-role">JEFATURA DE ALMACÉN</div>
+                <div class="sign-name">V° B° Conformidad</div>
+            </div>
+            <div class="sign-box">
+                <br><br><br>
+                <div class="sign-line"></div>
+                <div class="sign-role">RESPONSABLE TÉCNICO</div>
+                <div class="sign-name">
                     {% if proyecto.responsable %}
                         {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
                     {% else %}
-                        -- SIN ASIGNAR --
+                        _________________________
                     {% endif %}
-                </span>
-            </td>
-            <td>
-                <span class="label">FECHA DE CIERRE</span>
-                <span class="value">
-                    {% if proyecto.fin %}{{ proyecto.fin|date:"d/m/Y" }}{% else %}PENDIENTE{% endif %}
-                </span>
-            </td>
-        </tr>
-    </table>
+                </div>
+                <div class="sign-name" style="margin-top:2px;">DNI: _________________</div>
+            </div>
+        </div>
 
-    <h4 style="margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; display: inline-block;">
-        Balance de Materiales
-    </h4>
+        <div class="legal">
+            Este documento certifica el cierre operativo del proyecto y la conciliación de los materiales asignados. 
+            Al firmar, el responsable técnico acepta la conformidad del consumo y las devoluciones realizadas. 
+            Cualquier discrepancia posterior será sujeta a auditoría según las políticas internas de la empresa.
+        </div>
 
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th class="left" style="width: 40%;">DESCRIPCIÓN DEL MATERIAL</th>
-                <th style="width: 15%;">ENTREGADO</th>
-                <th style="width: 15%;">DEVUELTO<br><span style="font-weight:normal; font-size:8px;">(Almacén)</span></th>
-                <th style="width: 15%;">MERMA<br><span style="font-weight:normal; font-size:8px;">(Dañado)</span></th>
-                <th style="width: 15%;">CONSUMO</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for m in materiales %}
-            <tr>
-                <td class="left">
-                    {{ m.producto.nombre }}
-                    <br><span style="font-size: 8px; color: #666;">CÓD: {{ m.producto.codigo_interno }}</span>
-                </td>
-                <td>{{ m.cantidad_entregada }}</td>
-                <td class="col-devuelto">
-                    {% if m.cantidad_devuelta > 0 %}{{ m.cantidad_devuelta }}{% else %}-{% endif %}
-                </td>
-                <td class="col-merma">
-                    {% if m.cantidad_merma > 0 %}{{ m.cantidad_merma }}{% else %}-{% endif %}
-                </td>
-                <td class="col-consumo">{{ m.cantidad_usada }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" style="padding: 20px;">No se registraron movimientos de materiales.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="total-box">
-        <span class="total-text">TOTAL ITEMS INSTALADOS: {{ total_consumido }}</span>
-    </div>
-
-    <div class="signatures-wrapper">
-        <table style="width: 100%;">
-            <tr>
-                <td class="sig-box">
-                    <div style="height: 50px;"></div>
-                    <div class="sig-line"></div>
-                    <div class="sig-role">JEFATURA DE ALMACÉN</div>
-                    <div class="sig-name">TELECABLE SERVICIOS</div>
-                    <div class="sig-dni">V° B° Conformidad</div>
-                </td>
-
-                <td style="width: 20%;"></td> <td class="sig-box">
-                    <div style="height: 50px;"></div>
-                    <div class="sig-line"></div>
-                    <div class="sig-role">RESPONSABLE TÉCNICO</div>
-                    <div class="sig-name">
-                        {% if proyecto.responsable %}
-                            {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
-                        {% else %}
-                            _________________________
-                        {% endif %}
-                    </div>
-                    <div class="sig-dni">DNI: _________________</div>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="legal-footer">
-        Este documento certifica el cierre operativo del proyecto y la conciliación de los materiales asignados. 
-        Al firmar, el responsable técnico acepta la conformidad del consumo y las devoluciones realizadas. 
-        Cualquier discrepancia posterior será sujeta a auditoría según las políticas internas de la empresa.
     </div>
 
 </body>

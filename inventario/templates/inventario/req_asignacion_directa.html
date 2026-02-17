@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       ASIGNACIÓN DIRECTA (Enterprise Style)
+       ========================================= */
+    
+    /* Layout Principal Responsivo */
+    .assign-container { 
+        max-width: 1400px; margin: 0 auto; 
+        display: grid; grid-template-columns: 1fr 400px; /* Catálogo amplio, Carrito fijo */
+        gap: 24px;
+        align-items: start;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Paneles */
+    .card-panel { 
+        background: var(--bg-card); border: 1px solid var(--border-light); 
+        border-radius: var(--radius); padding: 24px; 
+        box-shadow: var(--shadow-card);
+        display: flex; flex-direction: column;
+        max-height: 85vh; /* Altura máxima para que el scroll sea interno */
+    }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
+    }
+    .page-header h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+
+    /* Buscador Grande */
+    .search-row { display: flex; gap: 10px; margin-bottom: 20px; position: relative; }
+    .search-input { 
+        flex: 1; background: var(--bg-input); border: 1px solid var(--border-light); 
+        color: var(--text-main); padding: 14px 14px 14px 45px; border-radius: 12px; font-size: 16px; 
+        outline: none; transition: 0.2s;
+    }
+    .search-input:focus { border-color: var(--primary); background: #3a3a3c; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 22px; }
+
+    /* Grid de Catálogo */
+    .catalog-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+        gap: 16px; overflow-y: auto; padding-right: 5px; /* Scroll interno */
+    }
+
+    /* Tarjeta de Producto */
+    .prod-card {
+        background: var(--bg-input); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 16px; transition: 0.2s;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .prod-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    
+    .pc-title { 
+        font-weight: 600; 
+        font-size: 14px; 
+        color: var(--text-main); 
+        margin-bottom: 4px; 
+        line-height: 1.3; 
+        
+        /* Versión Estándar (Sin error) */
+        height: 36px;       /* Fuerza la altura de 2 líneas */
+        overflow: hidden;   /* Corta el texto sobrante */
+        white-space: normal;
+        display: block;     /* Quitamos el flexbox conflictivo */
+    }
+    
+    .pc-code { font-size: 11px; color: var(--text-secondary); font-family: monospace; margin-bottom: 10px; }
+    
+    .pc-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px; }
+    .badge-stock { padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+    .bs-ok { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .bs-low { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .bs-zero { background: rgba(255, 69, 58, 0.15); color: var(--danger); opacity: 0.7; }
+
+    /* Formulario de Agregar (Input Grande) */
+    .add-form { display: flex; gap: 8px; }
+    .qty-input { 
+        width: 60px; text-align: center; border-radius: 8px; border: 1px solid var(--border-light); 
+        background: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 15px;
+    }
+    .qty-input:focus { border-color: var(--primary); outline: none; }
+    
+    .btn-add { 
+        flex: 1; background: var(--primary); color: #fff; border: none; border-radius: 8px; 
+        cursor: pointer; font-weight: 600; font-size: 13px; padding: 10px; transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-add:hover { background: var(--primary-dark); }
+    .btn-add:disabled { background: var(--bg-input); color: var(--text-tertiary); cursor: not-allowed; }
+
+    /* Panel Derecho (Carrito) */
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px; }
+    
+    .tech-select { 
+        width: 100%; padding: 14px; background: var(--bg-input); border: 1px solid var(--border-light); 
+        color: var(--text-main); border-radius: 10px; font-size: 15px; outline: none; cursor: pointer;
+    }
+    .tech-select:focus { border-color: var(--primary); }
+
+    /* Lista Carrito */
+    .cart-list { 
+        flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; 
+        border: 1px solid var(--border-light); border-radius: 10px; background: rgba(0,0,0,0.2);
+    }
+    .cart-item { 
+        background: var(--bg-input); padding: 12px; border-bottom: 1px solid var(--border-light); 
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cart-item:last-child { border-bottom: none; }
+    
+    .ci-info { flex: 1; min-width: 0; margin-right: 10px; }
+    .ci-name { font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ci-code { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+    
+    .ci-actions { display: flex; align-items: center; gap: 8px; }
+    .cart-qty-input { width: 50px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-body); color: var(--text-main); padding: 6px; font-weight: 600; }
+    
+    .btn-remove { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
+    .btn-remove:hover { color: var(--danger); }
+
+    .btn-confirm { 
+        width: 100%; padding: 16px; background: var(--success); color: #000; 
+        border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 16px;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.3); transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-confirm:hover { background: #2bc063; transform: translateY(-2px); }
+    .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+
+    /* RESPONSIVE MÓVIL */
+    @media (max-width: 900px) {
+        .assign-container { grid-template-columns: 1fr; }
+        .card-panel { max-height: none; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        /* Ponemos el panel de técnico PRIMERO en móvil para que seleccione antes */
+        .assign-container > :nth-child(2) { order: -1; }
+    }
+</style>
+
+<div class="page-header">
+    <h2>🎒 Cargar Mochila Técnica</h2>
+    <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">
+        <i class='bx bx-arrow-back'></i> Volver
+    </a>
+</div>
+
+<div class="assign-container">
+    
+    <div class="card-panel">
+        <div class="search-row">
+            <i class='bx bx-search search-icon'></i>
+            <input id="q" class="search-input" placeholder="Buscar material por nombre o código..." autocomplete="off">
+        </div>
+        
+        <div id="catalogGrid" class="catalog-grid">
+            <div style="text-align:center; padding: 40px; color: var(--text-tertiary); grid-column: 1/-1;">
+                <i class='bx bx-loader-alt bx-spin' style="font-size: 32px; margin-bottom: 10px;"></i>
+                <p>Cargando catálogo...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-panel">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="req_id" value="{{ req.id }}">
+            
+            <div class="form-group">
+                <label class="form-label">1. Seleccionar Técnico</label>
+                <select name="tecnico_id" class="tech-select" required>
+                    <option value="">-- Elegir Técnico --</option>
+                    {% for t in tecnicos %}
+                        <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <label class="form-label">2. Mochila a Cargar (<span id="cartCount">0</span>)</label>
+                <div id="cartList" class="cart-list">
+                    <div style="text-align:center; padding:30px; color:var(--text-tertiary);">
+                        <i class='bx bx-basket' style="font-size: 24px; margin-bottom: 5px;"></i>
+                        <p style="font-size: 13px;">Agrega productos del catálogo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" id="btnEnviarReq" class="btn-confirm" disabled>
+                DESPACHAR AHORA <i class='bx bx-right-arrow-alt'></i>
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<div class="toast-container"></div>
+
+<script>
+    // --- CONFIGURACIÓN ---
+    // Usamos las rutas de almacén que ya están protegidas y listas
+    const URL_CATALOGO = "{% url 'req_catalogo_almacen' %}";     
+    const URL_ADD_PRODUCTO = "{% url 'req_add_producto_almacen' %}"; 
+    const URL_CARRITO = "{% url 'req_carrito_almacen' %}";       
+    const URL_SET_QTY = "{% url 'req_set_qty_almacen' %}";       
+    const URL_REMOVE_PRODUCTO = "{% url 'req_remove_producto_almacen' %}"; 
+
+    function getCookie(name) {
+        let value = `; ${document.cookie}`;
+        let parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return "";
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    // Elementos DOM
+    const gridEl = document.getElementById("catalogGrid");
+    const cartListEl = document.getElementById("cartList");
+    const cartCountEl = document.getElementById("cartCount");
+    const btnEnviarReq = document.getElementById("btnEnviarReq");
+    const searchInput = document.getElementById("q");
+
+    // --- NOTIFICACIONES (TOAST) ---
+    function showToast(msg, type='success') {
+        const container = document.querySelector('.toast-container') || createToastContainer();
+        const div = document.createElement('div');
+        div.className = 'toast-msg';
+        div.style.borderLeft = type === 'error' ? '4px solid var(--danger)' : '4px solid var(--success)';
+        div.innerHTML = `<i class='bx ${type === 'error' ? 'bxs-error-circle' : 'bxs-check-circle'}' style="color:${type==='error'?'var(--danger)':'var(--success)'}; font-size:18px;"></i><span>${msg}</span>`;
+        container.appendChild(div);
+        setTimeout(() => { div.style.opacity = '0'; div.style.transform = 'translateY(-10px)'; setTimeout(() => div.remove(), 300); }, 3000);
+    }
+
+    function createToastContainer() {
+        const div = document.createElement('div');
+        div.className = 'toast-container';
+        document.body.appendChild(div);
+        return div;
+    }
+
+    // --- RENDERIZADO ---
+    function renderCatalog(items) {
+        if (!items || items.length === 0) {
+            gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-tertiary);">No se encontraron materiales.</div>`;
+            return;
+        }
+
+        gridEl.innerHTML = items.map(p => {
+            const stock = p.disponible || 0;
+            const stockClass = stock > 10 ? 'bs-ok' : (stock > 0 ? 'bs-low' : 'bs-zero');
+            const disabled = stock <= 0 ? 'disabled' : '';
+            const btnText = stock <= 0 ? 'Sin Stock' : 'Agregar';
+            
+            return `
+            <div class="prod-card">
+                <div>
+                    <div class="pc-title">${p.nombre}</div>
+                    <div class="pc-code">${p.codigo || 'S/C'}</div>
+                </div>
+                <div>
+                    <div class="pc-meta">
+                        <span style="color:var(--text-secondary)">Stock:</span>
+                        <span class="badge-stock ${stockClass}">${stock}</span>
+                    </div>
+                    <form class="add-form" onsubmit="addToCart(event, ${p.producto_id})">
+                        <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
+                        <button type="submit" class="btn-add" ${disabled}>
+                            ${btnText} <i class='bx bx-plus'></i> 
+                        </button>
+                    </form>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function renderCart(items) {
+        const count = items ? items.length : 0;
+        cartCountEl.textContent = count;
+        
+        // Habilitar botón solo si hay ítems
+        if (btnEnviarReq) btnEnviarReq.disabled = count === 0;
+
+        if (!items || items.length === 0) {
+            cartListEl.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-tertiary);"><i class='bx bx-basket' style="font-size:32px; margin-bottom:10px;"></i><p>Mochila vacía.</p></div>`;
+            return;
+        }
+
+        cartListEl.innerHTML = items.map(it => `
+            <div class="cart-item">
+                <div class="ci-info">
+                    <div class="ci-name">${it.nombre}</div>
+                    <div class="ci-code">${it.codigo || '-'}</div>
+                </div>
+                <div class="ci-actions">
+                    <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1" 
+                           onchange="updateQty(${it.producto_id}, this.value)">
+                    <button class="btn-remove" onclick="removeFromCart(${it.producto_id})" title="Quitar">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // --- API CALLS ---
+    async function loadCatalog(q = "") {
+        const query = q || searchInput.value;
+        const url = new URL(URL_CATALOGO, window.location.origin);
+        if (query) url.searchParams.set("q", query);
+        
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            renderCatalog(data.results || []);
+        } catch (e) {
+            gridEl.innerHTML = `<div style="color:var(--danger); text-align:center; grid-column:1/-1;">Error cargando catálogo.</div>`;
+        }
+    }
+
+    async function addToCart(e, prodId) {
+        e.preventDefault();
+        const form = e.target;
+        const qty = form.querySelector('input[name="cantidad"]').value;
+        const btn = form.querySelector('button');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+
+        const fd = new FormData();
+        fd.append('producto_id', prodId);
+        fd.append('cantidad', qty);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+
+        try {
+            const res = await fetch(URL_ADD_PRODUCTO, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            if (data.ok) {
+                showToast("Agregado");
+                renderCart(data.items);
+            } else {
+                showToast(data.error, 'error');
+            }
+        } catch (err) { showToast("Error de conexión", 'error'); } 
+        finally { 
+            btn.disabled = false; 
+            btn.innerHTML = originalText; 
+        }
+    }
+
+    let debounceTimer;
+    function updateQty(prodId, newQty) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            if (newQty < 1) return;
+            const fd = new FormData();
+            fd.append('producto_id', prodId);
+            fd.append('cantidad', newQty);
+            fd.append('csrfmiddlewaretoken', csrftoken);
+            try {
+                const res = await fetch(URL_SET_QTY, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+                const data = await res.json();
+                if(data.ok) showToast("Actualizado");
+                else { showToast(data.error, 'error'); refreshCart(); }
+            } catch(e) {}
+        }, 500);
+    }
+
+    async function removeFromCart(prodId) {
+        const fd = new FormData();
+        fd.append('producto_id', prodId);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+        try {
+            const res = await fetch(URL_REMOVE_PRODUCTO, { method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            if(data.ok) { renderCart(data.items); }
+        } catch(e) {}
+    }
+
+    async function refreshCart() {
+        try {
+            const res = await fetch(URL_CARRITO, { headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            const data = await res.json();
+            renderCart(data.items);
+        } catch(e) {}
+    }
+
+    // --- EVENT LISTENERS ---
+    searchInput.addEventListener('input', (e) => { 
+        clearTimeout(debounceTimer); 
+        debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); 
+    });
+
+    // Iniciar
+    loadCatalog();
+    refreshCart();
+</script>
+{% endblock %}

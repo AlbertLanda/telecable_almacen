@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.contrib import messages
@@ -40,7 +41,7 @@ from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 import json
 from django.db import IntegrityError
 
-
+User = get_user_model()
 # --------------------
 # Helpers
 # --------------------
@@ -1005,3 +1006,65 @@ def req_atender(request, req_id: int):
         'items_context': items_context
     }
     return render(request, 'inventario/req_despachar_form.html', context)
+
+@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+def req_asignacion_directa(request):
+    """
+    Vista para que Almacén cargue material directamente a un técnico (Push).
+    Crea un REQ y lo prepara para despacho inmediato.
+    """
+    profile = get_profile(request.user)
+    sede = profile.get_sede_operativa()
+    ubicacion = _get_ubicacion_operativa(request.user)
+
+    if request.method == 'POST':
+        tecnico_id = request.POST.get('tecnico_id')
+        req_id = request.POST.get('req_id')
+        
+        if not tecnico_id or not req_id:
+            messages.error(request, "Falta seleccionar técnico o pedido.")
+            return redirect('req_asignacion_directa')
+
+        tecnico = get_object_or_404(User, id=tecnico_id)
+        req = get_object_or_404(DocumentoInventario, id=req_id)
+        
+        # Validar que no esté vacía
+        if not req.items.exists():
+            messages.error(request, "La mochila está vacía. Agrega productos antes de confirmar.")
+            return redirect('req_asignacion_directa')
+
+        # Asignamos al técnico como el "Solicitante" real
+        req.responsable = tecnico 
+        req.solicitante = tecnico
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+        
+        # 🚀 CAMBIO CLAVE: CAMBIAR ESTADO A PENDIENTE Y GENERAR NUMERO
+        req.estado = EstadoDocumento.REQ_PENDIENTE 
+        req.asignar_numero_si_falta() # Le pone el código REQ-000XXX
+        
+        req.save()
+        
+        # Lo mandamos directo a ATENDER (Despacho)
+        return redirect('req_atender', req_id=req.id)
+
+    # ... (El resto de la función GET se queda igual) ...
+    req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+    
+    if req.tipo_requerimiento != TipoRequerimiento.LOCAL:
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+        req.sede_destino = None
+        req.proveedor = None
+        req.save()
+
+    tecnicos = User.objects.filter(
+        profile__rol=UserProfile.Rol.SOLICITANTE,
+        profile__sede_principal=sede,
+        is_active=True
+    ).order_by('username')
+
+    return render(request, 'inventario/req_asignacion_directa.html', {
+        'req': req,
+        'tecnicos': tecnicos,
+        'sede': sede
+    })

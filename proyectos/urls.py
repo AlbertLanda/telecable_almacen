@@ -47,4 +47,9 @@ urlpatterns = [
     path('admin/reportes/obras/', views.admin_reporte_lista, name='admin_reporte_lista'),
     
     path('admin/reportes/detalle/<int:proyecto_id>/', views.admin_detalle_financiero, name='admin_detalle_financiero'),
+
+    # FLUJO DE APROBACIÓN
+    path('proyecto/<int:proyecto_id>/enviar-revision/', views.proyecto_enviar_a_revision, name='proyecto_enviar_revision'),
+    path('proyecto/<int:proyecto_id>/aprobar/', views.proyecto_aprobar_tecnico, name='proyecto_aprobar_tecnico'),
+    path('proyecto/<int:proyecto_id>/observar/', views.proyecto_observar_tecnico, name='proyecto_observar_tecnico'),
 ]

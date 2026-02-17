@@ -4,7 +4,7 @@
 {% block content %}
 <style>
     /* =========================================
-       DETALLE PROYECTO (Enterprise Style)
+       DETALLE PROYECTO - MODO NEGOCIACIÓN
        ========================================= */
     
     .project-container {
@@ -27,7 +27,7 @@
     .header-meta { margin-top: 8px; display: flex; gap: 15px; color: var(--text-secondary); font-size: 14px; }
     .meta-item { display: flex; align-items: center; gap: 6px; }
 
-    /* Costo Badge */
+    /* Costo Badge (Solo VIPs) */
     .cost-badge {
         background: rgba(48, 209, 88, 0.1); border: 1px solid rgba(48, 209, 88, 0.2);
         padding: 10px 16px; border-radius: 10px; text-align: right;
@@ -35,10 +35,48 @@
     .cost-label { display: block; font-size: 11px; text-transform: uppercase; color: var(--success); font-weight: 700; }
     .cost-val { display: block; font-size: 20px; font-weight: 700; color: var(--text-main); font-family: monospace; }
 
-    /* Layout */
-    .content-grid {
-        display: grid; grid-template-columns: 2fr 1fr; gap: 24px;
+    /* Badges de Estado */
+    .status-pill { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; border: 1px solid transparent; }
+    .st-diseno { background: rgba(10, 132, 255, 0.1); color: var(--primary); border-color: rgba(10, 132, 255, 0.2); }
+    .st-revision { background: rgba(255, 159, 10, 0.1); color: var(--warning); border-color: rgba(255, 159, 10, 0.2); animation: pulse-border 2s infinite; }
+    .st-observado { background: rgba(255, 69, 58, 0.1); color: var(--danger); border-color: rgba(255, 69, 58, 0.2); }
+    .st-aprobado { background: rgba(48, 209, 88, 0.1); color: var(--success); border-color: rgba(48, 209, 88, 0.2); }
+    .st-proceso { background: rgba(10, 132, 255, 0.15); color: var(--primary); border: 1px solid rgba(10, 132, 255, 0.3); }
+    
+    @keyframes pulse-border { 0% { border-color: rgba(255, 159, 10, 0.2); } 50% { border-color: rgba(255, 159, 10, 0.8); } 100% { border-color: rgba(255, 159, 10, 0.2); } }
+
+    /* Alerta de Observación */
+    .alert-observacion {
+        background: rgba(255, 69, 58, 0.05); border: 1px solid var(--danger); border-radius: 12px;
+        padding: 15px 20px; margin-bottom: 25px; display: flex; align-items: flex-start; gap: 15px;
     }
+    .alert-icon { font-size: 24px; color: var(--danger); margin-top: 2px; }
+    .alert-content h4 { margin: 0 0 5px 0; font-size: 14px; color: var(--danger); font-weight: 700; }
+    .alert-content p { margin: 0; font-size: 13px; color: var(--text-main); }
+
+    /* Panel de Acciones */
+    .action-panel {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 20px; margin-bottom: 25px;
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .btn-action {
+        padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 14px; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .btn-approve { background: var(--success); color: #000; box-shadow: 0 4px 15px rgba(48, 209, 88, 0.3); }
+    .btn-approve:hover { background: #2bc063; transform: translateY(-2px); }
+    
+    .btn-reject { background: rgba(255, 69, 58, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+    .btn-reject:hover { background: var(--danger); color: #fff; }
+
+    .btn-send { background: var(--primary); color: #fff; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3); }
+    .btn-send:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+    /* Layout */
+    .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
 
     /* Tarjetas */
     .content-card {
@@ -59,27 +97,33 @@
     }
     td { padding: 12px 20px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background-color: var(--bg-hover); }
-
+    
     .val-highlight { font-weight: 700; color: var(--primary); }
 
-    /* Lista Técnicos */
-    .tech-list { list-style: none; margin: 0; padding: 0; }
-    .tech-item {
-        padding: 12px 20px; border-bottom: 1px solid var(--border-light);
-        display: flex; align-items: center; gap: 12px;
+    /* Modal de Observación */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+        display: none; justify-content: center; align-items: center; z-index: 9999;
     }
-    .tech-item:last-child { border-bottom: none; }
-    .tech-avatar {
-        width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input);
-        display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
+    .modal-content {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        width: 90%; max-width: 500px; padding: 30px; border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
-    .tech-name { font-weight: 500; color: var(--text-main); font-size: 14px; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 15px; color: var(--text-main); }
+    .modal-textarea {
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light);
+        color: var(--text-main); border-radius: 10px; padding: 12px; margin-bottom: 20px;
+        font-family: inherit; font-size: 14px;
+    }
 
     @media (max-width: 992px) {
         .content-grid { grid-template-columns: 1fr; }
-        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .cost-badge { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .action-panel { flex-direction: column; gap: 15px; text-align: center; }
+        .btn-action { width: 100%; justify-content: center; }
+        .page-header { flex-direction: column; gap: 15px; }
+        .cost-badge { width: 100%; display: flex; justify-content: space-between; align-items: center; }
     }
 </style>
 
@@ -92,80 +136,218 @@
             </div>
             <div class="header-meta">
                 <div class="meta-item"><i class='bx bxs-building'></i> {{ proyecto.sede.nombre }}</div>
-                <div class="meta-item"><i class='bx bx-info-circle'></i> {{ proyecto.get_estado_display }}</div>
+                <div class="meta-item"><i class='bx bxs-user-pin'></i> Resp: {{ proyecto.responsable.username }}</div>
             </div>
         </div>
         
-        <div class="cost-badge">
-            <span class="cost-label">Costo Real</span>
-            <span class="cost-val">S/ {{ costo_total }}</span>
+        <div>
+            {% if proyecto.estado == 'DISENO' %}
+                <span class="status-pill st-diseno"><i class='bx bx-edit'></i> En Diseño</span>
+            {% elif proyecto.estado == 'REVISION_TECNICA' %}
+                <span class="status-pill st-revision"><i class='bx bx-analyse'></i> En Revisión</span>
+            {% elif proyecto.estado == 'OBSERVADO' %}
+                <span class="status-pill st-observado"><i class='bx bx-error'></i> Observado</span>
+            {% elif proyecto.estado == 'APROBADO' %}
+                <span class="status-pill st-aprobado"><i class='bx bx-check-circle'></i> Aprobado</span>
+            {% elif proyecto.estado == 'EN_PROCESO' %}
+                <span class="status-pill st-proceso"><i class='bx bx-play'></i> En Ejecución</span>
+            {% elif proyecto.estado == 'FINALIZADO' %}
+                <span class="status-pill st-diseno">Finalizado</span>
+            {% endif %}
+
+            {% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
+                <div class="cost-badge" style="margin-top: 10px;">
+                    <span class="cost-label">Costo Real</span>
+                    <span class="cost-val">S/ {{ costo_total }}</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if proyecto.estado == 'OBSERVADO' %}
+    <div class="alert-observacion">
+        <div class="alert-icon"><i class='bx bxs-message-square-error'></i></div>
+        <div class="alert-content">
+            <h4>Proyecto Observado por el Técnico</h4>
+            <p>"{{ proyecto.observacion_rechazo }}"</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="action-panel">
+        <div>
+            <span style="color:var(--text-secondary); font-size:13px; font-weight:600; text-transform:uppercase;">Acciones Disponibles</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            
+            {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                {% if request.user == proyecto.creado_por or request.user.is_superuser %}
+                    <a href="{% url 'proyecto_materiales' proyecto.id %}" class="btn-action" style="background:var(--bg-input); color:var(--text-main);">
+                        <i class='bx bx-pencil'></i> Editar Materiales
+                    </a>
+                    <a href="{% url 'proyecto_enviar_revision' proyecto.id %}" class="btn-action btn-send">
+                        <i class='bx bx-send'></i> Enviar a Revisión Técnica
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% if proyecto.estado == 'REVISION_TECNICA' %}
+                {% if request.user == proyecto.responsable or request.user.is_superuser %}
+                    <span style="color:var(--warning); font-size:12px; margin-right:10px; align-self:center;">
+                        <i class='bx bx-time'></i> Esperando tu conformidad
+                    </span>
+                    <button onclick="openModalObservar()" class="btn-action btn-reject">
+                        <i class='bx bx-x'></i> Observar
+                    </button>
+                    <a href="{% url 'proyecto_aprobar_tecnico' proyecto.id %}" class="btn-action btn-approve" onclick="return confirm('¿Estás seguro de APROBAR este proyecto? Almacén podrá iniciar despachos.')">
+                        <i class='bx bx-check'></i> Aprobar Proyecto
+                    </a>
+                {% else %}
+                    <span style="color:var(--text-secondary); font-size:13px;">
+                        <i class='bx bx-lock-alt'></i> Solo {{ proyecto.responsable.username }} puede aprobar.
+                    </span>
+                {% endif %}
+            {% endif %}
+
+            {% if proyecto.estado == 'APROBADO' %}
+                <span style="color:var(--success); font-weight:600; font-size:14px;">
+                    <i class='bx bx-check-double'></i> Listo para Despacho en Almacén
+                </span>
+            {% endif %}
+
         </div>
     </div>
 
     <div class="content-grid">
-        
         <div>
             <div class="content-card">
-                <div class="card-header">
-                    <h4><i class='bx bx-package'></i> Materiales Asignados</h4>
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4><i class='bx bx-package'></i> Lista de Materiales</h4>
+                    {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                        <a href="{% url 'proyecto_materiales' proyecto.id %}" style="font-size:12px; color:var(--primary);">Editar lista</a>
+                    {% endif %}
                 </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
                                 <th>Producto</th>
-                                <th>Asignado</th>
-                                <th>Usado</th>
-                                <th>Merma</th>
-                                <th>Devuelto</th>
+                                <th>Cantidad</th>
+                                {% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
+                                    <th>Costo Est.</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for m in materiales %}
                             <tr>
-                                <td style="font-weight: 500;">{{ m.producto.nombre }}</td>
-                                <td class="val-highlight">{{ m.cantidad_asignada }}</td>
-                                <td>{{ m.cantidad_usada }}</td>
-                                <td style="color: var(--danger);">{{ m.cantidad_merma }}</td>
-                                <td style="color: var(--success);">{{ m.cantidad_devuelta }}</td>
+                                <td>
+                                    <strong style="display:block;">{{ m.producto.nombre }}</strong>
+                                    <span style="color:var(--text-secondary); font-size:11px;">{{ m.producto.codigo_interno }}</span>
+                                </td>
+                                <td class="val-highlight">{{ m.cantidad_planificada }}</td>
+                                
+                                {% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
+                                    <td>S/ {{ m.costo_total_real }}</td>
+                                {% endif %}
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                                <td colspan="{% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}3{% else %}2{% endif %}" style="text-align: center; padding: 30px; color: var(--text-secondary);">
                                     Sin materiales registrados.
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
+                        
+                        {% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
+                        <tfoot style="border-top:2px solid var(--border-light); background:rgba(255,255,255,0.02);">
+                            <tr>
+                                <td colspan="2" style="text-align:right; font-weight:700; text-transform:uppercase; color:var(--text-secondary);">Costo Total Estimado:</td>
+                                <td style="font-weight:700; color:var(--success); font-size:15px;">S/ {{ costo_total }}</td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
                     </table>
                 </div>
             </div>
             
-            <a href="{% url 'proyecto_list' %}" class="btn btn-ghost" style="border: 1px solid var(--border-light); color: var(--text-secondary);">
-                <i class='bx bx-arrow-back'></i> Volver a la Lista
+            <a href="{% url 'proyecto_list' %}" class="btn-action" style="background:transparent; border:1px solid var(--border-light); color:var(--text-secondary);">
+                <i class='bx bx-arrow-back'></i> Volver
             </a>
         </div>
 
         <div>
+            {% if proyecto.plano %}
             <div class="content-card">
                 <div class="card-header">
-                    <h4><i class='bx bx-group'></i> Equipo Técnico</h4>
+                    <h4><i class='bx bxs-map-alt'></i> Plano de Obra</h4>
                 </div>
-                <ul class="tech-list">
-                    {% for a in tecnicos %}
-                    <li class="tech-item">
-                        <div class="tech-avatar"><i class='bx bxs-user'></i></div>
-                        <span class="tech-name">{{ a.tecnico.get_full_name|default:a.tecnico.username }}</span>
-                    </li>
-                    {% empty %}
-                    <li class="tech-item" style="color: var(--text-secondary); font-style: italic;">
-                        Sin técnicos asignados.
-                    </li>
-                    {% endfor %}
-                </ul>
+                <div style="padding:20px; text-align:center;">
+                    <i class='bx bxs-file-pdf' style="font-size:48px; color:var(--danger); margin-bottom:10px;"></i>
+                    <p style="font-size:13px; color:var(--text-main); margin-bottom:15px;">{{ proyecto.plano.name|slice:"7:" }}</p>
+                    <a href="{{ proyecto.plano.url }}" target="_blank" class="btn-action" style="width:100%; justify-content:center; border:1px solid var(--border-light); color:var(--text-main);">
+                        Ver Plano
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="content-card">
+                <div class="card-header">
+                    <h4><i class='bx bx-info-circle'></i> Detalles</h4>
+                </div>
+                <div style="padding:20px;">
+                    <div style="margin-bottom:15px;">
+                        <label style="font-size:11px; font-weight:700; color:var(--text-secondary); display:block;">DISEÑADO POR</label>
+                        <div style="font-size:14px;">{{ proyecto.creado_por.get_full_name|default:proyecto.creado_por.username }}</div>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label style="font-size:11px; font-weight:700; color:var(--text-secondary); display:block;">FECHA CREACIÓN</label>
+                        <div style="font-size:14px;">{{ proyecto.creado_en|date:"d M Y" }}</div>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; font-weight:700; color:var(--text-secondary); display:block;">DESCRIPCIÓN</label>
+                        <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                            {{ proyecto.descripcion|default:"Sin descripción." }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
     </div>
 </div>
+
+<div class="modal-overlay" id="modalObservar">
+    <div class="modal-content">
+        <h3 class="modal-title">Observar Proyecto</h3>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:15px;">
+            Indica al Diseñador qué cambios debe realizar antes de aprobar la ejecución.
+        </p>
+        
+        <form action="{% url 'proyecto_observar_tecnico' proyecto.id %}" method="POST">
+            {% csrf_token %}
+            <textarea name="motivo" class="modal-textarea" rows="4" placeholder="Ej: Faltan 50m de cable drop y 2 cajas NAP..." required></textarea>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" onclick="closeModalObservar()" class="btn-action" style="background:transparent; border:1px solid var(--border-light); color:var(--text-main);">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-action btn-reject">
+                    Enviar Observación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModalObservar() {
+        document.getElementById('modalObservar').style.display = 'flex';
+    }
+    function closeModalObservar() {
+        document.getElementById('modalObservar').style.display = 'none';
+    }
+</script>
 {% endblock %}

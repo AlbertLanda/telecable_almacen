@@ -303,13 +303,17 @@
                         <div class="quick-info"><h5>Inventario Total</h5><p>Ver stock actual</p></div>
                     </a>
                     <a href="{% url 'almacen_proyectos_list' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#BF5AF2;"><i class='bx bx-briefcase-alt-2'></i></div>
+                        <div class="quick-icon" style="color:#FF375F;"><i class='bx bx-briefcase-alt-2'></i></div>
                         <div class="quick-info"><h5>Atender Proyectos</h5><p>Despacho a obras</p></div>
                         {% if notificacion_proyectos > 0 %}<span class="badge-pulse">{{ notificacion_proyectos }}</span>{% endif %}
                     </a>
                     <a href="{% url 'almacen_liquidacion_lista' %}" class="quick-row">
                         <div class="quick-icon" style="color:#FF375F;"><i class='bx bx-revision'></i></div>
                         <div class="quick-info"><h5>Cierre de Obras</h5><p>Liquidar retornos</p></div>
+                    </a>
+                    <a href="{% url 'req_asignacion_directa' %}" class="quick-row">
+                        <div class="quick-icon" style="color:#00C851;"><i class='bx bxs-backpack'></i></div>
+                        <div class="quick-info"><h5>Cargar Mochila</h5><p>Asignar a técnico</p></div>
                     </a>
                     <a href="{% url 'liquidacion_tecnico_lista' %}" class="quick-row">
                         <div class="quick-icon" style="color:#30D158;"><i class='bx bx-user-check'></i></div>

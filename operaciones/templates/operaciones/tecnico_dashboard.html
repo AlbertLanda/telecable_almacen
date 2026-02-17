@@ -95,6 +95,44 @@
 </a>
 
 <div class="dashboard-container">
+
+    {% if proyectos %}
+    <div class="section-card" style="margin-bottom: 24px; border-left: 5px solid var(--primary);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h4><i class='bx bx-hard-hat'></i> Proyectos Asignados</h4>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            {% for p in proyectos %}
+            <div style="background:var(--bg-input); padding:15px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:700; color:var(--text-main);">{{ p.nombre }}</div>
+                    <div style="font-size:12px; color:var(--text-secondary);">
+                        <span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">{{ p.codigo }}</span>
+                        &nbsp;•&nbsp; {{ p.creado_en|date:"d M Y" }}
+                    </div>
+                </div>
+                
+                <div style="text-align:right;">
+                    {% if p.estado == 'REVISION_TECNICA' %}
+                        <span style="display:block; font-size:10px; font-weight:700; color:var(--warning); text-transform:uppercase; margin-bottom:4px;">Requiere tu Visto Bueno</span>
+                        <a href="{% url 'proyecto_detail' p.id %}" class="btn-action-main" style="padding:6px 16px; font-size:12px; background:var(--warning); color:#000;">
+                            Revisar Ahora
+                        </a>
+                    {% elif p.estado == 'EN_PROCESO' %}
+                        <span style="display:block; font-size:10px; font-weight:700; color:var(--success); text-transform:uppercase; margin-bottom:4px;">En Ejecución</span>
+                        <a href="{% url 'proyecto_detail' p.id %}" class="btn-action-main" style="padding:6px 16px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-light); color:var(--text-main);">
+                            Ver Detalles
+                        </a>
+                    {% else %}
+                        <span class="badge" style="background:var(--bg-card); color:var(--text-secondary);">{{ p.get_estado_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     
     <div class="section-card">
         <h4><i class='bx bx-grid-alt'></i> Accesos Directos</h4>

@@ -41,7 +41,8 @@ from .views.req import (
     req_eliminar,
     req_recepcionar_compra,
     req_set_tipo,
-    req_atender
+    req_atender,
+    req_asignacion_directa
 )
 
 # 5. Importaciones de SAL (Salidas)
@@ -77,6 +78,7 @@ urlpatterns = [
     path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
     path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
     path('almacen/recepcionar/<int:sal_id>/', almacen_recepcionar_traspaso, name='almacen_recepcionar_traspaso'),
+    path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path('req/<int:req_id>/atender/', req_atender, name='req_atender'),
 
     # ==========================
