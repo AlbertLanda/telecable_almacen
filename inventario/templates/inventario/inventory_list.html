@@ -88,15 +88,20 @@
 </style>
 
 <div class="page-header">
-    <div class="header-title">
-        <h2>Inventario General</h2>
-        <p>Sede Actual: <strong style="color: var(--text-main);">{{ sede_actual.nombre }}</strong></p>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        
+        <a href="{% url 'dashboard' %}" class="btn" style="background-color: #2a3042; color: #ffffff; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Volver al Dashboard">
+            <i class='bx bx-arrow-back' style="font-size: 24px;"></i>
+        </a>
+        <div class="header-title">
+            <h2>Inventario General</h2>
+            <p>Sede Actual: <strong style="color: var(--text-main);">{{ sede_actual.nombre }}</strong></p>
+        </div>
     </div>
 
     <form class="filter-bar" method="GET" action="{% url 'inventory_list' %}">
         {% if sedes %}
-            <select name="sede_id" class="select-sede" onchange="this.form.submit()">
-                {% for s in sedes %}
+            <select name="sede_id" class="select-sede" onchange="this.form.submit()" {% if sedes|length == 1 %}style="display:none;"{% endif %}>                {% for s in sedes %}
                     <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
                         {{ s.nombre }}
                     </option>

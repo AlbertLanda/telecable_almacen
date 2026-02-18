@@ -833,9 +833,8 @@ def req_set_tipo(request):
 @role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 def req_atender(request, req_id: int):
     """
-    Despacha un REQ solicitado por un TÉCNICO.
-    Mueve stock de Almacén -> Mochila del Técnico (StockTecnico).
-    Maneja ítems serializados (ONUs específicas o rangos de precintos).
+    Despacha un REQ solicitado por un TÉCNICO o por OTRA SEDE.
+    Mueve stock de Almacén -> Mochila (Técnico) o Transfiere (Sedes).
     """
     req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
     
@@ -844,20 +843,26 @@ def req_atender(request, req_id: int):
         messages.error(request, "Este requerimiento no está pendiente.")
         return redirect("dash_almacen")
 
-    sede_origen = req.sede
+    # 🔥 CORRECCIÓN CLAVE: Determinar quién despacha (quién pierde el stock)
+    if req.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES and req.sede_destino:
+        # Si Oroya pide a Jauja, Jauja (sede_destino) es quien despacha
+        sede_despachador = req.sede_destino
+    else:
+        # Si es pedido Local, la misma sede del REQ despacha
+        sede_despachador = req.sede
 
+    # Validación de Permisos (¿Soy yo quien debe despachar?)
     profile = get_profile(request.user)
     if profile and profile.rol == UserProfile.Rol.ALMACEN:
         sede_user = profile.get_sede_operativa()
-        if sede_user and req.sede_id != sede_user.id:
-            raise PermissionDenied("No puedes atender REQ de otra sede.")
+        if sede_user and sede_user.id != sede_despachador.id:
+             raise PermissionDenied(f"No puedes despachar mercadería de {sede_despachador.nombre}.")
     
     # --- PROCESO POST (Guardar Despacho) ---
     if request.method == "POST":
         try:
             with transaction.atomic():
                 
-                # 🚑 FIX: Aseguramos número
                 if not req.numero:
                     req.asignar_numero_si_falta()
 
@@ -865,7 +870,8 @@ def req_atender(request, req_id: int):
                 sal = DocumentoInventario.objects.create(
                     tipo=TipoDocumento.SAL,
                     estado=EstadoDocumento.CONFIRMADO,
-                    sede=sede_origen,
+                    sede=sede_despachador,      # <--- AQUÍ SE CORRIGIÓ (Sale de Jauja)
+                    sede_destino=req.sede,      # <--- Destino es Oroya (quien pidió)
                     responsable=request.user,
                     solicitante=req.responsable,
                     origen=req,
@@ -876,12 +882,15 @@ def req_atender(request, req_id: int):
                 sal.asignar_numero_si_falta()
 
                 items_req = req.items.all()
+                total_items_procesados = 0  # Inicializamos contador
 
                 for item in items_req:
                     qty_despacho = int(request.POST.get(f'qty_{item.id}', 0))
 
                     if qty_despacho > 0:
-                        # A. Registrar en DocumentoItem
+                        total_items_procesados += 1
+
+                        # A. Documento Item
                         DocumentoItem.objects.create(
                             documento=sal,
                             producto=item.producto,
@@ -889,19 +898,19 @@ def req_atender(request, req_id: int):
                             observacion=item.observacion
                         )
 
-                        # B. Movimiento Físico
+                        # B. Movimiento Físico (Resta stock al despachador)
                         mov = MovimientoInventario.objects.create(
                             producto=item.producto,
-                            sede=sede_origen,
+                            sede=sede_despachador,  # <--- AQUÍ SE CORRIGIÓ (Resta a Jauja)
                             tipo=MovimientoInventario.TIPO_OUT,
                             qty=qty_despacho,
                             referencia=sal.numero,
                             usuario=request.user,
-                            nota=f"Despacho a {req.responsable.username}"
+                            nota=f"Despacho a {req.sede.nombre}"
                         )
-                        mov.aplicar()
+                        mov.aplicar() # ¡Aquí baja el stock!
 
-                        # C. Mochila Técnica
+                        # C. Mochila Técnica (SOLO SI ES LOCAL)
                         if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
                             stock_tech, _ = StockTecnico.objects.get_or_create(
                                 tecnico=req.responsable,
@@ -912,8 +921,9 @@ def req_atender(request, req_id: int):
 
                         # D. SERIALIZADOS
                         if item.producto.es_serializado:
+                            # ... (Lógica de rangos y ONUs igual que antes, 
+                            # PERO buscando en sede_despachador)
                             
-                            # --- RANGO ---
                             rango_inicio = request.POST.get(f'rango_inicio_{item.id}')
                             rango_fin = request.POST.get(f'rango_fin_{item.id}')
                             
@@ -923,20 +933,18 @@ def req_atender(request, req_id: int):
                                     end = int(rango_fin)
                                     items_to_update = ItemSerializado.objects.filter(
                                         producto=item.producto,
-                                        ubicacion__sede=sede_origen,
+                                        ubicacion__sede=sede_despachador, # <--- Busca en Jauja
                                         estado=ItemSerializado.Estado.EN_ALMACEN,
                                         serial__gte=str(start), 
                                         serial__lte=str(end)
                                     )
                                     items_to_update.update(
-                                        estado=ItemSerializado.Estado.ASIGNADO,
+                                        estado=ItemSerializado.Estado.ASIGNADO, # O EN_TRANSITO si prefieres
                                         asignado_a=req.responsable, 
                                         ubicacion=None 
                                     )
-                                except ValueError:
-                                    pass
+                                except ValueError: pass
 
-                            # --- DETALLE ONUs ---
                             json_ids = request.POST.get(f'detalles_json_{item.id}')
                             if json_ids:
                                 try:
@@ -951,16 +959,17 @@ def req_atender(request, req_id: int):
                                         asignado_a=req.responsable,
                                         ubicacion=None
                                     )
-                                except:
-                                    pass
-
+                                except: pass
+                
+                # Validación de seguridad
+                if total_items_procesados == 0:
+                    raise ValueError("⚠️ No has seleccionado ninguna cantidad para despachar.")
+                            
                 # Cerrar REQ
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save()
 
-                nombre_tecnico = req.responsable.get_full_name() or req.responsable.username
-                messages.success(request, f"✅ Despacho realizado. Material cargado a {nombre_tecnico}.")
-                
+                messages.success(request, f"✅ Despacho realizado. Stock descontado de {sede_despachador.nombre}.")
                 return redirect("dash_almacen")
 
         except Exception as e:
@@ -969,14 +978,17 @@ def req_atender(request, req_id: int):
 
     # --- GET: Preparar datos para el Template ---
     items_context = []
-    sede_visualizar = request.user.profile.get_sede_operativa()
+    
+    # 🔥 CORRECCIÓN VISUAL: Mostrar stock del despachador (Jauja), no del solicitante (Oroya)
+    if req.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES and req.sede_destino:
+        sede_visualizar = req.sede_destino
+    else:
+        sede_visualizar = req.sede
 
     for item in req.items.all():
-        # 1. Obtener Stock Real (CORRECCIÓN APLICADA)
         stock_obj = Stock.objects.filter(producto=item.producto, sede=sede_visualizar).first()
         stock_total = stock_obj.cantidad if stock_obj else 0
 
-        # 2. Obtener Seriales si aplica
         disponibles = []
         if item.producto.es_serializado:
             qs = ItemSerializado.objects.filter(
@@ -985,26 +997,15 @@ def req_atender(request, req_id: int):
                 estado=ItemSerializado.Estado.EN_ALMACEN
             ).only('id', 'serial', 'codigo_trazabilidad', 'mac_address')[:500] 
             
-            disponibles = [
-                {
-                    'id': x.id, 
-                    'serial': x.serial, 
-                    'cod44': x.codigo_trazabilidad or '', 
-                    'mac': x.mac_address or ''
-                } 
-                for x in qs
-            ]
+            disponibles = [{'id': x.id, 'serial': x.serial, 'cod44': x.codigo_trazabilidad or '', 'mac': x.mac_address or ''} for x in qs]
         
         items_context.append({
             'req_item': item,
             'disponibles_json': json.dumps(disponibles),
-            'stock_total': stock_total  # 👈 AQUÍ ESTÁ EL DATO CLAVE
+            'stock_total': stock_total 
         })
 
-    context = {
-        'req': req,
-        'items_context': items_context
-    }
+    context = {'req': req, 'items_context': items_context}
     return render(request, 'inventario/req_despachar_form.html', context)
 
 @login_required
