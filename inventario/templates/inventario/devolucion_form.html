@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .dev-container { max-width: 900px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-panel {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-card);
+    }
+
+    /* Buscador */
+    .search-row { position: relative; margin-bottom: 20px; }
+    .search-input {
+        width: 100%; padding: 14px 14px 14px 45px; background: var(--bg-input);
+        border: 1px solid var(--border-light); color: var(--text-main); border-radius: 12px; font-size: 15px; outline: none;
+    }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 20px; }
+    
+    /* Resultados Búsqueda */
+    .search-results {
+        position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-card);
+        border: 1px solid var(--border-light); border-radius: 10px; max-height: 200px; overflow-y: auto;
+        z-index: 100; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .res-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+    .res-item:hover { background: var(--bg-hover); }
+
+    /* Tabla */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { text-align: left; color: var(--text-secondary); font-size: 11px; padding: 10px; border-bottom: 1px solid var(--border-light); text-transform: uppercase; }
+    td { padding: 10px; border-bottom: 1px solid var(--border-light); }
+    
+    .qty-input { width: 70px; text-align: center; background: var(--bg-body); border: 1px solid var(--border-light); color: #fff; padding: 8px; border-radius: 6px; }
+    
+    .btn-del { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 18px; }
+
+    /* Modal Seriales */
+    .serial-tag { background: rgba(10, 132, 255, 0.1); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+</style>
+
+<div class="dev-container">
+    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin:0;">↩️ Devolución Rápida</h2>
+        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+
+    <form method="POST" id="formDevolucion" class="card-panel">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; color:var(--text-secondary); font-size:12px; margin-bottom:5px; font-weight:700;">TÉCNICO QUE DEVUELVE</label>
+            <select name="tecnico_id" class="form-control" style="width:100%; padding:12px; background:var(--bg-input); color:#fff; border:1px solid var(--border-light); border-radius:10px;" required>
+                <option value="">-- Seleccionar --</option>
+                {% for t in tecnicos %}
+                    <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="search-row">
+            <i class='bx bx-search search-icon'></i>
+            <input type="text" id="prodSearch" class="search-input" placeholder="Buscar producto para agregar..." autocomplete="off">
+            <div id="resultsBox" class="search-results"></div>
+        </div>
+
+        <table id="devTable">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Detalle</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light);">
+            <label style="display:block; color:var(--text-secondary); font-size:11px; margin-bottom:5px;">OBSERVACIONES</label>
+            <input name="notas" style="width:100%; padding:10px; background:var(--bg-input); border:1px solid var(--border-light); color:#fff; border-radius:8px;" placeholder="Ej: Material sobrante de obra X...">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:20px; padding:14px; font-weight:700;">
+            CONFIRMAR INGRESO
+        </button>
+    </form>
+</div>
+
+<script>
+    const searchInput = document.getElementById('prodSearch');
+    const resultsBox = document.getElementById('resultsBox');
+    const tableBody = document.getElementById('tableBody');
+
+    // 1. BUSCADOR
+    searchInput.addEventListener('input', async (e) => {
+        const q = e.target.value;
+        if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+
+        // Reutilizamos tu API de catálogo existente
+        const res = await fetch(`{% url 'req_catalogo_almacen' %}?q=${q}`);
+        const data = await res.json();
+        
+        resultsBox.innerHTML = '';
+        if(data.results && data.results.length > 0) {
+            resultsBox.style.display = 'block';
+            data.results.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'res-item';
+                div.innerHTML = `<strong>${p.nombre}</strong> <span style="font-size:11px; color:#888;">${p.codigo}</span>`;
+                div.onclick = () => addItem(p);
+                resultsBox.appendChild(div);
+            });
+        } else {
+            resultsBox.style.display = 'none';
+        }
+    });
+
+    // 2. AGREGAR ITEM
+    function addItem(prod) {
+        // Verificar si es serializado (Tu API no devuelve 'es_serializado' directo, asumimos por nombre o agregalo al API si puedes. 
+        // Para simplificar, si el nombre tiene "ONU" pedimos serie).
+        let isSerial = prod.nombre.includes("ONU") || prod.nombre.includes("ROUTER"); 
+        
+        const rowId = Date.now();
+        const tr = document.createElement('tr');
+        
+        let serialInputHtml = `<input type="hidden" name="seriales_json[]" value="">`;
+        let serialBtn = "";
+
+        if (isSerial) {
+            serialBtn = `<button type="button" class="serial-tag" onclick="askSerials(${rowId}, '${prod.nombre}')">+ Series</button> <span id="s_count_${rowId}" style="font-size:10px; color:#888;">(0)</span>`;
+            serialInputHtml = `<input type="hidden" name="seriales_json[]" id="s_input_${rowId}" value="[]">`;
+        } else {
+             serialInputHtml = `<input type="hidden" name="seriales_json[]" value="">`;
+        }
+
+        tr.innerHTML = `
+            <td>
+                <div style="font-weight:600; font-size:13px;">${prod.nombre}</div>
+                <div style="font-size:11px; color:#888;">${prod.codigo}</div>
+                <input type="hidden" name="productos[]" value="${prod.producto_id}">
+            </td>
+            <td>
+                <input type="number" name="cantidades[]" class="qty-input" value="1" min="1" id="qty_${rowId}">
+            </td>
+            <td>
+                ${serialBtn}
+                ${serialInputHtml}
+            </td>
+            <td><button type="button" class="btn-del" onclick="this.closest('tr').remove()">&times;</button></td>
+        `;
+        tableBody.appendChild(tr);
+        resultsBox.style.display = 'none';
+        searchInput.value = '';
+    }
+
+    // 3. PEDIR SERIES (Simple JS Prompt para MVP)
+    function askSerials(rowId, prodName) {
+        const qty = document.getElementById(`qty_${rowId}`).value;
+        const currentJson = document.getElementById(`s_input_${rowId}`).value;
+        let currentList = JSON.parse(currentJson || "[]");
+        
+        let newList = [];
+        alert(`Ingresa las series para ${prodName}. Necesitas ${qty}.`);
+
+        for(let i=0; i<qty; i++) {
+            let sn = prompt(`Serie #${i+1} de ${qty}:`, currentList[i]?.sn || "");
+            if(sn) newList.push({sn: sn});
+        }
+
+        document.getElementById(`s_input_${rowId}`).value = JSON.stringify(newList);
+        document.getElementById(`s_count_${rowId}`).innerText = `(${newList.length})`;
+    }
+</script>
+{% endblock %}

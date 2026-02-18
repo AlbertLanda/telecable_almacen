@@ -42,7 +42,8 @@ from .views.req import (
     req_recepcionar_compra,
     req_set_tipo,
     req_atender,
-    req_asignacion_directa
+    req_asignacion_directa,
+    almacen_devolucion_rapida,
 )
 
 # 5. Importaciones de SAL (Salidas)
@@ -122,6 +123,7 @@ urlpatterns = [
     path("dashboard/almacen/req/<int:req_id>/enviar/", req_enviar, name="req_enviar_almacen"),
     path("dashboard/almacen/req/set-tipo/", req_set_tipo_requerimiento, name="req_set_tipo_requerimiento_almacen"),
     path("dashboard/almacen/req/<int:req_id>/print/", req_print, name="req_print_almacen"),
+    path("dashboard/almacen/devolucion/", almacen_devolucion_rapida, name="almacen_devolucion_rapida"),
 
     # ==========================
     # SAL (SALIDAS)

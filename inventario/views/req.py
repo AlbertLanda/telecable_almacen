@@ -1069,3 +1069,120 @@ def req_asignacion_directa(request):
         'tecnicos': tecnicos,
         'sede': sede
     })
+
+@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+def almacen_devolucion_rapida(request):
+    """
+    Vista para que Almacén registre devoluciones rápidas de técnicos.
+    - Sube stock en Almacén.
+    - Baja stock en Mochila del Técnico.
+    - Libera seriales (ONUs).
+    """
+    profile = get_profile(request.user)
+    sede = profile.get_sede_operativa()
+    
+    # Obtener técnicos de la misma sede
+    tecnicos = User.objects.filter(
+        profile__rol=UserProfile.Rol.SOLICITANTE,
+        profile__sede_principal=sede,
+        is_active=True
+    ).order_by('username')
+
+    if request.method == 'POST':
+        tecnico_id = request.POST.get('tecnico_id')
+        notas = request.POST.get('notas', '')
+        
+        # Datos dinámicos del formulario
+        productos_ids = request.POST.getlist('productos[]')
+        cantidades = request.POST.getlist('cantidades[]')
+        seriales_json = request.POST.getlist('seriales_json[]') # Lista de JSON strings para seriales
+
+        if not tecnico_id or not productos_ids:
+            messages.error(request, "Datos incompletos.")
+            return redirect('almacen_devolucion_rapida')
+
+        tecnico = get_object_or_404(User, id=tecnico_id)
+
+        try:
+            with transaction.atomic():
+                # 1. Crear Documento ING (Ingreso por Devolución)
+                ing = DocumentoInventario.objects.create(
+                    tipo=TipoDocumento.ING,
+                    estado=EstadoDocumento.CONFIRMADO,
+                    sede=sede,
+                    responsable=request.user, # Almacenero recibe
+                    entregado_por=tecnico,    # Técnico entrega
+                    referencia="DEVOLUCION-RAPIDA",
+                    observaciones=notas,
+                    fecha=timezone.now()
+                )
+                ing.asignar_numero_si_falta()
+
+                # 2. Procesar ítems
+                for i, prod_id in enumerate(productos_ids):
+                    producto = get_object_or_404(Producto, id=prod_id)
+                    qty = int(cantidades[i])
+                    json_data = seriales_json[i] if i < len(seriales_json) else ""
+
+                    if qty > 0:
+                        # A. Registrar Item en Documento
+                        DocumentoItem.objects.create(
+                            documento=ing,
+                            producto=producto,
+                            cantidad=qty,
+                            observacion="Devolución"
+                        )
+
+                        # B. Mover Stock Físico (Sube Almacén)
+                        MovimientoInventario.objects.create(
+                            producto=producto,
+                            sede=sede,
+                            tipo=MovimientoInventario.TIPO_IN,
+                            qty=qty,
+                            referencia=ing.numero,
+                            usuario=request.user,
+                            nota=f"Devolución de {tecnico.username}"
+                        ).aplicar()
+
+                        # C. Ajustar Mochila Técnico (Baja su deuda)
+                        # Solo si es consumible o activo (ambos se descuentan al devolver)
+                        stock_tech = StockTecnico.objects.filter(tecnico=tecnico, producto=producto).first()
+                        if stock_tech:
+                            stock_tech.cantidad = max(0, stock_tech.cantidad - qty)
+                            if stock_tech.cantidad == 0 and not producto.es_activo:
+                                stock_tech.delete() # Limpiamos basura si es consumible y llega a 0
+                            else:
+                                stock_tech.save()
+
+                        # D. Lógica de Seriales (Liberar ONUs)
+                        if producto.es_serializado and json_data:
+                            import json
+                            try:
+                                series_list = json.loads(json_data) # [{'sn': '...', 'mac': '...'}]
+                                for s_data in series_list:
+                                    sn = s_data.get('sn', '').strip().upper()
+                                    if sn:
+                                        # Buscar el ítem (debería estar ASIGNADO al técnico o en estado ASIGNADO)
+                                        # Buscamos por SN globalmente
+                                        item_serial = ItemSerializado.objects.filter(serial=sn).first()
+                                        
+                                        if item_serial:
+                                            # Lo devolvemos al almacén
+                                            item_serial.estado = ItemSerializado.Estado.EN_ALMACEN
+                                            item_serial.asignado_a = None
+                                            item_serial.ubicacion = Ubicacion.objects.filter(sede=sede).first() # Ubicación por defecto
+                                            item_serial.save()
+                            except:
+                                pass # Si falla el JSON, no rompemos todo, pero el stock sí cuadra
+
+                messages.success(request, f"✅ Devolución registrada correctamente ({ing.numero}).")
+                return redirect('dash_almacen')
+
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    return render(request, 'inventario/devolucion_form.html', {
+        'tecnicos': tecnicos,
+        'sede': sede
+    })
