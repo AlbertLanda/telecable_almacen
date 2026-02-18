@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Devolución {{ doc.numero }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #525659; font-family: 'Roboto', Arial, sans-serif;
+            margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh;
+        }
+        .sheet {
+            background-color: white; width: 210mm; min-height: 148mm; /* Media carta aprox */
+            padding: 15mm 20mm; margin: 30px auto; box-shadow: 0 0 15px rgba(0,0,0,0.5); position: relative;
+        }
+
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-area img { height: 45px; }
+        .company-info h1 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; color: #1a1a2e; }
+        .company-info p { margin: 0; font-size: 10px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+        
+        .doc-title { text-align: right; }
+        .doc-title h2 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+        .doc-meta { font-size: 11px; color: #444; margin-top: 4px; }
+
+        /* INFO GRID */
+        .info-box {
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 12px;
+            margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 11px;
+        }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #ccc; padding-bottom: 2px; }
+        .label { font-weight: 700; color: #555; }
+        .val { font-weight: 600; color: #000; }
+
+        /* TABLA */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }
+        th { background: #1a1a2e; color: white; padding: 6px; text-align: left; text-transform: uppercase; }
+        td { border-bottom: 1px solid #eee; padding: 6px; color: #333; }
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: 700; }
+
+        /* FIRMAS */
+        .signatures { display: flex; justify-content: space-between; margin-top: 50px; padding: 0 30px; }
+        .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+
+        /* BOTONES PANTALLA */
+        .fab-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-fab { width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); color: white; text-decoration: none; }
+        .btn-print { background: #4e73df; } .btn-back { background: #858796; }
+
+        @media print {
+            body { background: none; display: block; }
+            .sheet { width: 100%; margin: 0; box-shadow: none; padding: 0; min-height: auto; }
+            .fab-container { display: none; }
+            @page { margin: 10mm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fab-container">
+        <button onclick="window.print()" class="btn-fab btn-print" title="Imprimir"><i class='bx bx-printer'></i></button>
+        <a href="javascript:window.close()" class="btn-fab btn-back" title="Cerrar"><i class='bx bx-x'></i></a>
+    </div>
+
+    <div class="sheet">
+        <div class="header">
+            <div class="logo-area">
+                <img src="{% static 'inventario/img/logo.png' %}" onerror="this.style.display='none'">
+                <div class="company-info"><h1>Telecable</h1><p>Constancia de Devolución</p></div>
+            </div>
+            <div class="doc-title">
+                <h2>INGRESO N° {{ doc.numero }}</h2>
+                <div class="doc-meta">{{ doc.fecha|date:"d/m/Y H:i" }}</div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div>
+                <div class="info-row"><span class="label">TÉCNICO:</span> <span class="val">{{ doc.entregado_por.get_full_name|default:doc.entregado_por.username|upper }}</span></div>
+                <div class="info-row"><span class="label">ALMACÉN:</span> <span class="val">{{ doc.sede.nombre }}</span></div>
+            </div>
+            <div>
+                <div class="info-row"><span class="label">RECIBIDO POR:</span> <span class="val">{{ doc.responsable.username|upper }}</span></div>
+                <div class="info-row"><span class="label">REFERENCIA:</span> <span class="val">DEVOLUCIÓN RÁPIDA</span></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">CÓDIGO</th>
+                    <th style="width: 60%;">DESCRIPCIÓN</th>
+                    <th style="width: 10%;" class="text-center">U.M.</th>
+                    <th style="width: 15%;" class="text-center">CANTIDAD</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.producto.codigo_interno }}</td>
+                    <td><strong>{{ item.producto.nombre }}</strong></td>
+                    <td class="text-center">{{ item.producto.unidad|default:"UND" }}</td>
+                    <td class="text-center fw-bold">{{ item.cantidad }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #000;">
+                    <td colspan="3" style="text-align: right; font-weight: 800; padding-right: 10px;">TOTAL DEVUELTO:</td>
+                    <td class="text-center fw-bold">{{ total_cantidad }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="font-size: 10px; margin-bottom: 40px; border: 1px dashed #999; padding: 8px; border-radius: 4px;">
+            <strong>OBSERVACIONES:</strong> {{ doc.observaciones|default:"Ninguna" }}
+        </div>
+
+        <div class="signatures">
+            <div class="sign-box"><br><br>ENTREGUÉ CONFORME<br>(Técnico)</div>
+            <div class="sign-box"><br><br>RECIBÍ CONFORME<br>(Almacén)</div>
+        </div>
+    </div>
+
+</body>
+</html>

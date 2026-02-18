@@ -1186,3 +1186,26 @@ def almacen_devolucion_rapida(request):
         'tecnicos': tecnicos,
         'sede': sede
     })
+
+@login_required
+def devolucion_print(request, doc_id: int):
+    """
+    Imprime la constancia de devolución (Documento ING).
+    """
+    doc = get_object_or_404(DocumentoInventario, id=doc_id, tipo=TipoDocumento.ING)
+    
+    # Validamos que sea una devolución
+    if "DEVOLUCION" not in (doc.referencia or "").upper():
+         messages.error(request, "Este documento no es una devolución de técnico.")
+         return redirect("almacen_historial_global")
+
+    items = doc.items.select_related("producto").order_by("producto__nombre")
+    total_cantidad = sum(int(it.cantidad) for it in items)
+
+    return render(request, "inventario/pdf_devolucion.html", {
+        "doc": doc,
+        "items": items,
+        "total_cantidad": total_cantidad,
+        "fecha_impresion": timezone.now(),
+        "usuario": request.user,
+    })

@@ -409,20 +409,28 @@ def almacen_historial_global(request):
         sede=sede,
         tipo=TipoDocumento.ING
     ).exclude(
-        referencia__icontains="LIQ-SEMANAL" # Excluir liquidaciones
+        referencia__icontains="LIQ-SEMANAL" # Excluir liquidaciones (esas van aparte)
     ).exclude(
         sede_origen__isnull=False # Excluir traslados desde otra sede
-    ).select_related('responsable', 'proveedor')
+    ).select_related('responsable', 'proveedor', 'entregado_por') # <--- AGREGAMOS entregado_por
 
     for c in compras:
-        c.tipo_movimiento = 'COMPRA'
-        # Mostrar nombre del proveedor en la columna "Técnico/Responsable"
-        if c.proveedor:
-            c.tecnico_nombre = c.proveedor.razon_social
-        elif c.proveedor_manual:
-            c.tecnico_nombre = c.proveedor_manual
+        # 🆕 LÓGICA DE CLASIFICACIÓN
+        if "DEVOLUCION" in (c.referencia or "").upper():
+            c.tipo_movimiento = 'DEVOLUCION'
+            if c.entregado_por:
+                c.tecnico_nombre = c.entregado_por.get_full_name() or c.entregado_por.username
+            else:
+                c.tecnico_nombre = "Técnico (Sin datos)"
         else:
-            c.tecnico_nombre = "Proveedor Externo"
+            c.tipo_movimiento = 'COMPRA'
+            # Mostrar nombre del proveedor en la columna "Técnico/Responsable"
+            if c.proveedor:
+                c.tecnico_nombre = c.proveedor.razon_social
+            elif c.proveedor_manual:
+                c.tecnico_nombre = c.proveedor_manual
+            else:
+                c.tecnico_nombre = "Proveedor Externo"
 
     # 3. Proyectos Cerrados
     proyectos = Proyecto.objects.filter(
