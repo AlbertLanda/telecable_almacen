@@ -6,14 +6,14 @@
 
 <style>
     /* =========================================
-       PANEL DE ALMACÉN (Enterprise Final)
+       PANEL DE ALMACÉN (Enterprise Refinado)
        ========================================= */
     
     .dashboard-container {
         display: flex; flex-direction: column; gap: 32px;
         animation: fadeIn 0.4s ease-out;
         max-width: 100%;
-        overflow-x: hidden; /* Evita scroll horizontal en la página */
+        overflow-x: hidden;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -23,8 +23,8 @@
         border-bottom: 1px solid var(--border-light); padding-bottom: 20px;
         flex-wrap: wrap; gap: 15px;
     }
-    .ph-title h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .ph-meta { margin: 4px 0 0; font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
+    .ph-title h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .ph-meta { margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
 
     /* KPI Grid */
     .kpi-grid { 
@@ -36,9 +36,9 @@
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); padding: 24px;
         display: flex; align-items: center; gap: 20px;
-        transition: 0.2s; position: relative; overflow: hidden;
+        transition: 0.3s; position: relative; overflow: hidden;
     }
-    .kpi-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+    .kpi-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: var(--shadow-card); }
     
     .kpi-icon {
         width: 56px; height: 56px; border-radius: 14px;
@@ -48,81 +48,75 @@
     .icon-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
     .icon-red { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
 
-    .kpi-info h3 { margin: 0; font-size: 32px; font-weight: 700; color: var(--text-main); line-height: 1; }
-    .kpi-info p { margin: 0 0 4px; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-info h3 { margin: 0; font-size: 32px; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .kpi-info p { margin: 6px 0 0; font-size: 11px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Main Grid */
     .main-grid { 
         display: grid; 
         grid-template-columns: 2fr 1fr; /* 2/3 Tablas, 1/3 Acciones */
         gap: 24px; 
-        align-items: start; /* Importante para que las columnas no se estiren forzadamente */
+        align-items: start; 
     }
     
-    /* Tarjetas de Sección (CORRECCIÓN CRÍTICA: OVERFLOW HIDDEN) */
+    /* Tarjetas de Sección */
     .section-card {
         background: var(--bg-card); 
         border: 1px solid var(--border-light);
         border-radius: var(--radius); 
-        overflow: hidden; /* ESTO ARREGLA LAS GRÁFICAS */
+        overflow: hidden; 
         display: flex; flex-direction: column;
         position: relative;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
-    .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .card-header h4 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* Tablas Responsive */
+    /* Tablas Refinadas */
     .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-    th { text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; padding: 12px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); }
-    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 14px; vertical-align: middle; color: var(--text-main); }
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; 
+        padding: 14px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); letter-spacing: 0.5px;
+    }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 13px; vertical-align: middle; color: var(--text-main); }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
     /* Botones Tabla */
     .btn-action-table {
-        padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;
+        padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none;
         display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; border: 1px solid transparent;
     }
-    .btn-blue-soft { background: rgba(10, 132, 255, 0.1); color: var(--primary); }
-    .btn-blue-soft:hover { background: var(--primary); color: #fff; }
-    .btn-green-soft { background: rgba(48, 209, 88, 0.1); color: var(--success); }
-    .btn-green-soft:hover { background: var(--success); color: #000; }
+    .btn-blue-soft { background: rgba(10, 132, 255, 0.1); color: var(--primary); border-color: rgba(10, 132, 255, 0.2); }
+    .btn-blue-soft:hover { background: var(--primary); color: #fff; transform: translateY(-1px); }
+    .btn-green-soft { background: rgba(48, 209, 88, 0.1); color: var(--success); border-color: rgba(48, 209, 88, 0.2); }
+    .btn-green-soft:hover { background: var(--success); color: #000; transform: translateY(-1px); }
 
-    /* LISTA DE ACCIONES RÁPIDAS (SCROLL INTERNO) */
+    /* NUEVAS ACCIONES RÁPIDAS (Estilo Tarjetas) */
     .quick-list { 
-        padding: 10px; 
-        display: flex; flex-direction: column; gap: 4px;
-        /* Scroll solo aquí dentro */
-        max-height: 400px; 
-        overflow-y: auto;  
-        
-        /* Estilo Scrollbar */
-        scrollbar-width: thin; 
-        scrollbar-color: var(--border-light) transparent;
+        padding: 20px; 
+        display: flex; flex-direction: column; gap: 12px;
     }
-    /* Webkit Scrollbar */
-    .quick-list::-webkit-scrollbar { width: 6px; }
-    .quick-list::-webkit-scrollbar-track { background: transparent; }
-    .quick-list::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-    .quick-list::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.2); }
-
     .quick-row {
-        display: flex; align-items: center; gap: 15px; padding: 14px; border-radius: 10px;
-        text-decoration: none; transition: 0.2s; color: var(--text-main); flex-shrink: 0;
+        display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 12px;
+        text-decoration: none; transition: 0.2s; background: rgba(255,255,255,0.02); 
+        border: 1px solid var(--border-light); color: var(--text-main);
     }
-    .quick-row:hover { background: var(--bg-hover); }
+    .quick-row:hover { background: var(--bg-hover); border-color: var(--text-secondary); transform: translateX(5px); }
     
     .quick-icon {
-        width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;
-        background: rgba(255,255,255,0.05); color: var(--text-main); flex-shrink: 0;
+        width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+        background: var(--bg-input); flex-shrink: 0; transition: 0.2s;
     }
-    .quick-info { min-width: 0; }
-    .quick-info h5 { margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .quick-info p { margin: 2px 0 0; font-size: 12px; color: var(--text-secondary); }
+    .quick-row:hover .quick-icon { background: rgba(255,255,255,0.1); }
+    
+    .quick-info { flex: 1; min-width: 0; }
+    .quick-info h5 { margin: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .quick-info p { margin: 4px 0 0; font-size: 11px; color: var(--text-secondary); line-height: 1.3; }
 
     /* Charts Grid */
-    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 24px; }
 
     /* Badges */
     .badge-pulse {
@@ -137,9 +131,7 @@
     .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
 
     /* RESPONSIVE */
-    @media (max-width: 1024px) { 
-        .main-grid { grid-template-columns: 1fr; } 
-    }
+    @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
         .kpi-grid { grid-template-columns: 1fr; } 
@@ -153,7 +145,7 @@
         <div>
             <div class="ph-title"><h2>Panel de Almacén</h2></div>
             <div class="ph-meta">
-                <span><i class='bx bxs-building'></i> {{ sede.nombre }}</span>
+                <span><i class='bx bxs-building'></i> Sede: {{ sede.nombre }}</span>
                 <span style="opacity: 0.3;">|</span>
                 <span><i class='bx bxs-user'></i> {{ request.user.username }}</span>
             </div>
@@ -164,22 +156,22 @@
         <div class="kpi-card">
             <div class="kpi-icon icon-orange"><i class='bx bx-time'></i></div>
             <div class="kpi-info">
-                <p>Pendientes</p>
                 <h3>{{ kpi_pendientes }}</h3>
+                <p>Tareas Pendientes</p>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon icon-green"><i class='bx bx-transfer'></i></div>
             <div class="kpi-info">
-                <p>Movimientos Hoy</p>
                 <h3>{{ kpi_movimientos }}</h3>
+                <p>Movimientos Hoy</p>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon icon-red"><i class='bx bx-error-circle'></i></div>
             <div class="kpi-info">
-                <p>Stock Crítico</p>
                 <h3>{{ kpi_stock }}</h3>
+                <p>Stock Crítico</p>
             </div>
         </div>
     </div>
@@ -196,16 +188,16 @@
                 <div class="table-responsive">
                     <table>
                         <thead>
-                            <tr><th>Origen</th><th>Desde</th><th>Responsable</th><th>Fecha</th><th style="text-align: right;">Acción</th></tr>
+                            <tr><th>Guía</th><th>Origen</th><th>Responsable</th><th>Fecha</th><th style="text-align: right;">Acción</th></tr>
                         </thead>
                         <tbody>
                             {% for t in transferencias_entrantes %}
                             <tr>
-                                <td style="font-family: monospace; font-weight: 600;">{{ t.numero }}</td>
+                                <td style="font-family: monospace; font-weight: 700;">{{ t.numero }}</td>
                                 <td>{{ t.sede.nombre }}</td>
                                 <td>{{ t.responsable.username }}</td>
                                 <td style="color: var(--text-secondary);">{{ t.fecha|date:"d/m H:i" }}</td>
-                                <td style="text-align: right;"><a href="{% url 'sal_detail' t.id %}" class="btn-action-table btn-blue-soft">Revisar</a></td>
+                                <td style="text-align: right;"><a href="{% url 'sal_detail' t.id %}" class="btn-action-table btn-blue-soft">Recepcionar</a></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -217,17 +209,17 @@
             {% if compras_pendientes %}
             <div class="section-card">
                 <div class="card-header">
-                    <h4 style="color: #64D2FF;"><i class='bx bxs-shopping-bag'></i> Compras Pendientes</h4>
+                    <h4 style="color: #32d74b;"><i class='bx bxs-shopping-bag'></i> Compras por Ingresar</h4>
                 </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
-                            <tr><th>Orden #</th><th>Proveedor</th><th>Responsable</th><th>Fecha</th><th style="text-align: right;">Acción</th></tr>
+                            <tr><th>Orden</th><th>Proveedor</th><th>Solicitante</th><th>Fecha</th><th style="text-align: right;">Acción</th></tr>
                         </thead>
                         <tbody>
                             {% for compra in compras_pendientes %}
                             <tr>
-                                <td style="font-family: monospace; font-weight: 600;">{{ compra.numero }}</td>
+                                <td style="font-family: monospace; font-weight: 700;">{{ compra.numero }}</td>
                                 <td>{{ compra.proveedor_manual|default:"Manual" }}</td>
                                 <td>{{ compra.responsable.username }}</td>
                                 <td style="color: var(--text-secondary);">{{ compra.fecha|date:"d/m H:i" }}</td>
@@ -253,36 +245,39 @@
                         <tbody>
                             {% for r in reqs_pendientes %}
                             <tr>
-                                <td style="font-family: monospace; color: var(--text-secondary);">{{ r.numero|default:"(Borrador)" }}</td>
+                                <td style="font-family: monospace; font-weight: 600; color: var(--text-secondary);">{{ r.numero|default:"(Borrador)" }}</td>
                                 <td style="font-weight: 600;">{{ r.responsable.username }}</td>
                                 <td>
-                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}<span class="badge badge-blue" style="background: rgba(100, 210, 255, 0.1); color: #64D2FF;">Proveedor</span>
-                                    {% elif r.tipo_requerimiento == "LOCAL" %}<span class="badge badge-orange" style="background: rgba(255, 214, 10, 0.1); color: #FFD60A;">Local</span>
-                                    {% else %}<span style="color: var(--text-secondary); font-size: 12px;">Entre Sedes</span>{% endif %}
+                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}<span class="badge" style="background: rgba(50, 215, 75, 0.1); color: #32d74b; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Proveedor</span>
+                                    {% elif r.tipo_requerimiento == "LOCAL" %}<span class="badge" style="background: rgba(255, 159, 10, 0.1); color: var(--warning); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Local</span>
+                                    {% else %}<span style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase;">Entre Sedes</span>{% endif %}
                                 </td>
                                 <td style="color: var(--text-secondary);">{{ r.fecha|date:"d/m H:i" }}</td>
                                 <td style="text-align: right;">
-                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}<a href="{% url 'req_recepcionar_compra' r.id %}" class="btn-action-table btn-green-soft">Ingresar</a>
-                                    {% else %}<a href="{% url 'req_atender' r.id %}" class="btn-action-table btn-blue-soft">Despachar</a>{% endif %}
+                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}
+                                        <a href="{% url 'req_recepcionar_compra' r.id %}" class="btn-action-table btn-green-soft">Ingresar Compra</a>
+                                    {% else %}
+                                        <a href="{% url 'req_atender' r.id %}" class="btn-action-table btn-blue-soft">Despachar</a>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="empty-state"><i class='bx bx-check-circle'></i><p>Todo al día.</p></div>
+                    <div class="empty-state"><i class='bx bx-check-shield' style="color: var(--success);"></i><p>Todo despachado. Sin pendientes.</p></div>
                     {% endif %}
                 </div>
             </div>
 
             <div class="charts-grid">
                 <div class="section-card">
-                    <div class="card-header"><h4>Actividad (7 días)</h4></div>
-                    <div style="padding: 20px; height: 250px; position: relative;"><canvas id="chartMovimientos"></canvas></div>
+                    <div class="card-header"><h4><i class='bx bx-bar-chart-alt-2' style="color: var(--primary);"></i> Actividad de Salidas</h4></div>
+                    <div style="padding: 20px; height: 260px; position: relative;"><canvas id="chartMovimientos"></canvas></div>
                 </div>
                 <div class="section-card">
-                    <div class="card-header"><h4>Salud del Stock</h4></div>
-                    <div style="padding: 20px; height: 250px; position: relative;"><canvas id="chartStock"></canvas></div>
+                    <div class="card-header"><h4><i class='bx bx-pie-chart-alt-2' style="color: var(--success);"></i> Salud del Stock</h4></div>
+                    <div style="padding: 20px; height: 260px; position: relative;"><canvas id="chartStock"></canvas></div>
                 </div>
             </div>
         </div> 
@@ -291,52 +286,55 @@
             
             <div class="section-card">
                 <div class="card-header">
-                    <h4>Acciones Rápidas</h4>
+                    <h4><i class='bx bxs-zap' style="color: #FFD60A;"></i> Accesos Rápidos</h4>
                 </div>
                 <div class="quick-list">
                     <a href="{% url 'req_home_almacen' %}" class="quick-row">
-                        <div class="quick-icon" style="color:var(--primary);"><i class='bx bx-plus-medical'></i></div>
-                        <div class="quick-info"><h5>Nuevo Pedido</h5><p>Crear REQ manual</p></div>
+                        <div class="quick-icon" style="color:var(--primary);"><i class='bx bx-plus'></i></div>
+                        <div class="quick-info"><h5>Nuevo Pedido / Compra</h5><p>Crear REQ para Almacén</p></div>
                     </a>
-                    <a href="{% url 'inventory_list' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#FF9500;"><i class='bx bx-box'></i></div>
-                        <div class="quick-info"><h5>Inventario Total</h5><p>Ver stock actual</p></div>
+                    
+                    <a href="{% url 'req_asignacion_directa' %}" class="quick-row">
+                        <div class="quick-icon" style="color:#32d74b;"><i class='bx bxs-backpack'></i></div>
+                        <div class="quick-info"><h5>Cargar Mochila</h5><p>Despacho directo a técnico</p></div>
                     </a>
+
                     <a href="{% url 'almacen_proyectos_list' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#FF375F;"><i class='bx bx-briefcase-alt-2'></i></div>
-                        <div class="quick-info"><h5>Atender Proyectos</h5><p>Despacho a obras</p></div>
+                        <div class="quick-icon" style="color:#FF9F0A;"><i class='bx bx-hard-hat'></i></div>
+                        <div class="quick-info"><h5>Atender Obras</h5><p>Despachos por proyecto</p></div>
                         {% if notificacion_proyectos > 0 %}<span class="badge-pulse">{{ notificacion_proyectos }}</span>{% endif %}
                     </a>
+
                     <a href="{% url 'almacen_liquidacion_lista' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#FF375F;"><i class='bx bx-revision'></i></div>
+                        <div class="quick-icon" style="color:#FF375F;"><i class='bx bx-door-open'></i></div>
                         <div class="quick-info"><h5>Cierre de Obras</h5><p>Liquidar retornos</p></div>
                     </a>
-                    <a href="{% url 'req_asignacion_directa' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#00C851;"><i class='bx bxs-backpack'></i></div>
-                        <div class="quick-info"><h5>Cargar Mochila</h5><p>Asignar a técnico</p></div>
-                    </a>
+
                     <a href="{% url 'liquidacion_tecnico_lista' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#30D158;"><i class='bx bx-user-check'></i></div>
-                        <div class="quick-info"><h5>Liquidación Semanal</h5><p>Cierre de técnicos</p></div>
+                        <div class="quick-icon" style="color:#64D2FF;"><i class='bx bx-user-check'></i></div>
+                        <div class="quick-info"><h5>Liquidación Semanal</h5><p>Cierre de mochilas técnicas</p></div>
                     </a>
-                    <a href="{% url 'almacen_historial_global' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#a55eea;"><i class='bx bx-history'></i></div>
-                        <div class="quick-info"><h5>Historial Global</h5><p>Auditoría y Reimpresión</p></div>
-                    </a>
+
                     <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-row">
-                        <div class="quick-icon" style="color:#a55eea;"><i class='bx bx-reply'></i></div>
-                        <div class="quick-info">
-                            <h5>Devolución Rápida</h5>
-                            <p>Retorno de material técnico</p>
-                        </div>
-                        <i class='bx bx-chevron-right' style="color:var(--text-secondary);"></i>
+                        <div class="quick-icon" style="color:#BF5AF2;"><i class='bx bx-reply-all'></i></div>
+                        <div class="quick-info"><h5>Devolución Rápida</h5><p>Ingreso ágil de retornos</p></div>
+                    </a>
+
+                    <a href="{% url 'inventory_list' %}" class="quick-row">
+                        <div class="quick-icon" style="color:var(--text-secondary);"><i class='bx bx-box'></i></div>
+                        <div class="quick-info"><h5>Inventario General</h5><p>Consulta de stock total</p></div>
+                    </a>
+
+                    <a href="{% url 'almacen_historial_global' %}" class="quick-row">
+                        <div class="quick-icon" style="color:var(--text-secondary);"><i class='bx bx-history'></i></div>
+                        <div class="quick-info"><h5>Historial y Archivo</h5><p>Reimpresión de actas</p></div>
                     </a>
                 </div>
             </div>
 
             <div class="section-card" style="border-top: 4px solid var(--danger);">
                 <div class="card-header">
-                    <h4 style="color: var(--danger);"><i class='bx bx-bell'></i> Stock Bajo</h4>
+                    <h4 style="color: var(--danger);"><i class='bx bxs-alarm-exclamation'></i> Alerta de Stock</h4>
                 </div>
                 <div class="table-responsive">
                     {% if items_bajos %}
@@ -344,21 +342,21 @@
                         <tbody>
                             {% for stock in items_bajos %}
                             <tr>
-                                <td>
+                                <td style="padding: 12px 24px;">
                                     <div style="font-weight:600;">{{ stock.producto.nombre }}</div>
-                                    <div style="font-size:11px; color:var(--text-secondary);">{{ stock.producto.codigo_interno }}</div>
+                                    <div style="font-size:10px; color:var(--text-secondary); font-family: monospace;">{{ stock.producto.codigo_interno }}</div>
                                 </td>
-                                <td style="text-align: right;">
-                                    <span style="color:var(--danger); font-weight:700; font-size:13px;">{{ stock.cantidad }}</span>
+                                <td style="text-align: right; padding: 12px 24px;">
+                                    <span style="background: rgba(255,69,58,0.1); color:var(--danger); font-weight:700; font-size:13px; padding: 4px 10px; border-radius: 6px;">{{ stock.cantidad }}</span>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="empty-state" style="padding: 20px;">
-                        <i class='bx bx-smile' style="color: var(--success); font-size: 32px;"></i>
-                        <p style="font-size: 13px;">Stock saludable.</p>
+                    <div class="empty-state" style="padding: 30px;">
+                        <i class='bx bx-smile' style="color: var(--success); font-size: 42px;"></i>
+                        <p style="font-size: 13px; margin-top: 5px;">Inventario en niveles óptimos.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -373,10 +371,11 @@
 {{ chart_stock_data|json_script:"json-data-stock" }}
 
 <script>
+    // Configuración Base de Chart.js
     Chart.defaults.color = '#98989D'; 
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)'; 
-    Chart.defaults.maintainAspectRatio = false; // Importante para responsive
+    Chart.defaults.maintainAspectRatio = false;
 
     // 1. BARRAS (Movimientos)
     const ctx1 = document.getElementById('chartMovimientos').getContext('2d');
@@ -384,27 +383,40 @@
     const dataMovs = JSON.parse(document.getElementById('json-data-movs').textContent);
 
     let gradient = ctx1.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(10, 132, 255, 0.5)'); 
-    gradient.addColorStop(1, 'rgba(10, 132, 255, 0.0)');
+    gradient.addColorStop(0, 'rgba(10, 132, 255, 0.8)'); 
+    gradient.addColorStop(1, 'rgba(10, 132, 255, 0.1)');
 
     new Chart(ctx1, {
         type: 'bar',
         data: {
             labels: labelsDias,
             datasets: [{
-                label: 'Salidas',
+                label: 'Salidas Registradas',
                 data: dataMovs, 
-                backgroundColor: '#0A84FF',
-                borderRadius: 4,
-                barThickness: 12
+                backgroundColor: gradient,
+                // 🔥 FIX: Esquinas redondeadas estilo Mac
+                borderRadius: {topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0},
+                barThickness: 18,
+                borderSkipped: false
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            responsive: true, 
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(28, 28, 30, 0.9)',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 12,
+                    cornerRadius: 8,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1
+                }
+            },
             scales: {
-                y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0 } }, 
-                x: { grid: { display: false }, border: { display: false } }
+                y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0, padding: 10 } }, 
+                x: { grid: { display: false }, border: { display: false }, ticks: { padding: 10 } }
             }
         }
     });
@@ -419,13 +431,27 @@
             labels: ['Saludable', 'Bajo', 'Crítico'],
             datasets: [{
                 data: stockData,
-                backgroundColor: ['#30D158', '#FF9F0A', '#FF453A'],
-                borderWidth: 0, hoverOffset: 5
+                backgroundColor: ['#32d74b', '#FF9F0A', '#FF453A'],
+                borderWidth: 0, 
+                hoverOffset: 6
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, cutout: '80%',
-            plugins: { legend: { position: 'right', labels: { boxWidth: 10, usePointStyle: true, color: '#fff' } } }
+            responsive: true, 
+            cutout: '75%', // 🔥 FIX: Dona más delgada y elegante
+            plugins: { 
+                legend: { 
+                    position: 'right', 
+                    labels: { boxWidth: 12, usePointStyle: true, color: '#e5e5ea', font: { size: 12 }, padding: 20 } 
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(28, 28, 30, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1
+                }
+            }
         }
     });
 </script>

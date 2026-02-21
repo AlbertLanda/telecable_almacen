@@ -300,6 +300,8 @@ def dash_almacen(request):
         sede_destino=sede,              
         estado=EstadoDocumento.CONFIRMADO, 
         recibido=False                  
+    ).exclude(
+        sede=sede
     ).select_related('sede', 'responsable')
 
     # ==========================================
@@ -340,12 +342,15 @@ def dash_almacen(request):
         .annotate(cnt=Count("id"))
     )
 
-    # lo convertimos a dict para rellenar días sin movimientos con 0
+    # Convertimos a dict para rellenar días sin movimientos con 0
     map_cnt = {row["dia"]: row["cnt"] for row in qs}
+
+    # 🔥 FIX: Arreglo manual de nombres de días en español
+    nombres_dias = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 
     for i in range(6, -1, -1):
         dia = hoy - timedelta(days=i)
-        labels_dias.append(dia.strftime("%a"))
+        labels_dias.append(nombres_dias[dia.weekday()]) # Aquí mapeamos al español
         data_movimientos.append(int(map_cnt.get(dia, 0)))
 
     # ==========================================

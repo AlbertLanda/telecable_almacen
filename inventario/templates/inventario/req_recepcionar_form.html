@@ -4,11 +4,12 @@
 {% block content %}
 <style>
     /* =========================================
-       RECEPCIÓN DE COMPRA (Enterprise)
+       RECEPCIÓN DE COMPRA (Enterprise Refinado)
        ========================================= */
     
     .container-fluid {
-        max-width: 1200px; margin: 0 auto;
+        max-width: 1100px; /* Centrado y contenido para que no se estire infinito */
+        margin: 0 auto;
         animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -19,7 +20,7 @@
         padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
     }
     .ph-title h3 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .ph-meta { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+    .ph-meta { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 
     /* Info Card */
     .info-card {
@@ -28,9 +29,9 @@
         display: flex; justify-content: space-between; align-items: center;
         box-shadow: var(--shadow-card);
     }
-    .info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+    .info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
     .info-item div { font-size: 15px; font-weight: 600; color: var(--text-main); }
-    .text-highlight { color: var(--success); }
+    .text-highlight { color: var(--success); font-family: monospace; font-size: 16px !important; }
 
     /* Tabla Principal */
     .reception-table-card {
@@ -39,54 +40,63 @@
     }
     
     table { width: 100%; border-collapse: collapse; }
+    
+    /* Encabezados refinados */
     th { 
-        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
-        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; 
+        padding: 14px 20px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+        letter-spacing: 0.5px;
     }
-    td { padding: 20px 24px; border-bottom: 1px solid var(--border-light); vertical-align: top; color: var(--text-main); }
+    /* Celdas limpias */
+    td { padding: 16px 20px; border-bottom: 1px solid var(--border-light); vertical-align: top; color: var(--text-main); font-size: 13px; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
     /* Producto */
-    .prod-name { font-weight: 600; font-size: 15px; color: var(--text-main); margin-bottom: 4px; display: block; }
-    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 12px; }
+    .prod-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 4px; display: block; }
+    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 11px; }
     .badge-serial { 
-        background: rgba(10, 132, 255, 0.1); color: var(--primary); font-size: 10px; font-weight: 700;
-        padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase;
+        background: rgba(10, 132, 255, 0.1); color: var(--primary); font-size: 9px; font-weight: 700;
+        padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase; border: 1px solid rgba(10, 132, 255, 0.2);
     }
 
     /* Inputs Cantidad */
-    .qty-req { font-size: 18px; font-weight: 700; color: var(--text-secondary); }
+    .qty-req { font-size: 16px; font-weight: 700; color: var(--text-main); }
     .qty-input {
         background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
-        text-align: center; font-weight: 700; font-size: 16px; border-radius: 8px; padding: 10px; width: 80px;
+        text-align: center; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 8px 4px; width: 75px;
         transition: 0.2s;
     }
-    .qty-input:focus { border-color: var(--success); outline: none; background: #2c2c2e; }
+    .qty-input:focus { border-color: var(--success); outline: none; background: #3a3a3c; }
+    
+    /* Ocultar flechitas de input number */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
     /* Módulo Serializado */
     .serial-module {
-        background: var(--bg-input); border: 1px dashed var(--border-light); border-radius: 10px; padding: 15px; margin-top: 5px;
+        background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-light); 
+        border-radius: 10px; padding: 15px; margin-top: 5px;
     }
     .sm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
     
     .tab-group { display: flex; gap: 15px; }
     .tab-link { 
-        background: none; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; 
-        transition: 0.2s; text-transform: uppercase;
+        background: none; border: none; color: var(--text-secondary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 0; 
+        transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .tab-link.active { color: var(--success); }
     .tab-link:hover { color: var(--text-main); }
 
     /* Tabla Interna ONUs */
     .inner-table { width: 100%; margin-bottom: 10px; }
-    .inner-table th { padding: 6px; font-size: 10px; background: transparent; border: none; }
+    .inner-table th { padding: 6px; font-size: 9px; background: transparent; border: none; color: var(--text-tertiary); }
     .inner-table td { padding: 4px; border: none; }
     .input-sm { 
-        width: 100%; background: #3a3a3c; border: 1px solid var(--border-light); color: #fff; padding: 6px 8px; 
-        border-radius: 6px; font-size: 12px; font-family: monospace; 
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: #fff; padding: 8px 10px; 
+        border-radius: 6px; font-size: 12px; font-family: monospace; transition: 0.2s;
     }
-    .input-sm:focus { border-color: var(--primary); outline: none; }
+    .input-sm:focus { border-color: var(--primary); outline: none; background: #3a3a3c; }
 
     .btn-mini-add {
         background: rgba(10, 132, 255, 0.1); color: var(--primary); border: 1px solid rgba(10, 132, 255, 0.2);
@@ -94,20 +104,21 @@
     }
     .btn-mini-add:hover { background: var(--primary); color: #fff; }
 
-    .btn-del-row { color: var(--text-secondary); cursor: pointer; border: none; background: none; font-size: 16px; }
-    .btn-del-row:hover { color: var(--danger); }
+    .btn-del-row { color: var(--text-secondary); cursor: pointer; border: none; background: none; font-size: 18px; transition: 0.2s; }
+    .btn-del-row:hover { color: var(--danger); transform: scale(1.1); }
 
     /* Footer */
-    .notes-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
-    .notes-input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 14px; }
+    .notes-section { padding: 24px; border-top: 1px solid var(--border-light); background: rgba(255,255,255,0.01); }
+    .notes-input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 13px; font-family: inherit; }
     
     .btn-confirm {
         width: 100%; background-color: var(--success); color: #000; border: none; padding: 16px;
-        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
-        display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;
-        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2);
+        border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2); letter-spacing: 0.5px;
     }
-    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(48, 209, 88, 0.4); }
+    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(48, 209, 88, 0.4); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
     @media (max-width: 992px) {
         .info-card { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -124,7 +135,7 @@
     <div class="page-header">
         <div class="ph-title">
             <h3>📥 Recepción de Compra</h3>
-            <p class="ph-meta">Verifica cantidades y series antes de ingresar.</p>
+            <p class="ph-meta">Verifica cantidades y series antes de ingresar al stock.</p>
         </div>
         <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">Cancelar</a>
     </div>
@@ -139,11 +150,11 @@
             </div>
             <div class="info-item">
                 <label>Proveedor</label>
-                <div><i class='bx bxs-truck'></i> {{ req.proveedor.razon_social|default:req.proveedor_manual }}</div>
+                <div><i class='bx bxs-truck' style="color: var(--text-tertiary);"></i> {{ req.proveedor.razon_social|default:req.proveedor_manual }}</div>
             </div>
             <div class="info-item text-end">
                 <label>Fecha Creación</label>
-                <div>{{ req.fecha|date:"d M Y" }}</div>
+                <div><i class='bx bx-calendar' style="color: var(--text-tertiary);"></i> {{ req.fecha|date:"d M Y" }}</div>
             </div>
         </div>
 
@@ -152,7 +163,7 @@
                 <thead>
                     <tr>
                         <th style="width: 40%;">Producto</th>
-                        <th class="text-center" style="width: 15%;">Solicitado</th>
+                        <th class="text-center" style="width: 15%; text-align: center;">Solicitado</th>
                         <th style="width: 45%;">Verificación de Ingreso</th>
                     </tr>
                 </thead>
@@ -162,19 +173,19 @@
                         <td>
                             <span class="prod-name">
                                 {{ item.producto.nombre }}
-                                {% if item.producto.es_serializado %}<span class="badge-serial">SERIES</span>{% endif %}
+                                {% if item.producto.es_serializado %}<span class="badge-serial"><i class='bx bx-barcode'></i> SERIES</span>{% endif %}
                             </span>
                             <span class="prod-code">{{ item.producto.codigo_interno|default:"-" }}</span>
                             {% if item.observacion %}
-                                <div style="font-size:11px; color:var(--text-tertiary); margin-top:4px; font-style:italic;">
+                                <div style="font-size:11px; color:var(--text-tertiary); margin-top:6px; font-style:italic; border-left: 2px solid var(--border-light); padding-left: 6px;">
                                     "{{ item.observacion }}"
                                 </div>
                             {% endif %}
                         </td>
 
-                        <td class="text-center">
+                        <td style="text-align: center;">
                             <span class="qty-req">{{ item.cantidad }}</span>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">{{ item.producto.unidad_medida }}</div>
+                            <div style="font-size:10px; color:var(--text-secondary); margin-top:2px; font-weight: 600;">{{ item.producto.unidad_medida }}</div>
                         </td>
 
                         <td>
@@ -190,20 +201,20 @@
                                             <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'rango')">Rango (Precintos)</button>
                                             <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'detalle')">Detalle (ONUs)</button>
                                         </div>
-                                        <div style="font-size:12px; color:var(--text-secondary);">
-                                            Ingresando: <strong style="color:var(--success); font-size:14px;" id="display_qty_{{ item.id }}">0</strong>
+                                        <div style="font-size:11px; color:var(--text-secondary); font-weight: 600;">
+                                            INGRESANDO: <strong style="color:var(--success); font-size:15px; margin-left: 4px;" id="display_qty_{{ item.id }}">0</strong>
                                         </div>
                                     </div>
 
                                     <div id="tab_rango_{{ item.id }}">
                                         <div style="display:flex; gap:10px; align-items:center;">
-                                            <input type="number" class="qty-input" style="width:100%; font-weight:400;" 
-                                                   placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
-                                            <span style="color:var(--text-secondary);">a</span>
-                                            <input type="number" class="qty-input" style="width:100%; font-weight:400;" 
-                                                   placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                            <input type="number" class="qty-input" style="width:100%; font-weight:400; text-align: left; padding-left: 12px;" 
+                                                   placeholder="N° Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                            <span style="color:var(--text-secondary);"><i class='bx bx-right-arrow-alt'></i></span>
+                                            <input type="number" class="qty-input" style="width:100%; font-weight:400; text-align: left; padding-left: 12px;" 
+                                                   placeholder="N° Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
                                         </div>
-                                        <small style="color:var(--text-tertiary); display:block; margin-top:6px;">* Calculo automático para series numéricas.</small>
+                                        <small style="color:var(--text-tertiary); display:block; margin-top:8px; font-size: 10px;">* El cálculo es automático para series numéricas consecutivas.</small>
                                     </div>
 
                                     <div id="tab_detalle_{{ item.id }}" style="display:none;">
@@ -212,7 +223,7 @@
                                                 <tr>
                                                     <th width="20%">Cód 44</th>
                                                     <th width="40%">Serial (SN)</th>
-                                                    <th width="35%">MAC</th>
+                                                    <th width="35%">MAC Address</th>
                                                     <th width="5%"></th>
                                                 </tr>
                                             </thead>
@@ -225,9 +236,10 @@
                                 </div>
 
                             {% else %}
-                                <div style="display: flex; justify-content: flex-start;">
+                                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 10px;">
                                     <input type="number" name="qty_{{ item.id }}" class="qty-input" 
                                            value="{{ item.cantidad }}" min="0">
+                                    <span style="font-size: 11px; color: var(--text-secondary);">Cantidad Física</span>
                                 </div>
                             {% endif %}
                         </td>
@@ -236,14 +248,14 @@
                 </tbody>
             </table>
 
-            <div class="notes-section" style="padding: 24px;">
-                <label style="color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block;">
+            <div class="notes-section">
+                <label style="color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">
                     Observaciones de Recepción
                 </label>
-                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Mercadería completa según Guía de Remisión..."></textarea>
+                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: La mercadería llegó completa según Guía de Remisión..."></textarea>
                 
-                <button type="submit" class="btn-confirm" onclick="prepararEnvio()">
-                    <i class='bx bx-check-circle'></i> CONFIRMAR INGRESO
+                <button type="submit" class="btn-confirm" id="btnConfirmarIngreso">
+                    <i class='bx bx-check-circle'></i> CONFIRMAR INGRESO AL ALMACÉN
                 </button>
             </div>
         </div>
@@ -253,12 +265,10 @@
 <script>
     // --- Lógica de Pestañas ---
     function switchTab(itemId, mode) {
-        // Reset visual y valores
         document.getElementById(`real_qty_${itemId}`).value = 0;
         document.getElementById(`display_qty_${itemId}`).innerText = "0";
         document.getElementById(`input_rango_inicio_${itemId}`).value = "";
         
-        // Estilos tabs
         const container = document.getElementById(`tab_rango_${itemId}`).parentElement;
         container.querySelectorAll('.tab-link').forEach(b => b.classList.remove('active'));
         event.target.classList.add('active');
@@ -284,7 +294,7 @@
             qty = (end - start) + 1;
             document.getElementById(`input_rango_inicio_${itemId}`).value = start;
             document.getElementById(`input_rango_fin_${itemId}`).value = end;
-            document.getElementById(`input_json_${itemId}`).value = ""; // Limpia JSON si usa rango
+            document.getElementById(`input_json_${itemId}`).value = ""; 
         } else {
             document.getElementById(`input_rango_inicio_${itemId}`).value = "";
         }
@@ -296,14 +306,13 @@
         const tbody = document.getElementById(`tbody_onu_${itemId}`);
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="text" class="input-sm onu-cod44" placeholder="44..."></td>
-            <td><input type="text" class="input-sm onu-sn" placeholder="SN..."></td>
-            <td><input type="text" class="input-sm onu-mac" placeholder="MAC..."></td>
-            <td class="text-center"><button type="button" class="btn-del-row" onclick="removeRow(this, '${itemId}')">&times;</button></td>
+            <td><input type="text" class="input-sm onu-cod44" placeholder="44..." autocomplete="off"></td>
+            <td><input type="text" class="input-sm onu-sn" placeholder="SN..." autocomplete="off"></td>
+            <td><input type="text" class="input-sm onu-mac" placeholder="MAC..." autocomplete="off"></td>
+            <td class="text-center"><button type="button" class="btn-del-row" onclick="removeRow(this, '${itemId}')"><i class='bx bx-x'></i></button></td>
         `;
         tbody.appendChild(row);
         
-        // Listeners para recalcular al escribir
         row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => calcDetalle(itemId)));
         calcDetalle(itemId);
     }
@@ -324,7 +333,6 @@
             const sn = row.querySelector('.onu-sn').value;
             const mac = row.querySelector('.onu-mac').value;
 
-            // Contamos solo si tiene SN (mínimo requerido)
             if (sn.trim() !== "") {
                 count++;
                 dataList.push({ cod44, sn, mac });
@@ -332,7 +340,7 @@
         });
 
         document.getElementById(`input_json_${itemId}`).value = JSON.stringify(dataList);
-        document.getElementById(`input_rango_inicio_${itemId}`).value = ""; // Limpia rango si usa detalle
+        document.getElementById(`input_rango_inicio_${itemId}`).value = ""; 
         updateDisplay(itemId, count);
     }
 
@@ -341,8 +349,47 @@
         document.getElementById(`display_qty_${itemId}`).innerText = qty;
     }
 
-    function prepararEnvio() {
-        // Validación básica o spinner si quisieras agregar
-    }
+    // --- VALIDACIÓN INTELIGENTE Y PROTECCIÓN ANTI-DOBLE CLIC ---
+    const formRecepcion = document.getElementById('formRecepcion');
+    const btnSubmit = document.getElementById('btnConfirmarIngreso');
+
+    formRecepcion.addEventListener('submit', function(e) {
+        let totalIngresando = 0;
+        let hayItemsEnCero = false;
+
+        // Buscamos todos los inputs que envían la cantidad final (sean ocultos o visibles)
+        const inputsCantidades = document.querySelectorAll('input[name^="qty_"]');
+
+        inputsCantidades.forEach(input => {
+            const cantidad = parseInt(input.value) || 0;
+            totalIngresando += cantidad;
+            
+            if (cantidad <= 0) {
+                hayItemsEnCero = true;
+            }
+        });
+
+        // REGLA 1: Si no está ingresando ABSOLUTAMENTE NADA, bloqueamos el envío.
+        if (totalIngresando === 0) {
+            e.preventDefault(); // Detiene el envío
+            alert("⚠️ ERROR: No has ingresado ninguna cantidad válida ni escaneado series. El ingreso total es 0.");
+            return;
+        }
+
+        // REGLA 2: Si está ingresando algunos productos, pero se olvidó de otros (dejó alguno en 0).
+        if (hayItemsEnCero) {
+            const confirmarIncompleto = confirm("⚠️ ATENCIÓN: Hay productos con cantidad 0 (Cero). ¿Estás seguro de que deseas confirmar una recepción INCOMPLETA?");
+            if (!confirmarIncompleto) {
+                e.preventDefault(); // Si el usuario cancela, detenemos el envío para que llene las series
+                return;
+            }
+        }
+
+        // Si pasa las validaciones, bloqueamos el botón y cambiamos su contenido
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO INGRESO...";
+        btnSubmit.style.opacity = "0.8";
+    });
+
 </script>
 {% endblock %}

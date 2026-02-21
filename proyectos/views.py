@@ -113,7 +113,8 @@ def proyecto_materiales(request, proyecto_id):
     return render(request, 'proyectos/materiales_form.html', {
         'proyecto': proyecto,
         'form': form,
-        'materiales': materiales
+        'materiales': materiales,
+        'url_finalizar': 'disenador_dashboard'
     })
 
 

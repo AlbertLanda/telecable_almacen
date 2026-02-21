@@ -4,11 +4,12 @@
 {% block content %}
 <style>
     /* =========================================
-       LIQUIDACIÓN DE TÉCNICO (Enterprise)
+       LIQUIDACIÓN DE TÉCNICO (Enterprise Refinado)
        ========================================= */
     
     .liquidate-container {
-        max-width: 1000px; margin: 0 auto;
+        max-width: 1000px;
+        margin: 0 auto;
         animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -20,9 +21,10 @@
         border-bottom: 1px solid var(--border-light);
     }
     .header-title h3 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .header-title span { color: var(--primary); font-weight: 600; }
+    .header-title span { color: var(--primary); font-weight: 700; }
+    .header-title p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 
-    /* Tabla */
+    /* Tabla Liquidación */
     .table-card {
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); overflow: hidden;
@@ -32,26 +34,30 @@
     .table-responsive { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     
+    /* Encabezados sutiles y alineados */
     th { 
-        text-align: center; color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; 
-        padding: 16px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); vertical-align: bottom;
+        text-align: center; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; 
+        padding: 14px 16px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); vertical-align: bottom;
+        letter-spacing: 0.5px;
     }
     th.th-left { text-align: left; padding-left: 24px; }
+    th i { font-size: 14px; margin-bottom: 2px; display: block; }
     
-    td { padding: 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); }
+    /* Celdas limpias */
+    td { padding: 14px 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
     td.td-left { padding-left: 24px; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
     /* Columnas */
-    .col-material { width: 30%; }
-    .col-mochila { width: 15%; text-align: center; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .col-material { width: 35%; }
+    .col-mochila { width: 15%; text-align: center; }
     .col-input { width: 15%; text-align: center; }
-    .col-consumo { width: 15%; text-align: center; font-weight: 800; font-size: 18px; color: var(--primary); }
+    .col-consumo { width: 20%; text-align: center; font-weight: 700; font-size: 15px; color: var(--primary); }
 
-    /* Inputs */
+    /* Inputs reducidos */
     .qty-input {
-        width: 80px; text-align: center; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 15px;
+        width: 70px; text-align: center; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 14px;
         background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); transition: 0.2s;
     }
     .qty-input:focus { outline: none; border-color: var(--primary); background: #3a3a3c; }
@@ -66,28 +72,37 @@
 
     /* Badges */
     .badge-mochila { 
-        background: var(--bg-input); padding: 6px 12px; border-radius: 6px; 
-        border: 1px solid var(--border-light); display: inline-block;
+        background: var(--bg-input); padding: 4px 12px; border-radius: 6px; 
+        border: 1px solid var(--border-light); display: inline-block; font-family: monospace; font-size: 14px; font-weight: 600;
+    }
+    
+    .badge-tool {
+        background: #3a3a3c; color: #fff; font-size: 9px; padding: 2px 6px; 
+        border-radius: 4px; border: 1px solid #555; display: inline-flex; align-items: center; gap: 4px; letter-spacing: 0.5px;
     }
 
     /* Footer */
+    .footer-section { padding: 24px; border-top: 1px solid var(--border-light); background: rgba(255,255,255,0.01); }
     .notes-input { 
-        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
-        padding: 12px; border-radius: 10px; font-size: 14px; margin-bottom: 20px;
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); 
+        padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 20px; font-family: inherit;
     }
 
+    /* Botón Principal (Azul para diferenciar de proyectos) */
     .btn-confirm {
-        width: 100%; background-color: var(--primary); color: #fff; border: none; padding: 16px;
-        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
-        display: flex; justify-content: center; align-items: center; gap: 10px;
-        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+        width: 100%; background-color: var(--primary); color: #fff; border: none; padding: 14px;
+        border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 8px;
+        box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); letter-spacing: 0.5px;
     }
-    .btn-confirm:hover { background-color: var(--primary-dark); transform: translateY(-2px); }
-    .btn-confirm:disabled { opacity: 0.7; cursor: wait; transform: none; box-shadow: none; }
+    .btn-confirm:hover { background-color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(10, 132, 255, 0.4); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
     .error-text { color: var(--danger) !important; text-decoration: line-through; }
 
-    /* --- MODAL ESTILO ENTERPRISE --- */
+    /* =========================================
+       NUEVO MODAL ENTERPRISE
+       ========================================= */
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
@@ -102,21 +117,25 @@
     }
     @keyframes popIn { to { transform: scale(1); } }
 
-    .modal-icon { font-size: 48px; color: var(--warning); margin-bottom: 15px; }
+    .modal-icon { font-size: 54px; color: var(--primary); margin-bottom: 15px; }
     .modal-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
     .modal-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
     
     .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    
     .btn-modal-cancel { 
         background: transparent; border: 1px solid var(--border-light); color: var(--text-main);
-        padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer;
+        padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s;
     }
+    .btn-modal-cancel:hover { background: var(--bg-hover); }
+    
     .btn-modal-confirm {
-        background: var(--primary); border: none; color: white;
-        padding: 12px 30px; border-radius: 10px; font-weight: 600; cursor: pointer;
-        box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3); display: flex; align-items: center; gap: 8px;
+        background: var(--primary); border: none; color: #fff;
+        padding: 12px 30px; border-radius: 10px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3); display: flex; align-items: center; gap: 8px; transition: 0.2s;
     }
-    .btn-modal-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-modal-confirm:hover { background: var(--primary-dark); transform: translateY(-2px); }
+    .btn-modal-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
 </style>
 
@@ -125,11 +144,12 @@
     <div class="page-header">
         <div class="header-title">
             <h3>⚖️ Liquidar: <span>{{ tecnico.username }}</span></h3>
+            <p>Calcula el consumo semanal y retorna materiales al almacén.</p>
         </div>
         <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
-    <form method="POST" id="liquidationForm">
+    <form method="POST" id="formLiquidacionTecnico">
         {% csrf_token %}
         
         <div class="table-card">
@@ -137,16 +157,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th class="th-left col-material">MATERIAL</th>
-                            <th class="col-mochila">MOCHILA</th>
+                            <th class="th-left col-material">Material</th>
+                            <th class="col-mochila">Mochila</th>
                             <th class="col-input" style="color:var(--success);">
-                                <i class='bx bx-archive-in'></i> BUENOS<br><small>(Retorno)</small>
+                                <i class='bx bx-archive-in'></i> Buenos<br><span style="font-weight: 500; text-transform: none;">(Retorno)</span>
                             </th>
                             <th class="col-input" style="color:var(--danger);">
-                                <i class='bx bx-trash'></i> MERMA<br><small>(Dañado)</small>
+                                <i class='bx bx-trash'></i> Dañados<br><span style="font-weight: 500; text-transform: none;">(Merma)</span>
                             </th>
                             <th class="col-consumo">
-                                <i class='bx bx-wrench'></i> CONSUMO<br><small>(Instalado)</small>
+                                <i class='bx bx-wrench'></i> Consumo<br><span style="font-weight: 500; text-transform: none;">(Instalado)</span>
                             </th>
                         </tr>
                     </thead>
@@ -154,12 +174,12 @@
                         {% for item in mochila %}
                         <tr>
                             <td class="td-left">
-                                <strong style="display:block; font-size:15px;">{{ item.producto.nombre }}</strong>
-                                <small style="color:var(--text-secondary); font-family:monospace;">{{ item.producto.codigo_interno }}</small>
+                                <strong style="display:block; font-size:14px; margin-bottom: 2px;">{{ item.producto.nombre }}</strong>
+                                <span style="color:var(--text-secondary); font-family:monospace; font-size: 11px;">{{ item.producto.codigo_interno }}</span>
                                 
                                 {% if item.producto.es_activo %}
-                                    <div style="margin-top:4px;">
-                                        <span style="background:#3a3a3c; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; border:1px solid #555; display:inline-flex; align-items:center; gap:4px;">
+                                    <div style="margin-top:6px;">
+                                        <span class="badge-tool">
                                             <i class='bx bx-briefcase'></i> HERRAMIENTA
                                         </span>
                                     </div>
@@ -176,14 +196,14 @@
                                 <input type="number" name="devuelto_{{ item.id }}" 
                                        class="qty-input input-green input-calc" 
                                        data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
-                                       min="0" max="{{ item.cantidad }}" value="0">
+                                       min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
                             </td>
 
                             <td class="col-input">
                                 <input type="number" name="merma_{{ item.id }}" 
                                        class="qty-input input-red input-calc" 
                                        data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
-                                       min="0" max="{{ item.cantidad }}" value="0">
+                                       min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
                             </td>
 
                             <td class="col-consumo">
@@ -203,13 +223,13 @@
                 </table>
             </div>
 
-            <div style="padding: 24px;">
+            <div class="footer-section">
                 <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
-                    Observaciones de Liquidación
+                    Observaciones de Liquidación (Opcional)
                 </label>
-                <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos..."></textarea>
+                <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos, herramientas completas..."></textarea>
                 
-                <button type="button" onclick="openConfirmModal()" class="btn-confirm">
+                <button type="submit" class="btn-confirm" id="btnPrepararCierre">
                     <i class='bx bx-check-double'></i> PROCESAR CIERRE DE SEMANA
                 </button>
             </div>
@@ -217,26 +237,28 @@
     </form>
 </div>
 
-<div class="modal-overlay" id="confirmModal">
+<div class="modal-overlay" id="customConfirmModal">
     <div class="modal-content">
-        <div class="modal-icon"><i class='bx bx-error-circle'></i></div>
+        <div class="modal-icon"><i class='bx bx-check-shield'></i></div>
         <h3 class="modal-title">¿Confirmar Liquidación?</h3>
         <p class="modal-text">
-            Se registrará el consumo calculado y se actualizará el stock del técnico.
-            <br>
-            <small style="color:var(--text-tertiary);">Herramientas se mantienen en custodia. Consumibles se ponen a CERO.</small>
+            Se registrará el consumo calculado y se actualizará el stock en poder del técnico.
+            <br><br>
+            <span style="font-size: 12px; color: var(--text-tertiary); background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; display: block;">
+                <strong>Nota:</strong> Las herramientas se mantienen en custodia, los consumibles se reinician a cero.
+            </span>
         </p>
         <div class="modal-actions">
-            <button class="btn-modal-cancel" onclick="closeConfirmModal()">Cancelar</button>
-            <button id="btnRealSubmit" class="btn-modal-confirm" onclick="submitForm()">
-                Sí, Liquidar
+            <button type="button" class="btn-modal-cancel" id="btnCancelModal">Cancelar</button>
+            <button type="button" class="btn-modal-confirm" id="btnProceedModal">
+                <i class='bx bx-check-double'></i> Sí, Liquidar
             </button>
         </div>
     </div>
 </div>
 
 <script>
-    // 🧮 CÁLCULO EN TIEMPO REAL
+    // 1. CÁLCULO EN TIEMPO REAL
     document.querySelectorAll('.input-calc').forEach(input => {
         input.addEventListener('input', function() {
             let row = this.closest('tr');
@@ -264,13 +286,11 @@
                 mermaInput.classList.remove('is-invalid');
                 span.classList.remove('error-text');
 
-                // Lógica de visualización
+                // Lógica visual: Herramientas vs Consumibles
                 if (esActivo) {
-                    // Si es herramienta: Total - Devolución = Lo que se queda él
                     let queda = total - suma;
-                    span.innerHTML = `<span style='color:var(--text-main); font-size:12px;'>Quedan: <strong>${queda}</strong></span>`;
+                    span.innerHTML = `<span style='color:var(--text-main); font-size:12px;'>Quedan: <strong style="font-size:15px; color:var(--primary);">${queda}</strong></span>`;
                 } else {
-                    // Si es consumible: Total - Devolución = Lo que consumió
                     let consumo = total - suma;
                     span.innerText = consumo;
                 }
@@ -278,38 +298,47 @@
         });
     });
 
-    // --- LÓGICA DEL MODAL ---
-    const modal = document.getElementById('confirmModal');
-    const form = document.getElementById('liquidationForm');
-    const btnRealSubmit = document.getElementById('btnRealSubmit');
+    // 2. LÓGICA DEL MODAL CUSTOMIZADO Y PREVENCIÓN DE DOBLE CLIC
+    const formLiquidacion = document.getElementById('formLiquidacionTecnico');
+    const modalConfirm = document.getElementById('customConfirmModal');
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const btnProceedModal = document.getElementById('btnProceedModal');
 
-    function openConfirmModal() {
-        // Validación básica antes de abrir
+    // Interceptamos el envío
+    formLiquidacion.addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        
+        // Verificamos si hay errores de matemáticas
         if (document.querySelector('.error-text')) {
-            alert('Por favor corrige las cantidades marcadas en rojo antes de continuar.');
+            alert('⚠️ Por favor corrige las cantidades marcadas en rojo antes de continuar. La suma de retorno y merma no puede superar la mochila.');
             return;
         }
-        modal.style.display = 'flex';
-    }
 
-    function closeConfirmModal() {
-        modal.style.display = 'none';
-    }
+        // Mostramos el modal elegante
+        modalConfirm.style.display = 'flex';
+    });
 
-    function submitForm() {
-        // Bloquear botón para evitar doble envío
-        btnRealSubmit.disabled = true;
-        btnRealSubmit.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Procesando...";
+    // Botón cancelar del modal
+    btnCancelModal.addEventListener('click', () => {
+        modalConfirm.style.display = 'none';
+    });
+
+    // Botón confirmar del modal (Bloqueo y Envío)
+    btnProceedModal.addEventListener('click', () => {
+        // Bloqueamos el botón y evitamos doble clic
+        btnProceedModal.disabled = true;
+        btnProceedModal.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
+        btnCancelModal.style.display = 'none'; 
         
-        // Enviar formulario real
-        form.submit();
-    }
+        // Enviamos el form
+        formLiquidacion.submit();
+    });
 
     // Cerrar modal si hacen click afuera
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            closeConfirmModal();
+    window.addEventListener('click', (e) => {
+        if (e.target === modalConfirm) {
+            modalConfirm.style.display = 'none';
         }
-    }
+    });
 </script>
 {% endblock %}

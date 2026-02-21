@@ -4,11 +4,12 @@
 {% block content %}
 <style>
     /* =========================================
-       GENERAR SALIDA (Enterprise Style)
+       GENERAR SALIDA (Enterprise Refinado)
        ========================================= */
     
     .dispatch-container {
-        max-width: 1100px; margin: 0 auto;
+        max-width: 1000px; /* Ancho optimizado para legibilidad */
+        margin: 0 auto;
         animation: fadeIn 0.4s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -19,8 +20,8 @@
         margin-bottom: 24px; padding-bottom: 20px;
         border-bottom: 1px solid var(--border-light);
     }
-    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 
     /* Project Info Card */
     .info-card {
@@ -29,9 +30,9 @@
         display: flex; justify-content: space-between; align-items: center;
         box-shadow: var(--shadow-card);
     }
-    .info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
-    .info-item div { font-size: 15px; font-weight: 600; color: var(--text-main); }
-    .text-highlight { color: var(--primary); }
+    .info-item label { display: block; font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+    .info-item div { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .text-highlight { color: var(--primary); font-family: monospace; font-size: 15px !important; }
 
     /* Tabla Principal */
     .dispatch-table-card {
@@ -41,55 +42,100 @@
     
     table { width: 100%; border-collapse: collapse; }
     th { 
-        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
-        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; 
+        padding: 14px 20px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); letter-spacing: 0.5px;
     }
-    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    td { padding: 16px 20px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
     /* Producto */
-    .prod-name { font-weight: 600; font-size: 15px; color: var(--text-main); margin-bottom: 4px; display: block; }
-    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 12px; }
+    .prod-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 2px; display: block; }
+    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 11px; }
 
     /* Badges Stock */
     .stock-badge { 
         padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; display: inline-block; min-width: 40px; text-align: center;
     }
-    .sb-blue { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
-    .sb-red { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+    .sb-blue { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.2); color: var(--primary); }
+    .sb-red { background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2); color: var(--danger); }
 
     /* Inputs Cantidad */
     .qty-input {
         background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
-        text-align: center; font-weight: 700; font-size: 16px; border-radius: 8px; padding: 10px; width: 80px;
+        text-align: center; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 8px 4px; width: 70px;
         transition: 0.2s;
     }
     .qty-input:focus { border-color: var(--success); outline: none; background: #2c2c2e; }
-    .qty-input:disabled { opacity: 0.5; border-color: var(--danger); cursor: not-allowed; }
+    .qty-input:disabled { opacity: 0.5; border-color: var(--danger); cursor: not-allowed; background: rgba(255, 69, 58, 0.05); }
+
+    /* Ocultar flechas del input number */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
     /* Footer */
-    .notes-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-light); }
-    .notes-input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 14px; }
+    .notes-section { padding: 24px; border-top: 1px solid var(--border-light); background: rgba(255,255,255,0.01); }
+    .notes-input { 
+        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); 
+        padding: 12px; border-radius: 10px; font-size: 13px; font-family: inherit; margin-bottom: 20px; transition: 0.2s;
+    }
+    .notes-input:focus { border-color: var(--primary); outline: none; }
     
     .btn-confirm {
-        width: 100%; background-color: var(--success); color: #000; border: none; padding: 16px;
-        border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.2s;
-        display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;
-        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2);
+        width: 100%; background-color: var(--success); color: #000; border: none; padding: 14px;
+        border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 8px;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2); letter-spacing: 0.5px;
     }
-    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(48, 209, 88, 0.4); }
-    .btn-confirm:disabled { opacity: 0.7; cursor: wait; }
+    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(48, 209, 88, 0.4); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* =========================================
+       MODAL ENTERPRISE
+       ========================================= */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+        display: none; justify-content: center; align-items: center; z-index: 9999;
+        animation: fadeIn 0.2s ease-out;
+    }
+    .modal-content {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        width: 90%; max-width: 420px; padding: 30px; border-radius: 20px;
+        text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        transform: scale(0.95); animation: popIn 0.2s ease-out forwards;
+    }
+    @keyframes popIn { to { transform: scale(1); } }
+
+    .modal-icon { font-size: 54px; color: var(--success); margin-bottom: 15px; }
+    .modal-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
+    .modal-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
+    
+    .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    
+    .btn-modal-cancel { 
+        background: transparent; border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px;
+    }
+    .btn-modal-cancel:hover { background: var(--bg-hover); }
+    
+    .btn-modal-confirm {
+        background: var(--success); border: none; color: #000;
+        padding: 12px 30px; border-radius: 10px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.3); display: flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 13px;
+    }
+    .btn-modal-confirm:hover { background: #2bc063; transform: translateY(-2px); }
+    .btn-modal-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
     @media (max-width: 992px) {
         .info-card { flex-direction: column; align-items: flex-start; gap: 15px; }
         .text-end { text-align: left !important; }
         th, td { display: block; width: 100%; box-sizing: border-box; }
-        th { display: none; } /* Ocultar headers en móvil */
-        td { padding: 10px 15px; border: none; }
+        th { display: none; } 
+        td { padding: 10px 20px; border: none; }
         tr { border-bottom: 1px solid var(--border-light); display: block; padding: 15px 0; }
         .text-center { text-align: left !important; display: flex; align-items: center; justify-content: space-between; }
-        .text-center::before { content: attr(data-label); color: var(--text-secondary); font-size: 12px; font-weight: 600; margin-right: 10px; }
+        .text-center::before { content: attr(data-label); color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 10px; }
     }
 </style>
 
@@ -97,10 +143,10 @@
     
     <div class="page-header">
         <div class="header-content">
-            <h2>📦 Confirmar Despacho</h2>
-            <p>Verifica las cantidades antes de generar la salida.</p>
+            <h2><i class='bx bx-export' style="color: var(--primary);"></i> Confirmar Despacho</h2>
+            <p>Verifica las cantidades antes de generar la salida al técnico.</p>
         </div>
-        <a href="{% url 'almacen_proyecto_detalle' proyecto.id %}" class="btn btn-ghost">
+        <a href="{% url 'almacen_proyecto_detalle' proyecto.id %}" class="btn btn-ghost" style="padding: 10px 16px; border-radius: 8px; font-size: 14px;">
             <i class='bx bx-x'></i> Cancelar
         </a>
     </div>
@@ -119,7 +165,7 @@
             </div>
             <div class="info-item text-end">
                 <label>Técnico Receptor</label>
-                <div><i class='bx bxs-user-pin'></i> {{ proyecto.responsable.username }}</div>
+                <div><i class='bx bxs-user-pin' style="color: var(--text-tertiary);"></i> {{ proyecto.responsable.username }}</div>
             </div>
         </div>
 
@@ -128,8 +174,8 @@
                 <thead>
                     <tr>
                         <th style="width: 40%;">Producto</th>
-                        <th class="text-center" style="width: 15%;">Stock Sede</th>
-                        <th class="text-center" style="width: 15%;">Pendiente</th>
+                        <th class="text-center" style="width: 20%;">Stock Sede</th>
+                        <th class="text-center" style="width: 20%;">Pendiente</th>
                         <th class="text-center" style="width: 20%;">A Despachar</th>
                     </tr>
                 </thead>
@@ -150,19 +196,19 @@
                         </td>
 
                         <td class="text-center" data-label="Pendiente Obra">
-                            <span style="font-weight: 700; color: var(--warning); font-size: 16px;">{{ item.pendiente_temp }}</span>
+                            <span style="font-weight: 700; color: var(--warning); font-size: 15px;">{{ item.pendiente_temp }}</span>
                         </td>
 
                         <td class="text-center" data-label="A Despachar">
                             {% if item.stock_temp > 0 %}
-                                <input type="number" name="input_{{ item.id }}" class="qty-input"
-                                       value="{{ item.sugerido }}" min="0" max="{{ item.sugerido }}">
-                                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px;">
+                                <input type="number" name="input_{{ item.id }}" class="qty-input input-dispatch"
+                                       value="{{ item.sugerido }}" min="0" max="{{ item.sugerido }}" autocomplete="off">
+                                <div style="font-size: 10px; color: var(--text-tertiary); margin-top: 6px;">
                                     Max: {{ item.sugerido }}
                                 </div>
                             {% else %}
                                 <input type="text" disabled class="qty-input" value="0">
-                                <div style="font-size: 10px; color: var(--danger); margin-top: 4px; font-weight: 600;">
+                                <div style="font-size: 10px; color: var(--danger); margin-top: 6px; font-weight: 600;">
                                     Sin Stock
                                 </div>
                             {% endif %}
@@ -171,22 +217,22 @@
                     {% empty %}
                     <tr>
                         <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                            <i class='bx bx-check-circle' style="font-size: 32px; margin-bottom: 10px;"></i>
-                            <p>¡Todo entregado! No hay materiales pendientes.</p>
+                            <i class='bx bx-check-circle' style="font-size: 48px; margin-bottom: 10px; opacity: 0.3;"></i>
+                            <p>¡Todo entregado! No hay materiales pendientes para esta obra.</p>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
 
-            <div class="notes-section" style="padding: 24px;">
-                <label style="color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block;">
+            <div class="notes-section">
+                <label style="color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">
                     Notas de Despacho (Opcional)
                 </label>
-                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Se entrega cable marca X..."></textarea>
+                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Se entrega cable marca X a cuenta del proyecto..."></textarea>
                 
                 {% if items %}
-                    <button type="submit" id="btnSubmit" class="btn-confirm">
+                    <button type="button" id="btnPrepararDespacho" class="btn-confirm">
                         <i class='bx bx-check-double'></i> CONFIRMAR SALIDA Y DESCONTAR STOCK
                     </button>
                 {% endif %}
@@ -195,13 +241,77 @@
     </form>
 </div>
 
+<div class="modal-overlay" id="customConfirmModal">
+    <div class="modal-content">
+        <div class="modal-icon"><i class='bx bx-package'></i></div>
+        <h3 class="modal-title">¿Confirmar Despacho?</h3>
+        <p class="modal-text">
+            Se generará un vale de salida y el material seleccionado será descontado del stock físico de la sede para ser entregado al técnico.
+            <br><br>
+            <span style="color: var(--warning); font-size: 12px; font-weight: 600;">Esta acción no se puede deshacer.</span>
+        </p>
+        <div class="modal-actions">
+            <button type="button" class="btn-modal-cancel" id="btnCancelModal">Revisar de nuevo</button>
+            <button type="button" class="btn-modal-confirm" id="btnProceedModal">
+                <i class='bx bx-check'></i> Sí, Despachar
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    document.getElementById('dispatchForm').addEventListener('submit', function(e) {
-        const btn = document.getElementById('btnSubmit');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
-            btn.style.opacity = "0.7";
+    const formDispatch = document.getElementById('dispatchForm');
+    const btnPreparar = document.getElementById('btnPrepararDespacho');
+    
+    // Modal Elements
+    const modalConfirm = document.getElementById('customConfirmModal');
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const btnProceedModal = document.getElementById('btnProceedModal');
+
+    if (btnPreparar) {
+        btnPreparar.addEventListener('click', function(e) {
+            // Validación: Verificar que al menos un input tenga una cantidad mayor a 0
+            let totalToDispatch = 0;
+            const inputs = document.querySelectorAll('.input-dispatch');
+            
+            inputs.forEach(inp => {
+                totalToDispatch += (parseInt(inp.value) || 0);
+            });
+
+            if (totalToDispatch === 0 && inputs.length > 0) {
+                alert("⚠️ No has ingresado ninguna cantidad válida para despachar. Todos los valores están en 0.");
+                return;
+            }
+
+            // Si todo está OK, mostrar el modal bonito
+            modalConfirm.style.display = 'flex';
+        });
+    }
+
+    // Cancelar en el Modal
+    if (btnCancelModal) {
+        btnCancelModal.addEventListener('click', () => {
+            modalConfirm.style.display = 'none';
+        });
+    }
+
+    // Confirmar en el Modal (Evita el doble clic)
+    if (btnProceedModal) {
+        btnProceedModal.addEventListener('click', () => {
+            // 1. Bloquear botón
+            btnProceedModal.disabled = true;
+            btnProceedModal.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
+            btnCancelModal.style.display = 'none'; // Ocultar el botón cancelar para evitar clics raros
+            
+            // 2. Enviar el formulario
+            formDispatch.submit();
+        });
+    }
+
+    // Cerrar modal haciendo clic afuera
+    window.addEventListener('click', (e) => {
+        if (e.target === modalConfirm) {
+            modalConfirm.style.display = 'none';
         }
     });
 </script>

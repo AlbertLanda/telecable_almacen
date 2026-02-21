@@ -3,68 +3,135 @@
 
 {% block content %}
 <style>
-    .tb-dev { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-    .history-container { max-width: 1200px; margin: 0 auto; animation: fadeIn 0.4s ease-out; }
+    /* =========================================
+       HISTORIAL GLOBAL (Enterprise Refinado)
+       ========================================= */
+    
+    .history-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     /* Header */
     .page-header {
-        display: flex; justify-content: space-between; align-items: center;
+        display: flex; justify-content: space-between; align-items: flex-start;
         margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
     }
-    .header-title h2 { margin: 0; font-size: 28px; color: var(--text-main); font-weight: 700; }
-    .header-title p { margin: 5px 0 0; color: var(--text-secondary); font-size: 14px; }
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+    .header-content p { margin: 6px 0 0; color: var(--text-secondary); font-size: 13px; }
 
-    /* Tabla */
-    .table-card {
+    /* Botón Volver Estandarizado */
+    .btn-back {
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
+    }
+    .btn-back:hover { background: var(--bg-hover); transform: translateY(-1px); border-color: var(--text-secondary); }
+
+    /* Buscador */
+    .filter-bar { margin-bottom: 24px; }
+    .search-box { position: relative; width: 100%; }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-tertiary); }
+    .search-input {
+        width: 100%; padding: 14px 16px 14px 45px; background: var(--bg-input); border: 1px solid var(--border-light);
+        color: var(--text-main); border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; font-family: inherit;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .search-input:focus { border-color: var(--primary); background: #2c2c2e; }
+
+    /* Tarjeta de Contenido */
+    .content-card {
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
     }
-    table { width: 100%; border-collapse: collapse; }
+
+    /* Tabla Refinada */
+    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    
     th { 
-        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
-        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); 
     }
-    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background-color: var(--bg-hover); }
+    
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
+    tr.history-row:last-child td { border-bottom: none; }
+    tr.history-row:hover td { background-color: var(--bg-hover); }
 
-    /* Badges */
-    .type-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; }
-    .tb-liq { background: rgba(48, 209, 88, 0.15); color: var(--success); }
-    .tb-compra { background: rgba(100, 210, 255, 0.15); color: #0091ff; } /* Azul Cian */
-    .tb-obra { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
-    .tb-trans { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
-
-    /* Botón PDF */
-    .btn-pdf {
-        display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-        text-decoration: none; border: 1px solid var(--border-light); color: var(--text-secondary); transition: 0.2s; background: var(--bg-input);
+    /* Separador de Fechas (La Magia) */
+    .date-separator td {
+        background: rgba(10, 132, 255, 0.05); color: var(--primary);
+        font-weight: 700; font-size: 12px; padding: 12px 24px; text-transform: uppercase; letter-spacing: 1px;
+        border-bottom: 1px solid rgba(10, 132, 255, 0.1); border-top: 1px solid rgba(10, 132, 255, 0.1);
     }
-    .btn-pdf:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .date-separator i { font-size: 16px; vertical-align: middle; margin-right: 6px; }
 
-    .user-info { display: flex; align-items: center; gap: 10px; }
-    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-input); display: flex; align-items: center; justify-content: center; }
+    /* Estilos de Celda */
+    .time-text { color: var(--text-secondary); font-family: monospace; font-size: 12px; }
+    .ref-main { font-weight: 700; color: var(--text-main); display: block; font-size: 14px; }
+    .ref-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { 
+        width: 28px; height: 28px; border-radius: 8px; background: var(--bg-input); border: 1px solid var(--border-light);
+        display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;
+    }
+
+    /* Badges de Tipo */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; }
+    .tb-liq { background: rgba(48, 209, 88, 0.1); color: var(--success); border-color: rgba(48, 209, 88, 0.2); }
+    .tb-compra { background: rgba(100, 210, 255, 0.1); color: #64D2FF; border-color: rgba(100, 210, 255, 0.2); }
+    .tb-obra { background: rgba(10, 132, 255, 0.1); color: var(--primary); border-color: rgba(10, 132, 255, 0.2); }
+    .tb-trans { background: rgba(255, 159, 10, 0.1); color: var(--warning); border-color: rgba(255, 159, 10, 0.2); }
+    .tb-dev { background: rgba(191, 90, 242, 0.1); color: #BF5AF2; border-color: rgba(191, 90, 242, 0.2); }
+
+    /* Botón Documento */
+    .btn-action-table {
+        padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; border: 1px solid var(--border-light);
+        background: var(--bg-input); color: var(--text-main);
+    }
+    .btn-action-table:hover { background: var(--bg-hover); border-color: var(--text-secondary); transform: translateY(-1px); }
+
+    /* Estado Vacío */
+    .empty-state { padding: 60px 20px; text-align: center; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.3; }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .btn-back { width: 100%; justify-content: center; }
+    }
 </style>
 
 <div class="history-container">
     
     <div class="page-header">
-        <div class="header-title">
-            <h2>Historial de Movimientos</h2>
-            <p>Registro centralizado de {{ sede.nombre }}</p>
+        <div class="header-content">
+            <h2><i class='bx bx-history' style="color: var(--primary);"></i> Historial de Movimientos</h2>
+            <p>Registro centralizado de <strong>{{ sede.nombre }}</strong></p>
         </div>
-        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">
-            <i class='bx bx-arrow-back'></i> Volver
-        </a>
+        <div>
+            <a href="{% url 'dashboard' %}" class="btn-back">
+                <i class='bx bx-arrow-back'></i> Volver al Panel
+            </a>
+        </div>
     </div>
 
-    <div class="table-card">
+    <div class="filter-bar">
+        <div class="search-box">
+            <i class='bx bx-search search-icon'></i>
+            <input type="text" id="historySearch" class="search-input" placeholder="Buscar por referencia, código, responsable o tipo de movimiento..." autocomplete="off">
+        </div>
+    </div>
+
+    <div class="content-card">
         <div class="table-responsive">
-            <table>
+            <table id="historyTable">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
+                        <th>Hora</th>
                         <th>Tipo</th>
                         <th>Referencia / Código</th>
                         <th>Responsable / Técnico</th>
@@ -73,81 +140,94 @@
                 </thead>
                 <tbody>
                     {% for item in historial %}
-                    <tr>
-                        <td style="color: var(--text-secondary); font-family: monospace;">
-                            {{ item.fecha|date:"d/m/Y H:i" }}
+                    
+                    {% ifchanged item.fecha|date:"Y-m-d" %}
+                        <tr class="date-separator">
+                            <td colspan="5">
+                                <i class='bx bx-calendar'></i> {{ item.fecha|date:"d M Y" }}
+                            </td>
+                        </tr>
+                    {% endifchanged %}
+                    
+                    <tr class="history-row">
+                        <td class="time-text">
+                            {{ item.fecha|date:"H:i" }}
                         </td>
 
                         <td>
                             {% if item.tipo_movimiento == 'LIQ_TECNICO' %}
-                                <span class="type-badge tb-liq"><i class='bx bx-user-check'></i> Liq. Semanal</span>
+                                <span class="badge tb-liq"><i class='bx bx-user-check'></i> Liq. Semanal</span>
                             {% elif item.tipo_movimiento == 'DEVOLUCION' %}
-                                <span class="type-badge tb-dev"><i class='bx bx-reply'></i> Devolución</span>
+                                <span class="badge tb-dev"><i class='bx bx-reply'></i> Devolución</span>
                             {% elif item.tipo_movimiento == 'CIERRE_OBRA' %}
-                                <span class="type-badge tb-obra"><i class='bx bx-building'></i> Cierre Obra</span>
+                                <span class="badge tb-obra"><i class='bx bx-building'></i> Cierre Obra</span>
                             {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
-                                <span class="type-badge tb-trans"><i class='bx bx-transfer'></i> Traslado</span>
+                                <span class="badge tb-trans"><i class='bx bx-transfer'></i> Traslado</span>
                             {% elif item.tipo_movimiento == 'COMPRA' %}
-                                <span class="type-badge tb-compra"><i class='bx bxs-shopping-bag'></i> Compra</span>
+                                <span class="badge tb-compra"><i class='bx bxs-shopping-bag'></i> Compra</span>
                             {% endif %}
                         </td>
 
                         <td>
                             {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
-                                <strong style="color:var(--text-main)">{{ item.codigo }}</strong>
-                                <div style="font-size:12px; color:var(--text-secondary);">{{ item.nombre }}</div>
+                                <span class="ref-main">{{ item.codigo }}</span>
+                                <span class="ref-sub">{{ item.nombre }}</span>
                             {% else %}
-                                {{ item.referencia|default:item.numero }}
+                                <span class="ref-main">{{ item.referencia|default:item.numero }}</span>
                             {% endif %}
                         </td>
 
                         <td>
-                            <div class="user-info">
+                            <div class="user-cell">
                                 <div class="user-avatar">
                                     {% if item.tipo_movimiento == 'COMPRA' %}
                                         <i class='bx bxs-truck'></i>
+                                    {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
+                                        <i class='bx bxs-store-alt'></i>
                                     {% else %}
                                         <i class='bx bxs-user'></i>
                                     {% endif %}
                                 </div>
-                                <span>{{ item.tecnico_nombre }}</span>
+                                <span style="font-weight: 500;">{{ item.tecnico_nombre }}</span>
                             </div>
                         </td>
 
                         <td style="text-align: right;">
                             {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
-                                <a href="{% url 'proyecto_pdf_liquidacion' item.id %}" target="_blank" class="btn-pdf">
-                                    <i class='bx bxs-file-pdf'></i> Acta Cierre
+                                <a href="{% url 'proyecto_pdf_liquidacion' item.id %}" target="_blank" class="btn-action-table">
+                                    <i class='bx bxs-file-pdf' style="color: var(--danger);"></i> Acta Cierre
                                 </a>
-                            
                             {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
-                                <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-pdf">
-                                    <i class='bx bxs-file-pdf'></i> Guía Salida
+                                <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">
+                                    <i class='bx bxs-file-pdf' style="color: var(--danger);"></i> Guía Salida
                                 </a>
-                            
                             {% elif item.tipo_movimiento == 'LIQ_TECNICO' %}
-                                <a href="{% url 'liquidacion_tecnico_print' item.id %}" target="_blank" class="btn-pdf">
-                                    <i class='bx bxs-file-pdf'></i> Acta Liq.
+                                <a href="{% url 'liquidacion_tecnico_print' item.id %}" target="_blank" class="btn-action-table">
+                                    <i class='bx bxs-file-pdf' style="color: var(--danger);"></i> Acta Liq.
                                 </a>
                             {% elif item.tipo_movimiento == 'DEVOLUCION' %}
-                                <a href="{% url 'devolucion_print' item.id %}" target="_blank" class="btn-pdf" style="color: #a855f7; border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.1);">
-                                    <i class='bx bxs-file-pdf'></i> Constancia
+                                <a href="{% url 'devolucion_print' item.id %}" target="_blank" class="btn-action-table">
+                                    <i class='bx bxs-file-pdf' style="color: var(--danger);"></i> Constancia
                                 </a>                               
                             {% elif item.tipo_movimiento == 'COMPRA' %}
                                 {% if item.origen %}
-                                    <a href="{% url 'req_print' item.origen.id %}" target="_blank" class="btn-pdf">
-                                        <i class='bx bxs-file-pdf'></i> Ver Orden
+                                    <a href="{% url 'req_print' item.origen.id %}" target="_blank" class="btn-action-table">
+                                        <i class='bx bxs-file-pdf' style="color: var(--danger);"></i> Ver Orden
                                     </a>
                                 {% else %}
-                                    <span style="font-size:11px; color:var(--text-secondary);">Ingreso Manual</span>
+                                    <span style="font-size:11px; color:var(--text-tertiary);">Ingreso Manual</span>
                                 {% endif %}
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">
-                            No hay movimientos registrados.
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class='bx bx-history'></i>
+                                <h3>Sin Movimientos</h3>
+                                <p>No hay actividad registrada en esta sede.</p>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -156,4 +236,32 @@
         </div>
     </div>
 </div>
+
+<script>
+    // --- LÓGICA DEL BUSCADOR EN TIEMPO REAL ---
+    document.getElementById('historySearch').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('.history-row');
+        const separators = document.querySelectorAll('.date-separator');
+
+        // Filtrar Filas
+        rows.forEach(row => {
+            const textContent = row.innerText.toLowerCase();
+            if (textContent.includes(searchTerm)) {
+                row.style.display = ''; // Mostrar
+            } else {
+                row.style.display = 'none'; // Ocultar
+            }
+        });
+
+        // Ocultar separadores de fecha si estamos buscando algo específico
+        // para no confundir la vista. Si el buscador está vacío, los volvemos a mostrar.
+        if (searchTerm.length > 0) {
+            separators.forEach(sep => sep.style.display = 'none');
+        } else {
+            separators.forEach(sep => sep.style.display = '');
+        }
+    });
+</script>
+
 {% endblock %}

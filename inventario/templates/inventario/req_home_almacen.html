@@ -6,21 +6,22 @@
 {% block content %}
 <style>
     /* =========================================
-       CREADOR DE REQ (Enterprise Style)
+       CREADOR DE REQ (Enterprise Refinado)
        ========================================= */
     
-    .header-page {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
-    }
-    .hp-title h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .hp-meta { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; gap: 8px; }
-
-    /* Layout Principal */
     .grid-layout {
         display: grid; grid-template-columns: 2fr 1fr; gap: 24px;
-        align-items: start;
+        align-items: start; max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
     }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .header-page {
+        display: flex; justify-content: space-between; align-items: center;
+        margin: 0 auto 24px auto; max-width: 1200px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);
+    }
+    .hp-title h1 { margin: 0; font-size: 26px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .hp-meta { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; display: flex; align-items: center; gap: 8px; }
 
     /* Tarjetas */
     .req-card {
@@ -28,32 +29,35 @@
         border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
         box-shadow: var(--shadow-card);
     }
-    .card-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px; }
 
     /* Configuración */
     .config-box {
-        background: var(--bg-input); border-radius: 12px; padding: 20px;
+        background: rgba(255, 255, 255, 0.02); border-radius: 12px; padding: 20px;
         display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;
-        border: 1px solid var(--border-light);
+        border: 1px dashed var(--border-light);
     }
     .form-group { flex: 1; min-width: 200px; }
     .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
     
     .input-clean {
-        background: var(--bg-body); border: 1px solid var(--border-light); color: var(--text-main);
-        padding: 10px 12px; border-radius: 8px; width: 100%; font-size: 14px; transition: 0.2s;
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 12px 16px; border-radius: 10px; width: 100%; font-size: 14px; transition: 0.2s; font-family: inherit;
     }
-    .input-clean:focus { border-color: var(--primary); outline: none; }
+    .input-clean:focus { border-color: var(--primary); outline: none; background: #2c2c2e; }
 
     /* Buscador */
-    .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-row { display: flex; gap: 10px; margin-bottom: 20px; position: relative; }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-tertiary); }
     .search-input { 
-        flex: 1; background: var(--bg-input); border: 1px solid transparent; color: var(--text-main);
-        padding: 12px; border-radius: 10px; font-size: 14px; transition: 0.2s;
+        flex: 1; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 14px 16px 14px 45px; border-radius: 10px; font-size: 14px; transition: 0.2s; outline: none;
     }
-    .search-input:focus { background: var(--bg-body); border-color: var(--primary); outline: none; }
+    .search-input:focus { border-color: var(--primary); }
+    .btn-search { background: var(--primary); color: #fff; border: none; border-radius: 10px; width: 48px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.2s; }
+    .btn-search:hover { background: var(--primary-dark); }
 
-    /* Lista de Items */
+    /* Lista de Items (Catálogo) */
     .item-list { border-top: 1px solid var(--border-light); }
     .item-row {
         display: flex; justify-content: space-between; align-items: center;
@@ -61,29 +65,31 @@
     }
     .item-row:last-child { border-bottom: none; }
     
-    .item-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 2px; }
-    .item-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 8px; align-items: center; }
-    .stock-ok { color: var(--success); font-weight: 500; }
-    .stock-low { color: var(--danger); font-weight: 500; }
+    .item-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 4px; }
+    .item-meta { font-size: 11px; color: var(--text-secondary); display: flex; gap: 8px; align-items: center; font-family: monospace; }
+    .stock-ok { color: var(--success); font-weight: 600; font-family: -apple-system, sans-serif; }
+    .stock-low { color: var(--danger); font-weight: 600; font-family: -apple-system, sans-serif; }
 
-    .qty-control { width: 60px; text-align: center; padding: 6px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-body); color: var(--text-main); font-weight: 600; }
+    .qty-control { width: 60px; text-align: center; padding: 8px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-body); color: var(--text-main); font-weight: 600; }
+    .qty-control:focus { border-color: var(--primary); outline: none; }
     
     /* Botones Pequeños */
     .btn-icon-small {
-        width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
-        border: none; cursor: pointer; transition: 0.2s; font-size: 16px;
+        width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        border: none; cursor: pointer; transition: 0.2s; font-size: 18px;
     }
     .btn-add { background: rgba(10, 132, 255, 0.1); color: var(--primary); }
     .btn-add:hover { background: var(--primary); color: #fff; }
+    .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
     
     .btn-del { background: rgba(255, 69, 58, 0.1); color: var(--danger); }
     .btn-del:hover { background: var(--danger); color: #fff; }
     
-    .btn-upd { background: transparent; color: var(--success); }
+    .btn-upd { background: transparent; color: var(--success); border: 1px solid rgba(48, 209, 88, 0.3); }
     .btn-upd:hover { background: rgba(48, 209, 88, 0.1); }
 
     /* Badge */
-    .pill { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+    .pill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
     .pill-green { background: rgba(48, 209, 88, 0.15); color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
     .pill-orange { background: rgba(255, 159, 10, 0.15); color: var(--warning); border-color: rgba(255, 159, 10, 0.3); }
 
@@ -91,7 +97,19 @@
     .sticky-cart { position: sticky; top: 90px; }
     .cart-footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); }
 
-    @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } .sticky-cart { position: static; } }
+    /* Botones Principales */
+    .btn-primary-solid { background: var(--primary); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-primary-solid:hover { background: var(--primary-dark); }
+    
+    .btn-confirm {
+        width: 100%; background-color: var(--success); color: #000; border: none; padding: 16px;
+        border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.2s;
+        display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2);
+    }
+    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(48, 209, 88, 0.3); }
+    .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } .sticky-cart { position: static; order: -1; } }
 </style>
 
 <div class="header-page">
@@ -103,21 +121,21 @@
         </div>
     </div>
     
-    <div style="display:flex; gap:10px; align-items:center;">
-        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+        <a href="{% url 'dash_almacen' %}" class="btn btn-ghost" style="padding: 10px 16px; border-radius: 8px;">
             <i class='bx bx-arrow-back'></i> Volver
         </a>
         
         {% if req and req.id %}
-            <a href="{% url 'req_print' req.id %}" target="_blank" class="btn btn-ghost">
+            <a href="{% url 'req_print' req.id %}" target="_blank" class="btn btn-ghost" style="padding: 10px 16px; border-radius: 8px;">
                 <i class='bx bx-printer'></i> Imprimir
             </a>
         {% endif %}
 
         {% if sede.tipo == "CENTRAL" %}
-            <span class="pill pill-green">Modo Proveedor</span>
+            <span class="pill pill-green"><i class='bx bxs-truck'></i> Modo Proveedor</span>
         {% else %}
-            <span class="pill pill-orange">Entre Sedes</span>
+            <span class="pill pill-orange"><i class='bx bx-transfer'></i> Entre Sedes</span>
         {% endif %}
     </div>
 </div>
@@ -135,12 +153,12 @@
             <div class="config-box">
                 <div class="form-group">
                     {% if sede.tipo == "CENTRAL" %}
-                        <label class="form-label">Nombre del Proveedor</label>
+                        <label class="form-label">Nombre del Proveedor / Razón Social</label>
                         <input type="text" id="txtProveedor" class="input-clean" 
-                               placeholder="Ej: Ferretería Central..." 
-                               value="{{ req.proveedor_manual|default:'' }}">
+                               placeholder="Ej: Ferretería Central SAC..." 
+                               value="{{ req.proveedor_manual|default:'' }}" autocomplete="off">
                     {% else %}
-                        <label class="form-label">Sede Destino</label>
+                        <label class="form-label">Sede Destino (Almacén Central)</label>
                         <select id="selDestino" class="input-clean">
                             <option value="">-- Seleccionar Central --</option>
                             {% for s in sedes_central %}
@@ -151,12 +169,12 @@
                         </select>
                     {% endif %}
                 </div>
-                <button id="btnGuardarCfg" class="btn btn-primary" style="padding: 10px 20px;">
-                    Guardar
+                <button id="btnGuardarCfg" class="btn-primary-solid">
+                    Guardar Config.
                 </button>
             </div>
-            <p style="margin:10px 0 0; font-size:12px; color:var(--text-secondary);">
-                <i class='bx bxs-info-circle'></i> Guarda la configuración antes de enviar la orden.
+            <p style="margin:12px 0 0; font-size:12px; color:var(--text-secondary);">
+                <i class='bx bx-info-circle'></i> Asegúrate de guardar la configuración antes de generar la orden final.
             </p>
         </div>
 
@@ -166,9 +184,10 @@
             </div>
             
             <div class="search-row">
-                <input id="q" class="search-input" placeholder="Buscar producto por nombre o código...">
-                <button id="btnBuscar" class="btn btn-primary">
-                    <i class='bx bx-search'></i>
+                <i class='bx bx-search search-icon'></i>
+                <input id="q" class="search-input" placeholder="Buscar producto por nombre o código..." autocomplete="off">
+                <button id="btnBuscar" class="btn-search">
+                    <i class='bx bx-right-arrow-alt'></i>
                 </button>
             </div>
 
@@ -181,27 +200,27 @@
         <div class="req-card sticky-cart">
             <div class="card-title">
                 <span>Carrito de Compras</span>
-                <span class="pill pill-green" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border-light);" id="cartCount">REQ ACTUAL</span>
+                <span class="pill" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border-light);" id="cartCount">0 ÍTEMS</span>
             </div>
 
-            <div id="carrito" style="min-height:100px; max-height:500px; overflow-y:auto; padding-right:5px;">
+            <div id="carrito" style="min-height:150px; max-height:450px; overflow-y:auto; padding-right:5px; margin-top: 15px;">
                 </div>
 
             <div class="cart-footer">
                 {% if req and req.id %}
-                    <form method="post" action="{% url 'req_enviar' req.id %}">
+                    <form method="post" action="{% url 'req_enviar' req.id %}" id="formEnviarOrden">
                         {% csrf_token %}
-                        <button class="btn btn-success" style="width:100%; justify-content:center; padding:14px; font-size:15px;">
+                        <button type="submit" class="btn-confirm" id="btnGenerarOrden">
                             {% if sede.tipo == "CENTRAL" %}
-                                Generar Orden de Compra
+                                <i class='bx bx-check-double'></i> GENERAR ORDEN DE COMPRA
                             {% else %}
-                                Enviar Solicitud
+                                <i class='bx bx-send'></i> ENVIAR SOLICITUD A CENTRAL
                             {% endif %}
                         </button>
                     </form>
                 {% else %}
-                    <div style="text-align:center; color:var(--text-secondary); font-size:13px; font-style:italic;">
-                        Guarda el proveedor/sede para habilitar el envío.
+                    <div style="text-align:center; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 10px; color:var(--text-secondary); font-size:12px; border: 1px dashed var(--border-light);">
+                        Guarda el proveedor o sede destino en el Paso 1 para habilitar el envío.
                     </div>
                 {% endif %}
             </div>
@@ -211,7 +230,7 @@
 
 <script>
   // ==========================================
-  // LÓGICA JS (Sin cambios funcionales, solo renderizado)
+  // LÓGICA JS Y PROTECCIÓN DOBLE CLIC
   // ==========================================
   
   function getCookie(name) {
@@ -225,6 +244,18 @@
   const currentReqId = "{{ req.id|default:'' }}";
   const sedeTipo = "{{ sede.tipo|default:'SUCURSAL' }}".toUpperCase(); 
   const btnGuardarCfg = document.getElementById("btnGuardarCfg");
+
+  // PROTECCIÓN ANTI-DOBLE CLIC PARA EL FORMULARIO FINAL
+  const formEnviarOrden = document.getElementById('formEnviarOrden');
+  const btnGenerarOrden = document.getElementById('btnGenerarOrden');
+
+  if (formEnviarOrden && btnGenerarOrden) {
+      formEnviarOrden.addEventListener('submit', function(e) {
+          // Bloquear botón visualmente y deshabilitarlo para prevenir el doble envío
+          btnGenerarOrden.disabled = true;
+          btnGenerarOrden.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO ORDEN...";
+      });
+  }
 
   function el(tag, html) {
     const d = document.createElement(tag);
@@ -248,8 +279,9 @@
   // 1. GUARDAR CONFIG
   async function guardarConfig(){
     if (!btnGuardarCfg) return;
-    const originalText = btnGuardarCfg.innerText;
-    btnGuardarCfg.disabled = true; btnGuardarCfg.innerText = "...";
+    const originalText = btnGuardarCfg.innerHTML;
+    btnGuardarCfg.disabled = true; 
+    btnGuardarCfg.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Guardando...";
 
     try{
       const fd = new FormData();
@@ -259,21 +291,22 @@
 
       if (sedeTipo === "CENTRAL" || inputProveedor) {
         const provNombre = inputProveedor ? inputProveedor.value.trim() : "";
-        if (!provNombre){ alert("⚠️ Escribe el nombre del proveedor."); btnGuardarCfg.disabled=false; btnGuardarCfg.innerText=originalText; return; }
+        if (!provNombre){ alert("⚠️ Escribe el nombre del proveedor."); btnGuardarCfg.disabled=false; btnGuardarCfg.innerHTML=originalText; return; }
         fd.append("tipo_requerimiento", "PROVEEDOR");
         fd.append("proveedor_manual", provNombre);
       } else {
         const dest = selectDestino ? selectDestino.value : "";
-        if (!dest){ alert("⚠️ Selecciona sede destino."); btnGuardarCfg.disabled=false; btnGuardarCfg.innerText=originalText; return; }
+        if (!dest){ alert("⚠️ Selecciona sede destino."); btnGuardarCfg.disabled=false; btnGuardarCfg.innerHTML=originalText; return; }
         fd.append("tipo_requerimiento", "ENTRE_SEDES");
         fd.append("sede_destino_id", dest);
       }
 
       await fetchJSON("/req/set-tipo/", { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrftoken }, body: fd });
-      window.location.reload();
+      window.location.reload(); // Recarga para asegurar que todo el estado está correcto
     } catch(e){
       alert("Error: " + (e.message || "No se pudo guardar."));
-      btnGuardarCfg.disabled = false; btnGuardarCfg.innerText = originalText;
+      btnGuardarCfg.disabled = false; 
+      btnGuardarCfg.innerHTML = originalText;
     }
   }
 
@@ -283,13 +316,13 @@
     box.innerHTML = '';
 
     if (!rows || rows.length === 0) {
-      box.appendChild(el('div', `<div style="padding:40px; text-align:center; color:var(--text-tertiary);"><i class='bx bx-search' style="font-size:24px; margin-bottom:5px;"></i><p>Sin resultados.</p></div>`));
+      box.appendChild(el('div', `<div style="padding:40px; text-align:center; color:var(--text-tertiary);"><i class='bx bx-search' style="font-size:32px; margin-bottom:10px; opacity: 0.5;"></i><p>No se encontraron resultados.</p></div>`));
       return;
     }
 
     rows.forEach(r => {
       let origenStock = "";
-      if (sedeTipo !== "CENTRAL") origenStock = "<span style='font-size:10px; color:var(--text-secondary);'>(Central)</span>";
+      if (sedeTipo !== "CENTRAL") origenStock = "<span style='font-size:10px; color:var(--text-secondary);'>(En Central)</span>";
 
       const dispClass = r.disponible > 0 ? 'stock-ok' : 'stock-low';
       const dispTxt = (r.disponible === null || r.disponible === undefined) ? "—" : r.disponible;
@@ -300,14 +333,14 @@
             <div class="item-name">${escapeHtml(r.nombre)}</div>
             <div class="item-meta">
                 <span>${escapeHtml(r.codigo || "S/C")}</span>
-                <span>•</span>
+                <span style="opacity: 0.3;">|</span>
                 <span class="${dispClass}">Stock: ${dispTxt}</span> 
                 ${origenStock}
             </div>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:10px;">
             <input class="qty-control" type="number" min="1" value="1" />
-            <button class="btn-icon-small btn-add"><i class='bx bx-plus'></i></button>
+            <button class="btn-icon-small btn-add" title="Agregar"><i class='bx bx-plus'></i></button>
           </div>
         </div>
       `);
@@ -318,7 +351,10 @@
       btn.addEventListener('click', async () => {
         const cantidad = parseInt(qty.value || '1', 10);
         if (!cantidad || cantidad <= 0) return;
+        
         btn.disabled = true;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+        
         try {
           await fetchJSON('/req/add-producto/', {
             method: 'POST',
@@ -326,7 +362,10 @@
             body: new URLSearchParams({ producto_id: String(r.producto_id), cantidad: String(cantidad) })
           });
           await cargarCarrito();
-        } catch (e) { alert(e.message); } finally { btn.disabled = false; }
+        } catch (e) { alert(e.message); } finally { 
+            btn.disabled = false; 
+            btn.innerHTML = "<i class='bx bx-plus'></i>";
+        }
       });
 
       box.appendChild(node);
@@ -336,31 +375,37 @@
   // 3. RENDER CARRITO
   function renderCarrito(items) {
     const box = document.getElementById('carrito');
+    const badge = document.getElementById('cartCount');
     box.innerHTML = '';
 
     if (!items || items.length === 0) {
-      box.appendChild(el('div', `<div style="padding:30px; text-align:center; color:var(--text-tertiary); font-size:13px;">Carrito vacío.</div>`));
+      badge.innerText = "0 ÍTEMS";
+      box.appendChild(el('div', `<div style="padding:40px 20px; text-align:center; color:var(--text-tertiary);"><i class='bx bx-basket' style="font-size:32px; margin-bottom:10px; opacity:0.5;"></i><p style="font-size: 13px;">El carrito está vacío.</p></div>`));
+      if(btnGenerarOrden) btnGenerarOrden.disabled = true;
       return;
     }
 
+    badge.innerText = `${items.length} ÍTEM(S)`;
+    if(btnGenerarOrden) btnGenerarOrden.disabled = false;
+
     items.forEach(it => {
       const node = el('div', `
-        <div class="item-row">
+        <div class="item-row" style="padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-light);">
           <div style="flex:1; min-width:0; padding-right:10px;">
-            <div class="item-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(it.nombre)}</div>
-            <div class="item-meta">${escapeHtml(it.codigo || '-')}</div>
+            <div class="item-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size: 13px;">${escapeHtml(it.nombre)}</div>
+            <div class="item-meta" style="font-size: 10px;">${escapeHtml(it.codigo || '-')}</div>
           </div>
-          <div style="display:flex; gap:5px; align-items:center;">
-            <input class="qty-control" type="number" min="1" value="${escapeHtml(String(it.cantidad))}" style="width:50px;" />
-            <button class="btn-icon-small btn-upd" title="Actualizar"><i class='bx bx-check'></i></button>
-            <button class="btn-icon-small btn-del" title="Quitar"><i class='bx bx-trash'></i></button>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input class="qty-control" type="number" min="1" value="${escapeHtml(String(it.cantidad))}" style="width:55px; padding: 6px;" />
+            <button class="btn-icon-small btn-upd" title="Actualizar Cantidad" style="width:30px; height:30px;"><i class='bx bx-check'></i></button>
+            <button class="btn-icon-small btn-del" title="Quitar" style="width:30px; height:30px;"><i class='bx bx-trash'></i></button>
           </div>
         </div>
       `);
 
       const qty = node.querySelector('input');
-      const btnDel = node.querySelectorAll('button')[1]; 
       const btnUpd = node.querySelectorAll('button')[0]; 
+      const btnDel = node.querySelectorAll('button')[1]; 
 
       btnUpd.addEventListener('click', async () => {
         const cantidad = parseInt(qty.value || '1', 10);
@@ -396,10 +441,17 @@
   async function buscar() {
     const q = (document.getElementById('q').value || '').trim();
     let modo = (sedeTipo === "CENTRAL") ? "proveedor" : "entre_sedes";
+    const btn = document.getElementById('btnBuscar');
+    
+    btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
     try {
       const data = await fetchJSON('/req/catalogo/?modo=' + modo + '&q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       renderCatalogo(data.results || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      btn.innerHTML = "<i class='bx bx-right-arrow-alt'></i>";
+    }
   }
 
   async function cargarCarrito() {
@@ -413,6 +465,7 @@
   document.getElementById('btnBuscar').addEventListener('click', buscar);
   document.getElementById('q').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); buscar(); } });
 
+  // Carga inicial
   buscar();
   cargarCarrito();
 </script>

@@ -45,7 +45,7 @@
 
     /* Grid de Catálogo */
     .catalog-grid {
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* Tarjetas un poco más anchas */
         gap: 16px; overflow-y: auto; padding-right: 5px; /* Scroll interno */
     }
 
@@ -63,12 +63,10 @@
         color: var(--text-main); 
         margin-bottom: 4px; 
         line-height: 1.3; 
-        
-        /* Versión Estándar (Sin error) */
         height: 36px;       /* Fuerza la altura de 2 líneas */
         overflow: hidden;   /* Corta el texto sobrante */
         white-space: normal;
-        display: block;     /* Quitamos el flexbox conflictivo */
+        display: block;     
     }
     
     .pc-code { font-size: 11px; color: var(--text-secondary); font-family: monospace; margin-bottom: 10px; }
@@ -79,13 +77,21 @@
     .bs-low { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
     .bs-zero { background: rgba(255, 69, 58, 0.15); color: var(--danger); opacity: 0.7; }
 
-    /* Formulario de Agregar (Input Grande) */
+    /* Formulario de Agregar (Input Ajustado) */
     .add-form { display: flex; gap: 8px; }
     .qty-input { 
-        width: 60px; text-align: center; border-radius: 8px; border: 1px solid var(--border-light); 
+        /* AJUSTE CLAVE: Se amplió el ancho del input para permitir 3 cifras cómodamente */
+        width: 75px; text-align: center; border-radius: 8px; border: 1px solid var(--border-light); 
         background: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 15px;
+        padding: 8px 4px; /* Ajuste de padding para mejor acomodo del número */
     }
     .qty-input:focus { border-color: var(--primary); outline: none; }
+    /* Ocultar flechas del input number en Webkit */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
     
     .btn-add { 
         flex: 1; background: var(--primary); color: #fff; border: none; border-radius: 8px; 
@@ -121,7 +127,11 @@
     .ci-code { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
     
     .ci-actions { display: flex; align-items: center; gap: 8px; }
-    .cart-qty-input { width: 50px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-body); color: var(--text-main); padding: 6px; font-weight: 600; }
+    /* AJUSTE: Input de cantidad en el carrito también un poco más ancho */
+    .cart-qty-input { 
+        width: 60px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); 
+        background: var(--bg-body); color: var(--text-main); padding: 6px; font-weight: 600; 
+    }
     
     .btn-remove { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
     .btn-remove:hover { color: var(--danger); }
@@ -140,7 +150,6 @@
         .assign-container { grid-template-columns: 1fr; }
         .card-panel { max-height: none; }
         .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-        /* Ponemos el panel de técnico PRIMERO en móvil para que seleccione antes */
         .assign-container > :nth-child(2) { order: -1; }
     }
 </style>
@@ -169,13 +178,13 @@
     </div>
 
     <div class="card-panel">
-        <form method="POST">
+        <form method="POST" id="formAsignacion">
             {% csrf_token %}
             <input type="hidden" name="req_id" value="{{ req.id }}">
             
             <div class="form-group">
                 <label class="form-label">1. Seleccionar Técnico</label>
-                <select name="tecnico_id" class="tech-select" required>
+                <select name="tecnico_id" class="tech-select" id="selectTecnico" required>
                     <option value="">-- Elegir Técnico --</option>
                     {% for t in tecnicos %}
                         <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
@@ -205,7 +214,6 @@
 
 <script>
     // --- CONFIGURACIÓN ---
-    // Usamos las rutas de almacén que ya están protegidas y listas
     const URL_CATALOGO = "{% url 'req_catalogo_almacen' %}";     
     const URL_ADD_PRODUCTO = "{% url 'req_add_producto_almacen' %}"; 
     const URL_CARRITO = "{% url 'req_carrito_almacen' %}";       
@@ -226,6 +234,8 @@
     const cartCountEl = document.getElementById("cartCount");
     const btnEnviarReq = document.getElementById("btnEnviarReq");
     const searchInput = document.getElementById("q");
+    const formAsignacion = document.getElementById("formAsignacion");
+    const selectTecnico = document.getElementById("selectTecnico");
 
     // --- NOTIFICACIONES (TOAST) ---
     function showToast(msg, type='success') {
@@ -397,6 +407,20 @@
     searchInput.addEventListener('input', (e) => { 
         clearTimeout(debounceTimer); 
         debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); 
+    });
+
+    // NUEVO: Prevención de Doble Clic en Formulario Principal
+    formAsignacion.addEventListener('submit', function(e) {
+        // Verificar si se ha seleccionado un técnico
+        if (!selectTecnico.value) {
+            e.preventDefault();
+            alert("Por favor, selecciona un técnico antes de despachar.");
+            return;
+        }
+
+        // Bloquear botón y cambiar texto
+        btnEnviarReq.disabled = true;
+        btnEnviarReq.innerHTML = "PROCESANDO... <i class='bx bx-loader-alt bx-spin'></i>";
     });
 
     // Iniciar

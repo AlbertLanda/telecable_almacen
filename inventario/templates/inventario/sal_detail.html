@@ -218,6 +218,8 @@
 
     {% if sal.estado == "CONFIRMADO" and not sal.recibido and sal.sede_destino %}
         {% if request.user.profile.get_sede_operativa.id == sal.sede_destino.id %}
+            
+            {% if request.user.profile.rol == 'ALMACEN' or request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
             <div class="reception-box no-print">
                 <div class="rb-title"><i class='bx bxs-truck'></i> Mercadería en Puerta</div>
                 <div class="rb-text">Verifica que los ítems coincidan con lo físico antes de ingresarlos a tu stock.</div>
@@ -229,6 +231,8 @@
                     </button>
                 </form>
             </div>
+            {% endif %}
+            
         {% endif %}
     {% endif %}
 

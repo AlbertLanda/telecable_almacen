@@ -165,8 +165,8 @@
                 </a>
 
                 {% if p.estado == 'FINALIZADO' %}
-                    <a href="{% url 'proyecto_pdf_liquidacion' p.id %}" target="_blank" class="action-btn" style="color: var(--warning); border-color: rgba(255,159,10,0.3);" title="Acta de Cierre">
-                        <i class='bx bxs-certificate'></i>
+                    <a href="{% url 'proyecto_pdf_liquidacion' p.id %}" target="_blank" class="action-btn" style="color: #FF9F0A; border-color: rgba(255, 159, 10, 0.3);" title="Acta de Cierre">
+                        <i class='bx bxs-file-pdf'></i> Acta
                     </a>
                 {% elif p.estado == 'PENDIENTE' %}
                     <form action="{% url 'eliminar_proyecto' p.id %}" method="POST" style="display:contents;" 

@@ -4,75 +4,107 @@
 {% block content %}
 <style>
     /* =========================================
-       LISTA DE INVENTARIO (Enterprise Style)
+       LISTA DE INVENTARIO (Enterprise Refinado)
        ========================================= */
     
+    .inventory-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
     .page-header {
-        display: flex; justify-content: space-between; align-items: center;
+        display: flex; justify-content: space-between; align-items: flex-start;
         margin-bottom: 24px; padding-bottom: 20px;
         border-bottom: 1px solid var(--border-light);
-        flex-wrap: wrap; gap: 15px;
     }
-    .header-title h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-    .header-title p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+    .header-content p { margin: 6px 0 0; color: var(--text-secondary); font-size: 13px; }
+    .header-content strong { color: var(--primary); font-weight: 600; }
+
+    /* Botón Volver Estandarizado */
+    .btn-back {
+        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
+        padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
+    }
+    .btn-back:hover { background: var(--bg-hover); transform: translateY(-1px); border-color: var(--text-secondary); }
 
     /* Barra de Filtros */
     .filter-bar {
-        display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+        display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;
     }
     
     .search-box {
-        position: relative; display: flex; align-items: center;
-        background: var(--bg-input); border-radius: 10px; padding: 0 12px;
-        border: 1px solid transparent; transition: 0.2s;
-        width: 300px;
+        position: relative; flex: 1; min-width: 250px;
     }
-    .search-box:focus-within { border-color: var(--primary); background: #3a3a3c; }
-    .search-box i { color: var(--text-tertiary); font-size: 18px; margin-right: 8px; }
-    .search-box input {
-        border: none; background: transparent; color: var(--text-main); width: 100%;
-        padding: 12px 0; font-size: 14px; outline: none;
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--text-tertiary); }
+    .search-input {
+        width: 100%; padding: 12px 16px 12px 45px; background: var(--bg-input); border: 1px solid var(--border-light);
+        color: var(--text-main); border-radius: 10px; font-size: 14px; outline: none; transition: 0.2s; font-family: inherit;
     }
+    .search-input:focus { border-color: var(--primary); background: #2c2c2e; }
 
-    .select-sede {
-        background: var(--bg-input); border: 1px solid transparent; color: var(--text-main);
-        padding: 10px 30px 10px 14px; border-radius: 10px; font-size: 14px; outline: none; cursor: pointer;
+    .select-wrapper { position: relative; min-width: 200px; }
+    .location-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--primary); }
+    .sede-select {
+        width: 100%; padding: 12px 16px 12px 42px; background: var(--bg-input); border: 1px solid var(--border-light);
+        color: var(--text-main); border-radius: 10px; font-size: 14px; outline: none; cursor: pointer; transition: 0.2s;
         appearance: none; -webkit-appearance: none;
         background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2398989D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 10px;
+        background-repeat: no-repeat; background-position: right 16px top 50%; background-size: 10px;
     }
-    .select-sede:hover { background-color: var(--bg-hover); }
+    .sede-select:focus { border-color: var(--primary); }
 
-    /* Tarjeta Contenedora */
+    .btn-search {
+        background: var(--primary); color: #fff; border: none; border-radius: 10px; width: 44px; height: 44px;
+        display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-search:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Tarjeta de Tabla */
     .content-card {
         background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: var(--radius); overflow: hidden;
-        box-shadow: var(--shadow-card);
+        border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
     }
 
-    /* Tabla */
+    /* Tabla Refinada */
     .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; white-space: nowrap; }
     
     th { 
-        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
         padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); 
     }
+    .th-right { text-align: right; }
     
     td { 
-        padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 14px; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 13px; 
         color: var(--text-main); vertical-align: middle; 
     }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: var(--bg-hover); }
 
-    /* Badges de Estado */
-    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-    .badge-ok { background: rgba(48, 209, 88, 0.15); color: var(--success); }
-    .badge-low { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+    /* Estilos de Celda */
+    .code-text { font-family: monospace; color: var(--primary); font-size: 12px; font-weight: 600; background: rgba(10, 132, 255, 0.1); padding: 4px 8px; border-radius: 6px; }
+    .prod-name { font-weight: 600; color: var(--text-main); font-size: 14px; margin-bottom: 2px; display: block; }
+    .prod-cat { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* Código Monoespaciado */
-    .code-text { font-family: monospace; color: var(--text-secondary); font-size: 13px; }
+    .stock-val { font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .stock-unit { font-size: 10px; color: var(--text-secondary); margin-left: 4px; font-weight: 600; }
+
+    /* Badges de Estado */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-ok { background: rgba(48, 209, 88, 0.15); color: var(--success); border: 1px solid rgba(48, 209, 88, 0.2); }
+    .badge-low { background: rgba(255, 69, 58, 0.15); color: var(--danger); border: 1px solid rgba(255, 69, 58, 0.2); }
+
+    /* Paginación */
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 24px; }
+    .page-btn { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-light); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; transition: 0.2s; }
+    .page-btn:hover { background: var(--bg-hover); border-color: var(--primary); color: var(--primary); }
+    .page-info { background: transparent; color: var(--text-secondary); border: none; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: default; }
 
     /* Estado Vacío */
     .empty-state { padding: 60px 20px; text-align: center; color: var(--text-secondary); }
@@ -81,120 +113,132 @@
     /* Móvil */
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .filter-bar { width: 100%; }
-        .search-box { width: 100%; }
-        .select-sede { width: 100%; }
+        .btn-back { width: 100%; justify-content: center; }
+        .filter-bar { flex-direction: column; width: 100%; }
+        .search-box, .select-wrapper, .btn-search { width: 100%; }
     }
 </style>
 
-<div class="page-header">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        
-        <a href="{% url 'dashboard' %}" class="btn" style="background-color: #2a3042; color: #ffffff; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Volver al Dashboard">
-            <i class='bx bx-arrow-back' style="font-size: 24px;"></i>
-        </a>
-        <div class="header-title">
-            <h2>Inventario General</h2>
-            <p>Sede Actual: <strong style="color: var(--text-main);">{{ sede_actual.nombre }}</strong></p>
+<div class="inventory-container">
+
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class='bx bx-box' style="color: var(--primary);"></i> Inventario General</h2>
+            <p>Sede Actual: <strong>{{ sede_actual.nombre }}</strong></p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'dashboard' %}" class="btn-back">
+                <i class='bx bx-arrow-back'></i> Volver al Panel
+            </a>
         </div>
     </div>
 
     <form class="filter-bar" method="GET" action="{% url 'inventory_list' %}">
-        {% if sedes %}
-            <select name="sede_id" class="select-sede" onchange="this.form.submit()" {% if sedes|length == 1 %}style="display:none;"{% endif %}>                {% for s in sedes %}
+        
+        {% if sedes and sedes|length > 1 %}
+        <div class="select-wrapper">
+            <i class='bx bx-buildings location-icon'></i>
+            <select name="sede_id" class="sede-select" onchange="this.form.submit()">
+                {% for s in sedes %}
                     <option value="{{ s.id }}" {% if sede_actual and s.id == sede_actual.id %}selected{% endif %}>
                         {{ s.nombre }}
                     </option>
                 {% endfor %}
             </select>
+        </div>
         {% endif %}
 
         <div class="search-box">
-            <i class='bx bx-search'></i>
-            <input type="text" name="q" placeholder="Buscar producto..." value="{{ query|default:'' }}" autocomplete="off">
+            <i class='bx bx-search search-icon'></i>
+            <input type="text" name="q" class="search-input" placeholder="Buscar producto por código o nombre..." value="{{ query|default:'' }}" autocomplete="off">
         </div>
+
+        <button type="submit" class="btn-search" title="Buscar">
+            <i class='bx bx-right-arrow-alt'></i>
+        </button>
     </form>
-</div>
 
-<div class="content-card">
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th style="text-align: right;">Stock Actual</th>
-                    <th style="text-align: right;">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for stock in stocks %}
-                <tr>
-                    <td class="code-text">
-                        {% if stock.producto.codigo_interno %}
-                            {{ stock.producto.codigo_interno }}
-                        {% elif stock.producto.barcode %}
-                            {{ stock.producto.barcode }}
-                        {% else %}
-                            <span style="opacity:0.3;">---</span>
-                        {% endif %}
-                    </td>
-                    
-                    <td>
-                        <div style="font-weight: 600;">{{ stock.producto.nombre }}</div>
-                        {% if stock.producto.marca %}
-                            <div style="font-size: 12px; color: var(--text-secondary);">{{ stock.producto.marca }}</div>
-                        {% endif %}
-                    </td>
-                    
-                    <td style="color: var(--text-secondary);">
-                        {{ stock.producto.categoria|default:"General" }}
-                    </td>
-                    
-                    <td style="text-align: right;">
-                        <span style="font-size: 16px; font-weight: 700;">{{ stock.cantidad }}</span>
-                        <span style="font-size: 12px; color: var(--text-secondary);">{{ stock.producto.unidad|default:"UND" }}</span>
-                    </td>
-                    
-                    <td style="text-align: right;">
-                        {% if stock.cantidad <= stock.producto.stock_minimo %}
-                            <span class="badge badge-low">Bajo Stock</span>
-                        {% else %}
-                            <span class="badge badge-ok">Normal</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5">
-                        <div class="empty-state">
-                            <i class='bx bx-search-alt'></i>
-                            <h3>No se encontraron productos</h3>
-                            <p>Intenta con otro término o cambia de sede.</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="content-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Código</th>
+                        <th style="width: 45%;">Producto</th>
+                        <th style="width: 15%;">Categoría</th>
+                        <th class="th-right" style="width: 15%;">Stock Actual</th>
+                        <th class="th-right" style="width: 10%;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                    <tr>
+                        <td>
+                            <span class="code-text">
+                                {% if stock.producto.codigo_interno %}
+                                    {{ stock.producto.codigo_interno }}
+                                {% elif stock.producto.barcode %}
+                                    {{ stock.producto.barcode }}
+                                {% else %}
+                                    <span style="opacity:0.3; color: var(--text-secondary); background: transparent;">SIN-CÓDIGO</span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        
+                        <td>
+                            <span class="prod-name">{{ stock.producto.nombre }}</span>
+                            {% if stock.producto.marca %}
+                                <span class="prod-cat">Marca: {{ stock.producto.marca }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td>
+                            <span class="prod-cat"><i class='bx bx-purchase-tag-alt'></i> {{ stock.producto.categoria|default:"General" }}</span>
+                        </td>
+                        
+                        <td class="th-right">
+                            <span class="stock-val">{{ stock.cantidad }}</span><span class="stock-unit">{{ stock.producto.unidad|default:"UND" }}</span>
+                        </td>
+                        
+                        <td class="th-right">
+                            {% if stock.cantidad <= stock.producto.stock_minimo %}
+                                <span class="badge badge-low">Bajo Stock</span>
+                            {% else %}
+                                <span class="badge badge-ok">Normal</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class='bx bx-search-alt'></i>
+                                <h3>No se encontraron productos</h3>
+                                <p>Intenta con otro término de búsqueda o verifica la sede seleccionada.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-{% if is_paginated %}
-<div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-    {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="btn btn-ghost">Anterior</a>
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="page-btn"><i class='bx bx-chevron-left'></i> Anterior</a>
+        {% endif %}
+        
+        <span class="page-info">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="page-btn">Siguiente <i class='bx bx-chevron-right'></i></a>
+        {% endif %}
+    </div>
     {% endif %}
-    
-    <span class="btn" style="background: transparent; color: var(--text-secondary); cursor: default;">
-        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-    </span>
 
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&sede_id={{ sede_actual.id }}" class="btn btn-ghost">Siguiente</a>
-    {% endif %}
 </div>
-{% endif %}
-
 {% endblock %}
