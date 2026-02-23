@@ -15,7 +15,9 @@ from inventario.models import (
     UserProfile, 
     EstadoDocumento, 
     MovimientoInventario, 
-    DocumentoItem
+    DocumentoItem,
+    ItemSerializado, # <--- NUEVO IMPORT
+    Ubicacion        # <--- NUEVO IMPORT
 )
 
 
@@ -41,36 +43,38 @@ def _sede_operativa(user):
 @login_required
 def sal_detail(request, sal_id: int):
     sal = get_object_or_404(
-        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion", "sede_destino"),
+        DocumentoInventario.objects.select_related("sede", "responsable", "origen", "ubicacion", "sede_destino", "solicitante"),
         id=sal_id,
         tipo=TipoDocumento.SAL,
     )
-    items = sal.items.select_related("producto").order_by("producto__nombre")
+    items = list(sal.items.select_related("producto").order_by("producto__nombre"))
+
+    # --- MAGIA ENTERPRISE: INYECTAR SERIALES EN TRÁNSITO ---
+    for it in items:
+        if it.producto.es_serializado and sal.solicitante:
+            seriales = ItemSerializado.objects.filter(
+                producto=it.producto,
+                asignado_a=sal.solicitante,
+                estado=ItemSerializado.Estado.ASIGNADO
+            ).values_list('serial', flat=True)
+            
+            if seriales:
+                it.lista_series = list(seriales)
 
     try:
         profile = get_profile(request.user)
         if not profile:
             raise PermissionDenied("Usuario sin perfil.")
 
-        # Reglas de visualización
         allowed = False
-        
-        # 1. Admin/Jefa ven todo
         if profile.rol in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
             allowed = True
-            
-        # 2. Almacén ve si es SU sede de origen O SU sede de destino
         elif profile.rol == UserProfile.Rol.ALMACEN:
             sede_user = _sede_operativa(request.user)
-            
-            # Caso A: Yo la envié (Soy Jauja)
             if sal.sede_id == sede_user.id: 
                 allowed = True
-            # Caso B: Me la enviaron a mí (Soy Oroya)
             elif sal.sede_destino_id == sede_user.id: 
                 allowed = True
-                
-        # 3. Técnico ve si es suyo (Solo para SAL locales)
         elif profile.rol == UserProfile.Rol.SOLICITANTE:
             allowed = (
                 sal.responsable_id == request.user.id
@@ -91,18 +95,12 @@ def sal_detail(request, sal_id: int):
 @role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 @transaction.atomic
 def sal_confirmar(request, sal_id: int):
-    """
-    Confirma una SAL (Manual): descuenta stock y crea movimientos.
-    Solo Almacén, Jefa o Admin.
-    """
     try:
         profile = request.user_profile
-
         sal = DocumentoInventario.objects.select_for_update().get(
             id=sal_id, tipo=TipoDocumento.SAL
         )
 
-        # Solo JEFA puede confirmar otras sedes
         if profile.rol not in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
             sede = _sede_operativa(request.user)
             if sal.sede_id != sede.id:
@@ -115,10 +113,6 @@ def sal_confirmar(request, sal_id: int):
         sal.confirmar(entregado_por=request.user)
         messages.success(request, f"SAL confirmada: {sal.numero}")
 
-    except DocumentoInventario.DoesNotExist:
-        messages.error(request, "SAL no encontrada.")
-    except (ValidationError, PermissionDenied) as e:
-        messages.error(request, str(e))
     except Exception as e:
         messages.error(request, f"Error al confirmar SAL: {e}")
 
@@ -135,16 +129,11 @@ def sal_print(request, sal_id: int):
     items = sal.items.select_related("producto").order_by("producto__nombre")
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
-    # Validaciones de permiso igual que detail (Simplificado para impresión)
     profile = get_profile(request.user)
-    if not profile:
-        messages.error(request, "Usuario sin perfil.")
-        return redirect("/")
+    if not profile: return redirect("/")
     if profile.rol == UserProfile.Rol.SOLICITANTE:
         if sal.responsable_id != request.user.id:
-             # Si no es responsable directo, check si es origen
              if not (sal.origen and sal.origen.responsable_id == request.user.id):
-                 messages.error(request, "No autorizado.")
                  return redirect("/")
 
     return render(request, "inventario/sal_print.html", {
@@ -158,15 +147,9 @@ def sal_print(request, sal_id: int):
 @role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 @transaction.atomic
 def almacen_recepcionar_traspaso(request, sal_id):
-    """
-    Recibe una SAL de otra sede y genera automáticamente el ING en mi sede.
-    """
     try:
         with transaction.atomic():
-            # 1. Buscamos la SAL que viene hacia mí
-            # Usamos el helper _sede_operativa para mayor seguridad
             mi_sede = _sede_operativa(request.user)
-            
             sal = get_object_or_404(DocumentoInventario, id=sal_id, tipo=TipoDocumento.SAL)
 
             if sal.sede_destino != mi_sede:
@@ -176,23 +159,20 @@ def almacen_recepcionar_traspaso(request, sal_id):
                 messages.warning(request, "Este traspaso ya fue recepcionado.")
                 return redirect('dash_almacen')
 
-            # 2. Crear el documento de INGRESO (ING) en mi sede
             ing = DocumentoInventario.objects.create(
                 tipo=TipoDocumento.ING,
-                estado=EstadoDocumento.CONFIRMADO, # Confirmado directo
-                sede=mi_sede,                      # Entra a MI sede
-                responsable=request.user,          # Yo lo recibo
-                sede_origen=sal.sede,              # Viene de allá
-                referencia=f"Ref: {sal.numero}",   # Referencia a la SAL original
+                estado=EstadoDocumento.CONFIRMADO,
+                sede=mi_sede,
+                responsable=request.user,
+                sede_origen=sal.sede,
+                referencia=f"Ref: {sal.numero}",
                 observaciones=f"Recepción automática de transferencia {sal.numero}",
                 origen=sal,
                 fecha=timezone.now()
             )
             ing.asignar_numero_si_falta()
 
-            # 3. Copiar items y mover stock (SUMAR a mi inventario)
             for item_sal in sal.items.all():
-                # A. Crear Item en el ING
                 DocumentoItem.objects.create(
                     documento=ing,
                     producto=item_sal.producto,
@@ -200,20 +180,31 @@ def almacen_recepcionar_traspaso(request, sal_id):
                     observacion=item_sal.observacion
                 )
 
-                # B. Movimiento Físico (SUMAR STOCK)
                 mov = MovimientoInventario.objects.create(
                     producto=item_sal.producto,
                     sede=mi_sede,
-                    ubicacion=None, # O una ubicación de recepción por defecto
-                    tipo=MovimientoInventario.TIPO_IN, # Entrada
+                    ubicacion=None,
+                    tipo=MovimientoInventario.TIPO_IN,
                     qty=item_sal.cantidad,
                     referencia=ing.numero,
                     usuario=request.user,
                     nota=f"Transferencia desde {sal.sede.nombre}"
                 )
-                mov.aplicar() # ¡Aquí sube tu stock!
+                mov.aplicar() 
 
-            # 4. Marcar la SAL original como RECIBIDA
+                # --- MAGIA ENTERPRISE: MOVER LOS SERIALES A LA NUEVA SEDE ---
+                if item_sal.producto.es_serializado and sal.solicitante:
+                    ubi_destino = Ubicacion.objects.filter(sede=mi_sede).first()
+                    ItemSerializado.objects.filter(
+                        producto=item_sal.producto,
+                        asignado_a=sal.solicitante,
+                        estado=ItemSerializado.Estado.ASIGNADO
+                    ).update(
+                        estado=ItemSerializado.Estado.EN_ALMACEN,
+                        asignado_a=None,
+                        ubicacion=ubi_destino
+                    )
+
             sal.recibido = True
             sal.recibido_por = request.user
             sal.recibido_en = timezone.now()

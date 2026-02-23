@@ -256,7 +256,54 @@
     </form>
 </div>
 
+<div class="toast-container" id="toastArea"></div>
+
 <script>
+    // =========================================
+    // LÓGICA DE ALERTAS TOAST ENTERPRISE
+    // =========================================
+    function showToast(msg, type='success') {
+        let container = document.getElementById('toastArea');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastArea';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        const div = document.createElement('div');
+        div.className = 'toast-msg';
+        
+        let icon = 'bxs-check-circle';
+        let color = 'var(--success)';
+        let borderColor = 'var(--success)';
+        
+        if (type === 'error') { 
+            icon = 'bxs-error-circle'; 
+            color = 'var(--danger)'; 
+            borderColor = 'var(--danger)';
+        } else if (type === 'warning') {
+            icon = 'bxs-info-circle'; 
+            color = 'var(--warning)'; 
+            borderColor = 'var(--warning)';
+        }
+
+        div.style.borderLeft = `4px solid ${borderColor}`;
+        div.innerHTML = `<i class='bx ${icon}' style="color:${color}; font-size:18px;"></i><span>${msg}</span>`;
+        
+        container.appendChild(div);
+        
+        // Desaparecer a los 3.5 segundos
+        setTimeout(() => { 
+            div.style.opacity = '0'; 
+            div.style.transform = 'translateY(-10px)'; 
+            setTimeout(() => div.remove(), 300); 
+        }, 3500);
+    }
+
+    // =========================================
+    // LÓGICA DE PESTAÑAS Y ESCANEO
+    // =========================================
     function switchTab(itemId, mode) {
         document.getElementById(`display_qty_${itemId}`).innerText = "0";
         document.getElementById(`real_qty_${itemId}`).value = 0;
@@ -281,18 +328,30 @@
             e.preventDefault();
             const val = e.target.value.trim().toUpperCase();
             if(!val) return;
+            
             const stockJson = document.getElementById(`stock_data_${itemId}`).value;
             const stock = JSON.parse(stockJson);
+            
+            // Busca coincidencia en el JSON de stock disponible
             const found = stock.find(x => x.serial === val || x.cod44 === val || x.mac === val);
+            
             if(found) {
                 const picked = window[`picked_${itemId}`];
+                
+                // Valida si ya lo había escaneado en esta misma sesión
                 if(picked.find(x => x.id === found.id)) {
-                    alert('⚠️ Equipo ya escaneado.'); e.target.value = ""; return;
+                    showToast(`⚠️ El equipo ${val} ya fue escaneado.`, 'warning');
+                    e.target.value = ""; 
+                    return;
                 }
+                
                 picked.push(found);
                 renderPicked(itemId);
                 e.target.value = ""; 
-            } else { alert('❌ No encontrado en stock disponible.'); }
+            } else { 
+                // AQUI ESTA LA MAGIA: Reemplazamos el alert() feo por el Toast
+                showToast(`❌ El serial ${val} no se encuentra en el stock disponible de tu sede.`, 'error');
+            }
         }
     }
 
