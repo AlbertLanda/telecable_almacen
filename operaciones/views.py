@@ -16,13 +16,13 @@ from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 from django.contrib.auth import get_user_model
 
 # Importamos modelos del Core
-from inventario.models import Sede, Producto, Stock, UserProfile, DocumentoInventario, TipoDocumento, EstadoDocumento
+from inventario.models import Sede, Producto, Stock, UserProfile, DocumentoInventario, TipoDocumento, EstadoDocumento, StockTecnico, ItemSerializado
 # Importamos modelos de esta app
 from operaciones.models import LiquidacionSemanal, LiquidacionLog
 # Importamos servicios
 from operaciones.services import LiquidacionService
 
-from proyectos.models import Proyecto, EstadoProyecto
+from proyectos.models import Proyecto, EstadoProyecto, AsignacionCuadrilla
 
 User = get_user_model()
 
@@ -516,4 +516,84 @@ def tecnico_dashboard(request):
         "kpis": kpis, 
         # "chart": chart,  <-- Si quitaste los gráficos, puedes borrar esto
         "proyectos": proyectos_asignados, # <--- PASAMOS LOS PROYECTOS
+    })
+
+@login_required
+def proyecto_asignar_cuadrilla(request, proyecto_id):
+    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+
+    # 1. Seguridad: Solo el responsable de la obra puede repartir
+    if request.user != proyecto.responsable:
+        messages.error(request, "Solo el responsable asignado puede repartir materiales a la cuadrilla.")
+        return redirect('tecnico_dashboard')
+
+    # 2. Obtener el equipo de trabajo (excluyendo al responsable)
+    tecnicos_disponibles = User.objects.exclude(id=request.user.id).filter(is_active=True)
+
+    # 3. Lo que tiene Jilmer en su poder actualmente
+    mi_stock = StockTecnico.objects.filter(tecnico=request.user, cantidad__gt=0).select_related('producto')
+    mis_equipos = ItemSerializado.objects.filter(asignado_a=request.user, estado=ItemSerializado.Estado.ASIGNADO)
+
+    if request.method == 'POST':
+        receptor_id = request.POST.get('receptor_id')
+        if not receptor_id:
+            messages.error(request, "Debes seleccionar a un técnico.")
+            return redirect('proyecto_asignar_cuadrilla', proyecto_id=proyecto.id)
+            
+        receptor = get_object_or_404(User, id=receptor_id)
+        hubo_transferencia = False
+
+        try:
+            with transaction.atomic():
+                for stock in mi_stock:
+                    # Capturar cantidad ingresada en el HTML
+                    qty = int(request.POST.get(f'qty_{stock.producto.id}', 0))
+                    
+                    if qty > 0:
+                        if qty > stock.cantidad:
+                            raise ValueError(f"No tienes suficiente {stock.producto.nombre} para transferir.")
+
+                        # Crear el vale de transferencia
+                        asignacion = AsignacionCuadrilla.objects.create(
+                            proyecto=proyecto, entregado_por=request.user,
+                            recibido_por=receptor, producto=stock.producto, cantidad=qty
+                        )
+
+                        if stock.producto.es_serializado:
+                            # Capturar los checkboxes marcados
+                            macs_seleccionadas = request.POST.getlist(f'macs_{stock.producto.id}')
+                            if len(macs_seleccionadas) != qty:
+                                raise ValueError(f"Debes marcar exactamente {qty} equipos/MACs de {stock.producto.nombre}.")
+                            
+                            for equipo_id in macs_seleccionadas:
+                                equipo = ItemSerializado.objects.get(id=equipo_id, asignado_a=request.user)
+                                # ¡Mágia! Cambiamos de dueño
+                                equipo.asignado_a = receptor
+                                equipo.save()
+                                asignacion.seriales.add(equipo)
+                        else:
+                            # Si es cable (no serializado), movemos de mochila en mochila
+                            stock.cantidad -= qty
+                            stock.save()
+                            
+                            stock_receptor, _ = StockTecnico.objects.get_or_create(tecnico=receptor, producto=stock.producto)
+                            stock_receptor.cantidad += qty
+                            stock_receptor.save()
+                            
+                        hubo_transferencia = True
+
+                if hubo_transferencia:
+                    messages.success(request, f"Materiales transferidos exitosamente a {receptor.username}.")
+                    return redirect('tecnico_dashboard')
+                else:
+                    messages.warning(request, "No ingresaste ninguna cantidad para transferir.")
+
+        except Exception as e:
+            messages.error(request, f"Error en la transferencia: {str(e)}")
+
+    return render(request, 'operaciones/asignar_cuadrilla.html', {
+        'proyecto': proyecto,
+        'tecnicos': tecnicos_disponibles,
+        'mi_stock': mi_stock,
+        'mis_equipos': mis_equipos
     })

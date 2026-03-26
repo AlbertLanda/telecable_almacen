@@ -1,14 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Q
 from decimal import Decimal
 import datetime
 from inventario.models import Stock
 from django.db import transaction
 from inventario.models import (
     UserProfile, DocumentoInventario, DocumentoItem, Stock, 
-    TipoDocumento, EstadoDocumento
+    TipoDocumento, EstadoDocumento, ItemSerializado
 )
 # Importamos modelos locales
 from .models import Proyecto, ProyectoMaterial, ProyectoAsignacion, EstadoProyecto
@@ -289,7 +289,33 @@ def almacen_generar_salida(request, proyecto_id):
                 for m in items_pendientes:
                     qty = int(request.POST.get(f'input_{m.id}', 0))
                     if qty > 0:
-                        if qty > m.stock_temp: raise ValueError(f"Stock insuficiente: {m.producto.nombre}")
+                        if qty > m.stock_temp: 
+                            raise ValueError(f"Stock insuficiente: {m.producto.nombre}")
+
+                        if m.producto.es_serializado:
+                            seriales_ingresados = request.POST.getlist(f'macs_{m.id}')
+                            seriales_ingresados = [s.strip().upper() for s in seriales_ingresados if s.strip()]
+
+                            if len(seriales_ingresados) != qty:
+                                raise ValueError(f"Debes ingresar exactamente {qty} MACs/Series para {m.producto.nombre}")
+
+                            # Validar y actualizar cada equipo en la base de datos
+                            for serial in seriales_ingresados:
+                                # Buscamos el equipo físico por MAC, Serial o Código de caja
+                                item_fisico = ItemSerializado.objects.filter(
+                                    Q(serial=serial) | Q(mac_address=serial) | Q(codigo_trazabilidad=serial),
+                                    producto=m.producto,
+                                    estado=ItemSerializado.Estado.EN_ALMACEN
+                                ).first()
+
+                                if not item_fisico:
+                                    raise ValueError(f"El equipo con serie/MAC '{serial}' no está en el almacén o no existe.")
+
+                                # Si lo encuentra, lo marcamos como ASIGNADO al técnico de la obra
+                                item_fisico.estado = ItemSerializado.Estado.ASIGNADO
+                                item_fisico.asignado_a = proyecto.responsable
+                                item_fisico.save()
+                        # FIN NUEVA LÓGICA ✅
 
                         DocumentoItem.objects.create(
                             documento=doc,

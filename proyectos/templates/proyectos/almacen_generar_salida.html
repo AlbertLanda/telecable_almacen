@@ -127,6 +127,36 @@
     .btn-modal-confirm:hover { background: #2bc063; transform: translateY(-2px); }
     .btn-modal-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
+    /* =========================================
+       MAC / SERIES INPUTS
+       ========================================= */
+    .mac-container {
+        margin-top: 12px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        border: 1px dashed var(--border-light);
+        text-align: left;
+    }
+    .mac-input-group { margin-bottom: 8px; }
+    .mac-input-group:last-child { margin-bottom: 0; }
+    .mac-input {
+        width: 100%;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        color: var(--primary);
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: monospace;
+        text-transform: uppercase;
+        font-weight: bold;
+        transition: 0.2s;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .mac-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2); }
+    .mac-input::placeholder { color: var(--text-tertiary); font-weight: normal; }
+
     @media (max-width: 992px) {
         .info-card { flex-direction: column; align-items: flex-start; gap: 15px; }
         .text-end { text-align: left !important; }
@@ -202,10 +232,18 @@
                         <td class="text-center" data-label="A Despachar">
                             {% if item.stock_temp > 0 %}
                                 <input type="number" name="input_{{ item.id }}" class="qty-input input-dispatch"
+                                       id="qty_{{ item.id }}"
+                                       data-id="{{ item.id }}"
+                                       data-serializado="{% if item.producto.es_serializado %}true{% else %}false{% endif %}"
                                        value="{{ item.sugerido }}" min="0" max="{{ item.sugerido }}" autocomplete="off">
                                 <div style="font-size: 10px; color: var(--text-tertiary); margin-top: 6px;">
                                     Max: {{ item.sugerido }}
                                 </div>
+                                
+                                {% if item.producto.es_serializado %}
+                                    <div id="mac-container-{{ item.id }}" class="mac-container" style="display: none;"></div>
+                                {% endif %}
+                                
                             {% else %}
                                 <input type="text" disabled class="qty-input" value="0">
                                 <div style="font-size: 10px; color: var(--danger); margin-top: 6px; font-weight: 600;">
@@ -268,51 +306,111 @@
     const btnCancelModal = document.getElementById('btnCancelModal');
     const btnProceedModal = document.getElementById('btnProceedModal');
 
+    // =========================================
+    // LÓGICA DE ESCÁNER DE MACs DINÁMICO
+    // =========================================
+    function updateMacInputs(itemId, qty) {
+        const container = document.getElementById(`mac-container-${itemId}`);
+        if (!container) return;
+
+        qty = parseInt(qty) || 0;
+
+        if (qty <= 0) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        container.style.display = 'block';
+
+        // Guardar valores previos para no borrarlos si el usuario cambia de "3" a "4"
+        const existingInputs = container.querySelectorAll('.mac-input');
+        const savedValues = Array.from(existingInputs).map(inp => inp.value);
+
+        let html = `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">
+                        <i class='bx bx-barcode-reader' style="color: var(--primary);"></i> Escanear MACs / Series (${qty}):
+                    </div>`;
+
+        for (let i = 0; i < qty; i++) {
+            let val = savedValues[i] || '';
+            html += `
+                <div class="mac-input-group">
+                    <input type="text" name="macs_${itemId}" class="mac-input mac-required" 
+                           placeholder="Pistolear Serie ${i+1}..." value="${val}" required autocomplete="off">
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        
+        // Auto-enfocar el primer input vacío para agilizar el escaneo
+        const firstEmpty = container.querySelector('.mac-input:not([value]), .mac-input[value=""]');
+        if (firstEmpty) firstEmpty.focus();
+    }
+
+    // Inicializar los campos al cargar la página
+    document.querySelectorAll('.input-dispatch').forEach(inp => {
+        const isSerializado = inp.getAttribute('data-serializado') === 'true';
+        if (isSerializado) {
+            const itemId = inp.getAttribute('data-id');
+            
+            // Escuchar cambios en la cantidad
+            inp.addEventListener('input', (e) => updateMacInputs(itemId, e.target.value));
+            
+            // Renderizar la primera vez con el valor "sugerido" inicial
+            updateMacInputs(itemId, inp.value);
+        }
+    });
+
+    // =========================================
+    // VALIDACIÓN Y MODAL
+    // =========================================
     if (btnPreparar) {
         btnPreparar.addEventListener('click', function(e) {
-            // Validación: Verificar que al menos un input tenga una cantidad mayor a 0
             let totalToDispatch = 0;
             const inputs = document.querySelectorAll('.input-dispatch');
             
-            inputs.forEach(inp => {
-                totalToDispatch += (parseInt(inp.value) || 0);
-            });
+            inputs.forEach(inp => { totalToDispatch += (parseInt(inp.value) || 0); });
 
             if (totalToDispatch === 0 && inputs.length > 0) {
-                alert("⚠️ No has ingresado ninguna cantidad válida para despachar. Todos los valores están en 0.");
+                alert("⚠️ No has ingresado ninguna cantidad válida para despachar.");
                 return;
             }
 
-            // Si todo está OK, mostrar el modal bonito
+            // NUEVA VALIDACIÓN: Revisar que no haya campos de MAC vacíos
+            let missingMacs = false;
+            document.querySelectorAll('.mac-required').forEach(macInp => {
+                if (macInp.value.trim() === '') {
+                    missingMacs = true;
+                    macInp.style.borderColor = 'var(--danger)';
+                } else {
+                    macInp.style.borderColor = 'var(--border-light)';
+                }
+            });
+
+            if (missingMacs) {
+                alert("⚠️ Falta escanear MACs o Series en algunos equipos. Por favor completa todos los campos requeridos.");
+                return;
+            }
+
             modalConfirm.style.display = 'flex';
         });
     }
 
-    // Cancelar en el Modal
     if (btnCancelModal) {
-        btnCancelModal.addEventListener('click', () => {
-            modalConfirm.style.display = 'none';
-        });
+        btnCancelModal.addEventListener('click', () => { modalConfirm.style.display = 'none'; });
     }
 
-    // Confirmar en el Modal (Evita el doble clic)
     if (btnProceedModal) {
         btnProceedModal.addEventListener('click', () => {
-            // 1. Bloquear botón
             btnProceedModal.disabled = true;
             btnProceedModal.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
-            btnCancelModal.style.display = 'none'; // Ocultar el botón cancelar para evitar clics raros
-            
-            // 2. Enviar el formulario
+            btnCancelModal.style.display = 'none';
             formDispatch.submit();
         });
     }
 
-    // Cerrar modal haciendo clic afuera
     window.addEventListener('click', (e) => {
-        if (e.target === modalConfirm) {
-            modalConfirm.style.display = 'none';
-        }
+        if (e.target === modalConfirm) modalConfirm.style.display = 'none';
     });
 </script>
 {% endblock %}

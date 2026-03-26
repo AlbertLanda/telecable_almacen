@@ -3,7 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 # Importamos modelos base de la app inventario
-from inventario.models import Sede, Producto, TimeStampedModel
+from inventario.models import Sede, Producto, TimeStampedModel,ItemSerializado, StockTecnico
 
 class EstadoProyecto(models.TextChoices):
     # FASE 1: NEGOCIACIÓN (El Ping-Pong)
@@ -106,3 +106,31 @@ class ProyectoMaterial(TimeStampedModel):
         merma = Decimal(int(self.cantidad_merma or 0))
         cu = Decimal(self.costo_unitario or 0)
         return (cu * (usado + merma)).quantize(Decimal("0.01"))
+    
+class AsignacionCuadrilla(TimeStampedModel):
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="transferencias_cuadrilla")
+    
+    # El responsable que reparte (Ej. Jilmer)
+    entregado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="material_entregado_cuadrilla"
+    )
+    # El técnico que recibe y se hace responsable (Ej. Kevin)
+    recibido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="material_recibido_cuadrilla"
+    )
+    
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+    cantidad = models.PositiveIntegerField(help_text="Cantidad transferida al técnico")
+    
+    # ✅ CLAVE PARA LAS ONUs: Relación con las series exactas que le dio
+    seriales = models.ManyToManyField('inventario.ItemSerializado', blank=True, help_text="Las MACs/Series específicas entregadas")
+    
+    observaciones = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Transferencia a Cuadrilla"
+        verbose_name_plural = "Transferencias a Cuadrilla"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.producto.nombre} de {self.entregado_por.username} a {self.recibido_por.username}"
