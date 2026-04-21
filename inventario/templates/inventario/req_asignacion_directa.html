@@ -235,7 +235,9 @@
     const btnEnviarReq = document.getElementById("btnEnviarReq");
     const searchInput = document.getElementById("q");
     const formAsignacion = document.getElementById("formAsignacion");
-    const selectTecnico = document.getElementById("selectTecnico");
+    
+    // 💡 CORRECCIÓN PRINCIPAL: Buscamos el ID real que usa Django ("id_solicitante")
+    const selectTecnico = document.getElementById("id_solicitante") || document.getElementById("selectTecnico");
 
     // --- NOTIFICACIONES (TOAST) ---
     function showToast(msg, type='success') {
@@ -408,47 +410,32 @@
     // ==========================================
     let barcodeString = "";
     let barcodeTimer = null;
-    const URL_SCAN_DIRECTO = "{% url 'req_scan_directo' %}"; // Asegúrate de haberla agregado a urls.py
+    const URL_SCAN_DIRECTO = "{% url 'req_scan_directo' %}"; 
 
-    // Escuchamos todas las teclas que se presionan en la página
     document.addEventListener("keydown", function(e) {
-        // Ignoramos si el usuario está escribiendo en el buscador normal o en inputs de cantidad
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-        // Si presiona ENTER (código de finalización de la pistola)
         if (e.key === "Enter" && barcodeString.length > 3) {
-            e.preventDefault(); // Evitamos que la página haga scroll o algo raro
-            
-            // Enviamos el código atrapado directo al servidor
+            e.preventDefault(); 
             enviarScanDirecto(barcodeString);
-            
-            // Limpiamos para el siguiente escaneo
             barcodeString = ""; 
             clearTimeout(barcodeTimer);
             return;
         }
 
-        // Si presiona cualquier otra tecla (letra o número), la guardamos
-        // Las pistolas disparan muy rápido, así que atrapamos todo
         if (e.key.length === 1) { 
             barcodeString += e.key;
-            
-            // Si pasan más de 100ms sin teclear, no fue una pistola, fue un humano. Limpiamos.
             clearTimeout(barcodeTimer);
-            barcodeTimer = setTimeout(() => {
-                barcodeString = ""; 
-            }, 100); 
+            barcodeTimer = setTimeout(() => { barcodeString = ""; }, 100); 
         }
     });
 
-    // Función que manda el código a Django por debajo
     async function enviarScanDirecto(codigo) {
-        // 1. Obtenemos el ID del técnico que la cámara acaba de seleccionar
-        const selectTecnico = document.getElementById("selectTecnico");
+        // 💡 Usamos el ID seguro que ya buscamos arriba
         const tecnicoId = selectTecnico ? selectTecnico.value : null;
 
         if (!tecnicoId) {
-            showToast("❌ Espera a que la cámara detecte al técnico primero.", "error");
+            showToast("❌ Espera a que tu nombre se seleccione en 'Solicitante' primero.", "error");
             return;
         }
 
@@ -456,7 +443,7 @@
         
         const fd = new FormData();
         fd.append('codigo_escaneado', codigo);
-        fd.append('tecnico_id', tecnicoId); // <-- MAGIA: Enviamos el ID del técnico al backend
+        fd.append('tecnico_id', tecnicoId); 
         fd.append('csrfmiddlewaretoken', csrftoken);
 
         try {
@@ -484,16 +471,13 @@
         debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); 
     });
 
-    // Prevención de Doble Clic en Formulario Principal
     formAsignacion.addEventListener('submit', function(e) {
-        // Verificar si se ha seleccionado un técnico
-        if (!selectTecnico.value) {
+        if (!selectTecnico || !selectTecnico.value) {
             e.preventDefault();
             alert("Por favor, selecciona un técnico antes de despachar.");
             return;
         }
 
-        // Bloquear botón y cambiar texto
         btnEnviarReq.disabled = true;
         btnEnviarReq.innerHTML = "PROCESANDO... <i class='bx bx-loader-alt bx-spin'></i>";
     });
@@ -501,20 +485,21 @@
     // ==========================================
     // --- MAGIA: PUENTE CON LA SMART CAMERA ---
     // ==========================================
-    const SEDE_ACTUAL_ID = "{{ request.user.profile.sede_activa.id|default:request.user.profile.sede_principal.id }}"; 
-
     function chequearCamara() {
-        // Le puse un "|| 4" por si la variable de Django viene vacía, fuerce a buscar en la Sede 4 (Huancayo)
-        const sede_id_segura = SEDE_ACTUAL_ID || 4; 
+        const sede_id_segura = "{{ request.user.profile.sede_activa.id|default:request.user.profile.sede_principal.id }}" || "4"; 
         
-        if (!selectTecnico) return;
+        if (!selectTecnico) {
+            console.error("No se encontró el select del Técnico");
+            return;
+        }
 
         fetch(`/api/camara/status/?sede_id=${sede_id_segura}`)
             .then(response => response.json())
             .then(data => {
                 if (data.username) {
+                    console.log("Detectado por IA:", data.username);
+                    
                     for (let i = 0; i < selectTecnico.options.length; i++) {
-                        // AQUÍ ESTÁ LA MAGIA: Quitamos todos los espacios al texto de la web
                         let textoOpcion = selectTecnico.options[i].text.toLowerCase().replace(/\s+/g, '');
                         let userDetectado = data.username.toLowerCase().replace(/\s+/g, '');
                         
