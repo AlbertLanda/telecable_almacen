@@ -15,7 +15,8 @@ from .views.dashboard import (
 from .views.api import (
     api_dashboard_almacen, 
     api_reqs_almacen_list, 
-    api_reqs_almacen_create
+    api_reqs_almacen_create,
+    api_autodespacho_registrar
 )
 
 # 3. Importación de SCAN
@@ -79,6 +80,7 @@ urlpatterns = [
     path("api/dashboard/almacen/", api_dashboard_almacen, name="api_dashboard_almacen"),
     path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
     path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
+    path('api/autodespacho/', api_autodespacho_registrar, name='api_autodespacho_registrar'),
     path('almacen/recepcionar/<int:sal_id>/', almacen_recepcionar_traspaso, name='almacen_recepcionar_traspaso'),
     path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path('req/<int:req_id>/atender/', req_atender, name='req_atender'),

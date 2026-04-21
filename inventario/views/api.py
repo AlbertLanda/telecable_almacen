@@ -1,12 +1,17 @@
 from datetime import timedelta
 from decimal import Decimal
+import json
 
+from collections import Counter
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, DecimalField, ExpressionWrapper
 
@@ -20,8 +25,12 @@ from inventario.models import (
     MovimientoInventario,
     Sede,
     Proveedor,
-    TipoRequerimiento
+    TipoRequerimiento,
+    Producto,
+    DocumentoItem
 )
+
+User = get_user_model()
 
 def _require_almacen(user):
     """Helper para validar permisos de almacén"""
@@ -276,3 +285,66 @@ def api_reqs_almacen_create(request):
             "estado": req.estado,
         }
     })
+
+@csrf_exempt
+@require_POST
+def api_autodespacho_registrar(request):
+    """
+    Recibe el carrito de la Cámara Inteligente y genera una Salida Confirmada.
+    Payload: {"username": "albert", "carrito": ["77501", "77501", "69334"], "sede_id": 1}
+    """
+    try:
+        data = json.loads(request.body)
+        username = data.get("username", "").strip()
+        barcodes = data.get("carrito", [])
+        sede_id = data.get("sede_id") # En producción, la cámara enviará la sede a la que pertenece
+
+        if not barcodes:
+            return JsonResponse({"ok": False, "error": "El carrito está vacío."})
+
+        # 1. Identificar al Técnico y la Sede
+        solicitante = get_object_or_404(User, username__iexact=username)
+        sede = get_object_or_404(Sede, id=sede_id)
+
+        # 2. Crear el Documento SAL (En Borrador)
+        doc = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.SAL,
+            estado=EstadoDocumento.BORRADOR,
+            sede=sede,
+            responsable=solicitante, # La cámara actúa en nombre del técnico
+            solicitante=solicitante,
+            fecha=timezone.now(),
+            observaciones="Despacho automático vía Smart Camera."
+        )
+
+        # 3. Agrupar los códigos de barras duplicados (Ej: 2 routers iguales)
+        conteo_items = Counter(barcodes)
+
+        productos_registrados = []
+        for codigo, qty in conteo_items.items():
+            # Buscamos el producto por Barcode o por Código Interno
+            producto = Producto.objects.filter(Q(barcode=codigo) | Q(codigo_interno=codigo)).first()
+            
+            if producto:
+                DocumentoItem.objects.create(
+                    documento=doc,
+                    producto=producto,
+                    cantidad=qty
+                )
+                productos_registrados.append(f"{producto.nombre} (x{qty})")
+            else:
+                # Si escanean algo que no existe en BD, lo dejamos anotado en observaciones
+                doc.observaciones += f"\n[!] Código no reconocido escaneado: {codigo}"
+                doc.save()
+
+        # 4. LA MAGIA: Ejecutamos tu propia función que resta Stock y llena la Mochila
+        doc.confirmar(entregado_por=solicitante)
+
+        return JsonResponse({
+            "ok": True, 
+            "mensaje": f"¡Vale de Salida {doc.numero} generado exitosamente!",
+            "productos": productos_registrados
+        })
+
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
