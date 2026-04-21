@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, DecimalField, ExpressionWrapper
+from django.core.cache import cache
 
 # Importamos los modelos del Core
 from inventario.models import (
@@ -291,19 +292,21 @@ def api_reqs_almacen_create(request):
 def api_autodespacho_registrar(request):
     """
     Recibe el carrito de la Cámara Inteligente y genera una Salida Confirmada.
-    Payload: {"username": "albert", "carrito": ["77501", "77501", "69334"], "sede_id": 1}
     """
     try:
         data = json.loads(request.body)
-        username = data.get("username", "").strip()
+        username = data.get("username", "").strip() 
         barcodes = data.get("carrito", [])
-        sede_id = data.get("sede_id") # En producción, la cámara enviará la sede a la que pertenece
+        sede_id = data.get("sede_id") 
+        # Extraemos el nuevo dato que nos manda la cámara local
+        almacenero_username = data.get("almacenero") 
 
         if not barcodes:
             return JsonResponse({"ok": False, "error": "El carrito está vacío."})
 
-        # 1. Identificar al Técnico y la Sede
-        solicitante = get_object_or_404(User, username__iexact=username)
+        # 1. Identificar a los actores en la base de datos
+        solicitante = get_object_or_404(User, username__iexact=username) # El técnico (ej. Franklin)
+        almacenero = get_object_or_404(User, username__iexact=almacenero_username) # El de almacén
         sede = get_object_or_404(Sede, id=sede_id)
 
         # 2. Crear el Documento SAL (En Borrador)
@@ -311,20 +314,18 @@ def api_autodespacho_registrar(request):
             tipo=TipoDocumento.SAL,
             estado=EstadoDocumento.BORRADOR,
             sede=sede,
-            responsable=solicitante, # La cámara actúa en nombre del técnico
-            solicitante=solicitante,
+            responsable=almacenero,  # <-- El documento queda a nombre de quien atiende
+            solicitante=solicitante, # <-- Se registra que el equipo fue para el técnico
             fecha=timezone.now(),
-            observaciones="Despacho automático vía Smart Camera."
+            observaciones="Despacho por ventanilla - Smart Camera."
         )
 
-        # 3. Agrupar los códigos de barras duplicados (Ej: 2 routers iguales)
+        # 3. Agrupar los códigos de barras duplicados
         conteo_items = Counter(barcodes)
-
         productos_registrados = []
+        
         for codigo, qty in conteo_items.items():
-            # Buscamos el producto por Barcode o por Código Interno
             producto = Producto.objects.filter(Q(barcode=codigo) | Q(codigo_interno=codigo)).first()
-            
             if producto:
                 DocumentoItem.objects.create(
                     documento=doc,
@@ -333,18 +334,45 @@ def api_autodespacho_registrar(request):
                 )
                 productos_registrados.append(f"{producto.nombre} (x{qty})")
             else:
-                # Si escanean algo que no existe en BD, lo dejamos anotado en observaciones
-                doc.observaciones += f"\n[!] Código no reconocido escaneado: {codigo}"
+                doc.observaciones += f"\n[!] Código no reconocido: {codigo}"
                 doc.save()
 
-        # 4. LA MAGIA: Ejecutamos tu propia función que resta Stock y llena la Mochila
-        doc.confirmar(entregado_por=solicitante)
+        # 4. LA MAGIA: Confirma el documento y mueve los stocks
+        doc.confirmar(entregado_por=almacenero) # <-- Queda registrado quién entregó el equipo
 
         return JsonResponse({
             "ok": True, 
-            "mensaje": f"¡Vale de Salida {doc.numero} generado exitosamente!",
+            "mensaje": f"Vale de Salida {doc.numero} generado para {solicitante.username}",
             "productos": productos_registrados
         })
 
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=400)
+    
+@csrf_exempt
+@require_POST
+def api_camara_ping(request):
+    """El script de Python llama aquí cada 2 segundos cuando ve a un técnico"""
+    try:
+        data = json.loads(request.body)
+        username = data.get("username", "").strip()
+        sede_id = data.get("sede_id")
+
+        if username and sede_id:
+            # Anotamos en la pizarra temporal por 5 segundos
+            llave_cache = f"camara_sede_{sede_id}"
+            cache.set(llave_cache, username, timeout=5)
+            return JsonResponse({"ok": True})
+        return JsonResponse({"ok": False, "error": "Faltan datos"})
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)})
+
+@require_GET
+def api_camara_status(request):
+    """La página web llama aquí por debajo para saber a quién seleccionar"""
+    sede_id = request.GET.get("sede_id")
+    llave_cache = f"camara_sede_{sede_id}"
+    username_detectado = cache.get(llave_cache)
+    
+    # Devuelve el usuario si hay alguien, sino devuelve None
+    return JsonResponse({"username": username_detectado})

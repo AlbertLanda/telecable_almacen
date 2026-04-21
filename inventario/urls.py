@@ -11,12 +11,14 @@ from .views.dashboard import (
     almacen_historial_global
 )
 
-# 2. Importaciones de API
+# 2. Importaciones de API (NUEVAS FUNCIONES AÑADIDAS AQUÍ)
 from .views.api import (
     api_dashboard_almacen, 
     api_reqs_almacen_list, 
     api_reqs_almacen_create,
-    api_autodespacho_registrar
+    api_autodespacho_registrar,
+    api_camara_ping,
+    api_camara_status
 )
 
 # 3. Importación de SCAN
@@ -81,6 +83,12 @@ urlpatterns = [
     path("api/almacen/reqs/", api_reqs_almacen_list, name="api_reqs_almacen_list"),
     path("api/almacen/reqs/create/", api_reqs_almacen_create, name="api_reqs_almacen_create"),
     path('api/autodespacho/', api_autodespacho_registrar, name='api_autodespacho_registrar'),
+    
+    # --- NUEVAS RUTAS PARA EL PUENTE DE LA CÁMARA ---
+    path('api/camara/ping/', api_camara_ping, name='api_camara_ping'),
+    path('api/camara/status/', api_camara_status, name='api_camara_status'),
+    # ------------------------------------------------
+
     path('almacen/recepcionar/<int:sal_id>/', almacen_recepcionar_traspaso, name='almacen_recepcionar_traspaso'),
     path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path('req/<int:req_id>/atender/', req_atender, name='req_atender'),

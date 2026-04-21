@@ -4,20 +4,25 @@ import os
 import numpy as np
 import datetime
 import threading
-import requests  # <--- IMPORTANTE: La librería para hablar con Django
+import requests  
+import time # <--- NUEVO: Para controlar los 2 segundos del Ping
 from dotenv import load_dotenv, find_dotenv
 from PIL import Image
 
-print("Iniciando Sistema de Auto-Despacho TeleCable v1.0...")
+print("Iniciando Vigía Inteligente TeleCable v2.0...")
 
 # ==========================================
 # --- 1. SEGURIDAD Y CONFIGURACIÓN ---
 # ==========================================
 load_dotenv(find_dotenv(), override=True)  
-CAMERA_URL = os.getenv("CAMERA_URL")
 
-if not CAMERA_URL:
-    print("❌ ERROR: No se encontró CAMERA_URL en el archivo .env")
+CAMERA_URL = os.getenv("CAMERA_URL")
+SEDE_ID = os.getenv("SEDE_ID")
+# Ahora usamos la ruta del Ping
+PING_URL = os.getenv("PING_URL", "http://127.0.0.1:8000/api/camara/ping/") 
+
+if not CAMERA_URL or not SEDE_ID:
+    print("❌ ERROR: Faltan variables en el archivo .env (CAMERA_URL o SEDE_ID)")
     exit()
 
 # ==========================================
@@ -54,7 +59,7 @@ for archivo in os.listdir(carpeta_rostros):
         except Exception as e:
             print(f"   -> ❌ Error con {archivo}: {e}")
 
-print(f"✅ ¡Sistema listo con {len(nombres_conocidos)} técnicos!")
+print(f"✅ ¡Vigía listo con {len(nombres_conocidos)} técnicos!")
 
 # ==========================================
 # --- 3. CONEXIÓN AL VIDEO (MOTOR TURBO) ---
@@ -127,10 +132,9 @@ def procesar_ia_en_fondo(frame_para_ia):
     ia_ocupada = False
 
 # ==========================================
-# --- 5. BUCLE VISUAL Y LÓGICA DE CARRITO ---
+# --- 5. BUCLE PRINCIPAL (EL VIGÍA) ---
 # ==========================================
-codigo_escaneado = ""
-carrito = []  # <--- EL CARRITO DE COMPRAS
+ultimo_ping = 0
 
 while True:
     ret, frame_crudo = cap.read()
@@ -143,7 +147,26 @@ while True:
 
     tecnico_actual = nombres_detectados[0] if len(nombres_detectados) > 0 else "DESCONOCIDO"
 
-    # --- 6. DIBUJAR LA INTERFAZ ---
+    # --- ENVIAR PING AL SERVIDOR (MÁXIMO CADA 2 SEGUNDOS) ---
+    tiempo_actual = time.time()
+    if tecnico_actual != "DESCONOCIDO" and (tiempo_actual - ultimo_ping) > 2.0:
+        username_limpio = tecnico_actual.lower().replace(" ", "")
+        
+        payload = {
+            "username": username_limpio, 
+            "sede_id": int(SEDE_ID)
+        }
+        
+        try:
+            # Enviamos el dato a Django. Usamos timeout=1 para que el video no se trabe si el wifi está lento.
+            requests.post(PING_URL, json=payload, timeout=1) 
+            print(f"📡 Ping enviado a Django: {tecnico_actual} en ventanilla.")
+        except Exception as e:
+            pass # Ignoramos errores de red momentáneos
+            
+        ultimo_ping = tiempo_actual
+
+    # --- DIBUJAR LA INTERFAZ ---
     for (top, right, bottom, left), nombre in zip(ubicaciones_rostros, nombres_detectados):
         top *= 4; right *= 4; bottom *= 4; left *= 4
         color = (0, 255, 0) if nombre != "DESCONOCIDO" else (0, 0, 255)
@@ -152,85 +175,26 @@ while True:
         cv2.rectangle(frame_crudo, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
         cv2.putText(frame_crudo, nombre, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
 
-    # UI DEL CARRITO
+    # UI Minimalista (Ya no hay carrito)
     if tecnico_actual != "DESCONOCIDO":
-        cv2.putText(frame_crudo, f"SESION: {tecnico_actual}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-        cv2.putText(frame_crudo, f"CARRITO: {len(carrito)} equipos", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.putText(frame_crudo, "[C] Confirmar  |  [X] Vaciar  |  [Q] Salir", (20, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(frame_crudo, f"DETECTADO: {tecnico_actual}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        cv2.putText(frame_crudo, "Sincronizando con Web...", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 1)
     else:
-        cv2.putText(frame_crudo, "BLOQUEADO - ACERQUE SU ROSTRO", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+        cv2.putText(frame_crudo, "ESPERANDO ROSTRO...", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
     hora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    cv2.putText(frame_crudo, f"TeleCable - Almacen | {hora}", (20, frame_crudo.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+    cv2.putText(frame_crudo, f"TeleCable - Vigia | Sede ID: {SEDE_ID} | {hora}", (20, frame_crudo.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-    cv2.imshow('Estacion de Auto-Despacho', frame_crudo)
+    cv2.imshow('Vigia Inteligente - TeleCable', frame_crudo)
 
     # ==========================================
-    # --- 7. ESCUCHADOR DEL LECTOR Y TECLADO ---
+    # --- 6. ESCUCHADOR DE TECLADO ---
     # ==========================================
     key = cv2.waitKey(1) & 0xFF
     
     if key == ord('q'):
+        print("Cerrando Vigía...")
         break
-        
-    # --- LA LETRA 'C' DISPARA LA API A DJANGO ---
-    elif key == ord('c') or key == ord('C'):
-        if len(carrito) > 0 and tecnico_actual != "DESCONOCIDO":
-            print("\n" + "🟢"*20)
-            print("🚀 Enviando paquete de despacho a la nube de TeleCable...")
-            
-            # ADVERTENCIA: Asegúrate de que Django esté corriendo en este puerto y tu IP sea correcta
-            url_django = "http://127.0.0.1:8000/api/almacen/auto-despacho/" 
-            
-            # Convertimos "ALBERT LANDA" a "albertlanda" para que coincida con el username de Django
-            username_limpio = tecnico_actual.lower().replace(" ", "")
-            
-            payload = {
-                "username": username_limpio, 
-                "carrito": carrito,
-                "sede_id": 1  # ID de tu Sede Principal (Ej: 1)
-            }
-            
-            try:
-                respuesta = requests.post(url_django, json=payload)
-                data = respuesta.json()
-                
-                if data.get("ok"):
-                    print(f"✅ ¡ÉXITO! {data.get('mensaje')}")
-                    for p in data.get("productos", []):
-                        print(f"  -> {p}")
-                else:
-                    print(f"❌ Error del servidor: {data.get('error')}")
-            except Exception as e:
-                print(f"❌ Error de conexión: {e}")
-                print("⚠️ Asegúrate de que el servidor Django esté corriendo (python manage.py runserver).")
-            
-            print("🟢"*20 + "\n")
-            carrito = [] # Vaciamos el carrito tras procesar
-        else:
-            print("⚠️ Error: Carrito vacío o técnico no reconocido.")
-            
-    # --- LA LETRA 'X' VACÍA EL CARRITO ---
-    elif key == ord('x') or key == ord('X'):
-        print("🗑️ Carrito vaciado por el usuario.")
-        carrito = []
-        codigo_escaneado = ""
-        
-    # --- EL LECTOR DE BARRAS LLENA EL CARRITO ---
-    elif key != 255:
-        if key == 13: # El Enter de la pistola
-            if codigo_escaneado != "":
-                if tecnico_actual != "DESCONOCIDO":
-                    carrito.append(codigo_escaneado)
-                    print(f"➕ Agregado: {codigo_escaneado} | Llevas: {len(carrito)} items")
-                else:
-                    print("❌ Escaneo rechazado: Técnico no reconocido.")
-                codigo_escaneado = ""
-        else:
-            try:
-                codigo_escaneado += chr(key)
-            except ValueError:
-                pass
 
 # Limpieza
 cap.release()

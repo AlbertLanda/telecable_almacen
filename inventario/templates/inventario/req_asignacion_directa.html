@@ -409,7 +409,7 @@
         debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); 
     });
 
-    // NUEVO: Prevención de Doble Clic en Formulario Principal
+    // Prevención de Doble Clic en Formulario Principal
     formAsignacion.addEventListener('submit', function(e) {
         // Verificar si se ha seleccionado un técnico
         if (!selectTecnico.value) {
@@ -422,6 +422,41 @@
         btnEnviarReq.disabled = true;
         btnEnviarReq.innerHTML = "PROCESANDO... <i class='bx bx-loader-alt bx-spin'></i>";
     });
+
+    // ==========================================
+    // --- MAGIA: PUENTE CON LA SMART CAMERA ---
+    // ==========================================
+    const SEDE_ACTUAL_ID = "{{ request.user.profile.sede_activa.id|default:request.user.profile.sede_principal.id }}"; 
+
+    function chequearCamara() {
+        if (!SEDE_ACTUAL_ID || !selectTecnico) return;
+
+        fetch(`/api/camara/status/?sede_id=${SEDE_ACTUAL_ID}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.username) {
+                    for (let i = 0; i < selectTecnico.options.length; i++) {
+                        let textoOpcion = selectTecnico.options[i].text.toLowerCase();
+                        let userDetectado = data.username.toLowerCase();
+                        
+                        if (textoOpcion.includes(userDetectado) && selectTecnico.selectedIndex !== i) {
+                            selectTecnico.selectedIndex = i;
+                            
+                            // Disparar evento de cambio
+                            selectTecnico.dispatchEvent(new Event('change'));
+                            
+                            // Mostrar alerta visual de éxito
+                            showToast(`Técnico detectado en ventanilla: ${data.username}`);
+                            break;
+                        }
+                    }
+                }
+            })
+            .catch(error => console.log("Puente de cámara inactivo o cargando..."));
+    }
+
+    // Revisar la cámara cada 2 segundos
+    setInterval(chequearCamara, 2000);
 
     // Iniciar
     loadCatalog();
