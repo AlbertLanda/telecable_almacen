@@ -1213,9 +1213,13 @@ def devolucion_print(request, doc_id: int):
 @require_POST
 def req_scan_directo(request):
     codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
+    tecnico_id = request.POST.get('tecnico_id') # <-- NUEVO: Recibimos de quién es la mochila
     
-    if not codigo_escaneado:
-        return JsonResponse({"ok": False, "error": "No se recibió código."})
+    if not codigo_escaneado or not tecnico_id:
+        return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
+
+    # Obtenemos al objeto User del dueño de la mochila (ej. Albert Landa)
+    tecnico = get_object_or_404(User, id=tecnico_id)
 
     producto_obj = None
 
@@ -1226,8 +1230,8 @@ def req_scan_directo(request):
     ).first()
 
     if serial_encontrado:
-        # Usamos el enum de tu modelo: ItemSerializado.EstadoItem.EN_ALMACEN
-        if serial_encontrado.estado != "EN_ALMACEN": # Ajusta si usas el Enum o el string
+        # Asegúrate de no ponerle .id aquí, solo .estado
+        if serial_encontrado.estado != "EN_ALMACEN": 
             return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
         producto_obj = serial_encontrado.producto
     else:
@@ -1239,22 +1243,22 @@ def req_scan_directo(request):
 
     if producto_obj:
         try:
-            # 1. Obtenemos el REQ en borrador usando TU servicio
-            req_borrador = get_or_create_req_borrador(user=request.user)
+            # 1. Obtenemos el carrito DEL TÉCNICO (no de Sandra)
+            req_borrador = get_or_create_req_borrador(user=tecnico)
             
-            # 2. Agregamos el item usando TU servicio: add_item_to_req
+            # 2. Agregamos el item a nombre DEL TÉCNICO
             add_item_to_req(
-                user=request.user, 
+                user=tecnico, 
                 req=req_borrador, 
                 producto=producto_obj, 
                 cantidad=1
             )
             
-            # 3. Preparamos datos para refrescar la mochila en la web
+            # 3. Preparamos datos para refrescar la mochila (Usamos producto_id por seguridad)
             items_data = []
             for item in req_borrador.items.all():
                 items_data.append({
-                    "producto_id": item.producto.id,
+                    "producto_id": item.producto_id, 
                     "nombre": item.producto.nombre,
                     "codigo": item.producto.codigo_interno,
                     "cantidad": item.cantidad
@@ -1263,7 +1267,7 @@ def req_scan_directo(request):
             return JsonResponse({
                 "ok": True, 
                 "items": items_data, 
-                "mensaje": "Agregado a la mochila."
+                "mensaje": "Agregado a la mochila del técnico."
             })
 
         except Exception as e:

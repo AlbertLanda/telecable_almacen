@@ -443,10 +443,20 @@
 
     // Función que manda el código a Django por debajo
     async function enviarScanDirecto(codigo) {
-        showToast("Escaneando...", "info"); // Mensaje visual de que la pistola disparó
+        // 1. Obtenemos el ID del técnico que la cámara acaba de seleccionar
+        const selectTecnico = document.getElementById("selectTecnico");
+        const tecnicoId = selectTecnico ? selectTecnico.value : null;
+
+        if (!tecnicoId) {
+            showToast("❌ Espera a que la cámara detecte al técnico primero.", "error");
+            return;
+        }
+
+        showToast("Escaneando...", "info"); 
         
         const fd = new FormData();
         fd.append('codigo_escaneado', codigo);
+        fd.append('tecnico_id', tecnicoId); // <-- MAGIA: Enviamos el ID del técnico al backend
         fd.append('csrfmiddlewaretoken', csrftoken);
 
         try {
@@ -458,10 +468,10 @@
             const data = await res.json();
             
             if (data.ok) {
-                showToast(`✅ ${data.mensaje}`); // "Equipo agregado"
-                renderCart(data.items); // Refresca la mochila visualmente
+                showToast(`✅ ${data.mensaje}`); 
+                renderCart(data.items); 
             } else {
-                showToast(`❌ ${data.error}`, 'error'); // Ej: "Código no reconocido"
+                showToast(`❌ ${data.error}`, 'error'); 
             }
         } catch (err) { 
             showToast("Error de conexión al escanear", 'error'); 
