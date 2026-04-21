@@ -429,30 +429,30 @@
     const SEDE_ACTUAL_ID = "{{ request.user.profile.sede_activa.id|default:request.user.profile.sede_principal.id }}"; 
 
     function chequearCamara() {
-        if (!SEDE_ACTUAL_ID || !selectTecnico) return;
+        // Le puse un "|| 4" por si la variable de Django viene vacía, fuerce a buscar en la Sede 4 (Huancayo)
+        const sede_id_segura = SEDE_ACTUAL_ID || 4; 
+        
+        if (!selectTecnico) return;
 
-        fetch(`/api/camara/status/?sede_id=${SEDE_ACTUAL_ID}`)
+        fetch(`/api/camara/status/?sede_id=${sede_id_segura}`)
             .then(response => response.json())
             .then(data => {
                 if (data.username) {
                     for (let i = 0; i < selectTecnico.options.length; i++) {
-                        let textoOpcion = selectTecnico.options[i].text.toLowerCase();
-                        let userDetectado = data.username.toLowerCase();
+                        // AQUÍ ESTÁ LA MAGIA: Quitamos todos los espacios al texto de la web
+                        let textoOpcion = selectTecnico.options[i].text.toLowerCase().replace(/\s+/g, '');
+                        let userDetectado = data.username.toLowerCase().replace(/\s+/g, '');
                         
                         if (textoOpcion.includes(userDetectado) && selectTecnico.selectedIndex !== i) {
                             selectTecnico.selectedIndex = i;
-                            
-                            // Disparar evento de cambio
                             selectTecnico.dispatchEvent(new Event('change'));
-                            
-                            // Mostrar alerta visual de éxito
-                            showToast(`Técnico detectado en ventanilla: ${data.username}`);
+                            showToast(`🤖 IA: Técnico detectado en ventanilla.`);
                             break;
                         }
                     }
                 }
             })
-            .catch(error => console.log("Puente de cámara inactivo o cargando..."));
+            .catch(error => console.log("Puente de cámara inactivo..."));
     }
 
     // Revisar la cámara cada 2 segundos
