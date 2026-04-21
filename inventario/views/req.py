@@ -29,7 +29,7 @@ from inventario.services.req_service import (
     get_or_create_req_borrador,
     add_item_to_req,
     set_item_qty,
-    remove_item_from_req,
+    remove_item_from_req
 )
 
 from inventario.services.sal_service import req_to_sal
@@ -1209,3 +1209,64 @@ def devolucion_print(request, doc_id: int):
         "fecha_impresion": timezone.now(),
         "usuario": request.user,
     })
+
+@require_POST
+def req_scan_directo(request):
+    codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
+    
+    if not codigo_escaneado:
+        return JsonResponse({"ok": False, "error": "No se recibió código."})
+
+    producto_obj = None
+
+    # 1. ¿Es un equipo Serializado? (SN o MAC)
+    serial_encontrado = ItemSerializado.objects.filter(
+        Q(serial_principal__iexact=codigo_escaneado) | 
+        Q(mac_address__iexact=codigo_escaneado)
+    ).first()
+
+    if serial_encontrado:
+        # Usamos el enum de tu modelo: ItemSerializado.EstadoItem.EN_ALMACEN
+        if serial_encontrado.estado != "EN_ALMACEN": # Ajusta si usas el Enum o el string
+            return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
+        producto_obj = serial_encontrado.producto
+    else:
+        # 2. ¿Es un Producto a granel?
+        producto_obj = Producto.objects.filter(
+            Q(barcode__iexact=codigo_escaneado) | 
+            Q(codigo_interno__iexact=codigo_escaneado)
+        ).first()
+
+    if producto_obj:
+        try:
+            # 1. Obtenemos el REQ en borrador usando TU servicio
+            req_borrador = get_or_create_req_borrador(user=request.user)
+            
+            # 2. Agregamos el item usando TU servicio: add_item_to_req
+            add_item_to_req(
+                user=request.user, 
+                req=req_borrador, 
+                producto=producto_obj, 
+                cantidad=1
+            )
+            
+            # 3. Preparamos datos para refrescar la mochila en la web
+            items_data = []
+            for item in req_borrador.items.all():
+                items_data.append({
+                    "producto_id": item.producto.id,
+                    "nombre": item.producto.nombre,
+                    "codigo": item.producto.codigo_interno,
+                    "cantidad": item.cantidad
+                })
+            
+            return JsonResponse({
+                "ok": True, 
+                "items": items_data, 
+                "mensaje": "Agregado a la mochila."
+            })
+
+        except Exception as e:
+            return JsonResponse({"ok": False, "error": str(e)})
+
+    return JsonResponse({"ok": False, "error": f"Código '{codigo_escaneado}' no reconocido."})

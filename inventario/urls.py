@@ -46,6 +46,7 @@ from .views.req import (
     req_set_tipo,
     req_atender,
     req_asignacion_directa,
+    req_scan_directo,
     almacen_devolucion_rapida,
     devolucion_print,
 )
@@ -99,6 +100,7 @@ urlpatterns = [
     path("req/", req_home, name="req_home"),
     path("req/add/", req_add_item, name="req_add_item"),
     path("req/scan-add/", req_scan_add, name="req_scan_add"),
+    path("req/scan-directo/", req_scan_directo, name="req_scan_directo"),
 
     # Carrito y Catálogo
     path("req/catalogo/", req_catalogo, name="req_catalogo"),

@@ -403,6 +403,71 @@
         } catch(e) {}
     }
 
+    // ==========================================
+    // --- MAGIA DEL LECTOR DE CÓDIGOS DE BARRAS ---
+    // ==========================================
+    let barcodeString = "";
+    let barcodeTimer = null;
+    const URL_SCAN_DIRECTO = "{% url 'req_scan_directo' %}"; // Asegúrate de haberla agregado a urls.py
+
+    // Escuchamos todas las teclas que se presionan en la página
+    document.addEventListener("keydown", function(e) {
+        // Ignoramos si el usuario está escribiendo en el buscador normal o en inputs de cantidad
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // Si presiona ENTER (código de finalización de la pistola)
+        if (e.key === "Enter" && barcodeString.length > 3) {
+            e.preventDefault(); // Evitamos que la página haga scroll o algo raro
+            
+            // Enviamos el código atrapado directo al servidor
+            enviarScanDirecto(barcodeString);
+            
+            // Limpiamos para el siguiente escaneo
+            barcodeString = ""; 
+            clearTimeout(barcodeTimer);
+            return;
+        }
+
+        // Si presiona cualquier otra tecla (letra o número), la guardamos
+        // Las pistolas disparan muy rápido, así que atrapamos todo
+        if (e.key.length === 1) { 
+            barcodeString += e.key;
+            
+            // Si pasan más de 100ms sin teclear, no fue una pistola, fue un humano. Limpiamos.
+            clearTimeout(barcodeTimer);
+            barcodeTimer = setTimeout(() => {
+                barcodeString = ""; 
+            }, 100); 
+        }
+    });
+
+    // Función que manda el código a Django por debajo
+    async function enviarScanDirecto(codigo) {
+        showToast("Escaneando...", "info"); // Mensaje visual de que la pistola disparó
+        
+        const fd = new FormData();
+        fd.append('codigo_escaneado', codigo);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+
+        try {
+            const res = await fetch(URL_SCAN_DIRECTO, { 
+                method: 'POST', 
+                body: fd, 
+                headers: {'X-Requested-With': 'XMLHttpRequest'} 
+            });
+            const data = await res.json();
+            
+            if (data.ok) {
+                showToast(`✅ ${data.mensaje}`); // "Equipo agregado"
+                renderCart(data.items); // Refresca la mochila visualmente
+            } else {
+                showToast(`❌ ${data.error}`, 'error'); // Ej: "Código no reconocido"
+            }
+        } catch (err) { 
+            showToast("Error de conexión al escanear", 'error'); 
+        }
+    }
+
     // --- EVENT LISTENERS ---
     searchInput.addEventListener('input', (e) => { 
         clearTimeout(debounceTimer); 
