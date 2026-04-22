@@ -2,7 +2,7 @@ from .base import *
 import dj_database_url
 import os
 
-DEBUG = False
+DEBUG = True
 
 # 1. SEGURIDAD DE HOSTS
 # En Azure, ALLOWED_HOSTS vendrá de la variable de entorno, ej: "tu-app.azurewebsites.net"
