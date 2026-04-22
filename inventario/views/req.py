@@ -1212,14 +1212,14 @@ def devolucion_print(request, doc_id: int):
 
 @require_POST
 def req_scan_directo(request):
-    try: # <-- Agregamos un try/except general para que NUNCA rompa la conexión
+    try:
         codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
         tecnico_id = request.POST.get('tecnico_id') 
         
         if not codigo_escaneado or not tecnico_id:
             return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
 
-        # Obtenemos al objeto User del dueño de la mochila
+        # Validamos que el técnico exista, aunque el carrito lo armas tú (Almacén)
         tecnico = get_object_or_404(User, id=tecnico_id)
         producto_obj = None
 
@@ -1241,21 +1241,21 @@ def req_scan_directo(request):
             ).first()
 
         if producto_obj:
-            # Usamos el helper seguro que ya existe en tu archivo para evitar errores si el técnico no tiene ubicación
-            ubicacion = _get_ubicacion_operativa(tecnico)
+            # 💡 EL CAMBIO MAESTRO:
+            # El carrito te pertenece a TI (request.user) mientras tienes la lectora en la mano.
+            # Al darle click a "Despachar Ahora" en la interfaz, se transfiere al técnico.
+            ubicacion = _get_ubicacion_operativa(request.user)
             
-            # 1. Obtenemos el carrito DEL TÉCNICO
-            req_borrador = get_or_create_req_borrador(user=tecnico, ubicacion=ubicacion)
+            req_borrador = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
             
-            # 2. Agregamos el item a nombre DEL TÉCNICO
             add_item_to_req(
-                user=tecnico, 
+                user=request.user, 
                 req=req_borrador, 
                 producto=producto_obj, 
                 cantidad=1
             )
             
-            # 3. Preparamos datos para refrescar la mochila
+            # Preparamos datos para refrescar la mochila en pantalla
             items_data = []
             for item in req_borrador.items.all():
                 items_data.append({
@@ -1268,11 +1268,11 @@ def req_scan_directo(request):
             return JsonResponse({
                 "ok": True, 
                 "items": items_data, 
-                "mensaje": "Agregado a la mochila del técnico."
+                "mensaje": f"Agregado. Destino: {tecnico.get_full_name() or tecnico.username}"
             })
 
         return JsonResponse({"ok": False, "error": f"Código '{codigo_escaneado}' no reconocido."})
     
     except Exception as e:
-        # Si algo falla en Python, lo devolvemos como texto a la pantalla para poder leerlo
-        return JsonResponse({"ok": False, "error": f"Error interno del servidor: {str(e)}"})
+        # Esto atrapará cualquier caída y nos dirá exactamente el motivo
+        return JsonResponse({"ok": False, "error": f"Error interno: {str(e)}"})
