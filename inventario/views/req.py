@@ -1212,41 +1212,38 @@ def devolucion_print(request, doc_id: int):
 
 @require_POST
 def req_scan_directo(request):
-    codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
-    tecnico_id = request.POST.get('tecnico_id') 
-    
-    if not codigo_escaneado or not tecnico_id:
-        return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
+    try: # <-- Agregamos un try/except general para que NUNCA rompa la conexión
+        codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
+        tecnico_id = request.POST.get('tecnico_id') 
+        
+        if not codigo_escaneado or not tecnico_id:
+            return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
 
-    # Obtenemos al objeto User del dueño de la mochila (ej. Franklin)
-    tecnico = get_object_or_404(User, id=tecnico_id)
+        # Obtenemos al objeto User del dueño de la mochila
+        tecnico = get_object_or_404(User, id=tecnico_id)
+        producto_obj = None
 
-    producto_obj = None
-
-    # 1. ¿Es un equipo Serializado? (SN o MAC)
-    # 🔴 AQUÍ ESTABA EL ERROR: Cambié 'serial_principal' por 'serial' que es como se llama en el modelo
-    serial_encontrado = ItemSerializado.objects.filter(
-        Q(serial__iexact=codigo_escaneado) | 
-        Q(mac_address__iexact=codigo_escaneado)
-    ).first()
-
-    if serial_encontrado:
-        if serial_encontrado.estado != ItemSerializado.Estado.EN_ALMACEN: 
-            return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
-        producto_obj = serial_encontrado.producto
-    else:
-        # 2. ¿Es un Producto a granel?
-        producto_obj = Producto.objects.filter(
-            Q(barcode__iexact=codigo_escaneado) | 
-            Q(codigo_interno__iexact=codigo_escaneado)
+        # 1. ¿Es un equipo Serializado? (SN o MAC)
+        serial_encontrado = ItemSerializado.objects.filter(
+            Q(serial__iexact=codigo_escaneado) | 
+            Q(mac_address__iexact=codigo_escaneado)
         ).first()
 
-    if producto_obj:
-        try:
-            # Obtenemos la ubicación de la sede del técnico
-            profile = get_profile(tecnico)
-            ubicacion = Ubicacion.objects.filter(sede=profile.get_sede_operativa()).first()
+        if serial_encontrado:
+            if serial_encontrado.estado != ItemSerializado.Estado.EN_ALMACEN: 
+                return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
+            producto_obj = serial_encontrado.producto
+        else:
+            # 2. ¿Es un Producto a granel?
+            producto_obj = Producto.objects.filter(
+                Q(barcode__iexact=codigo_escaneado) | 
+                Q(codigo_interno__iexact=codigo_escaneado)
+            ).first()
 
+        if producto_obj:
+            # Usamos el helper seguro que ya existe en tu archivo para evitar errores si el técnico no tiene ubicación
+            ubicacion = _get_ubicacion_operativa(tecnico)
+            
             # 1. Obtenemos el carrito DEL TÉCNICO
             req_borrador = get_or_create_req_borrador(user=tecnico, ubicacion=ubicacion)
             
@@ -1274,7 +1271,8 @@ def req_scan_directo(request):
                 "mensaje": "Agregado a la mochila del técnico."
             })
 
-        except Exception as e:
-            return JsonResponse({"ok": False, "error": str(e)})
-
-    return JsonResponse({"ok": False, "error": f"Código '{codigo_escaneado}' no reconocido."})
+        return JsonResponse({"ok": False, "error": f"Código '{codigo_escaneado}' no reconocido."})
+    
+    except Exception as e:
+        # Si algo falla en Python, lo devolvemos como texto a la pantalla para poder leerlo
+        return JsonResponse({"ok": False, "error": f"Error interno del servidor: {str(e)}"})
