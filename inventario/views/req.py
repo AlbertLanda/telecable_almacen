@@ -1213,25 +1213,25 @@ def devolucion_print(request, doc_id: int):
 @require_POST
 def req_scan_directo(request):
     codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
-    tecnico_id = request.POST.get('tecnico_id') # <-- NUEVO: Recibimos de quién es la mochila
+    tecnico_id = request.POST.get('tecnico_id') 
     
     if not codigo_escaneado or not tecnico_id:
         return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
 
-    # Obtenemos al objeto User del dueño de la mochila (ej. Albert Landa)
+    # Obtenemos al objeto User del dueño de la mochila (ej. Franklin)
     tecnico = get_object_or_404(User, id=tecnico_id)
 
     producto_obj = None
 
     # 1. ¿Es un equipo Serializado? (SN o MAC)
+    # 🔴 AQUÍ ESTABA EL ERROR: Cambié 'serial_principal' por 'serial' que es como se llama en el modelo
     serial_encontrado = ItemSerializado.objects.filter(
-        Q(serial_principal__iexact=codigo_escaneado) | 
+        Q(serial__iexact=codigo_escaneado) | 
         Q(mac_address__iexact=codigo_escaneado)
     ).first()
 
     if serial_encontrado:
-        # Asegúrate de no ponerle .id aquí, solo .estado
-        if serial_encontrado.estado != "EN_ALMACEN": 
+        if serial_encontrado.estado != ItemSerializado.Estado.EN_ALMACEN: 
             return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
         producto_obj = serial_encontrado.producto
     else:
@@ -1243,8 +1243,12 @@ def req_scan_directo(request):
 
     if producto_obj:
         try:
-            # 1. Obtenemos el carrito DEL TÉCNICO (no de Sandra)
-            req_borrador = get_or_create_req_borrador(user=tecnico)
+            # Obtenemos la ubicación de la sede del técnico
+            profile = get_profile(tecnico)
+            ubicacion = Ubicacion.objects.filter(sede=profile.get_sede_operativa()).first()
+
+            # 1. Obtenemos el carrito DEL TÉCNICO
+            req_borrador = get_or_create_req_borrador(user=tecnico, ubicacion=ubicacion)
             
             # 2. Agregamos el item a nombre DEL TÉCNICO
             add_item_to_req(
@@ -1254,11 +1258,11 @@ def req_scan_directo(request):
                 cantidad=1
             )
             
-            # 3. Preparamos datos para refrescar la mochila (Usamos producto_id por seguridad)
+            # 3. Preparamos datos para refrescar la mochila
             items_data = []
             for item in req_borrador.items.all():
                 items_data.append({
-                    "producto_id": item.producto_id, 
+                    "producto_id": item.producto.id, 
                     "nombre": item.producto.nombre,
                     "codigo": item.producto.codigo_interno,
                     "cantidad": item.cantidad
