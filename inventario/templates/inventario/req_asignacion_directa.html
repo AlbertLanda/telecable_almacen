@@ -108,6 +108,7 @@
     .tech-select { 
         width: 100%; padding: 14px; background: var(--bg-input); border: 1px solid var(--border-light); 
         color: var(--text-main); border-radius: 10px; font-size: 15px; outline: none; cursor: pointer;
+        transition: all 0.3s ease; /* Transición suave para el efecto de la IA */
     }
     .tech-select:focus { border-color: var(--primary); }
 
@@ -236,7 +237,7 @@
     const searchInput = document.getElementById("q");
     const formAsignacion = document.getElementById("formAsignacion");
     
-    // 💡 CORRECCIÓN PRINCIPAL: Buscamos el ID real que usa Django ("id_solicitante")
+    // Búsqueda del select de técnico
     const selectTecnico = document.getElementById("id_solicitante") || document.getElementById("selectTecnico");
 
     // --- NOTIFICACIONES (TOAST) ---
@@ -431,7 +432,6 @@
     });
 
     async function enviarScanDirecto(codigo) {
-        // 💡 Usamos el ID seguro que ya buscamos arriba
         const tecnicoId = selectTecnico ? selectTecnico.value : null;
 
         if (!tecnicoId) {
@@ -471,15 +471,35 @@
         debounceTimer = setTimeout(() => loadCatalog(e.target.value), 400); 
     });
 
+    // ==========================================
+    // --- INTERCEPTAR ENVÍO Y PEDIR CONFIRMACIÓN ---
+    // ==========================================
     formAsignacion.addEventListener('submit', function(e) {
+        e.preventDefault(); // Detenemos el envío automático del formulario
+
         if (!selectTecnico || !selectTecnico.value) {
-            e.preventDefault();
-            alert("Por favor, selecciona un técnico antes de despachar.");
+            showToast("❌ Por favor, selecciona un técnico antes de despachar.", "error");
             return;
         }
 
-        btnEnviarReq.disabled = true;
-        btnEnviarReq.innerHTML = "PROCESANDO... <i class='bx bx-loader-alt bx-spin'></i>";
+        // Obtener el nombre del técnico seleccionado y la cantidad de items
+        const tecnicoNombre = selectTecnico.options[selectTecnico.selectedIndex].text;
+        const cantidadItems = document.getElementById("cartCount").textContent;
+
+        if (parseInt(cantidadItems) === 0) {
+            showToast("❌ La mochila está vacía. Escanea o agrega productos.", "error");
+            return;
+        }
+
+        // Mensaje de confirmación en pantalla
+        const confirmar = confirm(`⚠️ CONFIRMACIÓN DE DESPACHO\n\n¿Estás seguro de cargar ${cantidadItems} ítem(s) a la mochila del técnico:\n👤 ${tecnicoNombre}?`);
+
+        if (confirmar) {
+            // Si el almacenero acepta, bloqueamos el botón para evitar doble clic y enviamos el formulario
+            btnEnviarReq.disabled = true;
+            btnEnviarReq.innerHTML = "PROCESANDO... <i class='bx bx-loader-alt bx-spin'></i>";
+            this.submit(); // Dispara el envío real
+        }
     });
 
     // ==========================================
@@ -489,7 +509,6 @@
         const sede_id_segura = "{{ request.user.profile.sede_activa.id|default:request.user.profile.sede_principal.id }}" || "4"; 
         
         if (!selectTecnico) {
-            console.error("No se encontró el select del Técnico");
             return;
         }
 
@@ -497,16 +516,26 @@
             .then(response => response.json())
             .then(data => {
                 if (data.username) {
-                    console.log("Detectado por IA:", data.username);
-                    
                     for (let i = 0; i < selectTecnico.options.length; i++) {
                         let textoOpcion = selectTecnico.options[i].text.toLowerCase().replace(/\s+/g, '');
                         let userDetectado = data.username.toLowerCase().replace(/\s+/g, '');
                         
                         if (textoOpcion.includes(userDetectado) && selectTecnico.selectedIndex !== i) {
+                            // Selecciona al técnico automáticamente
                             selectTecnico.selectedIndex = i;
                             selectTecnico.dispatchEvent(new Event('change'));
-                            showToast(`🤖 IA: Técnico detectado en ventanilla.`);
+                            
+                            // Efecto visual: Resalta el selector en verde para que se note la detección automática
+                            selectTecnico.style.borderColor = "var(--success, #30d158)";
+                            selectTecnico.style.boxShadow = "0 0 12px rgba(48, 209, 88, 0.6)";
+                            
+                            // Quitamos el efecto después de 3 segundos
+                            setTimeout(() => {
+                                selectTecnico.style.borderColor = "var(--border-light)";
+                                selectTecnico.style.boxShadow = "none";
+                            }, 3000);
+
+                            showToast(`🤖 IA: ${selectTecnico.options[i].text} detectado en ventanilla.`);
                             break;
                         }
                     }
