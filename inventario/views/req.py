@@ -1219,14 +1219,11 @@ def req_scan_directo(request):
         if not codigo_escaneado or not tecnico_id:
             return JsonResponse({"ok": False, "error": "Faltan datos de escaneo o no hay técnico seleccionado."})
 
-        # Validamos que el técnico exista, aunque el carrito lo armas tú (Almacén)
         tecnico = get_object_or_404(User, id=tecnico_id)
         producto_obj = None
 
-        # 1. ¿Es un equipo Serializado? (SN o MAC)
         serial_encontrado = ItemSerializado.objects.filter(
-            Q(serial__iexact=codigo_escaneado) | 
-            Q(mac_address__iexact=codigo_escaneado)
+            Q(serial__iexact=codigo_escaneado) | Q(mac_address__iexact=codigo_escaneado)
         ).first()
 
         if serial_encontrado:
@@ -1234,18 +1231,17 @@ def req_scan_directo(request):
                 return JsonResponse({"ok": False, "error": f"Este equipo está {serial_encontrado.estado}."})
             producto_obj = serial_encontrado.producto
         else:
-            # 2. ¿Es un Producto a granel?
             producto_obj = Producto.objects.filter(
-                Q(barcode__iexact=codigo_escaneado) | 
-                Q(codigo_interno__iexact=codigo_escaneado)
+                Q(barcode__iexact=codigo_escaneado) | Q(codigo_interno__iexact=codigo_escaneado)
             ).first()
 
         if producto_obj:
-            # 💡 EL CAMBIO MAESTRO:
-            # El carrito te pertenece a TI (request.user) mientras tienes la lectora en la mano.
-            # Al darle click a "Despachar Ahora" en la interfaz, se transfiere al técnico.
-            ubicacion = _get_ubicacion_operativa(request.user)
-            
+            try:
+                # 🛡️ Ponemos la protección aquí
+                ubicacion = _get_ubicacion_operativa(request.user)
+            except ValidationError as ve:
+                return JsonResponse({"ok": False, "error": f"Configuración incompleta: {str(ve)}"})
+
             req_borrador = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
             
             add_item_to_req(
@@ -1255,24 +1251,15 @@ def req_scan_directo(request):
                 cantidad=1
             )
             
-            # Preparamos datos para refrescar la mochila en pantalla
-            items_data = []
-            for item in req_borrador.items.all():
-                items_data.append({
-                    "producto_id": item.producto.id, 
-                    "nombre": item.producto.nombre,
-                    "codigo": item.producto.codigo_interno,
-                    "cantidad": item.cantidad
-                })
+            items_data = [
+                {"producto_id": item.producto.id, "nombre": item.producto.nombre, "codigo": item.producto.codigo_interno, "cantidad": item.cantidad}
+                for item in req_borrador.items.all()
+            ]
             
-            return JsonResponse({
-                "ok": True, 
-                "items": items_data, 
-                "mensaje": f"Agregado. Destino: {tecnico.get_full_name() or tecnico.username}"
-            })
+            return JsonResponse({"ok": True, "items": items_data, "mensaje": f"Agregado. Destino: {tecnico.get_full_name() or tecnico.username}"})
 
         return JsonResponse({"ok": False, "error": f"Código '{codigo_escaneado}' no reconocido."})
     
     except Exception as e:
-        # Esto atrapará cualquier caída y nos dirá exactamente el motivo
-        return JsonResponse({"ok": False, "error": f"Error interno: {str(e)}"})
+        # 🛡️ Devolvemos 400 para que JS lea el mensaje y NO se vaya al catch()
+        return JsonResponse({"ok": False, "error": f"Error interno: {str(e)}"}, status=400)
