@@ -282,7 +282,7 @@
                         <span style="color:var(--text-secondary)">Stock:</span>
                         <span class="badge-stock ${stockClass}">${stock}</span>
                     </div>
-                    <form class="add-form" onsubmit="addToCart(event, ${p.producto_id})">
+                    <form class="add-form" onsubmit="addToCart(event, '${p.producto_id}')">
                         <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
                         <button type="submit" class="btn-add" ${disabled}>
                             ${btnText} <i class='bx bx-plus'></i> 
@@ -314,8 +314,8 @@
                 </div>
                 <div class="ci-actions">
                     <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1" 
-                           onchange="updateQty(${it.producto_id}, this.value)">
-                    <button class="btn-remove" onclick="removeFromCart(${it.producto_id})" title="Quitar">
+                           onchange="updateQty('${it.producto_id}', this.value)">
+                    <button class="btn-remove" onclick="removeFromCart('${it.producto_id}')" title="Quitar">
                         <i class='bx bx-trash'></i>
                     </button>
                 </div>
