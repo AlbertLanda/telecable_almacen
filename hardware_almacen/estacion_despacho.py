@@ -4,7 +4,7 @@ import os
 import numpy as np
 import datetime
 import threading
-import requests  
+import requests
 import time # <--- NUEVO: Para controlar los 2 segundos del Ping
 from dotenv import load_dotenv, find_dotenv
 from PIL import Image

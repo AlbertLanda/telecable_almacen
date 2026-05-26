@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .serial-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .page-title {
+        font-size: 30px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #94a3b8;
+        margin: 0;
+    }
+
+    .card-ui {
+        background: rgba(17, 24, 39, 0.88);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 18px 40px rgba(0,0,0,.25);
+        margin-bottom: 22px;
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 430px 1fr;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .kpi-card {
+        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 16px;
+        padding: 16px;
+    }
+
+    .kpi-label {
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .kpi-value {
+        font-size: 30px;
+        font-weight: 900;
+        color: #f8fafc;
+    }
+
+    .input-ui,
+    .select-ui {
+        width: 100%;
+        background: rgba(255,255,255,0.07);
+        color: #f9fafb;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 13px 15px;
+        outline: none;
+    }
+
+    .input-ui:focus,
+    .select-ui:focus {
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, .15);
+    }
+
+    .label-ui {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 7px;
+        color: #e5e7eb;
+    }
+
+    .form-row {
+        margin-bottom: 15px;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .btn-main {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .btn-primary-ui {
+        background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+        color: #06111f;
+    }
+
+    .btn-secondary-ui {
+        background: rgba(255,255,255,0.06);
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .product-code {
+        font-family: Consolas, monospace;
+        background: rgba(34, 211, 238, .12);
+        color: #67e8f9;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .table-responsive-ui {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .table-ui {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 850px;
+    }
+
+    .table-ui th {
+        text-align: left;
+        font-size: 13px;
+        color: #93c5fd;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 14px 12px;
+        background: rgba(59, 130, 246, .08);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .table-ui td {
+        padding: 14px 12px;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+        color: #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .alert-ui {
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.10);
+    }
+
+    @media (max-width: 980px) {
+        .grid-layout,
+        .kpi-row {
+            grid-template-columns: 1fr;
+        }
+
+        .header-row {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="serial-page">
+
+    <div class="header-row">
+        <div>
+            <h1 class="page-title">Registro de equipos serializados</h1>
+            <p class="subtitle">
+                Registra cada unidad física del producto con GPON SN, MAC, serie secundaria y código pintado.
+            </p>
+        </div>
+
+        <a href="{% url 'carga_inicial_home' %}" class="btn-main btn-secondary-ui">
+            ← Volver
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-ui">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card-ui">
+        <h3>{{ producto.nombre }}</h3>
+        <p>
+            Código interno:
+            <span class="product-code">{{ producto.codigo_interno }}</span>
+        </p>
+        <p><strong>Sede:</strong> {{ sede.nombre }}</p>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">Stock cargado</div>
+            <div class="kpi-value">{{ cantidad_stock }}</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Seriales registrados</div>
+            <div class="kpi-value">{{ cantidad_seriales }}</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Pendientes</div>
+            <div class="kpi-value">{{ pendientes }}</div>
+        </div>
+    </div>
+
+    <div class="grid-layout">
+
+        <div class="card-ui">
+            <h3>Registrar equipo</h3>
+            <p class="subtitle" style="margin-bottom: 18px;">
+                Escanea o escribe los códigos de la etiqueta del equipo.
+            </p>
+
+            <form method="post" action="{% url 'carga_inicial_serial_registrar' producto.id %}">
+                {% csrf_token %}
+
+                <div class="form-row">
+                    <label class="label-ui">GPON SN / Serial principal</label>
+                    <input
+                        type="text"
+                        name="serial"
+                        id="serialInput"
+                        class="input-ui"
+                        required
+                        placeholder="Ej: ZTEGDD2F3241"
+                        autocomplete="off"
+                        autofocus
+                    >
+                    <small class="help-text">
+                        Este será el identificador principal del equipo.
+                    </small>
+                </div>
+
+                <div class="form-row">
+                    <label class="label-ui">MAC Address</label>
+                    <input
+                        type="text"
+                        name="mac_address"
+                        class="input-ui"
+                        placeholder="Ej: D8-31-39-67-2A-B2"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="form-row">
+                    <label class="label-ui">EN / D-SN / Serie secundaria</label>
+                    <input
+                        type="text"
+                        name="serial_secundario"
+                        class="input-ui"
+                        placeholder="Ej: EQLYT2T07003"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="form-row">
+                    <label class="label-ui">Código pintado / trazabilidad</label>
+                    <input
+                        type="text"
+                        name="codigo_trazabilidad"
+                        class="input-ui"
+                        placeholder="Ej: 4"
+                        autocomplete="off"
+                    >
+                    <small class="help-text">
+                        Número pintado físicamente en la caja o equipo.
+                    </small>
+                </div>
+
+                <div class="form-row">
+                    <label class="label-ui">Ubicación</label>
+                    <select name="ubicacion_id" class="select-ui">
+                        <option value="">Sin ubicación específica</option>
+                        {% for ubicacion in ubicaciones %}
+                            <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button class="btn-main btn-primary-ui" style="width: 100%; justify-content: center;">
+                    Guardar equipo serializado
+                </button>
+            </form>
+        </div>
+
+        <div class="card-ui">
+            <h3>Equipos registrados</h3>
+            <p class="subtitle" style="margin-bottom: 18px;">
+                Relación de unidades físicas registradas para este producto.
+            </p>
+
+            <div class="table-responsive-ui">
+                <table class="table-ui">
+                    <thead>
+                        <tr>
+                            <th>Cód. pintado</th>
+                            <th>GPON SN</th>
+                            <th>MAC</th>
+                            <th>EN / D-SN</th>
+                            <th>Ubicación</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in seriales %}
+                            <tr>
+                                <td>{{ item.codigo_trazabilidad|default:"-" }}</td>
+                                <td><span class="product-code">{{ item.serial }}</span></td>
+                                <td>{{ item.mac_address|default:"-" }}</td>
+                                <td>{{ item.serial_secundario|default:"-" }}</td>
+                                <td>{{ item.ubicacion.nombre|default:"-" }}</td>
+                                <td>{{ item.get_estado_display }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6">Todavía no hay equipos serializados registrados.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("serialInput");
+        if (input) {
+            input.focus();
+        }
+    });
+</script>
+
+{% endblock %}

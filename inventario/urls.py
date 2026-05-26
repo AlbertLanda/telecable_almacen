@@ -54,6 +54,16 @@ from .views.req import (
 # 5. Importaciones de SAL (Salidas)
 from .views.sal import sal_detail, sal_confirmar, sal_print, almacen_recepcionar_traspaso
 
+from .views.carga_inicial import (
+    carga_inicial_home,
+    carga_inicial_registrar_existente,
+    carga_inicial_registrar_nuevo,
+    producto_etiqueta_print,
+    carga_inicial_resumen,
+    carga_inicial_cerrar,
+    carga_inicial_seriales,
+    carga_inicial_serial_registrar,
+)
 
 urlpatterns = [
     # ==========================
@@ -145,4 +155,46 @@ urlpatterns = [
     path("sal/<int:sal_id>/", sal_detail, name="sal_detail"),
     path("sal/<int:sal_id>/confirmar/", sal_confirmar, name="sal_confirmar"),
     path("sal/<int:sal_id>/print/", sal_print, name="sal_print"),
+
+    path(
+        "dashboard/almacen/carga-inicial/",
+        carga_inicial_home,
+        name="carga_inicial_home"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/registrar-existente/",
+        carga_inicial_registrar_existente,
+        name="carga_inicial_registrar_existente"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/registrar-nuevo/",
+        carga_inicial_registrar_nuevo,
+        name="carga_inicial_registrar_nuevo"
+    ),
+    path(
+        "dashboard/almacen/producto/<int:producto_id>/etiqueta/",
+        producto_etiqueta_print,
+        name="producto_etiqueta_print"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/resumen/",
+        carga_inicial_resumen,
+        name="carga_inicial_resumen"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/cerrar/",
+        carga_inicial_cerrar,
+        name="carga_inicial_cerrar"
+    ),
+
+    path(
+        "dashboard/almacen/carga-inicial/producto/<int:producto_id>/seriales/",
+        carga_inicial_seriales,
+        name="carga_inicial_seriales"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/producto/<int:producto_id>/seriales/registrar/",
+        carga_inicial_serial_registrar,
+        name="carga_inicial_serial_registrar"
+    ),
 ]

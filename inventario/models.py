@@ -301,6 +301,28 @@ class MovimientoInventario(TimeStampedModel):
         self.saldo_resultante = stock.cantidad
         self.save(update_fields=['saldo_resultante'])
 
+class CierreCargaInicial(TimeStampedModel):
+    sede = models.OneToOneField(
+        Sede,
+        on_delete=models.PROTECT,
+        related_name="cierre_carga_inicial"
+    )
+    responsable = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="cierres_carga_inicial"
+    )
+    referencia = models.CharField(max_length=120, unique=True)
+    observaciones = models.TextField(blank=True, default="")
+    finalizado_en = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Cierre de carga inicial"
+        verbose_name_plural = "Cierres de carga inicial"
+        ordering = ["-finalizado_en"]
+
+    def __str__(self):
+        return f"Cierre carga inicial - {self.sede.nombre} - {self.finalizado_en:%d/%m/%Y}"
 
 # ============================================================
 # Usuarios / Roles

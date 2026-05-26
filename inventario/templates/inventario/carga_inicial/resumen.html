@@ -1,0 +1,626 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .summary-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .summary-title {
+        font-size: 30px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .summary-subtitle {
+        color: #94a3b8;
+        margin: 0;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        font-weight: 800;
+        border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .status-open {
+        color: #fde68a;
+        background: rgba(245, 158, 11, .13);
+        border-color: rgba(245, 158, 11, .30);
+    }
+
+    .status-closed {
+        color: #86efac;
+        background: rgba(34, 197, 94, .13);
+        border-color: rgba(34, 197, 94, .30);
+    }
+
+    .card-ui {
+        background: rgba(17, 24, 39, 0.88);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 18px 40px rgba(0,0,0,.25);
+        margin-bottom: 22px;
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .btn-main {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: transform .15s ease, opacity .15s ease;
+    }
+
+    .btn-main:hover {
+        transform: translateY(-1px);
+        opacity: .92;
+    }
+
+    .btn-primary-ui {
+        background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+        color: #06111f;
+    }
+
+    .btn-secondary-ui {
+        background: rgba(255,255,255,0.06);
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .btn-danger-ui {
+        background: linear-gradient(135deg, #ef4444, #fb7185);
+        color: #fff;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+
+    .kpi-card {
+        background: linear-gradient(145deg, rgba(15, 23, 42, .96), rgba(30, 41, 59, .85));
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 20px;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-card::after {
+        content: "";
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        right: -45px;
+        top: -45px;
+        background: rgba(34, 211, 238, .12);
+        border-radius: 50%;
+    }
+
+    .kpi-label {
+        color: #94a3b8;
+        font-size: 14px;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .kpi-value {
+        font-size: 38px;
+        font-weight: 900;
+        color: #f8fafc;
+        line-height: 1;
+    }
+
+    .kpi-help {
+        margin-top: 10px;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .section-desc {
+        color: #94a3b8;
+        margin-bottom: 18px;
+        font-size: 14px;
+    }
+
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 16px;
+    }
+
+    .meta-item {
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .meta-label {
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 6px;
+    }
+
+    .meta-value {
+        color: #f8fafc;
+        font-weight: 800;
+    }
+
+    .close-panel {
+        border-left: 4px solid #ef4444;
+    }
+
+    .closed-panel {
+        border-left: 4px solid #22c55e;
+    }
+
+    .textarea-ui {
+        width: 100%;
+        background: rgba(255,255,255,0.07);
+        color: #f9fafb;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 13px 15px;
+        outline: none;
+        resize: vertical;
+    }
+
+    .textarea-ui:focus {
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, .15);
+    }
+
+    .label-ui {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 8px;
+        color: #e5e7eb;
+    }
+
+    .help-text {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+        margin-top: 7px;
+    }
+
+    .table-responsive-ui {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .table-ui {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 850px;
+    }
+
+    .table-ui th {
+        text-align: left;
+        font-size: 13px;
+        color: #93c5fd;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 14px 12px;
+        background: rgba(59, 130, 246, .08);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .table-ui td {
+        padding: 14px 12px;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+        color: #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .table-ui tr:hover td {
+        background: rgba(255,255,255,.035);
+    }
+
+    .product-code {
+        font-family: Consolas, monospace;
+        background: rgba(34, 211, 238, .12);
+        color: #67e8f9;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .type-badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        display: inline-flex;
+        white-space: nowrap;
+    }
+
+    .badge-serial {
+        background: rgba(168, 85, 247, .14);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, .25);
+    }
+
+    .badge-active {
+        background: rgba(245, 158, 11, .14);
+        color: #fcd34d;
+        border: 1px solid rgba(245, 158, 11, .25);
+    }
+
+    .badge-normal {
+        background: rgba(14, 165, 233, .14);
+        color: #7dd3fc;
+        border: 1px solid rgba(14, 165, 233, .25);
+    }
+
+    .note-cell {
+        color: #cbd5e1;
+        max-width: 320px;
+    }
+
+    .empty-state {
+        padding: 28px;
+        text-align: center;
+        color: #9ca3af;
+    }
+
+    @media (max-width: 900px) {
+        .summary-header {
+            flex-direction: column;
+        }
+
+        .kpi-grid,
+        .meta-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media print {
+        nav,
+        .navbar,
+        .action-bar,
+        .close-panel,
+        footer,
+        .btn-main {
+            display: none !important;
+        }
+
+        body {
+            background: white !important;
+            color: black !important;
+        }
+
+        .summary-page {
+            padding: 0;
+            max-width: none;
+        }
+
+        .card-ui,
+        .kpi-card,
+        .meta-item {
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            border: 1px solid #000 !important;
+        }
+
+        .summary-title,
+        .section-title,
+        .kpi-value,
+        .meta-value,
+        .table-ui td,
+        .table-ui th {
+            color: black !important;
+        }
+
+        .summary-subtitle,
+        .section-desc,
+        .kpi-label,
+        .kpi-help,
+        .meta-label {
+            color: #333 !important;
+        }
+
+        .table-ui {
+            font-size: 11px;
+            min-width: 0;
+        }
+
+        .table-ui th {
+            background: #f0f0f0 !important;
+        }
+
+        .product-code,
+        .type-badge {
+            border: 1px solid #000 !important;
+            background: white !important;
+            color: black !important;
+        }
+    }
+</style>
+
+<div class="summary-page">
+
+    <div class="summary-header">
+        <div>
+            <h1 class="summary-title">Resumen de carga inicial</h1>
+            <p class="summary-subtitle">
+                Revisa los productos cargados, valida las cantidades físicas y finaliza el proceso cuando todo esté correcto.
+            </p>
+        </div>
+
+        {% if cierre_carga %}
+            <div class="status-badge status-closed">
+                ✅ Carga inicial cerrada
+            </div>
+        {% else %}
+            <div class="status-badge status-open">
+                📝 Revisión pendiente
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="action-bar">
+        <a href="{% url 'carga_inicial_home' %}" class="btn-main btn-secondary-ui">
+            ← Volver a carga inicial
+        </a>
+
+        <button onclick="window.print()" class="btn-main btn-primary-ui">
+            🖨️ Imprimir resumen
+        </button>
+    </div>
+
+    <div class="card-ui">
+        <div class="section-title">Información de la carga</div>
+        <div class="section-desc">
+            Datos principales del proceso de carga inicial de inventario.
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <div class="meta-label">Sede</div>
+                <div class="meta-value">{{ sede.nombre }}</div>
+            </div>
+
+            <div class="meta-item">
+                <div class="meta-label">Referencia</div>
+                <div class="meta-value">{{ referencia }}</div>
+            </div>
+
+            <div class="meta-item">
+                <div class="meta-label">Estado</div>
+                <div class="meta-value">
+                    {% if cierre_carga %}
+                        Cerrada
+                    {% else %}
+                        En proceso
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="card-ui">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Productos cargados</div>
+            <div class="kpi-value">{{ total_productos }}</div>
+            <div class="kpi-help">Tipos de productos registrados en la sede.</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Unidades totales</div>
+            <div class="kpi-value">{{ total_unidades }}</div>
+            <div class="kpi-help">Suma total del stock físico cargado.</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Movimientos IN</div>
+            <div class="kpi-value">{{ total_movimientos }}</div>
+            <div class="kpi-help">Ingresos generados durante la carga inicial.</div>
+        </div>
+    </div>
+
+    <div class="card-ui">
+        <div class="section-title">Stock actual cargado</div>
+        <div class="section-desc">
+            Listado de productos disponibles en la sede después de la carga inicial.
+        </div>
+
+        <div class="table-responsive-ui">
+            <table class="table-ui">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                        <tr>
+                            <td><span class="product-code">{{ stock.producto.codigo_interno }}</span></td>
+                            <td>{{ stock.producto.nombre }}</td>
+                            <td>{{ stock.producto.categoria|default:"-" }}</td>
+                            <td><strong>{{ stock.cantidad }}</strong></td>
+                            <td>{{ stock.producto.unidad }}</td>
+                            <td>
+                                {% if stock.producto.es_serializado %}
+                                    <span class="type-badge badge-serial">Serializado</span>
+                                {% elif stock.producto.es_activo %}
+                                    <span class="type-badge badge-active">Activo / Herramienta</span>
+                                {% else %}
+                                    <span class="type-badge badge-normal">Normal / Consumible</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    No hay productos cargados para esta sede.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card-ui">
+        <div class="section-title">Historial de movimientos de carga inicial</div>
+        <div class="section-desc">
+            Movimientos de ingreso generados durante el registro inicial de materiales.
+        </div>
+
+        <div class="table-responsive-ui">
+            <table class="table-ui">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Código</th>
+                        <th>Cantidad</th>
+                        <th>Usuario</th>
+                        <th>Nota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                        <tr>
+                            <td>{{ mov.creado_en|date:"d/m/Y H:i" }}</td>
+                            <td>{{ mov.producto.nombre }}</td>
+                            <td><span class="product-code">{{ mov.producto.codigo_interno }}</span></td>
+                            <td><strong>{{ mov.qty }}</strong></td>
+                            <td>{{ mov.usuario.username|default:"-" }}</td>
+                            <td class="note-cell">{{ mov.nota|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    No hay movimientos de carga inicial registrados.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if cierre_carga %}
+        <div class="card-ui closed-panel">
+            <div class="section-title">Carga inicial cerrada</div>
+            <div class="section-desc">
+                Esta sede ya fue validada y no se podrán agregar nuevos productos desde la pantalla de carga inicial.
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Responsable</div>
+                    <div class="meta-value">{{ cierre_carga.responsable.username }}</div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Fecha de cierre</div>
+                    <div class="meta-value">{{ cierre_carga.finalizado_en|date:"d/m/Y H:i" }}</div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Observaciones</div>
+                    <div class="meta-value">
+                        {{ cierre_carga.observaciones|default:"Sin observaciones" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card-ui close-panel">
+            <div class="section-title">Cerrar carga inicial</div>
+            <div class="section-desc">
+                Cierra este proceso cuando el conteo físico ya fue revisado. Después del cierre, la pantalla de carga inicial quedará bloqueada para esta sede.
+            </div>
+
+            <form method="post" action="{% url 'carga_inicial_cerrar' %}">
+                {% csrf_token %}
+
+                <label class="label-ui">Observaciones de cierre</label>
+                <textarea
+                    name="observaciones"
+                    class="textarea-ui"
+                    rows="3"
+                    placeholder="Ej: Carga inicial validada físicamente en almacén."
+                ></textarea>
+                <small class="help-text">
+                    Puedes indicar quién validó el conteo, si faltó revisar alguna zona o cualquier detalle importante.
+                </small>
+
+                <div class="action-bar" style="margin-top: 16px; margin-bottom: 0;">
+                    <button
+                        type="submit"
+                        class="btn-main btn-danger-ui"
+                        onclick="return confirm('¿Seguro que deseas cerrar la carga inicial? Luego no se podrán agregar más productos desde esta pantalla.')"
+                    >
+                        🔒 Cerrar carga inicial
+                    </button>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,726 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .inventory-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .page-title {
+        font-size: 30px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        color: #a8b3c7;
+        margin: 0;
+    }
+
+    .badge-soft {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.12);
+        color: #7dd3fc;
+        font-weight: 700;
+        border: 1px solid rgba(14, 165, 233, 0.25);
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+    .btn-main {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: transform .15s ease, opacity .15s ease;
+    }
+
+    .btn-main:hover {
+        transform: translateY(-1px);
+        opacity: .92;
+    }
+
+    .btn-primary-ui {
+        background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+        color: #06111f;
+    }
+
+    .btn-success-ui {
+        background: linear-gradient(135deg, #22c55e, #86efac);
+        color: #06111f;
+    }
+
+    .btn-outline-ui {
+        background: rgba(255,255,255,0.04);
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .card-ui {
+        background: rgba(17, 24, 39, 0.88);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 18px 40px rgba(0,0,0,.25);
+        margin-bottom: 22px;
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .card-desc {
+        color: #9ca3af;
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+
+    .scan-box {
+        display: flex;
+        gap: 10px;
+    }
+
+    .input-ui,
+    .select-ui,
+    .textarea-ui {
+        width: 100%;
+        background: rgba(255,255,255,0.07);
+        color: #f9fafb;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 13px 15px;
+        outline: none;
+    }
+
+    .input-ui:focus,
+    .select-ui:focus,
+    .textarea-ui:focus {
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, .15);
+    }
+
+    .label-ui {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 7px;
+        color: #e5e7eb;
+    }
+
+    .form-row {
+        margin-bottom: 15px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+
+    .checkbox-row:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(34, 211, 238, .25);
+    }
+
+    .checkbox-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #22d3ee;
+        flex: 0 0 auto;
+    }
+
+    .checkbox-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .checkbox-title {
+        font-weight: 800;
+        color: #f9fafb;
+        line-height: 1.2;
+    }
+
+    .checkbox-desc {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .help-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(34, 211, 238, .12);
+        color: #67e8f9;
+        border: 1px solid rgba(34, 211, 238, .28);
+        font-size: 13px;
+        font-weight: 900;
+        cursor: help;
+        position: relative;
+        flex: 0 0 auto;
+    }
+
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        right: 0;
+        bottom: 30px;
+        width: 260px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #020617;
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 16px 30px rgba(0,0,0,.35);
+        font-size: 12px;
+        line-height: 1.4;
+        z-index: 20;
+        text-align: left;
+    }
+
+    .help-icon:hover::before {
+        content: "";
+        position: absolute;
+        right: 7px;
+        bottom: 23px;
+        border-width: 7px 7px 0 7px;
+        border-style: solid;
+        border-color: #020617 transparent transparent transparent;
+        z-index: 21;
+    }
+
+    .found-product {
+        border-left: 4px solid #22c55e;
+    }
+
+    .product-code {
+        font-family: Consolas, monospace;
+        background: rgba(34, 211, 238, .12);
+        color: #67e8f9;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: 800;
+    }
+
+    .stock-pill {
+        display: inline-flex;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(34,197,94,.13);
+        color: #86efac;
+        border: 1px solid rgba(34,197,94,.25);
+        font-weight: 800;
+    }
+
+    .table-card {
+        overflow: hidden;
+    }
+
+    .table-responsive-ui {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .table-ui {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 850px;
+    }
+
+    .table-ui th {
+        text-align: left;
+        font-size: 13px;
+        color: #93c5fd;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        padding: 14px 12px;
+        background: rgba(59, 130, 246, .08);
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .table-ui td {
+        padding: 14px 12px;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+        color: #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .table-ui tr:hover td {
+        background: rgba(255,255,255,.035);
+    }
+
+    .type-badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        display: inline-flex;
+    }
+
+    .badge-serial {
+        background: rgba(168, 85, 247, .14);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, .25);
+    }
+
+    .badge-active {
+        background: rgba(245, 158, 11, .14);
+        color: #fcd34d;
+        border: 1px solid rgba(245, 158, 11, .25);
+    }
+
+    .badge-normal {
+        background: rgba(14, 165, 233, .14);
+        color: #7dd3fc;
+        border: 1px solid rgba(14, 165, 233, .25);
+    }
+
+    .alert-ui {
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.06);
+    }
+
+    .alert-warning-ui {
+        border-color: rgba(245, 158, 11, .35);
+        background: rgba(245, 158, 11, .12);
+        color: #fde68a;
+    }
+
+    .empty-state {
+        padding: 28px;
+        text-align: center;
+        color: #9ca3af;
+    }
+
+    @media (max-width: 980px) {
+        .grid-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header {
+            flex-direction: column;
+        }
+
+        .scan-box {
+            flex-direction: column;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="inventory-page">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Carga inicial de inventario</h1>
+            <p class="page-subtitle">
+                Registra materiales físicos, genera códigos internos e imprime etiquetas para almacén.
+            </p>
+        </div>
+
+        <div class="badge-soft">
+            📍 {{ sede.nombre }}
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <a href="{% url 'dash_almacen' %}" class="btn-main btn-outline-ui">
+            ← Volver al panel
+        </a>
+
+        <a href="{% url 'carga_inicial_resumen' %}" class="btn-main btn-success-ui">
+            ✅ Ver resumen / Finalizar carga inicial
+        </a>
+    </div>
+
+    {% if cierre_carga %}
+        <div class="alert-ui alert-warning-ui">
+            <strong>La carga inicial de esta sede ya fue cerrada.</strong><br>
+            Responsable: {{ cierre_carga.responsable.username }} |
+            Fecha: {{ cierre_carga.finalizado_en|date:"d/m/Y H:i" }}
+        </div>
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-ui">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not cierre_carga %}
+    <div class="grid-layout">
+
+        <div>
+            <div class="card-ui">
+                <div class="card-title">Escanear o buscar producto</div>
+                <div class="card-desc">
+                    Escanea una etiqueta con la pistola o escribe el código interno del producto.
+                </div>
+
+                <form method="get" action="{% url 'carga_inicial_home' %}" class="scan-box">
+                    <input
+                        type="text"
+                        name="q"
+                        value="{{ q }}"
+                        id="scanInput"
+                        class="input-ui"
+                        placeholder="Ej: TC-ALM-000002"
+                        autofocus
+                        autocomplete="off"
+                    >
+                    <button class="btn-main btn-primary-ui" type="submit">
+                        🔎 Buscar
+                    </button>
+                </form>
+            </div>
+
+            {% if producto %}
+                <div class="card-ui found-product">
+                    <div class="card-title">Producto encontrado</div>
+                    <div class="card-desc">
+                        Verifica el producto y agrega cantidad al stock inicial si corresponde.
+                    </div>
+
+                    <p><strong>Producto:</strong> {{ producto.nombre }}</p>
+                    <p><strong>Código interno:</strong> <span class="product-code">{{ producto.codigo_interno }}</span></p>
+                    <p><strong>Barcode:</strong> {{ producto.barcode|default:"Sin barcode" }}</p>
+                    <p>
+                        <strong>Stock actual en {{ sede.nombre }}:</strong>
+                        <span class="stock-pill">
+                            {% if stock_actual %}
+                                {{ stock_actual.cantidad }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </span>
+                    </p>
+
+                    <div class="action-bar">
+                        <a
+                            href="{% url 'producto_etiqueta_print' producto.id %}?cantidad={% if stock_actual %}{{ stock_actual.cantidad }}{% else %}1{% endif %}"
+                            target="_blank"
+                            class="btn-main btn-outline-ui"
+                        >
+                            🏷️ Imprimir etiqueta(s)
+                        </a>
+                    </div>
+
+                    <form method="post" action="{% url 'carga_inicial_registrar_existente' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="producto_id" value="{{ producto.id }}">
+
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label class="label-ui">Cantidad adicional encontrada</label>
+                                <input type="number" name="cantidad" min="1" class="input-ui" required>
+                                <small class="help-text">
+                                    Ingresa la cantidad nueva que estás agregando al stock de este producto.
+                                </small>
+                            </div>
+
+                            <div class="form-row">
+                                <label class="label-ui">Ubicación</label>
+                                <select name="ubicacion_id" class="select-ui">
+                                    <option value="">Sin ubicación específica</option>
+                                    {% for ubicacion in ubicaciones %}
+                                        <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-ui">Nota</label>
+                            <input type="text" name="nota" class="input-ui" placeholder="Ej: conteo inicial, estante 1, etc.">
+                        </div>
+
+                        <button class="btn-main btn-success-ui">
+                            ➕ Agregar al stock inicial
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <div class="card-ui">
+                <div class="card-title">Registrar producto nuevo</div>
+                <div class="card-desc">
+                    Úsalo para materiales sin código previo, como sillas, mesas o herramientas.
+                </div>
+
+                <form method="post" action="{% url 'carga_inicial_registrar_nuevo' %}">
+                    {% csrf_token %}
+
+                    <div class="form-row">
+                        <label class="label-ui">Nombre del producto</label>
+                        <input type="text" name="nombre" class="input-ui" required placeholder="Ej: Silla de oficina negra">
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-ui">Categoría</label>
+                        <select name="categoria_id" class="select-ui">
+                            <option value="">Sin categoría</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-ui">Barcode opcional</label>
+                        <input type="text" name="barcode" class="input-ui" placeholder="Si no tiene, dejar vacío">
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="label-ui">Unidad de medida</label>
+                            <select name="unidad" class="select-ui" required>
+                                <option value="UND" selected>UND - Unidad</option>
+                                <option value="M">M - Metro</option>
+                                <option value="ROL">ROL - Rollo</option>
+                                <option value="CAJA">CAJA - Caja</option>
+                                <option value="BOLSA">BOLSA - Bolsa</option>
+                                <option value="PAR">PAR - Par</option>
+                                <option value="KG">KG - Kilogramo</option>
+                                <option value="LT">LT - Litro</option>
+                            </select>
+                            <small class="help-text">
+                                Selecciona cómo se contabiliza este material en almacén.
+                            </small>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-ui">Cantidad física encontrada</label>
+                            <input type="number" name="cantidad" min="1" class="input-ui" required>
+                            <small class="help-text">
+                                Cantidad total encontrada físicamente en almacén.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="label-ui">Costo unitario</label>
+                            <input type="number" step="0.01" min="0" name="costo_unitario" class="input-ui" value="0.00">
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-ui">Stock mínimo</label>
+                            <input type="number" min="0" name="stock_minimo" class="input-ui" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-ui">Ubicación</label>
+                        <select name="ubicacion_id" class="select-ui">
+                            <option value="">Sin ubicación específica</option>
+                            {% for ubicacion in ubicaciones %}
+                                <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <label class="checkbox-row">
+                        <input type="checkbox" name="es_serializado">
+                        <span class="checkbox-content">
+                            <span>
+                                <span class="checkbox-title">Es serializado</span>
+                                <span class="checkbox-desc">Para equipos con serie, MAC o identificador único.</span>
+                            </span>
+
+                            <span
+                                class="help-icon"
+                                data-tooltip="Marca esta opción cuando cada unidad debe identificarse individualmente. Ejemplos: ONU, router, switch, laptop, impresora o equipos con MAC/serial."
+                            >
+                                ?
+                            </span>
+                        </span>
+                    </label>
+
+                    <label class="checkbox-row">
+                        <input type="checkbox" name="es_activo">
+                        <span class="checkbox-content">
+                            <span>
+                                <span class="checkbox-title">Es activo / herramienta</span>
+                                <span class="checkbox-desc">Para bienes que no se consumen en una instalación.</span>
+                            </span>
+
+                            <span
+                                class="help-icon"
+                                data-tooltip="Marca esta opción cuando el material queda como bien de la empresa o herramienta. Ejemplos: silla, mesa, escalera, taladro, laptop o herramientas reutilizables."
+                            >
+                                ?
+                            </span>
+                        </span>
+                    </label>
+
+                    <button class="btn-main btn-primary-ui" style="width: 100%; justify-content: center;">
+                        Crear producto y cargar stock inicial
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+    <div class="card-ui table-card">
+        <div class="page-header" style="margin-bottom: 14px;">
+            <div>
+                <div class="card-title">Stock cargado en {{ sede.nombre }}</div>
+                <div class="card-desc">Productos registrados durante la carga inicial.</div>
+            </div>
+        </div>
+
+        <div class="table-responsive-ui">
+            <table class="table-ui">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                        <th>Tipo</th>
+                        <th>Etiqueta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                        <tr>
+                            <td><span class="product-code">{{ stock.producto.codigo_interno }}</span></td>
+                            <td>{{ stock.producto.nombre }}</td>
+                            <td>{{ stock.producto.categoria|default:"-" }}</td>
+                            <td><strong>{{ stock.cantidad }}</strong></td>
+                            <td>{{ stock.producto.unidad }}</td>
+                            <td>
+                                {% if stock.producto.es_serializado %}
+                                    <span class="type-badge badge-serial">Serializado</span>
+                                {% elif stock.producto.es_activo %}
+                                    <span class="type-badge badge-active">Activo / Herramienta</span>
+                                {% else %}
+                                    <span class="type-badge badge-normal">Normal / Consumible</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a
+                                    href="{% url 'producto_etiqueta_print' stock.producto.id %}?cantidad={{ stock.cantidad }}"
+                                    target="_blank"
+                                    class="btn-main btn-outline-ui"
+                                    style="padding: 8px 12px; font-size: 13px;"
+                                >
+                                    🏷️ Imprimir {{ stock.cantidad }}
+                                </a>
+                                {% if stock.producto.es_serializado %}
+                                    <a
+                                        href="{% url 'carga_inicial_seriales' stock.producto.id %}"
+                                        class="btn-main btn-outline-ui"
+                                        style="padding: 8px 12px; font-size: 13px; margin-top: 6px;"
+                                    >
+                                        🔢 Registrar seriales
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    Todavía no hay stock cargado para esta sede.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("scanInput");
+
+        if (input) {
+            input.focus();
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    input.form.submit();
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

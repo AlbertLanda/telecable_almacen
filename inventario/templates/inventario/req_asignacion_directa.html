@@ -146,6 +146,32 @@
     .btn-confirm:hover { background: #2bc063; transform: translateY(-2px); }
     .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
 
+    .dispatch-note {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(10, 132, 255, 0.08);
+        color: var(--text-secondary);
+        border: 1px solid rgba(10, 132, 255, 0.18);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .ia-status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border-light);
+    }
+    .ia-status.detected {
+        color: var(--success);
+        background: rgba(48, 209, 88, 0.10);
+        border-color: rgba(48, 209, 88, 0.25);
+    }
+
     /* RESPONSIVE MÓVIL */
     @media (max-width: 900px) {
         .assign-container { grid-template-columns: 1fr; }
@@ -184,28 +210,35 @@
             <input type="hidden" name="req_id" value="{{ req.id }}">
             
             <div class="form-group">
-                <label class="form-label">1. Seleccionar Técnico</label>
+                <label class="form-label">1. Técnico detectado / seleccionado</label>
                 <select name="tecnico_id" class="tech-select" id="selectTecnico" required>
                     <option value="">-- Elegir Técnico --</option>
                     {% for t in tecnicos %}
                         <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
                     {% endfor %}
                 </select>
+
+                <div id="iaStatus" class="ia-status">
+                    🤖 Esperando detección de técnico por cámara...
+                </div>
             </div>
 
             <div class="form-group" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-                <label class="form-label">2. Mochila a Cargar (<span id="cartCount">0</span>)</label>
+                <label class="form-label">2. Productos preparados para despacho (<span id="cartCount">0</span>)</label>
                 <div id="cartList" class="cart-list">
                     <div style="text-align:center; padding:30px; color:var(--text-tertiary);">
                         <i class='bx bx-basket' style="font-size: 24px; margin-bottom: 5px;"></i>
-                        <p style="font-size: 13px;">Agrega productos del catálogo.</p>
+                        <p style="font-size: 13px;">Escanea productos o agrégalos desde el catálogo.</p>
                     </div>
                 </div>
             </div>
 
             <button type="submit" id="btnEnviarReq" class="btn-confirm" disabled>
-                DESPACHAR AHORA <i class='bx bx-right-arrow-alt'></i>
+                Confirmar despacho al técnico <i class='bx bx-right-arrow-alt'></i>
             </button>
+            <div class="dispatch-note">
+                El despacho se realizará recién al presionar este botón. Escanear productos solo los agrega a la mochila.
+            </div>
         </form>
     </div>
 
@@ -239,6 +272,7 @@
     
     // Búsqueda del select de técnico
     const selectTecnico = document.getElementById("id_solicitante") || document.getElementById("selectTecnico");
+    const iaStatus = document.getElementById("iaStatus");
 
     // --- NOTIFICACIONES (TOAST) ---
     function showToast(msg, type='success') {
@@ -313,8 +347,9 @@
                     <div class="ci-code">${it.codigo || '-'}</div>
                 </div>
                 <div class="ci-actions">
-                    <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1" 
-                           onchange="updateQty('${it.producto_id}', this.value)">
+                    <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1"
+                            max="${it.disponible || ''}"
+                            onchange="updateQty('${it.producto_id}', this.value)">
                     <button class="btn-remove" onclick="removeFromCart('${it.producto_id}')" title="Quitar">
                         <i class='bx bx-trash'></i>
                     </button>
@@ -431,11 +466,25 @@
         }
     });
 
+    function normalizarCodigoBarras(valor) {
+        if (!valor) return "";
+
+        return valor
+            .trim()
+            .toUpperCase()
+            .replaceAll("'", "-")
+            .replaceAll("´", "-")
+            .replaceAll("`", "-")
+            .replaceAll(" ", "");
+    }
+
     async function enviarScanDirecto(codigo) {
+        codigo = normalizarCodigoBarras(codigo);
+
         const tecnicoId = selectTecnico ? selectTecnico.value : null;
 
         if (!tecnicoId) {
-            showToast("❌ Espera a que tu nombre se seleccione en 'Solicitante' primero.", "error");
+            showToast("❌ Primero selecciona o espera la detección del técnico en ventanilla.", "error");
             return;
         }
 
@@ -492,7 +541,13 @@
         }
 
         // Mensaje de confirmación en pantalla
-        const confirmar = confirm(`⚠️ CONFIRMACIÓN DE DESPACHO\n\n¿Estás seguro de cargar ${cantidadItems} ítem(s) a la mochila del técnico:\n👤 ${tecnicoNombre}?`);
+        const confirmar = confirm(
+            `⚠️ CONFIRMACIÓN DE DESPACHO\n\n` +
+            `Técnico: ${tecnicoNombre}\n` +
+            `Productos preparados: ${cantidadItems}\n\n` +
+            `Verifica físicamente que el técnico recibió estos materiales.\n` +
+            `¿Deseas confirmar el despacho ahora?`
+        );
 
         if (confirmar) {
             // Si el almacenero acepta, bloqueamos el botón para evitar doble clic y enviamos el formulario
@@ -537,6 +592,11 @@
 
                             showToast(`🤖 IA: ${selectTecnico.options[i].text} detectado en ventanilla.`);
                             break;
+
+                            if (iaStatus) {
+                                iaStatus.textContent = `✅ Técnico detectado por IA: ${selectTecnico.options[i].text}`;
+                                iaStatus.classList.add("detected");
+                            }
                         }
                     }
                 }

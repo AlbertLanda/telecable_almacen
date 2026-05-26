@@ -22,7 +22,8 @@ from inventario.models import (
     Sede,
     TipoRequerimiento,
     Proveedor,
-    ItemSerializado
+    ItemSerializado,
+    DocumentoItem,
 )
 
 from inventario.services.req_service import (
@@ -92,6 +93,24 @@ def _is_ajax(request) -> bool:
 
 def _producto_codigo(p: Producto) -> str:
     return (getattr(p, "codigo_interno", "") or getattr(p, "barcode", "") or "").strip()
+
+def normalizar_codigo_barras(valor: str) -> str:
+    """
+    Normaliza códigos escaneados por pistola.
+    Algunos lectores envían el guion '-' como comilla simple "'"
+    por configuración de teclado.
+    """
+    if not valor:
+        return ""
+
+    return (
+        valor.strip()
+        .upper()
+        .replace("'", "-")
+        .replace("´", "-")
+        .replace("`", "-")
+        .replace(" ", "")
+    )
 
 def _serialize_cart(req: DocumentoInventario):
     items = []
@@ -1211,9 +1230,11 @@ def devolucion_print(request, doc_id: int):
     })
 
 @require_POST
+@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 def req_scan_directo(request):
     try:
-        codigo_escaneado = request.POST.get('codigo_escaneado', '').strip()
+        codigo_escaneado = normalizar_codigo_barras(request.POST.get("codigo_escaneado") or "")
         tecnico_id = request.POST.get('tecnico_id') 
         
         if not codigo_escaneado or not tecnico_id:
@@ -1223,7 +1244,10 @@ def req_scan_directo(request):
         producto_obj = None
 
         serial_encontrado = ItemSerializado.objects.filter(
-            Q(serial__iexact=codigo_escaneado) | Q(mac_address__iexact=codigo_escaneado)
+            Q(serial__iexact=codigo_escaneado) |
+            Q(mac_address__iexact=codigo_escaneado) |
+            Q(serial_secundario__iexact=codigo_escaneado) |
+            Q(codigo_trazabilidad__iexact=codigo_escaneado)
         ).first()
 
         if serial_encontrado:
@@ -1243,6 +1267,25 @@ def req_scan_directo(request):
                 return JsonResponse({"ok": False, "error": f"Configuración incompleta: {str(ve)}"})
 
             req_borrador = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+
+            stock_obj = Stock.objects.filter(
+                producto=producto_obj,
+                sede=ubicacion.sede
+            ).first()
+
+            stock_disponible = stock_obj.cantidad if stock_obj else 0
+
+            item_actual = req_borrador.items.filter(producto=producto_obj).first()
+            cantidad_en_mochila = item_actual.cantidad if item_actual else 0
+
+            if cantidad_en_mochila + 1 > stock_disponible:
+                return JsonResponse({
+                    "ok": False,
+                    "error": (
+                        f"No hay stock suficiente de {producto_obj.nombre}. "
+                        f"Disponible: {stock_disponible}, en mochila: {cantidad_en_mochila}."
+                    )
+                })
             
             add_item_to_req(
                 user=request.user, 
