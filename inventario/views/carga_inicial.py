@@ -356,7 +356,10 @@ def carga_inicial_seriales(request, producto_id):
 
     seriales = (
         ItemSerializado.objects
-        .filter(producto=producto)
+        .filter(
+            producto=producto,
+            ubicacion__sede=sede,
+        )
         .select_related("ubicacion")
         .order_by("-creado_en")
     )
@@ -399,9 +402,14 @@ def carga_inicial_serial_registrar(request, producto_id):
         messages.error(request, "El GPON SN / Serial principal es obligatorio.")
         return redirect("carga_inicial_seriales", producto_id=producto.id)
 
-    ubicacion = None
     if ubicacion_id:
         ubicacion = Ubicacion.objects.filter(id=ubicacion_id, sede=sede).first()
+    else:
+        ubicacion, _ = Ubicacion.objects.get_or_create(
+            sede=sede,
+            nombre="GENERAL",
+            defaults={"descripcion": "Ubicación general automática"}
+        )
 
     if ItemSerializado.objects.filter(serial=serial).exists():
         messages.error(request, f"Ya existe un equipo registrado con el serial {serial}.")
@@ -424,3 +432,67 @@ def carga_inicial_serial_registrar(request, producto_id):
     messages.success(request, f"Equipo serializado {serial} registrado correctamente.")
 
     return redirect("carga_inicial_seriales", producto_id=producto.id)
+
+@login_required
+@transaction.atomic
+def carga_inicial_serial_editar(request, item_id):
+    profile, sede = _require_almacen(request.user)
+
+    item = get_object_or_404(
+        ItemSerializado.objects.select_related("producto", "ubicacion"),
+        id=item_id
+    )
+
+    producto = item.producto
+
+    # Seguridad: solo permitir editar seriales de la sede operativa
+    if item.ubicacion and item.ubicacion.sede_id != sede.id:
+        messages.error(request, "Este equipo no pertenece a tu sede operativa.")
+        return redirect("carga_inicial_seriales", producto_id=producto.id)
+
+    if item.estado != ItemSerializado.Estado.EN_ALMACEN:
+        messages.error(request, "Solo se pueden editar equipos que están en almacén.")
+        return redirect("carga_inicial_seriales", producto_id=producto.id)
+
+    ubicaciones = Ubicacion.objects.filter(sede=sede).order_by("nombre")
+
+    if request.method == "POST":
+        serial = normalizar_codigo_barras(request.POST.get("serial") or "")
+        mac_address = normalizar_codigo_barras(request.POST.get("mac_address") or "")
+        serial_secundario = normalizar_codigo_barras(request.POST.get("serial_secundario") or "")
+        codigo_trazabilidad = (request.POST.get("codigo_trazabilidad") or "").strip().upper()
+        ubicacion_id = request.POST.get("ubicacion_id") or None
+
+        if not serial:
+            messages.error(request, "El GPON SN / Serial principal es obligatorio.")
+            return redirect("carga_inicial_serial_editar", item_id=item.id)
+
+        if ItemSerializado.objects.exclude(id=item.id).filter(serial__iexact=serial).exists():
+            messages.error(request, f"Ya existe otro equipo registrado con el serial {serial}.")
+            return redirect("carga_inicial_serial_editar", item_id=item.id)
+
+        if mac_address and ItemSerializado.objects.exclude(id=item.id).filter(mac_address__iexact=mac_address).exists():
+            messages.error(request, f"Ya existe otro equipo registrado con la MAC {mac_address}.")
+            return redirect("carga_inicial_serial_editar", item_id=item.id)
+
+        ubicacion = None
+        if ubicacion_id:
+            ubicacion = Ubicacion.objects.filter(id=ubicacion_id, sede=sede).first()
+
+        item.serial = serial
+        item.mac_address = mac_address or None
+        item.serial_secundario = serial_secundario or None
+        item.codigo_trazabilidad = codigo_trazabilidad or None
+        item.ubicacion = ubicacion
+        item.save()
+
+        messages.success(request, f"Equipo {item.serial} actualizado correctamente.")
+        return redirect("carga_inicial_seriales", producto_id=producto.id)
+
+    return render(request, "inventario/carga_inicial/serial_editar.html", {
+        "profile": profile,
+        "sede": sede,
+        "producto": producto,
+        "item": item,
+        "ubicaciones": ubicaciones,
+    })

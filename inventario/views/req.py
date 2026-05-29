@@ -24,6 +24,7 @@ from inventario.models import (
     Proveedor,
     ItemSerializado,
     DocumentoItem,
+    DocumentoItemSerializado,
 )
 
 from inventario.services.req_service import (
@@ -906,6 +907,12 @@ def req_atender(request, req_id: int):
                 for item in items_req:
                     qty_despacho = int(request.POST.get(f'qty_{item.id}', 0))
 
+                    if item.producto.es_serializado and qty_despacho != int(item.cantidad):
+                        raise ValueError(
+                            f"Para {item.producto.nombre}, debes despachar exactamente "
+                            f"{int(item.cantidad)} equipo(s) serializado(s). Seleccionados: {qty_despacho}."
+                        )
+
                     if qty_despacho > 0:
                         total_items_procesados += 1
 
@@ -1014,14 +1021,53 @@ def req_atender(request, req_id: int):
                 producto=item.producto,
                 ubicacion__sede=sede_visualizar,
                 estado=ItemSerializado.Estado.EN_ALMACEN
-            ).only('id', 'serial', 'codigo_trazabilidad', 'mac_address')[:500] 
+            ).only('id', 'serial', 'codigo_trazabilidad', 'mac_address', 'serial_secundario')[:500] 
             
-            disponibles = [{'id': x.id, 'serial': x.serial, 'cod44': x.codigo_trazabilidad or '', 'mac': x.mac_address or ''} for x in qs]
+            disponibles = [{'id': x.id, 'serial': x.serial, 'cod44': x.codigo_trazabilidad or '', 'mac': x.mac_address or '', 'serial_secundario': x.serial_secundario or ''} for x in qs]
         
+        seriales_preseleccionados = []
+
+        if item.producto.es_serializado:
+            seriales_preseleccionados = [
+                {
+                    "id": s.item_serializado.id,
+                    "serial": s.item_serializado.serial,
+                    "cod44": s.item_serializado.codigo_trazabilidad or "",
+                    "mac": s.item_serializado.mac_address or "",
+                    "serial_secundario": s.item_serializado.serial_secundario or "",
+                }
+                for s in item.seriales_seleccionados.select_related("item_serializado").all()
+            ]
+
+        seriales_preseleccionados = []
+        seriales_preseleccionados_ids = []
+
+        if item.producto.es_serializado:
+            seriales_qs = item.seriales_seleccionados.select_related("item_serializado").all()
+
+            seriales_preseleccionados = [
+                {
+                    "id": s.item_serializado.id,
+                    "serial": s.item_serializado.serial or "",
+                    "cod44": s.item_serializado.codigo_trazabilidad or "",
+                    "mac": s.item_serializado.mac_address or "",
+                    "serial_secundario": s.item_serializado.serial_secundario or "",
+                }
+                for s in seriales_qs
+            ]
+
+            seriales_preseleccionados_ids = [
+                s["id"] for s in seriales_preseleccionados
+            ]
+
         items_context.append({
             'req_item': item,
             'disponibles_json': json.dumps(disponibles),
-            'stock_total': stock_total 
+            'seriales_preseleccionados_json': json.dumps(seriales_preseleccionados),
+            'stock_total': stock_total,
+            "seriales_preseleccionados": seriales_preseleccionados,
+            "seriales_preseleccionados_json": json.dumps(seriales_preseleccionados),
+            "seriales_preseleccionados_ids_json": json.dumps(seriales_preseleccionados_ids),
         })
 
     context = {'req': req, 'items_context': items_context}
@@ -1286,6 +1332,31 @@ def req_scan_directo(request):
                         f"Disponible: {stock_disponible}, en mochila: {cantidad_en_mochila}."
                     )
                 })
+
+            if producto_obj.es_serializado:
+                if not serial_encontrado:
+                    return JsonResponse({
+                        "ok": False,
+                        "error": (
+                            f"{producto_obj.nombre} es serializado. "
+                            "Escanea el GPON SN, MAC, EN/D-SN o código pintado del equipo."
+                        )
+                    })
+
+                if serial_encontrado.estado != ItemSerializado.Estado.EN_ALMACEN:
+                    return JsonResponse({
+                        "ok": False,
+                        "error": f"Este equipo está {serial_encontrado.get_estado_display()}."
+                    })
+
+                if item_actual and DocumentoItemSerializado.objects.filter(
+                    documento_item=item_actual,
+                    item_serializado=serial_encontrado
+                ).exists():
+                    return JsonResponse({
+                        "ok": False,
+                        "error": f"El equipo {serial_encontrado.serial} ya está en la mochila."
+                    })
             
             add_item_to_req(
                 user=request.user, 
@@ -1293,11 +1364,49 @@ def req_scan_directo(request):
                 producto=producto_obj, 
                 cantidad=1
             )
+
+            item_actual = req_borrador.items.get(producto=producto_obj)
+
+            if serial_encontrado:
+                DocumentoItemSerializado.objects.get_or_create(
+                    documento_item=item_actual,
+                    item_serializado=serial_encontrado
+                )
             
-            items_data = [
-                {"producto_id": item.producto.id, "nombre": item.producto.nombre, "codigo": item.producto.codigo_interno, "cantidad": item.cantidad}
-                for item in req_borrador.items.all()
-            ]
+            items_data = []
+
+            for item in req_borrador.items.select_related("producto").all():
+                stock_item = Stock.objects.filter(
+                    producto=item.producto,
+                    sede=ubicacion.sede
+                ).first()
+
+                disponible = stock_item.cantidad if stock_item else 0
+
+                seriales = []
+
+                if item.producto.es_serializado:
+                    seriales = [
+                        {
+                            "id": s.item_serializado.id,
+                            "serial": s.item_serializado.serial or "",
+                            "mac": s.item_serializado.mac_address or "",
+                            "serial_secundario": s.item_serializado.serial_secundario or "",
+                            "codigo_trazabilidad": s.item_serializado.codigo_trazabilidad or "",
+                        }
+                        for s in item.seriales_seleccionados.select_related("item_serializado").all()
+                    ]
+
+                items_data.append({
+                    "producto_id": item.producto.id,
+                    "nombre": item.producto.nombre,
+                    "codigo": item.producto.codigo_interno,
+                    "cantidad": item.cantidad,
+                    "unidad": item.producto.unidad,
+                    "disponible": disponible,
+                    "es_serializado": item.producto.es_serializado,
+                    "seriales": seriales,
+                })
             
             return JsonResponse({"ok": True, "items": items_data, "mensaje": f"Agregado. Destino: {tecnico.get_full_name() or tecnico.username}"})
 

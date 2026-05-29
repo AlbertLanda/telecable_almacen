@@ -250,7 +250,7 @@
                 Escanea o escribe los códigos de la etiqueta del equipo.
             </p>
 
-            <form method="post" action="{% url 'carga_inicial_serial_registrar' producto.id %}">
+            <form method="post" action="{% url 'carga_inicial_serial_registrar' producto.id %}" id="serialForm">
                 {% csrf_token %}
 
                 <div class="form-row">
@@ -316,7 +316,12 @@
                     </select>
                 </div>
 
-                <button class="btn-main btn-primary-ui" style="width: 100%; justify-content: center;">
+                <button
+                    type="submit"
+                    class="btn-main btn-primary-ui"
+                    style="width: 100%; justify-content: center;"
+                    onclick="return confirm('¿Confirmas que los datos del equipo son correctos?')"
+                >
                     Guardar equipo serializado
                 </button>
             </form>
@@ -338,6 +343,7 @@
                             <th>EN / D-SN</th>
                             <th>Ubicación</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -349,10 +355,23 @@
                                 <td>{{ item.serial_secundario|default:"-" }}</td>
                                 <td>{{ item.ubicacion.nombre|default:"-" }}</td>
                                 <td>{{ item.get_estado_display }}</td>
+                                <td>
+                                    {% if item.estado == item.Estado.EN_ALMACEN %}
+                                        <a
+                                            href="{% url 'carga_inicial_serial_editar' item.id %}"
+                                            class="btn-main btn-secondary-ui"
+                                            style="padding: 8px 12px; font-size: 12px;"
+                                        >
+                                            Editar
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#94a3b8; font-size:12px;">No editable</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="6">Todavía no hay equipos serializados registrados.</td>
+                                <td colspan="7">Todavía no hay equipos serializados registrados.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -366,9 +385,33 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const input = document.getElementById("serialInput");
-        if (input) {
-            input.focus();
+        const serialInput = document.getElementById("serialInput");
+        const form = document.getElementById("serialForm");
+
+        if (serialInput) {
+            serialInput.focus();
+        }
+
+        if (form) {
+            form.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+
+                    const active = document.activeElement;
+
+                    if (active && active.tagName === "INPUT") {
+                        const inputs = Array.from(
+                            form.querySelectorAll("input, select, textarea")
+                        ).filter(el => !el.disabled && el.type !== "hidden");
+
+                        const index = inputs.indexOf(active);
+
+                        if (index >= 0 && index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        }
+                    }
+                }
+            });
         }
     });
 </script>

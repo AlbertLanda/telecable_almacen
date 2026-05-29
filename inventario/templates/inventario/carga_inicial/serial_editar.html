@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .edit-page {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+    }
+
+    .card-ui {
+        background: rgba(17, 24, 39, 0.88);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 40px rgba(0,0,0,.25);
+        margin-bottom: 22px;
+    }
+
+    .page-title {
+        font-size: 30px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #94a3b8;
+        margin-bottom: 22px;
+    }
+
+    .input-ui,
+    .select-ui {
+        width: 100%;
+        background: rgba(255,255,255,0.07);
+        color: #f9fafb;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 13px 15px;
+        outline: none;
+    }
+
+    .input-ui:focus,
+    .select-ui:focus {
+        border-color: #22d3ee;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, .15);
+    }
+
+    .label-ui {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 7px;
+        color: #e5e7eb;
+    }
+
+    .form-row {
+        margin-bottom: 16px;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    .btn-main {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .btn-primary-ui {
+        background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+        color: #06111f;
+    }
+
+    .btn-secondary-ui {
+        background: rgba(255,255,255,0.06);
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .alert-ui {
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .product-code {
+        font-family: Consolas, monospace;
+        background: rgba(34, 211, 238, .12);
+        color: #67e8f9;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="edit-page">
+
+    <h1 class="page-title">Editar equipo serializado</h1>
+    <p class="subtitle">
+        Corrige los datos del equipo antes de que sea despachado o asignado.
+    </p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-ui">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card-ui">
+        <p><strong>Producto:</strong> {{ producto.nombre }}</p>
+        <p><strong>Código interno:</strong> <span class="product-code">{{ producto.codigo_interno }}</span></p>
+        <p><strong>Estado:</strong> {{ item.get_estado_display }}</p>
+    </div>
+
+    <div class="card-ui">
+        <form method="post" id="editSerialForm">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <label class="label-ui">GPON SN / Serial principal</label>
+                <input
+                    type="text"
+                    name="serial"
+                    id="serialInput"
+                    class="input-ui"
+                    value="{{ item.serial }}"
+                    required
+                    autocomplete="off"
+                >
+                <small class="help-text">Identificador principal del equipo.</small>
+            </div>
+
+            <div class="form-row">
+                <label class="label-ui">MAC Address</label>
+                <input
+                    type="text"
+                    name="mac_address"
+                    class="input-ui"
+                    value="{{ item.mac_address|default:'' }}"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="form-row">
+                <label class="label-ui">EN / D-SN / Serie secundaria</label>
+                <input
+                    type="text"
+                    name="serial_secundario"
+                    class="input-ui"
+                    value="{{ item.serial_secundario|default:'' }}"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="form-row">
+                <label class="label-ui">Código pintado / trazabilidad</label>
+                <input
+                    type="text"
+                    name="codigo_trazabilidad"
+                    class="input-ui"
+                    value="{{ item.codigo_trazabilidad|default:'' }}"
+                    autocomplete="off"
+                >
+                <small class="help-text">Número pintado físicamente en la caja o equipo.</small>
+            </div>
+
+            <div class="form-row">
+                <label class="label-ui">Ubicación</label>
+                <select name="ubicacion_id" class="select-ui">
+                    <option value="">Sin ubicación específica</option>
+                    {% for ubicacion in ubicaciones %}
+                        <option value="{{ ubicacion.id }}" {% if item.ubicacion_id == ubicacion.id %}selected{% endif %}>
+                            {{ ubicacion.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="action-bar">
+                <button
+                    type="submit"
+                    class="btn-main btn-primary-ui"
+                    onclick="return confirm('¿Guardar cambios del equipo serializado?')"
+                >
+                    Guardar cambios
+                </button>
+
+                <a href="{% url 'carga_inicial_seriales' producto.id %}" class="btn-main btn-secondary-ui">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("serialInput");
+        const form = document.getElementById("editSerialForm");
+
+        if (input) {
+            input.focus();
+        }
+
+        if (form) {
+            form.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+
+                    const active = document.activeElement;
+
+                    if (active && active.tagName === "INPUT") {
+                        const inputs = Array.from(
+                            form.querySelectorAll("input, select, textarea")
+                        ).filter(el => !el.disabled && el.type !== "hidden");
+
+                        const index = inputs.indexOf(active);
+
+                        if (index >= 0 && index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

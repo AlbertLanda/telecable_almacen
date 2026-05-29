@@ -18,7 +18,7 @@ from .views.api import (
     api_reqs_almacen_create,
     api_autodespacho_registrar,
     api_camara_ping,
-    api_camara_status
+    api_camara_status,
 )
 
 # 3. Importación de SCAN
@@ -63,6 +63,7 @@ from .views.carga_inicial import (
     carga_inicial_cerrar,
     carga_inicial_seriales,
     carga_inicial_serial_registrar,
+    carga_inicial_serial_editar,
 )
 
 urlpatterns = [
@@ -196,5 +197,10 @@ urlpatterns = [
         "dashboard/almacen/carga-inicial/producto/<int:producto_id>/seriales/registrar/",
         carga_inicial_serial_registrar,
         name="carga_inicial_serial_registrar"
+    ),
+    path(
+        "dashboard/almacen/carga-inicial/serial/<int:item_id>/editar/",
+        carga_inicial_serial_editar,
+        name="carga_inicial_serial_editar"
     ),
 ]

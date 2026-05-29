@@ -82,6 +82,74 @@
         background: var(--bg-input); border: 1px dashed var(--border-light);
         border-radius: 10px; padding: 15px; margin-top: 5px; text-align: left;
     }
+
+    .serial-readonly-box {
+        background: rgba(10, 132, 255, 0.08);
+        border: 1px solid rgba(10, 132, 255, 0.22);
+        border-radius: 12px;
+        padding: 14px;
+        text-align: left;
+    }
+
+    .serial-readonly-title {
+        font-size: 12px;
+        color: var(--primary);
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .serial-review-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 240px;
+        overflow-y: auto;
+    }
+
+    .serial-review-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+
+    .serial-review-main {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .serial-review-main strong {
+        color: var(--primary);
+        font-family: monospace;
+        font-size: 13px;
+    }
+
+    .serial-review-main span {
+        color: var(--text-secondary);
+        font-family: monospace;
+        font-size: 12px;
+    }
+
+    .serial-review-detail {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3px;
+        color: var(--text-secondary);
+        font-family: monospace;
+        font-size: 11px;
+    }
+
+    .readonly-note {
+        margin-top: 10px;
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
     
     .tabs-header { display: flex; gap: 15px; border-bottom: 1px solid var(--border-light); margin-bottom: 15px; padding-bottom: 8px; }
     .tab-link { 
@@ -191,50 +259,111 @@
                         </td>
 
                         <td class="col-action">
-                            <input type="hidden" name="qty_{{ item.id }}" id="real_qty_{{ item.id }}" value="{% if not item.producto.es_serializado %}{{ item.cantidad }}{% else %}0{% endif %}">
+
+                            {% if not item.producto.es_serializado %}
+                                <input type="hidden" id="real_qty_{{ item.id }}" value="{{ item.cantidad }}">
+                            {% endif %}
+
                             <input type="hidden" name="rango_inicio_{{ item.id }}" id="input_rango_inicio_{{ item.id }}">
                             <input type="hidden" name="rango_fin_{{ item.id }}" id="input_rango_fin_{{ item.id }}">
-                            <input type="hidden" name="detalles_json_{{ item.id }}" id="input_json_{{ item.id }}">
 
                             {% if item.producto.es_serializado %}
-                                <textarea id="stock_data_{{ item.id }}" style="display:none;">{{ obj.disponibles_json|safe }}</textarea>
 
-                                <div class="serial-box">
-                                    <div class="tabs-header">
-                                        <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'select')">Individual</button>
-                                        <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'rango')">Rango</button>
-                                        <div style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">
-                                            Cant: <strong style="color: var(--primary);" id="display_qty_{{ item.id }}">0</strong>
+                                {% if obj.seriales_preseleccionados %}
+                                    <input
+                                        type="hidden"
+                                        name="qty_{{ item.id }}"
+                                        id="real_qty_{{ item.id }}"
+                                        value="{{ obj.seriales_preseleccionados|length }}"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="detalles_json_{{ item.id }}"
+                                        id="input_json_{{ item.id }}"
+                                        value="{{ obj.seriales_preseleccionados_ids_json|safe }}"
+                                    >
+
+                                    <div class="serial-readonly-box">
+                                        <div class="serial-readonly-title">
+                                            <span>Equipos seleccionados desde mochila</span>
+                                            <span>{{ obj.seriales_preseleccionados|length }} equipo(s)</span>
+                                        </div>
+
+                                        <div class="serial-review-list">
+                                            {% for serial in obj.seriales_preseleccionados %}
+                                                <div class="serial-review-card">
+                                                    <div class="serial-review-main">
+                                                        <strong>
+                                                            {% if serial.cod44 %}
+                                                                Código pintado: {{ serial.cod44 }}
+                                                            {% else %}
+                                                                Sin código pintado
+                                                            {% endif %}
+                                                        </strong>
+
+                                                        <span>{{ serial.serial|default:"-" }}</span>
+                                                    </div>
+
+                                                    <div class="serial-review-detail">
+                                                        <div>GPON SN: {{ serial.serial|default:"-" }}</div>
+                                                        <div>MAC: {{ serial.mac|default:"-" }}</div>
+                                                        <div>EN / D-SN: {{ serial.serial_secundario|default:"-" }}</div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+
+                                        <div class="readonly-note">
+                                            Estos equipos fueron escaneados durante la carga de mochila. En esta pantalla solo se revisan antes de confirmar el despacho.
                                         </div>
                                     </div>
 
-                                    <div id="tab_select_{{ item.id }}">
-                                        <input type="text" class="scanner-input" 
-                                               placeholder="Escanear SN..." 
-                                               id="search_input_{{ item.id }}"
-                                               onkeydown="checkEnter(event, '{{ item.id }}')" autocomplete="off">
-                                        
-                                        <div id="selected_list_{{ item.id }}" class="picked-list">
-                                            <div class="text-center text-secondary small" id="empty_msg_{{ item.id }}" style="padding: 10px;">
-                                                0 seleccionados.
+                                {% else %}
+                                    <input type="hidden" name="qty_{{ item.id }}" id="real_qty_{{ item.id }}" value="0">
+                                    <input type="hidden" name="detalles_json_{{ item.id }}" id="input_json_{{ item.id }}">
+
+                                    <textarea id="stock_data_{{ item.id }}" style="display:none;">{{ obj.disponibles_json|safe }}</textarea>
+
+                                    <div class="serial-box">
+                                        <div class="tabs-header">
+                                            <button type="button" class="tab-link active" onclick="switchTab('{{ item.id }}', 'select')">Individual</button>
+                                            <button type="button" class="tab-link" onclick="switchTab('{{ item.id }}', 'rango')">Rango</button>
+                                            <div style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">
+                                                Cant: <strong style="color: var(--primary);" id="display_qty_{{ item.id }}">0</strong>
                                             </div>
                                         </div>
-                                        <script>window['picked_{{ item.id }}'] = [];</script>
-                                    </div>
 
-                                    <div id="tab_rango_{{ item.id }}" style="display:none;">
-                                        <div style="display: flex; gap: 5px; align-items: center;">
-                                            <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
-                                            <span style="color: var(--text-secondary);">-</span>
-                                            <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                        <div id="tab_select_{{ item.id }}">
+                                            <input type="text" class="scanner-input"
+                                                placeholder="Escanear SN..."
+                                                id="search_input_{{ item.id }}"
+                                                data-max="{{ item.cantidad }}"
+                                                onkeydown="checkEnter(event, '{{ item.id }}')" autocomplete="off">
+
+                                            <div id="selected_list_{{ item.id }}" class="picked-list">
+                                                <div class="text-center text-secondary small" id="empty_msg_{{ item.id }}" style="padding: 10px;">
+                                                    0 seleccionados.
+                                                </div>
+                                            </div>
+                                            <script>window['picked_{{ item.id }}'] = [];</script>
+                                        </div>
+
+                                        <div id="tab_rango_{{ item.id }}" style="display:none;">
+                                            <div style="display: flex; gap: 5px; align-items: center;">
+                                                <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Inicio" id="start_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                                <span style="color: var(--text-secondary);">-</span>
+                                                <input type="number" class="qty-input-simple" style="width: 100%;" placeholder="Fin" id="end_{{ item.id }}" oninput="calcRango('{{ item.id }}')">
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                {% endif %}
 
                             {% else %}
                                 <div style="display: flex; justify-content: center;">
-                                    <input type="number" name="qty_{{ item.id }}" class="qty-input-simple" 
-                                           value="{{ item.cantidad }}" min="0" onchange="document.getElementById('real_qty_{{ item.id }}').value = this.value">
+                                    <input type="number" name="qty_{{ item.id }}" class="qty-input-simple"
+                                        value="{{ item.cantidad }}" min="0"
+                                        onchange="document.getElementById('real_qty_{{ item.id }}').value = this.value">
                                 </div>
                             {% endif %}
                         </td>
@@ -333,12 +462,36 @@
             const stock = JSON.parse(stockJson);
             
             // Busca coincidencia en el JSON de stock disponible
-            const found = stock.find(x => x.serial === val || x.cod44 === val || x.mac === val);
+
+            const clean = (v) => (v || "")
+                .trim()
+                .toUpperCase()
+                .replaceAll("-", "")
+                .replaceAll(" ", "")
+                .replaceAll("'", "")
+                .replaceAll("´", "")
+                .replaceAll("`", "");
+
+            const valClean = clean(val);
+
+            const found = stock.find(x =>
+                clean(x.serial) === valClean ||
+                clean(x.cod44) === valClean ||
+                clean(x.mac) === valClean ||
+                clean(x.serial_secundario) === valClean
+            );
             
             if(found) {
                 const picked = window[`picked_${itemId}`];
+
+                const maxPermitido = parseInt(e.target.dataset.max || "0");
+
+                if (maxPermitido > 0 && picked.length >= maxPermitido) {
+                    showToast(`❌ Solo debes seleccionar ${maxPermitido} equipo(s) para este producto.`, 'error');
+                    e.target.value = "";
+                    return;
+                }
                 
-                // Valida si ya lo había escaneado en esta misma sesión
                 if(picked.find(x => x.id === found.id)) {
                     showToast(`⚠️ El equipo ${val} ya fue escaneado.`, 'warning');
                     e.target.value = ""; 
@@ -384,24 +537,69 @@
     }
 
     function calcRango(itemId) {
-        const start = parseInt(document.getElementById(`start_${itemId}`).value) || 0;
-        const end = parseInt(document.getElementById(`end_${itemId}`).value) || 0;
+        const startInput = document.getElementById(`start_${itemId}`);
+        const endInput = document.getElementById(`end_${itemId}`);
+        const searchInput = document.getElementById(`search_input_${itemId}`);
+
+        const maxPermitido = parseInt(searchInput?.dataset.max || "0");
+
+        const start = parseInt(startInput.value) || 0;
+        const end = parseInt(endInput.value) || 0;
+
         let qty = 0;
+
         if (end >= start && start > 0) {
             qty = (end - start) + 1;
+
+            if (maxPermitido > 0 && qty > maxPermitido) {
+                showToast(`❌ El rango supera lo solicitado. Máximo permitido: ${maxPermitido}.`, "error");
+
+                endInput.value = "";
+                qty = 0;
+
+                document.getElementById(`input_rango_inicio_${itemId}`).value = "";
+                document.getElementById(`input_rango_fin_${itemId}`).value = "";
+                document.getElementById(`display_qty_${itemId}`).innerText = "0";
+                document.getElementById(`real_qty_${itemId}`).value = 0;
+                return;
+            }
+
             document.getElementById(`input_rango_inicio_${itemId}`).value = start;
             document.getElementById(`input_rango_fin_${itemId}`).value = end;
         } else {
             document.getElementById(`input_rango_inicio_${itemId}`).value = "";
             document.getElementById(`input_rango_fin_${itemId}`).value = "";
         }
+
         document.getElementById(`display_qty_${itemId}`).innerText = qty;
         document.getElementById(`real_qty_${itemId}`).value = qty;
     }
 
     document.getElementById('dispatchForm').addEventListener('submit', function(e) {
+        const serialInputs = document.querySelectorAll(".scanner-input");
+
+        for (const input of serialInputs) {
+            const itemId = input.id.replace("search_input_", "");
+            const maxPermitido = parseInt(input.dataset.max || "0");
+            const qtyActual = parseInt(document.getElementById(`real_qty_${itemId}`)?.value || "0");
+
+            if (maxPermitido > 0 && qtyActual > maxPermitido) {
+                e.preventDefault();
+                showToast(`❌ Hay un producto serializado con más equipos de los solicitados. Máximo: ${maxPermitido}.`, "error");
+                return;
+            }
+
+            if (maxPermitido > 0 && qtyActual < maxPermitido) {
+                e.preventDefault();
+                showToast(`⚠️ Falta seleccionar ${maxPermitido - qtyActual} equipo(s) serializado(s).`, "warning");
+                return;
+            }
+        }
+
         const btn = document.getElementById('btnSubmit');
-        btn.disabled = true; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO..."; btn.style.opacity = "0.7";
+        btn.disabled = true;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
+        btn.style.opacity = "0.7";
     });
 </script>
 {% endblock %}

@@ -786,3 +786,28 @@ class StockTecnico(TimeStampedModel):
 
     def __str__(self):
         return f"{self.tecnico.username} tiene {self.cantidad} de {self.producto.codigo_interno}"
+
+class DocumentoItemSerializado(TimeStampedModel):
+    documento_item = models.ForeignKey(
+        DocumentoItem,
+        on_delete=models.CASCADE,
+        related_name="seriales_seleccionados"
+    )
+    item_serializado = models.ForeignKey(
+        ItemSerializado,
+        on_delete=models.PROTECT,
+        related_name="documentos_seleccionados"
+    )
+
+    class Meta:
+        verbose_name = "Serial seleccionado en documento"
+        verbose_name_plural = "Seriales seleccionados en documentos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["documento_item", "item_serializado"],
+                name="uq_documento_item_serializado"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.documento_item} -> {self.item_serializado.serial}"

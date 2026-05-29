@@ -172,6 +172,54 @@
         border-color: rgba(48, 209, 88, 0.25);
     }
 
+    .qty-wrapper {
+        width: 78px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .qty-wrapper label {
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .qty-wrapper .qty-input {
+        width: 100%;
+    }
+
+    .serial-list-mini {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .serial-chip {
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(10, 132, 255, 0.08);
+        border: 1px solid rgba(10, 132, 255, 0.18);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .serial-chip strong {
+        color: var(--primary);
+        font-family: monospace;
+    }
+
+    .serial-chip span,
+    .serial-chip small {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-family: monospace;
+    }
+
     /* RESPONSIVE MÓVIL */
     @media (max-width: 900px) {
         .assign-container { grid-template-columns: 1fr; }
@@ -313,11 +361,16 @@
                 </div>
                 <div>
                     <div class="pc-meta">
-                        <span style="color:var(--text-secondary)">Stock:</span>
+                        <span style="color:var(--text-secondary)">Disponible en almacén:</span>
                         <span class="badge-stock ${stockClass}">${stock}</span>
                     </div>
+
                     <form class="add-form" onsubmit="addToCart(event, '${p.producto_id}')">
-                        <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
+                        <div class="qty-wrapper">
+                            <label>Cant.</label>
+                            <input type="number" name="cantidad" class="qty-input" value="1" min="1" max="${stock}" ${disabled}>
+                        </div>
+
                         <button type="submit" class="btn-add" ${disabled}>
                             ${btnText} <i class='bx bx-plus'></i> 
                         </button>
@@ -344,7 +397,19 @@
             <div class="cart-item">
                 <div class="ci-info">
                     <div class="ci-name">${it.nombre}</div>
-                    <div class="ci-code">${it.codigo || '-'}</div>
+                    <div class="ci-code">${it.codigo || '-'} · Disponible: ${it.disponible ?? '-'}</div>
+                    ${it.es_serializado && it.seriales && it.seriales.length > 0 ? `
+                        <div class="serial-list-mini">
+                            ${it.seriales.map(s => `
+                                <div class="serial-chip">
+                                    <strong>${s.codigo_trazabilidad || s.serial}</strong>
+                                    <span>${s.serial}</span>
+                                    ${s.mac ? `<small>MAC: ${s.mac}</small>` : ``}
+                                    ${s.serial_secundario ? `<small>EN: ${s.serial_secundario}</small>` : ``}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ``}
                 </div>
                 <div class="ci-actions">
                     <input type="number" class="cart-qty-input" value="${it.cantidad}" min="1"
@@ -375,10 +440,19 @@
 
     async function addToCart(e, prodId) {
         e.preventDefault();
+
         const form = e.target;
         const qty = form.querySelector('input[name="cantidad"]').value;
         const btn = form.querySelector('button');
         const originalText = btn.innerHTML;
+        const inputQty = form.querySelector('input[name="cantidad"]');
+        const maxStock = parseInt(inputQty.getAttribute("max") || "0");
+        const qtyNumber = parseInt(qty || "0");
+        
+        if (maxStock > 0 && qtyNumber > maxStock) {
+            showToast(`❌ Solo hay ${maxStock} disponible(s) en almacén.`, "error");
+            return;
+        }
         
         btn.disabled = true;
         btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
