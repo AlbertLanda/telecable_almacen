@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -150,6 +149,28 @@ def dash_admin(request):
         .count()
     )
 
+    stocks_criticos = (
+        Stock.objects.filter(sede=sede, producto__activo=True)
+        .filter(
+            Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
+            | Q(producto__stock_minimo=0, cantidad__lte=5)
+        )
+        .select_related("producto", "sede")
+        .order_by("cantidad", "producto__nombre")[:10]
+    )
+
+    alertas_stock = [
+        {
+            "producto": s.producto.nombre,
+            "codigo": s.producto.codigo_interno or "",
+            "cantidad": int(s.cantidad or 0),
+            "stock_minimo": int(s.producto.stock_minimo or 0),
+            "sede": s.sede.nombre,
+            "unidad": getattr(s.producto, "unidad", "") or "UND",
+        }
+        for s in stocks_criticos
+    ]
+
     # 4) Últimos movimientos
     ult_movs = (
         MovimientoInventario.objects.filter(sede=sede)
@@ -167,6 +188,7 @@ def dash_admin(request):
             "total_equipos": total_equipos,
             "total_cables": total_cables,
             "low_stock": low_stock,
+            "alertas_stock": alertas_stock,
             "ult_movs": ult_movs,
             "user": request.user,
         },

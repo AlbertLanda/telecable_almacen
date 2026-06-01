@@ -112,6 +112,55 @@
     .card-alert { border-color: rgba(255, 69, 58, 0.5) !important; }
     .text-alert { color: var(--danger) !important; }
 
+    .voice-alert-panel {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 9999;
+        background: rgba(28, 28, 30, .96);
+        border: 1px solid rgba(255, 69, 58, .45);
+        border-radius: 16px;
+        padding: 16px 18px;
+        box-shadow: 0 20px 50px rgba(0,0,0,.45);
+        display: none;
+        gap: 14px;
+        align-items: center;
+        max-width: 480px;
+    }
+
+    .voice-alert-panel.show {
+        display: flex;
+    }
+
+    .voice-alert-panel strong {
+        color: var(--danger);
+        font-size: 14px;
+    }
+
+    .voice-alert-panel p {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin: 4px 0 0;
+        line-height: 1.35;
+    }
+
+    .voice-alert-btn {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+        cursor: pointer;
+        background: var(--danger);
+        color: white;
+        white-space: nowrap;
+    }
+
+    .voice-alert-btn.secondary {
+        background: rgba(255,255,255,.08);
+        color: var(--text-main);
+        border: 1px solid rgba(255,255,255,.14);
+    }
+
     @media (max-width: 1024px) { .content-grid { grid-template-columns: 1fr; } }
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; }
@@ -252,9 +301,25 @@
 
 </div>
 
+<div id="voiceAlertPanel" class="voice-alert-panel">
+    <div>
+        <strong>🔊 Alertas por voz</strong>
+        <p id="voiceAlertText">Activa la voz para recibir avisos hablados de stock crítico.</p>
+    </div>
+
+    <button type="button" id="btnActivarVoz" class="voice-alert-btn">
+        Activar voz
+    </button>
+
+    <button type="button" id="btnRepetirAlerta" class="voice-alert-btn secondary" style="display:none;">
+        Repetir alerta
+    </button>
+</div>
+
 {{ total_equipos|default:0|json_script:"totalEquipos" }}
 {{ total_cables|default:0|json_script:"totalCables" }}
 {{ low_stock|default:0|json_script:"lowStock" }}
+{{ alertas_stock|default:"[]"|json_script:"alertasStock" }}
 
 <script>
     Chart.defaults.color = '#98989D';
@@ -265,6 +330,8 @@
     const lowStock = JSON.parse(document.getElementById('lowStock').textContent);
 
     const ctx = document.getElementById('inventoryChart').getContext('2d');
+
+    const alertasStock = JSON.parse(document.getElementById('alertasStock').textContent || "[]");
     
     new Chart(ctx, {
         type: 'doughnut',
@@ -304,6 +371,99 @@
             }
         }
     });
+
+    // ==========================================
+    // ALERTAS POR VOZ - STOCK CRÍTICO
+    // ==========================================
+    const voiceAlertPanel = document.getElementById("voiceAlertPanel");
+    const voiceAlertText = document.getElementById("voiceAlertText");
+    const btnActivarVoz = document.getElementById("btnActivarVoz");
+    const btnRepetirAlerta = document.getElementById("btnRepetirAlerta");
+
+    function construirMensajeStockCritico() {
+        if (!alertasStock || alertasStock.length === 0) {
+            return "";
+        }
+
+        if (alertasStock.length === 1) {
+            const item = alertasStock[0];
+
+            return `Atención. El producto ${item.producto}, de la sede ${item.sede}, se encuentra en stock crítico. Cantidad actual: ${item.cantidad} ${item.unidad}. Stock mínimo requerido: ${item.stock_minimo}.`;
+        }
+
+        const principales = alertasStock
+            .slice(0, 3)
+            .map(item => `${item.producto}, cantidad actual ${item.cantidad}`)
+            .join(". ");
+
+        return `Atención. Hay ${alertasStock.length} productos con stock crítico. Los principales son: ${principales}. Revise el panel de almacén.`;
+    }
+
+    function hablarStockCritico() {
+        const mensaje = construirMensajeStockCritico();
+
+        if (!mensaje) return;
+
+        window.speechSynthesis.cancel();
+
+        const voz = new SpeechSynthesisUtterance(mensaje);
+        voz.lang = "es-PE";
+        voz.rate = 0.95;
+        voz.pitch = 1;
+        voz.volume = 1;
+
+        const voces = window.speechSynthesis.getVoices();
+        const vozEspanol = voces.find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
+
+        if (vozEspanol) {
+            voz.voice = vozEspanol;
+        }
+
+        window.speechSynthesis.speak(voz);
+    }
+
+    function iniciarPanelVoz() {
+        if (lowStock <= 0 || !alertasStock || alertasStock.length === 0) {
+            return;
+        }
+
+        voiceAlertPanel.classList.add("show");
+
+        voiceAlertText.textContent = `Hay ${lowStock} producto(s) en stock crítico en la sede seleccionada.`;
+
+        const vozActivada = localStorage.getItem("alertasVozStock") === "true";
+
+        if (vozActivada) {
+            btnActivarVoz.style.display = "none";
+            btnRepetirAlerta.style.display = "inline-block";
+
+            setTimeout(() => {
+                hablarStockCritico();
+            }, 800);
+        }
+    }
+
+    if (btnActivarVoz) {
+        btnActivarVoz.addEventListener("click", () => {
+            localStorage.setItem("alertasVozStock", "true");
+
+            btnActivarVoz.style.display = "none";
+            btnRepetirAlerta.style.display = "inline-block";
+
+            hablarStockCritico();
+        });
+    }
+
+    if (btnRepetirAlerta) {
+        btnRepetirAlerta.addEventListener("click", () => {
+            hablarStockCritico();
+        });
+    }
+
+    if ("speechSynthesis" in window) {
+        window.speechSynthesis.onvoiceschanged = iniciarPanelVoz;
+        iniciarPanelVoz();
+    }
 </script>
 
 {% endblock %}
