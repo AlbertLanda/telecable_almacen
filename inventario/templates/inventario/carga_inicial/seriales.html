@@ -1,0 +1,1247 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de seriales | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --serial-navy: #081326;
+        --serial-blue: #0f6bff;
+        --serial-blue-soft: rgba(15, 107, 255, .10);
+        --serial-green: #16a34a;
+        --serial-green-soft: rgba(22, 163, 74, .12);
+        --serial-red: #dc2626;
+        --serial-red-soft: rgba(220, 38, 38, .12);
+        --serial-amber: #f59e0b;
+        --serial-amber-soft: rgba(245, 158, 11, .14);
+        --serial-purple: #7c3aed;
+        --serial-purple-soft: rgba(124, 58, 237, .12);
+        --serial-cyan: #06b6d4;
+        --serial-cyan-soft: rgba(6, 182, 212, .12);
+        --serial-card: #ffffff;
+        --serial-soft: #f8fafc;
+        --serial-border: #d9e2ef;
+        --serial-border-strong: #c4d0df;
+        --serial-text: #0f172a;
+        --serial-muted: #64748b;
+        --serial-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --serial-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .serial-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: serialFade .25s ease-out;
+    }
+
+    @keyframes serialFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .serial-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .20), transparent 34%),
+            linear-gradient(135deg, #081326 0%, #0f213a 52%, #10294c 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--serial-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .serial-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        right: -110px;
+        top: -130px;
+        background: rgba(6, 182, 212, .16);
+        pointer-events: none;
+    }
+
+    .serial-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .hero-main,
+    .hero-product {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .hero-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .hero-title span {
+        color: #93c5fd;
+    }
+
+    .hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 760px;
+    }
+
+    .hero-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .hero-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .hero-product {
+        background: rgba(255, 255, 255, .96);
+        color: var(--serial-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .product-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .product-card-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--serial-purple-soft);
+        color: var(--serial-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .product-card-title strong {
+        display: block;
+        color: var(--serial-text);
+        font-size: 14px;
+        font-weight: 950;
+        line-height: 1.25;
+    }
+
+    .product-card-title span {
+        display: block;
+        color: var(--serial-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .product-info-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .product-info-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .product-info-item span {
+        color: var(--serial-muted);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .product-info-item strong {
+        color: var(--serial-text);
+        font-size: 13px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-serial {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-serial:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-serial.primary {
+        background: var(--serial-blue);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(15, 107, 255, .20);
+    }
+
+    .btn-serial.primary:hover {
+        background: #084bcc;
+    }
+
+    .btn-serial.ghost {
+        background: #ffffff;
+        color: var(--serial-text);
+        border-color: var(--serial-border-strong);
+    }
+
+    .btn-serial.ghost:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .btn-serial.warning {
+        background: var(--serial-amber-soft);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, .24);
+    }
+
+    .btn-serial.small {
+        min-height: 34px;
+        padding: 0 11px;
+        font-size: 12px;
+        border-radius: 11px;
+    }
+
+    .alert-serial {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 15px 16px;
+        border-radius: 17px;
+        border: 1px solid var(--serial-border);
+        background: #ffffff;
+        box-shadow: var(--serial-shadow-sm);
+        color: var(--serial-text);
+    }
+
+    .alert-serial i {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--serial-blue-soft);
+        color: var(--serial-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 20px;
+    }
+
+    .alert-serial strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 3px;
+    }
+
+    .alert-serial span {
+        color: var(--serial-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .kpi-card {
+        position: relative;
+        overflow: hidden;
+        background: var(--serial-card);
+        border: 1px solid var(--serial-border);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: var(--serial-shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 126px;
+    }
+
+    .kpi-card::after {
+        content: "";
+        position: absolute;
+        right: -50px;
+        top: -50px;
+        width: 140px;
+        height: 140px;
+        border-radius: 999px;
+        opacity: .8;
+        pointer-events: none;
+    }
+
+    .kpi-card.blue::after {
+        background: var(--serial-blue-soft);
+    }
+
+    .kpi-card.green::after {
+        background: var(--serial-green-soft);
+    }
+
+    .kpi-card.amber::after {
+        background: var(--serial-amber-soft);
+    }
+
+    .kpi-card.done {
+        border-color: rgba(22, 163, 74, .35);
+    }
+
+    .kpi-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 29px;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .kpi-icon.blue {
+        background: var(--serial-blue-soft);
+        color: var(--serial-blue);
+    }
+
+    .kpi-icon.green {
+        background: var(--serial-green-soft);
+        color: var(--serial-green);
+    }
+
+    .kpi-icon.amber {
+        background: var(--serial-amber-soft);
+        color: #b45309;
+    }
+
+    .kpi-value {
+        color: var(--serial-text);
+        font-size: 36px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: -1px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .kpi-label {
+        margin-top: 8px;
+        color: var(--serial-text);
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        position: relative;
+        z-index: 1;
+    }
+
+    .kpi-help {
+        margin-top: 7px;
+        color: var(--serial-muted);
+        font-size: 12px;
+        line-height: 1.35;
+        position: relative;
+        z-index: 1;
+    }
+
+    .work-grid {
+        display: grid;
+        grid-template-columns: minmax(360px, .75fr) minmax(0, 1.45fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .panel-serial {
+        background: var(--serial-card);
+        border: 1px solid var(--serial-border);
+        border-radius: 22px;
+        box-shadow: var(--serial-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .panel-serial.form-panel {
+        border-left: 5px solid var(--serial-blue);
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--serial-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--serial-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--serial-blue);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--serial-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .panel-chip.green {
+        background: #ecfdf5;
+        color: #15803d;
+        border-color: #bbf7d0;
+    }
+
+    .panel-chip.amber {
+        background: #fffbeb;
+        color: #92400e;
+        border-color: #fde68a;
+    }
+
+    .panel-body {
+        padding: 20px;
+    }
+
+    .form-row {
+        margin-bottom: 15px;
+    }
+
+    .label-serial {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+        color: var(--serial-text);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .label-serial i {
+        color: var(--serial-blue);
+        font-size: 17px;
+    }
+
+    .input-serial,
+    .select-serial {
+        width: 100%;
+        min-height: 44px;
+        background: #ffffff;
+        color: var(--serial-text);
+        border: 1px solid var(--serial-border-strong);
+        border-radius: 13px;
+        padding: 0 13px;
+        outline: none;
+        font-size: 14px;
+        transition: .18s ease;
+    }
+
+    .input-serial:focus,
+    .select-serial:focus {
+        border-color: var(--serial-blue);
+        box-shadow: 0 0 0 4px var(--serial-blue-soft);
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: var(--serial-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .scan-tip {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 13px;
+        border-radius: 15px;
+        background: #f8fafc;
+        border: 1px solid var(--serial-border);
+        color: var(--serial-muted);
+        font-size: 12px;
+        line-height: 1.4;
+        margin-bottom: 16px;
+    }
+
+    .scan-tip i {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--serial-cyan-soft);
+        color: #0891b2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 17px;
+    }
+
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .serial-table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+    }
+
+    .serial-table th {
+        background: #f8fafc !important;
+        color: #64748b !important;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        text-align: left;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--serial-border);
+        white-space: nowrap;
+    }
+
+    .serial-table td {
+        padding: 15px 18px;
+        border-bottom: 1px solid #edf2f7;
+        color: var(--serial-text);
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    .serial-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .serial-table tbody tr:hover td {
+        background: #f8fafc;
+    }
+
+    .code-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 9px;
+        background: var(--serial-blue-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .18);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .trace-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        padding: 5px 8px;
+        border-radius: 10px;
+        background: var(--serial-amber-soft);
+        color: #92400e;
+        border: 1px solid rgba(245, 158, 11, .22);
+        font-weight: 950;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+    }
+
+    .status-badge.ok {
+        background: var(--serial-green-soft);
+        color: #15803d;
+        border: 1px solid rgba(22, 163, 74, .22);
+    }
+
+    .status-badge.muted {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .empty-state {
+        padding: 44px 20px;
+        text-align: center;
+        color: var(--serial-muted);
+    }
+
+    .empty-state i {
+        display: block;
+        font-size: 42px;
+        color: #94a3b8;
+        margin-bottom: 9px;
+    }
+
+    .empty-state strong {
+        display: block;
+        color: var(--serial-text);
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 4px;
+    }
+
+    .empty-state p {
+        margin: 0;
+        color: var(--serial-muted);
+        font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+        .serial-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .work-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-chip {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .serial-wrap {
+            gap: 18px;
+        }
+
+        .serial-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+        }
+
+        .hero-desc {
+            font-size: 13px;
+        }
+
+        .panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .btn-serial {
+            width: 100%;
+        }
+
+        .action-bar {
+            width: 100%;
+        }
+
+        .kpi-card {
+            min-height: auto;
+            padding: 18px;
+        }
+
+        .kpi-icon {
+            width: 54px;
+            height: 54px;
+            font-size: 27px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+        }
+    }
+</style>
+
+<div class="serial-wrap">
+
+    <section class="serial-hero">
+        <div class="hero-main">
+            <div class="hero-badge">
+                <i class='bx bx-barcode-reader'></i>
+                Equipos serializados
+            </div>
+
+            <h1 class="hero-title">
+                Registro de <span>seriales físicos</span>
+            </h1>
+
+            <p class="hero-desc">
+                Registra cada unidad física del producto con su GPON SN, MAC Address,
+                serie secundaria y código pintado para mantener trazabilidad real del inventario.
+            </p>
+
+            <div class="hero-meta-row">
+                <span class="hero-chip">
+                    <i class='bx bx-buildings'></i>
+                    Sede: {{ sede.nombre }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bxs-user'></i>
+                    {{ request.user.username }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bx-calendar'></i>
+                    {% now "d/m/Y" %}
+                </span>
+            </div>
+        </div>
+
+        <aside class="hero-product">
+            <div class="product-card-title">
+                <i class='bx bx-chip'></i>
+                <div>
+                    <strong>{{ producto.nombre }}</strong>
+                    <span>Producto serializado</span>
+                </div>
+            </div>
+
+            <div class="product-info-list">
+                <div class="product-info-item">
+                    <span>Código interno</span>
+                    <strong>{{ producto.codigo_interno }}</strong>
+                </div>
+
+                <div class="product-info-item">
+                    <span>Sede</span>
+                    <strong>{{ sede.nombre|truncatechars:24 }}</strong>
+                </div>
+
+                <div class="product-info-item">
+                    <span>Unidad</span>
+                    <strong>{{ producto.unidad|default:"UND" }}</strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="action-bar">
+        <a href="{% url 'carga_inicial_home' %}" class="btn-serial ghost">
+            <i class='bx bx-arrow-back'></i>
+            Volver a carga inicial
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-serial">
+                <i class='bx bx-info-circle'></i>
+                <div>
+                    <strong>Mensaje del sistema</strong>
+                    <span>{{ message }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="kpi-grid">
+        <article class="kpi-card blue">
+            <div class="kpi-icon blue">
+                <i class='bx bx-package'></i>
+            </div>
+
+            <div>
+                <div class="kpi-value">{{ cantidad_stock }}</div>
+                <div class="kpi-label">Stock cargado</div>
+                <div class="kpi-help">
+                    Cantidad física registrada para este producto.
+                </div>
+            </div>
+        </article>
+
+        <article class="kpi-card green {% if pendientes == 0 %}done{% endif %}">
+            <div class="kpi-icon green">
+                <i class='bx bx-check-shield'></i>
+            </div>
+
+            <div>
+                <div class="kpi-value">{{ cantidad_seriales }}</div>
+                <div class="kpi-label">Seriales registrados</div>
+                <div class="kpi-help">
+                    Unidades físicas ya identificadas.
+                </div>
+            </div>
+        </article>
+
+        <article class="kpi-card amber">
+            <div class="kpi-icon amber">
+                <i class='bx bx-time-five'></i>
+            </div>
+
+            <div>
+                <div class="kpi-value">{{ pendientes }}</div>
+                <div class="kpi-label">Pendientes</div>
+                <div class="kpi-help">
+                    Equipos faltantes por registrar.
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section class="work-grid">
+
+        <article class="panel-serial form-panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-barcode'></i>
+                        Registrar equipo
+                    </h3>
+                    <span>Escanea o escribe los códigos de la etiqueta del equipo.</span>
+                </div>
+
+                {% if pendientes > 0 %}
+                    <span class="panel-chip amber">
+                        <i class='bx bx-edit'></i>
+                        Pendiente
+                    </span>
+                {% else %}
+                    <span class="panel-chip green">
+                        <i class='bx bx-check'></i>
+                        Completo
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="panel-body">
+                {% if pendientes > 0 %}
+                    <div class="scan-tip">
+                        <i class='bx bx-info-circle'></i>
+                        <div>
+                            El lector de código de barras puede presionar Enter automáticamente.
+                            Por eso esta pantalla mueve el cursor al siguiente campo y no guarda sola.
+                        </div>
+                    </div>
+
+                    <form method="post" action="{% url 'carga_inicial_serial_registrar' producto.id %}" id="serialForm">
+                        {% csrf_token %}
+
+                        <div class="form-row">
+                            <label class="label-serial" for="serialInput">
+                                <i class='bx bx-fingerprint'></i>
+                                GPON SN / Serial principal
+                            </label>
+
+                            <input
+                                type="text"
+                                name="serial"
+                                id="serialInput"
+                                class="input-serial"
+                                required
+                                placeholder="Ej: ZTEGDD2F3241"
+                                autocomplete="off"
+                                autofocus
+                            >
+
+                            <small class="help-text">
+                                Este será el identificador principal del equipo.
+                            </small>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-serial">
+                                <i class='bx bx-wifi'></i>
+                                MAC Address
+                            </label>
+
+                            <input
+                                type="text"
+                                name="mac_address"
+                                class="input-serial"
+                                placeholder="Ej: D8-31-39-67-2A-B2"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-serial">
+                                <i class='bx bx-barcode-reader'></i>
+                                EN / D-SN / Serie secundaria
+                            </label>
+
+                            <input
+                                type="text"
+                                name="serial_secundario"
+                                class="input-serial"
+                                placeholder="Ej: EQLYT2T07003"
+                                autocomplete="off"
+                            >
+
+                            <small class="help-text">
+                                Código secundario de la etiqueta. Puede venir como EN, D-SN o serie adicional.
+                            </small>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-serial">
+                                <i class='bx bx-purchase-tag-alt'></i>
+                                Código pintado / trazabilidad
+                            </label>
+
+                            <input
+                                type="text"
+                                name="codigo_trazabilidad"
+                                class="input-serial"
+                                placeholder="Ej: 4"
+                                autocomplete="off"
+                            >
+
+                            <small class="help-text">
+                                Número pintado físicamente en la caja o equipo.
+                            </small>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="label-serial">
+                                <i class='bx bx-map-pin'></i>
+                                Ubicación
+                            </label>
+
+                            <select name="ubicacion_id" class="select-serial">
+                                <option value="">Sin ubicación específica</option>
+                                {% for ubicacion in ubicaciones %}
+                                    <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn-serial primary"
+                            style="width: 100%;"
+                            id="saveSerialBtn"
+                        >
+                            <i class='bx bx-save'></i>
+                            Guardar equipo serializado
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="empty-state">
+                        <i class='bx bx-check-circle'></i>
+                        <strong>Registro completo</strong>
+                        <p>Ya registraste todos los equipos según el stock cargado.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="panel-serial">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-list-check'></i>
+                        Equipos registrados
+                    </h3>
+                    <span>Relación de unidades físicas registradas para este producto.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-chip'></i>
+                    {{ cantidad_seriales }} equipo(s)
+                </span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="serial-table">
+                    <thead>
+                        <tr>
+                            <th>Cód. pintado</th>
+                            <th>GPON SN</th>
+                            <th>MAC</th>
+                            <th>EN / D-SN</th>
+                            <th>Ubicación</th>
+                            <th>Estado</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in seriales %}
+                            <tr>
+                                <td>
+                                    {% if item.codigo_trazabilidad %}
+                                        <span class="trace-pill">{{ item.codigo_trazabilidad }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <span class="code-pill">{{ item.serial }}</span>
+                                </td>
+
+                                <td>
+                                    {% if item.mac_address %}
+                                        <span class="code-pill">{{ item.mac_address }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if item.serial_secundario %}
+                                        <span class="code-pill">{{ item.serial_secundario }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>{{ item.ubicacion.nombre|default:"-" }}</td>
+
+                                <td>
+                                    {% if item.estado == item.Estado.EN_ALMACEN %}
+                                        <span class="status-badge ok">
+                                            <i class='bx bx-check-circle'></i>
+                                            {{ item.get_estado_display }}
+                                        </span>
+                                    {% else %}
+                                        <span class="status-badge muted">
+                                            <i class='bx bx-info-circle'></i>
+                                            {{ item.get_estado_display }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td style="text-align: right;">
+                                    {% if item.estado == item.Estado.EN_ALMACEN %}
+                                        <a
+                                            href="{% url 'carga_inicial_serial_editar' item.id %}"
+                                            class="btn-serial ghost small"
+                                        >
+                                            <i class='bx bx-edit'></i>
+                                            Editar
+                                        </a>
+                                    {% else %}
+                                        <span style="color:#94a3b8; font-size:12px; font-weight:800;">
+                                            No editable
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <i class='bx bx-barcode-reader'></i>
+                                        <strong>Todavía no hay equipos registrados</strong>
+                                        <p>Escanea o escribe los datos del primer equipo para iniciar el registro.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+    </section>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const serialInput = document.getElementById("serialInput");
+        const form = document.getElementById("serialForm");
+        const saveBtn = document.getElementById("saveSerialBtn");
+
+        if (serialInput) {
+            serialInput.focus();
+        }
+
+        if (form) {
+            form.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+
+                    const active = document.activeElement;
+
+                    if (active && active.tagName === "INPUT") {
+                        const fields = Array.from(
+                            form.querySelectorAll("input, select, textarea")
+                        ).filter(function (el) {
+                            return !el.disabled && el.type !== "hidden";
+                        });
+
+                        const index = fields.indexOf(active);
+
+                        if (index >= 0 && index < fields.length - 1) {
+                            fields[index + 1].focus();
+                        }
+                    }
+                }
+            });
+
+            form.addEventListener("submit", function (event) {
+                const serialValue = serialInput ? serialInput.value.trim() : "";
+
+                if (!serialValue) {
+                    event.preventDefault();
+                    alert("Debes ingresar el GPON SN / Serial principal del equipo.");
+                    if (serialInput) {
+                        serialInput.focus();
+                    }
+                    return;
+                }
+
+                const confirmado = confirm("¿Confirmas que los datos del equipo son correctos?");
+
+                if (!confirmado) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Guardando...";
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

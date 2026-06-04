@@ -1,0 +1,1486 @@
+{% extends "base.html" %}
+
+{% block title %}Carga inicial | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --load-navy: #081326;
+        --load-blue: #0f6bff;
+        --load-blue-soft: rgba(15, 107, 255, .10);
+        --load-green: #16a34a;
+        --load-green-soft: rgba(22, 163, 74, .12);
+        --load-red: #dc2626;
+        --load-red-soft: rgba(220, 38, 38, .12);
+        --load-amber: #f59e0b;
+        --load-amber-soft: rgba(245, 158, 11, .14);
+        --load-purple: #7c3aed;
+        --load-purple-soft: rgba(124, 58, 237, .12);
+        --load-cyan: #06b6d4;
+        --load-cyan-soft: rgba(6, 182, 212, .12);
+        --load-card: #ffffff;
+        --load-soft: #f8fafc;
+        --load-border: #d9e2ef;
+        --load-border-strong: #c4d0df;
+        --load-text: #0f172a;
+        --load-muted: #64748b;
+        --load-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --load-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .carga-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: cargaFade .25s ease-out;
+    }
+
+    @keyframes cargaFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .carga-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .20), transparent 34%),
+            linear-gradient(135deg, #081326 0%, #0f213a 52%, #10294c 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--load-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .carga-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        right: -110px;
+        top: -130px;
+        background: rgba(6, 182, 212, .16);
+        pointer-events: none;
+    }
+
+    .carga-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .hero-main,
+    .hero-summary {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .hero-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .hero-title span {
+        color: #93c5fd;
+    }
+
+    .hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 780px;
+    }
+
+    .hero-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .hero-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .hero-summary {
+        background: rgba(255, 255, 255, .96);
+        color: var(--load-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .summary-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .summary-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--load-blue-soft);
+        color: var(--load-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .summary-title strong {
+        display: block;
+        color: var(--load-text);
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .summary-title span {
+        display: block;
+        color: var(--load-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .summary-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .summary-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .summary-item span {
+        color: var(--load-muted);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .summary-item strong {
+        color: var(--load-text);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-load {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-load:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-load.primary {
+        background: var(--load-blue);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(15, 107, 255, .20);
+    }
+
+    .btn-load.primary:hover {
+        background: #084bcc;
+    }
+
+    .btn-load.success {
+        background: var(--load-green);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(22, 163, 74, .18);
+    }
+
+    .btn-load.success:hover {
+        background: #15803d;
+    }
+
+    .btn-load.ghost {
+        background: #ffffff;
+        color: var(--load-text);
+        border-color: var(--load-border-strong);
+    }
+
+    .btn-load.ghost:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .btn-load.warning {
+        background: var(--load-amber-soft);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, .24);
+    }
+
+    .btn-load.small {
+        min-height: 36px;
+        padding: 0 12px;
+        font-size: 12px;
+        border-radius: 11px;
+    }
+
+    .alert-load {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 15px 16px;
+        border-radius: 17px;
+        border: 1px solid var(--load-border);
+        background: #ffffff;
+        box-shadow: var(--load-shadow-sm);
+        color: var(--load-text);
+    }
+
+    .alert-load i {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 20px;
+    }
+
+    .alert-load.warning {
+        border-color: rgba(245, 158, 11, .35);
+        background: #fffbeb;
+    }
+
+    .alert-load.warning i {
+        background: var(--load-amber-soft);
+        color: #b45309;
+    }
+
+    .alert-load.info i {
+        background: var(--load-blue-soft);
+        color: var(--load-blue);
+    }
+
+    .alert-load strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 3px;
+    }
+
+    .alert-load span {
+        color: var(--load-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .work-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(360px, .85fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .left-stack,
+    .right-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-width: 0;
+    }
+
+    .panel-load {
+        background: var(--load-card);
+        border: 1px solid var(--load-border);
+        border-radius: 22px;
+        box-shadow: var(--load-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .panel-load.highlight {
+        border-left: 5px solid var(--load-green);
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--load-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--load-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--load-blue);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--load-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .panel-body {
+        padding: 20px;
+    }
+
+    .scan-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .field-row {
+        margin-bottom: 15px;
+    }
+
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .label-load {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+        color: var(--load-text);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .label-load i {
+        color: var(--load-blue);
+        font-size: 17px;
+    }
+
+    .input-load,
+    .select-load,
+    .textarea-load {
+        width: 100%;
+        min-height: 44px;
+        background: #ffffff;
+        color: var(--load-text);
+        border: 1px solid var(--load-border-strong);
+        border-radius: 13px;
+        padding: 0 13px;
+        outline: none;
+        font-size: 14px;
+        transition: .18s ease;
+    }
+
+    .textarea-load {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        min-height: 86px;
+        resize: vertical;
+    }
+
+    .input-load:focus,
+    .select-load:focus,
+    .textarea-load:focus {
+        border-color: var(--load-blue);
+        box-shadow: 0 0 0 4px var(--load-blue-soft);
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: var(--load-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .product-found-card {
+        display: grid;
+        gap: 14px;
+    }
+
+    .product-box {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+        padding: 16px;
+        border-radius: 18px;
+        background: #f8fafc;
+        border: 1px solid var(--load-border);
+    }
+
+    .product-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        background: var(--load-green-soft);
+        color: var(--load-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+    }
+
+    .product-info strong {
+        display: block;
+        color: var(--load-text);
+        font-size: 17px;
+        font-weight: 950;
+        line-height: 1.25;
+    }
+
+    .product-info span {
+        display: block;
+        color: var(--load-muted);
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .product-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .meta-box {
+        padding: 13px;
+        border-radius: 16px;
+        border: 1px solid var(--load-border);
+        background: #ffffff;
+    }
+
+    .meta-box span {
+        display: block;
+        color: var(--load-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    .meta-box strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--load-text);
+        font-size: 14px;
+        font-weight: 950;
+        word-break: break-word;
+    }
+
+    .code-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 9px;
+        background: var(--load-blue-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .18);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .stock-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--load-green-soft);
+        color: #15803d;
+        border: 1px solid rgba(22, 163, 74, .20);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .check-option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid var(--load-border);
+        cursor: pointer;
+        transition: .18s ease;
+        margin-bottom: 10px;
+    }
+
+    .check-option:hover {
+        border-color: rgba(15, 107, 255, .30);
+        background: #f8fbff;
+    }
+
+    .check-option input[type="checkbox"] {
+        width: 19px;
+        height: 19px;
+        accent-color: var(--load-blue);
+        flex: 0 0 auto;
+    }
+
+    .check-copy strong {
+        display: block;
+        color: var(--load-text);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .check-copy span {
+        display: block;
+        margin-top: 4px;
+        color: var(--load-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .help-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--load-blue-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .20);
+        font-size: 13px;
+        font-weight: 950;
+        cursor: help;
+        position: relative;
+        flex: 0 0 auto;
+    }
+
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        right: 0;
+        bottom: 32px;
+        width: 270px;
+        padding: 11px 12px;
+        border-radius: 13px;
+        background: #0f172a;
+        color: #e5e7eb;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 16px 30px rgba(0,0,0,.35);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+        z-index: 20;
+        text-align: left;
+    }
+
+    .help-icon:hover::before {
+        content: "";
+        position: absolute;
+        right: 7px;
+        bottom: 25px;
+        border-width: 7px 7px 0 7px;
+        border-style: solid;
+        border-color: #0f172a transparent transparent transparent;
+        z-index: 21;
+    }
+
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .load-table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+    }
+
+    .load-table th {
+        background: #f8fafc !important;
+        color: #64748b !important;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        text-align: left;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--load-border);
+        white-space: nowrap;
+    }
+
+    .load-table td {
+        padding: 15px 18px;
+        border-bottom: 1px solid #edf2f7;
+        color: var(--load-text);
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    .load-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .load-table tbody tr:hover td {
+        background: #f8fafc;
+    }
+
+    .product-name-cell strong {
+        display: block;
+        color: var(--load-text);
+        font-size: 13px;
+        font-weight: 950;
+        line-height: 1.35;
+    }
+
+    .product-name-cell span {
+        display: block;
+        margin-top: 4px;
+        color: var(--load-muted);
+        font-size: 12px;
+    }
+
+    .qty-cell {
+        font-size: 18px;
+        font-weight: 950;
+        color: var(--load-text);
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+    }
+
+    .badge-serial {
+        background: var(--load-purple-soft);
+        color: #6d28d9;
+        border: 1px solid rgba(124, 58, 237, .22);
+    }
+
+    .badge-active {
+        background: var(--load-amber-soft);
+        color: #92400e;
+        border: 1px solid rgba(245, 158, 11, .22);
+    }
+
+    .badge-normal {
+        background: var(--load-cyan-soft);
+        color: #0891b2;
+        border: 1px solid rgba(6, 182, 212, .22);
+    }
+
+    .empty-state {
+        padding: 44px 20px;
+        text-align: center;
+        color: var(--load-muted);
+    }
+
+    .empty-state i {
+        display: block;
+        font-size: 42px;
+        color: #94a3b8;
+        margin-bottom: 9px;
+    }
+
+    .empty-state strong {
+        display: block;
+        color: var(--load-text);
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 4px;
+    }
+
+    .empty-state p {
+        margin: 0;
+        color: var(--load-muted);
+        font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+        .carga-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .work-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .right-stack {
+            order: -1;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .carga-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+        }
+
+        .hero-desc {
+            font-size: 13px;
+        }
+
+        .hero-chip {
+            width: 100%;
+        }
+
+        .scan-form {
+            grid-template-columns: 1fr;
+        }
+
+        .field-grid,
+        .product-meta-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .btn-load {
+            width: 100%;
+        }
+
+        .action-bar {
+            width: 100%;
+        }
+
+        .check-option {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .help-icon {
+            grid-column: 2;
+            justify-self: start;
+        }
+
+        .help-icon:hover::after {
+            right: auto;
+            left: 0;
+            width: min(270px, calc(100vw - 80px));
+        }
+
+        .help-icon:hover::before {
+            right: auto;
+            left: 8px;
+        }
+    }
+</style>
+
+<div class="carga-wrap">
+
+    <section class="carga-hero">
+        <div class="hero-main">
+            <div class="hero-badge">
+                <i class='bx bx-barcode-reader'></i>
+                Carga inicial de almacén
+            </div>
+
+            <h1 class="hero-title">
+                Registro inicial de <span>inventario</span>
+            </h1>
+
+            <p class="hero-desc">
+                Registra materiales físicos, productos nuevos, unidades de medida, cantidades encontradas,
+                seriales y etiquetas para dejar el almacén listo para operar.
+            </p>
+
+            <div class="hero-meta-row">
+                <span class="hero-chip">
+                    <i class='bx bx-buildings'></i>
+                    Sede: {{ sede.nombre }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bxs-user'></i>
+                    {{ request.user.username }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bx-calendar'></i>
+                    {% now "d/m/Y" %}
+                </span>
+            </div>
+        </div>
+
+        <aside class="hero-summary">
+            <div class="summary-title">
+                <i class='bx bx-clipboard'></i>
+                <div>
+                    <strong>Estado de carga</strong>
+                    <span>Control de avance inicial</span>
+                </div>
+            </div>
+
+            <div class="summary-list">
+                <div class="summary-item">
+                    <span>Sede actual</span>
+                    <strong>{{ sede.nombre|truncatechars:24 }}</strong>
+                </div>
+
+                <div class="summary-item">
+                    <span>Productos cargados</span>
+                    <strong>{{ stocks|length }}</strong>
+                </div>
+
+                <div class="summary-item">
+                    <span>Estado</span>
+                    <strong>
+                        {% if cierre_carga %}
+                            Cerrado
+                        {% else %}
+                            En proceso
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="action-bar">
+        <a href="{% url 'dash_almacen' %}" class="btn-load ghost">
+            <i class='bx bx-arrow-back'></i>
+            Volver al panel
+        </a>
+
+        <a href="{% url 'carga_inicial_resumen' %}" class="btn-load success">
+            <i class='bx bx-check-shield'></i>
+            Ver resumen / Finalizar carga inicial
+        </a>
+    </div>
+
+    {% if cierre_carga %}
+        <div class="alert-load warning">
+            <i class='bx bx-lock-alt'></i>
+            <div>
+                <strong>La carga inicial de esta sede ya fue cerrada.</strong>
+                <span>
+                    Responsable: {{ cierre_carga.responsable.username }} |
+                    Fecha: {{ cierre_carga.finalizado_en|date:"d/m/Y H:i" }}
+                </span>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-load info">
+                <i class='bx bx-info-circle'></i>
+                <div>
+                    <strong>Mensaje del sistema</strong>
+                    <span>{{ message }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not cierre_carga %}
+    <section class="work-grid">
+
+        <div class="left-stack">
+
+            <article class="panel-load">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <h3>
+                            <i class='bx bx-search-alt'></i>
+                            Escanear o buscar producto
+                        </h3>
+                        <span>Escanea una etiqueta con la pistola o escribe el código interno del producto.</span>
+                    </div>
+
+                    <span class="panel-chip">
+                        <i class='bx bx-barcode'></i>
+                        Escaneo rápido
+                    </span>
+                </div>
+
+                <div class="panel-body">
+                    <form method="get" action="{% url 'carga_inicial_home' %}" class="scan-form">
+                        <input
+                            type="text"
+                            name="q"
+                            value="{{ q }}"
+                            id="scanInput"
+                            class="input-load"
+                            placeholder="Ej: TC-ALM-000002"
+                            autofocus
+                            autocomplete="off"
+                        >
+
+                        <button class="btn-load primary" type="submit">
+                            <i class='bx bx-search'></i>
+                            Buscar
+                        </button>
+                    </form>
+                </div>
+            </article>
+
+            {% if producto %}
+                <article class="panel-load highlight">
+                    <div class="panel-head">
+                        <div class="panel-title">
+                            <h3>
+                                <i class='bx bx-check-circle'></i>
+                                Producto encontrado
+                            </h3>
+                            <span>Verifica el producto y agrega la nueva cantidad encontrada al stock inicial.</span>
+                        </div>
+
+                        <span class="panel-chip">
+                            <i class='bx bx-package'></i>
+                            Existente
+                        </span>
+                    </div>
+
+                    <div class="panel-body product-found-card">
+                        <div class="product-box">
+                            <div class="product-icon">
+                                <i class='bx bx-box'></i>
+                            </div>
+
+                            <div class="product-info">
+                                <strong>{{ producto.nombre }}</strong>
+                                <span>
+                                    Código interno:
+                                    <span class="code-pill">{{ producto.codigo_interno }}</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="product-meta-grid">
+                            <div class="meta-box">
+                                <span>Barcode</span>
+                                <strong>{{ producto.barcode|default:"Sin barcode" }}</strong>
+                            </div>
+
+                            <div class="meta-box">
+                                <span>Unidad</span>
+                                <strong>{{ producto.unidad|default:"UND" }}</strong>
+                            </div>
+
+                            <div class="meta-box">
+                                <span>Stock actual</span>
+                                <strong>
+                                    <span class="stock-pill">
+                                        <i class='bx bx-layer'></i>
+                                        {% if stock_actual %}
+                                            {{ stock_actual.cantidad }}
+                                        {% else %}
+                                            0
+                                        {% endif %}
+                                    </span>
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="action-bar">
+                            <a
+                                href="{% url 'producto_etiqueta_print' producto.id %}?cantidad={% if stock_actual %}{{ stock_actual.cantidad }}{% else %}1{% endif %}"
+                                target="_blank"
+                                class="btn-load ghost"
+                            >
+                                <i class='bx bx-printer'></i>
+                                Imprimir etiqueta(s)
+                            </a>
+                        </div>
+
+                        <form method="post" action="{% url 'carga_inicial_registrar_existente' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="producto_id" value="{{ producto.id }}">
+
+                            <div class="field-grid">
+                                <div class="field-row">
+                                    <label class="label-load">
+                                        <i class='bx bx-plus-circle'></i>
+                                        Cantidad nueva encontrada
+                                    </label>
+                                    <input type="number" name="cantidad" min="1" class="input-load" required>
+                                    <small class="help-text">
+                                        Ingresa solo la cantidad adicional que estás agregando ahora.
+                                    </small>
+                                </div>
+
+                                <div class="field-row">
+                                    <label class="label-load">
+                                        <i class='bx bx-map-pin'></i>
+                                        Ubicación
+                                    </label>
+                                    <select name="ubicacion_id" class="select-load">
+                                        <option value="">Sin ubicación específica</option>
+                                        {% for ubicacion in ubicaciones %}
+                                            <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field-row">
+                                <label class="label-load">
+                                    <i class='bx bx-note'></i>
+                                    Nota
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nota"
+                                    class="input-load"
+                                    placeholder="Ej: conteo inicial, estante 1, caja abierta, etc."
+                                >
+                            </div>
+
+                            <button class="btn-load success" type="submit">
+                                <i class='bx bx-plus'></i>
+                                Agregar al stock inicial
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            {% endif %}
+
+        </div>
+
+        <aside class="right-stack">
+
+            <article class="panel-load">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <h3>
+                            <i class='bx bx-plus-medical'></i>
+                            Registrar producto nuevo
+                        </h3>
+                        <span>Úsalo para materiales sin código previo o productos no registrados.</span>
+                    </div>
+
+                    <span class="panel-chip">
+                        <i class='bx bx-edit'></i>
+                        Nuevo
+                    </span>
+                </div>
+
+                <div class="panel-body">
+                    <form method="post" action="{% url 'carga_inicial_registrar_nuevo' %}">
+                        {% csrf_token %}
+
+                        <div class="field-row">
+                            <label class="label-load">
+                                <i class='bx bx-package'></i>
+                                Nombre del producto
+                            </label>
+                            <input
+                                type="text"
+                                name="nombre"
+                                class="input-load"
+                                required
+                                placeholder="Ej: Silla de oficina negra"
+                            >
+                        </div>
+
+                        <div class="field-row">
+                            <label class="label-load">
+                                <i class='bx bx-category'></i>
+                                Categoría
+                            </label>
+                            <select name="categoria_id" class="select-load">
+                                <option value="">Sin categoría</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="label-load">
+                                <i class='bx bx-barcode'></i>
+                                Barcode opcional
+                            </label>
+                            <input
+                                type="text"
+                                name="barcode"
+                                class="input-load"
+                                placeholder="Si no tiene, dejar vacío"
+                            >
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label class="label-load">
+                                    <i class='bx bx-ruler'></i>
+                                    Unidad de medida
+                                </label>
+                                <select name="unidad" class="select-load" required>
+                                    <option value="UND" selected>UND - Unidad</option>
+                                    <option value="M">M - Metro</option>
+                                    <option value="ROL">ROL - Rollo</option>
+                                    <option value="CAJA">CAJA - Caja</option>
+                                    <option value="BOLSA">BOLSA - Bolsa</option>
+                                    <option value="PAR">PAR - Par</option>
+                                    <option value="KG">KG - Kilogramo</option>
+                                    <option value="LT">LT - Litro</option>
+                                </select>
+                                <small class="help-text">
+                                    Define cómo se contabiliza este material.
+                                </small>
+                            </div>
+
+                            <div class="field-row">
+                                <label class="label-load">
+                                    <i class='bx bx-layer-plus'></i>
+                                    Cantidad física encontrada
+                                </label>
+                                <input type="number" name="cantidad" min="1" class="input-load" required>
+                                <small class="help-text">
+                                    Cantidad total encontrada físicamente.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <div class="field-row">
+                                <label class="label-load">
+                                    <i class='bx bx-money'></i>
+                                    Costo unitario
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="costo_unitario"
+                                    class="input-load"
+                                    value="0.00"
+                                >
+                            </div>
+
+                            <div class="field-row">
+                                <label class="label-load">
+                                    <i class='bx bx-error-circle'></i>
+                                    Stock mínimo
+                                </label>
+                                <input type="number" min="0" name="stock_minimo" class="input-load" value="0">
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <label class="label-load">
+                                <i class='bx bx-map'></i>
+                                Ubicación
+                            </label>
+                            <select name="ubicacion_id" class="select-load">
+                                <option value="">Sin ubicación específica</option>
+                                {% for ubicacion in ubicaciones %}
+                                    <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <label class="check-option">
+                            <input type="checkbox" name="es_serializado">
+
+                            <span class="check-copy">
+                                <strong>Es serializado</strong>
+                                <span>Para equipos con serie, MAC o identificador único.</span>
+                            </span>
+
+                            <span
+                                class="help-icon"
+                                data-tooltip="Marca esta opción cuando cada unidad debe identificarse individualmente. Ejemplos: ONU, router, switch, laptop, impresora o equipos con MAC/serial."
+                            >
+                                ?
+                            </span>
+                        </label>
+
+                        <label class="check-option">
+                            <input type="checkbox" name="es_activo">
+
+                            <span class="check-copy">
+                                <strong>Es activo / herramienta</strong>
+                                <span>Para bienes que no se consumen en una instalación.</span>
+                            </span>
+
+                            <span
+                                class="help-icon"
+                                data-tooltip="Marca esta opción cuando el material queda como bien de la empresa o herramienta reutilizable. Ejemplos: silla, mesa, escalera, taladro, laptop o herramientas."
+                            >
+                                ?
+                            </span>
+                        </label>
+
+                        <button class="btn-load primary" type="submit" style="width: 100%;">
+                            <i class='bx bx-save'></i>
+                            Crear producto y cargar stock inicial
+                        </button>
+                    </form>
+                </div>
+            </article>
+
+        </aside>
+
+    </section>
+    {% endif %}
+
+    <article class="panel-load">
+        <div class="panel-head">
+            <div class="panel-title">
+                <h3>
+                    <i class='bx bx-list-check'></i>
+                    Stock cargado en {{ sede.nombre }}
+                </h3>
+                <span>Productos registrados durante la carga inicial de esta sede.</span>
+            </div>
+
+            <span class="panel-chip">
+                <i class='bx bx-box'></i>
+                {{ stocks|length }} producto(s)
+            </span>
+        </div>
+
+        <div class="table-wrap">
+            <table class="load-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                        <th>Tipo</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for stock in stocks %}
+                        <tr>
+                            <td>
+                                <span class="code-pill">{{ stock.producto.codigo_interno }}</span>
+                            </td>
+
+                            <td>
+                                <div class="product-name-cell">
+                                    <strong>{{ stock.producto.nombre }}</strong>
+                                    <span>
+                                        {% if stock.producto.barcode %}
+                                            Barcode: {{ stock.producto.barcode }}
+                                        {% else %}
+                                            Sin barcode
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>{{ stock.producto.categoria|default:"-" }}</td>
+
+                            <td>
+                                <span class="qty-cell">{{ stock.cantidad }}</span>
+                            </td>
+
+                            <td>{{ stock.producto.unidad }}</td>
+
+                            <td>
+                                {% if stock.producto.es_serializado %}
+                                    <span class="type-badge badge-serial">
+                                        <i class='bx bx-barcode-reader'></i>
+                                        Serializado
+                                    </span>
+                                {% elif stock.producto.es_activo %}
+                                    <span class="type-badge badge-active">
+                                        <i class='bx bx-wrench'></i>
+                                        Activo / Herramienta
+                                    </span>
+                                {% else %}
+                                    <span class="type-badge badge-normal">
+                                        <i class='bx bx-package'></i>
+                                        Normal / Consumible
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td style="text-align: right;">
+                                <div class="action-bar" style="justify-content: flex-end;">
+                                    <a
+                                        href="{% url 'producto_etiqueta_print' stock.producto.id %}?cantidad={{ stock.cantidad }}"
+                                        target="_blank"
+                                        class="btn-load ghost small"
+                                    >
+                                        <i class='bx bx-printer'></i>
+                                        Imprimir {{ stock.cantidad }}
+                                    </a>
+
+                                    {% if stock.producto.es_serializado %}
+                                        <a
+                                            href="{% url 'carga_inicial_seriales' stock.producto.id %}"
+                                            class="btn-load warning small"
+                                        >
+                                            <i class='bx bx-barcode'></i>
+                                            Registrar seriales
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <i class='bx bx-folder-open'></i>
+                                    <strong>Todavía no hay stock cargado</strong>
+                                    <p>Escanea un producto existente o registra un producto nuevo para iniciar la carga.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("scanInput");
+
+        if (input) {
+            input.focus();
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    input.form.submit();
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

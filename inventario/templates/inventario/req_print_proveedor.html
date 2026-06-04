@@ -1,0 +1,251 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orden de Compra - {{ req.numero }}</title>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+  <style>
+    /* VARIABLES (Estilo Formal Limpio) */
+    :root {
+      --ink: #111827;       /* Negro Tinta */
+      --muted: #6b7280;     /* Gris Secundario */
+      --line: #e5e7eb;      /* Líneas sutiles */
+      --brand: #0f172a;     /* Azul muy oscuro */
+    }
+
+    * { box-sizing: border-box; }
+    
+    body { 
+      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #525659; /* Fondo visor PDF */
+      display: flex; justify-content: center; min-height: 100vh;
+    }
+
+    /* HOJA FÍSICA */
+    .page {
+      background: white; width: 210mm; min-height: 297mm;
+      padding: 15mm 20mm; position: relative;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      margin: 30px auto 100px auto;
+    }
+
+    /* ENCABEZADO */
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 25px; border-bottom: 2px solid var(--brand); padding-bottom: 15px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { height: 40px; width: auto; object-fit: contain; }
+    .brand-text h1 { margin: 0; font-size: 20px; font-weight: 800; color: var(--brand); letter-spacing: 0.5px; }
+    .brand-text p { margin: 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    .doc-info { text-align: right; }
+    .doc-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0; text-transform: uppercase; }
+    .doc-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* BLOQUES DE INFO */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;
+    }
+    .info-box {
+      border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    }
+    .box-title { 
+      font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); 
+      margin-bottom: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px;
+    }
+    
+    .row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
+    .label { color: var(--muted); width: 80px; }
+    .val { color: var(--ink); font-weight: 600; flex: 1; text-align: right; }
+
+    /* TABLA */
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; }
+    
+    thead th {
+      background: #f8fafc; color: var(--ink); text-align: left;
+      padding: 8px 10px; font-weight: 700; text-transform: uppercase;
+      border-bottom: 1px solid var(--ink);
+    }
+    
+    tbody td {
+      padding: 10px; border-bottom: 1px solid var(--line);
+      color: var(--ink); vertical-align: top;
+    }
+    
+    .col-center { text-align: center; }
+    .col-right { text-align: right; }
+    .total-row td { border-top: 2px solid var(--ink); font-weight: 800; font-size: 12px; padding-top: 12px; }
+
+    /* NOTAS Y FIRMAS */
+    .notes {
+      border: 1px dashed var(--muted); border-radius: 6px; padding: 10px;
+      font-size: 11px; color: var(--ink); margin-bottom: 40px; background: #f9fafb;
+    }
+    .notes strong { color: var(--brand); }
+
+    .signatures {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 50px; page-break-inside: avoid;
+    }
+    .sig-box { text-align: center; }
+    .sig-line { border-top: 1px solid var(--ink); width: 80%; margin: 0 auto 5px auto; height: 1px; }
+    .sig-role { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* BARRA FLOTANTE */
+    .floating-actions {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; padding: 10px 20px; border-radius: 50px;
+      display: flex; gap: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000;
+    }
+    .btn-float {
+      background: transparent; border: none; color: white; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+      padding: 8px 16px; border-radius: 30px; transition: 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.1); }
+    .btn-print { background: #3b82f6; }
+    .btn-print:hover { background: #2563eb; }
+
+    /* MODO IMPRESIÓN */
+    @media print {
+      body { background: white; display: block; }
+      .page { margin: 0; box-shadow: none; width: 100%; padding: 0; }
+      .floating-actions { display: none !important; }
+      @page { margin: 15mm 15mm; size: A4; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="floating-actions">
+    <button class="btn-float btn-back" onclick="history.back()">
+      <i class='bx bx-arrow-back'></i> Volver
+    </button>
+    <button class="btn-float btn-print" onclick="window.print()">
+      <i class='bx bx-printer'></i> Imprimir
+    </button>
+  </div>
+
+  <div class="page">
+    
+    <header class="header">
+      <div class="brand">
+        <img src="{% static 'inventario/img/logo.png' %}" alt="Logo" onerror="this.style.display='none'">
+        <div class="brand-text">
+          <h1>TELECABLE</h1>
+          <p>Departamento de Compras</p>
+        </div>
+      </div>
+      <div class="doc-info">
+        <h2 class="doc-title">ORDEN DE REQUERIMIENTO</h2>
+        <div class="doc-meta">
+          N°: {{ req.numero }} <br>
+          Fecha: {{ req.fecha|date:"d/m/Y" }}
+        </div>
+      </div>
+    </header>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="box-title">Datos del Solicitante</div>
+        <div class="row">
+          <span class="label">Nombre:</span>
+          <span class="val">{{ req.responsable.get_full_name|default:req.responsable.username }}</span>
+        </div>
+        <div class="row">
+          <span class="label">Sede:</span>
+          <span class="val">{{ req.sede.nombre }}</span>
+        </div>
+        <div class="row">
+          <span class="label">Ubicación:</span>
+          <span class="val">{{ req.ubicacion|default:"-" }}</span>
+        </div>
+        <div class="row">
+          <span class="label">C. Costo:</span>
+          <span class="val">{{ req.centro_costo|default:"-" }}</span>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <div class="box-title">Datos del Proveedor</div>
+        <div class="row">
+          <span class="label">Empresa:</span>
+          <span class="val">{{ req.proveedor_manual|default:"____________________" }}</span>
+        </div>
+        <div class="row">
+          <span class="label">Contacto:</span>
+          <span class="val">____________________</span>
+        </div>
+        <div class="row">
+          <span class="label">RUC/ID:</span>
+          <span class="val">____________________</span>
+        </div>
+        <div class="row">
+          <span class="label">Entrega:</span>
+          <span class="val">____ / ____ / ______</span>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 15%;">Código</th>
+          <th style="width: 50%;">Descripción</th>
+          <th style="width: 10%;" class="col-center">U.M.</th>
+          <th style="width: 10%;" class="col-right">Cant.</th>
+          <th style="width: 15%;">Observación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.producto.codigo_interno|default:"-" }}</td>
+          <td><strong>{{ it.producto.nombre }}</strong></td>
+          <td class="col-center">{{ it.producto.unidad|default:"UND" }}</td>
+          <td class="col-right">{{ it.cantidad }}</td>
+          <td>{{ it.observacion|default:"" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="3" class="col-right">TOTAL ÍTEMS</td>
+          <td class="col-right">{{ total_cantidad }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="notes">
+      <strong>OBSERVACIONES GENERALES:</strong><br>
+      {{ req.observaciones|default:"Sin observaciones adicionales." }}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-box">
+        <div style="height: 50px;"></div>
+        <div class="sig-line"></div>
+        <div class="sig-role">Solicitante</div>
+      </div>
+      <div class="sig-box">
+        <div style="height: 50px;"></div>
+        <div class="sig-line"></div>
+        <div class="sig-role">Jefe de Compras / Aprobación</div>
+      </div>
+      <div class="sig-box">
+        <div style="height: 50px;"></div>
+        <div class="sig-line"></div>
+        <div class="sig-role">Recepción Conforme</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

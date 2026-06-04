@@ -1,0 +1,2033 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Devolución de Material | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --dev-primary: #0f6bff;
+        --dev-primary-dark: #0b4fc4;
+        --dev-primary-soft: rgba(15, 107, 255, .10);
+
+        --dev-navy: #071225;
+        --dev-navy-2: #0b1b34;
+        --dev-navy-3: #10294c;
+
+        --dev-success: #16a34a;
+        --dev-success-soft: rgba(22, 163, 74, .12);
+
+        --dev-danger: #dc2626;
+        --dev-danger-soft: rgba(220, 38, 38, .12);
+
+        --dev-warning: #f59e0b;
+        --dev-warning-soft: rgba(245, 158, 11, .14);
+
+        --dev-purple: #7c3aed;
+        --dev-purple-soft: rgba(124, 58, 237, .12);
+
+        --dev-cyan: #06b6d4;
+        --dev-cyan-soft: rgba(6, 182, 212, .12);
+
+        --dev-card: #ffffff;
+        --dev-soft: #f8fafc;
+        --dev-border: #d9e2ef;
+        --dev-border-strong: #c4d0df;
+        --dev-text: #0f172a;
+        --dev-muted: #64748b;
+
+        --dev-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --dev-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .dev-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: devFade .25s ease-out;
+    }
+
+    @keyframes devFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dev-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(124, 58, 237, .24), transparent 34%),
+            linear-gradient(135deg, var(--dev-navy) 0%, var(--dev-navy-2) 52%, var(--dev-navy-3) 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--dev-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .dev-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 999px;
+        right: -110px;
+        top: -130px;
+        background: rgba(124, 58, 237, .18);
+        pointer-events: none;
+    }
+
+    .dev-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .dev-hero-main,
+    .dev-hero-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .dev-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #ddd6fe;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .dev-badge i {
+        font-size: 17px;
+        color: #c4b5fd;
+    }
+
+    .dev-hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .dev-hero-title span {
+        color: #c4b5fd;
+    }
+
+    .dev-hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 820px;
+    }
+
+    .dev-hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .dev-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .dev-chip i {
+        color: #c4b5fd;
+        font-size: 17px;
+    }
+
+    .dev-hero-card {
+        background: rgba(255, 255, 255, .96);
+        color: var(--dev-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .hero-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .hero-card-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .hero-card-title strong {
+        display: block;
+        color: var(--dev-text);
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .hero-card-title span {
+        display: block;
+        color: var(--dev-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .flow-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .flow-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: var(--dev-text);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .flow-item i {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .dev-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .dev-title-block h2 {
+        margin: 0;
+        color: var(--dev-text);
+        font-size: 24px;
+        font-weight: 950;
+        letter-spacing: -.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .dev-title-block h2 i {
+        color: var(--dev-purple);
+    }
+
+    .dev-title-block p {
+        margin: 5px 0 0;
+        color: var(--dev-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .btn-dev {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-dev:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-dev.ghost {
+        background: #ffffff;
+        color: var(--dev-text);
+        border-color: var(--dev-border-strong);
+    }
+
+    .btn-dev.ghost:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .dev-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 420px;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .dev-panel {
+        background: var(--dev-card);
+        border: 1px solid var(--dev-border);
+        border-radius: 22px;
+        box-shadow: var(--dev-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .dev-panel.catalog-panel {
+        min-height: 620px;
+    }
+
+    .dev-panel.cart-panel {
+        position: sticky;
+        top: 88px;
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--dev-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--dev-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--dev-purple);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--dev-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #f3e8ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .panel-body {
+        padding: 18px;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 16px;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 17px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--dev-purple);
+        font-size: 21px;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .search-input {
+        width: 100%;
+        min-height: 52px;
+        background: #ffffff !important;
+        color: var(--dev-text) !important;
+        border: 1px solid var(--dev-border-strong) !important;
+        border-radius: 15px !important;
+        padding: 0 18px 0 52px !important;
+        outline: none;
+        font-size: 14px;
+        font-weight: 800;
+        transition: .18s ease;
+        font-family: inherit;
+    }
+
+    .search-input::placeholder {
+        color: #94a3b8;
+        font-weight: 800;
+    }
+
+    .search-input:focus {
+        border-color: var(--dev-purple) !important;
+        box-shadow: 0 0 0 4px var(--dev-purple-soft) !important;
+    }
+
+    .catalog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 14px;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .prod-card {
+        background: #ffffff;
+        border: 1px solid var(--dev-border);
+        border-radius: 18px;
+        padding: 15px;
+        transition: .18s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 155px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .04);
+    }
+
+    .prod-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--dev-purple);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+    }
+
+    .prod-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .prod-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .prod-title {
+        color: var(--dev-text);
+        font-size: 14px;
+        line-height: 1.35;
+        font-weight: 950;
+        margin-bottom: 6px;
+        overflow-wrap: anywhere;
+    }
+
+    .prod-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 9px;
+        background: #f8fafc;
+        color: var(--dev-muted);
+        border: 1px solid var(--dev-border);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 950;
+    }
+
+    .serial-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 9px;
+        padding: 6px 8px;
+        border-radius: 999px;
+        background: var(--dev-purple-soft);
+        color: #6d28d9;
+        border: 1px solid rgba(124, 58, 237, .20);
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .btn-add {
+        width: 100%;
+        min-height: 40px;
+        margin-top: 14px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        border: 1px solid rgba(124, 58, 237, .24);
+        border-radius: 13px;
+        cursor: pointer;
+        font-weight: 950;
+        font-size: 12px;
+        padding: 0 12px;
+        transition: .18s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .btn-add:hover {
+        background: var(--dev-purple);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .state-box {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 46px 18px;
+        color: var(--dev-muted);
+        border: 1px dashed var(--dev-border-strong);
+        border-radius: 18px;
+        background: #f8fafc;
+    }
+
+    .state-box i {
+        display: block;
+        font-size: 42px;
+        color: #94a3b8;
+        margin-bottom: 10px;
+    }
+
+    .state-box strong {
+        display: block;
+        color: var(--dev-text);
+        font-size: 15px;
+        font-weight: 950;
+        margin-bottom: 4px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        font-weight: 950;
+        color: var(--dev-text);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: .05em;
+    }
+
+    .form-label i {
+        color: var(--dev-purple);
+        font-size: 16px;
+    }
+
+    .select-wrap {
+        position: relative;
+    }
+
+    .select-wrap > i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--dev-purple);
+        font-size: 19px;
+        pointer-events: none;
+    }
+
+    .tech-select,
+    .notes-input {
+        width: 100%;
+        min-height: 48px;
+        background: #ffffff !important;
+        border: 1px solid var(--dev-border-strong) !important;
+        color: var(--dev-text) !important;
+        border-radius: 15px !important;
+        font-size: 14px;
+        outline: none;
+        font-family: inherit;
+        transition: .18s ease;
+    }
+
+    .tech-select {
+        padding: 0 14px 0 45px !important;
+        font-weight: 850;
+        cursor: pointer;
+    }
+
+    .notes-input {
+        padding: 0 14px !important;
+        font-weight: 750;
+    }
+
+    .tech-select:focus,
+    .notes-input:focus {
+        border-color: var(--dev-purple) !important;
+        box-shadow: 0 0 0 4px var(--dev-purple-soft) !important;
+    }
+
+    .cart-list {
+        max-height: 360px;
+        overflow-y: auto;
+        padding-right: 4px;
+        display: grid;
+        gap: 10px;
+    }
+
+    .cart-empty {
+        text-align: center;
+        padding: 34px 16px;
+        color: var(--dev-muted);
+        border: 1px dashed var(--dev-border-strong);
+        border-radius: 17px;
+        background: #f8fafc;
+    }
+
+    .cart-empty i {
+        display: block;
+        font-size: 38px;
+        margin-bottom: 10px;
+        color: #94a3b8;
+    }
+
+    .cart-empty strong {
+        display: block;
+        color: var(--dev-text);
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 4px;
+    }
+
+    .cart-item {
+        background: #ffffff;
+        padding: 13px;
+        border: 1px solid var(--dev-border);
+        border-radius: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .04);
+    }
+
+    .ci-name {
+        font-size: 13px;
+        font-weight: 950;
+        color: var(--dev-text);
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        margin-bottom: 4px;
+    }
+
+    .ci-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 7px;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: var(--dev-muted);
+        border: 1px solid var(--dev-border);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 950;
+    }
+
+    .ci-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .cart-qty-input {
+        width: 62px;
+        min-height: 38px;
+        text-align: center;
+        border-radius: 12px !important;
+        border: 1px solid var(--dev-border-strong) !important;
+        background: #ffffff !important;
+        color: var(--dev-text) !important;
+        padding: 0 6px !important;
+        font-weight: 950;
+        outline: none;
+    }
+
+    .cart-qty-input:focus {
+        border-color: var(--dev-purple) !important;
+        box-shadow: 0 0 0 4px var(--dev-purple-soft) !important;
+    }
+
+    .btn-serial {
+        min-height: 38px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        border: 1px solid rgba(124, 58, 237, .28);
+        padding: 0 11px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .btn-serial:hover {
+        background: var(--dev-purple);
+        color: #ffffff;
+    }
+
+    .qty-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--dev-primary-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .20);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .btn-remove {
+        width: 34px;
+        height: 34px;
+        background: var(--dev-danger-soft);
+        border: none;
+        border-radius: 12px;
+        color: var(--dev-danger);
+        cursor: pointer;
+        font-size: 18px;
+        transition: .18s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-remove:hover {
+        background: var(--dev-danger);
+        color: #ffffff;
+        transform: scale(1.04);
+    }
+
+    .cart-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .summary-card {
+        border-radius: 15px;
+        background: #f8fafc;
+        border: 1px solid var(--dev-border);
+        padding: 12px;
+    }
+
+    .summary-card span {
+        display: block;
+        color: var(--dev-muted);
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 5px;
+    }
+
+    .summary-card strong {
+        display: block;
+        color: var(--dev-text);
+        font-size: 20px;
+        font-weight: 950;
+    }
+
+    .btn-confirm {
+        width: 100%;
+        min-height: 54px;
+        background: var(--dev-purple);
+        color: #ffffff;
+        border: none;
+        border-radius: 16px;
+        font-weight: 950;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 14px 28px rgba(124, 58, 237, .18);
+        transition: .18s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .btn-confirm:hover {
+        background: #6d28d9;
+        transform: translateY(-2px);
+    }
+
+    .btn-confirm:disabled {
+        background: #d1d5db;
+        color: #6b7280;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .toast-area {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 99999;
+        display: grid;
+        gap: 10px;
+        width: min(420px, calc(100vw - 44px));
+    }
+
+    .toast-msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #ffffff;
+        color: var(--dev-text);
+        border: 1px solid var(--dev-border);
+        border-left: 5px solid var(--dev-success);
+        border-radius: 15px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .16);
+        padding: 13px 14px;
+        transition: .25s ease;
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 850;
+    }
+
+    .toast-msg i {
+        flex-shrink: 0;
+        margin-top: 1px;
+        font-size: 20px;
+    }
+
+    .toast-msg.success {
+        border-left-color: var(--dev-success);
+    }
+
+    .toast-msg.success i {
+        color: var(--dev-success);
+    }
+
+    .toast-msg.warning {
+        border-left-color: var(--dev-warning);
+    }
+
+    .toast-msg.warning i {
+        color: var(--dev-warning);
+    }
+
+    .toast-msg.error {
+        border-left-color: var(--dev-danger);
+    }
+
+    .toast-msg.error i {
+        color: var(--dev-danger);
+    }
+
+    .dev-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 99998;
+        background: rgba(15, 23, 42, .58);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+    }
+
+    .dev-modal-backdrop.show {
+        display: flex;
+    }
+
+    .dev-modal {
+        width: min(560px, 100%);
+        background: #ffffff;
+        border-radius: 22px;
+        border: 1px solid var(--dev-border);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, .28);
+        overflow: hidden;
+        animation: devModalIn .18s ease-out;
+    }
+
+    @keyframes devModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--dev-border);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .modal-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 15px;
+        background: var(--dev-purple-soft);
+        color: var(--dev-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .modal-title {
+        margin: 0;
+        color: var(--dev-text);
+        font-size: 16px;
+        font-weight: 950;
+        line-height: 1.25;
+    }
+
+    .modal-title span {
+        color: var(--dev-purple);
+    }
+
+    .modal-subtitle {
+        margin: 4px 0 0;
+        color: var(--dev-muted);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .serial-textarea {
+        width: 100%;
+        min-height: 180px;
+        background: #ffffff !important;
+        border: 1px solid var(--dev-border-strong) !important;
+        color: var(--dev-text) !important;
+        border-radius: 15px !important;
+        padding: 13px 14px !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        resize: vertical;
+        outline: none;
+        transition: .18s ease;
+        text-transform: uppercase;
+    }
+
+    .serial-textarea:focus {
+        border-color: var(--dev-purple) !important;
+        box-shadow: 0 0 0 4px var(--dev-purple-soft) !important;
+    }
+
+    .serial-help {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--dev-muted);
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 800;
+    }
+
+    .serial-help i {
+        color: var(--dev-purple);
+        font-size: 17px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .modal-actions {
+        padding: 16px 20px 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-modal {
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-modal.cancel {
+        background: #ffffff;
+        color: var(--dev-text);
+        border-color: var(--dev-border-strong);
+    }
+
+    .btn-modal.save {
+        background: var(--dev-purple);
+        color: #ffffff;
+    }
+
+    .btn-modal.confirm {
+        background: var(--dev-success);
+        color: #ffffff;
+    }
+
+    .btn-modal:hover {
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 1120px) {
+        .dev-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .dev-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .dev-panel.cart-panel {
+            position: static;
+            order: -1;
+        }
+
+        .catalog-grid {
+            max-height: none;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .dev-page {
+            gap: 18px;
+        }
+
+        .dev-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .dev-hero-title {
+            font-size: 26px;
+        }
+
+        .dev-chip {
+            width: 100%;
+        }
+
+        .dev-toolbar {
+            align-items: stretch;
+        }
+
+        .dev-title-block h2 {
+            font-size: 21px;
+        }
+
+        .btn-dev {
+            width: 100%;
+        }
+
+        .panel-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .catalog-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cart-item {
+            grid-template-columns: 1fr;
+        }
+
+        .ci-actions {
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .btn-serial {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .cart-qty-input {
+            flex: 1;
+            width: auto;
+        }
+
+        .cart-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .toast-area {
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+        }
+
+        .modal-actions {
+            flex-direction: column-reverse;
+        }
+
+        .btn-modal {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="dev-page">
+
+    <section class="dev-hero">
+        <div class="dev-hero-main">
+            <div class="dev-badge">
+                <i class='bx bx-reply-all'></i>
+                Retorno de materiales
+            </div>
+
+            <h1 class="dev-hero-title">
+                Devolución de <span>almacén</span>
+            </h1>
+
+            <p class="dev-hero-desc">
+                Registra materiales o equipos devueltos por técnicos. Selecciona el responsable,
+                agrega productos al carrito y, si son serializados, registra sus códigos antes de confirmar el ingreso.
+            </p>
+
+            <div class="dev-hero-chips">
+                <span class="dev-chip">
+                    <i class='bx bx-user-check'></i>
+                    Técnico responsable
+                </span>
+
+                <span class="dev-chip">
+                    <i class='bx bx-package'></i>
+                    Material devuelto
+                </span>
+
+                <span class="dev-chip">
+                    <i class='bx bx-barcode-reader'></i>
+                    Control de series
+                </span>
+            </div>
+        </div>
+
+        <aside class="dev-hero-card">
+            <div class="hero-card-title">
+                <i class='bx bx-check-shield'></i>
+                <div>
+                    <strong>Flujo de devolución</strong>
+                    <span>Ingreso controlado al stock</span>
+                </div>
+            </div>
+
+            <div class="flow-list">
+                <div class="flow-item">
+                    <i class='bx bxs-user'></i>
+                    Selecciona el técnico
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-search'></i>
+                    Busca materiales
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-cart-add'></i>
+                    Agrega cantidades
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-check-circle'></i>
+                    Confirma devolución
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="dev-toolbar">
+        <div class="dev-title-block">
+            <h2>
+                <i class='bx bx-transfer-alt'></i>
+                Registro rápido de devolución
+            </h2>
+            <p>Usa el catálogo para armar el ingreso. El sistema enviará productos, cantidades y series al backend.</p>
+        </div>
+
+        <a href="{% url 'dash_almacen' %}" class="btn-dev ghost">
+            <i class='bx bx-chevron-left'></i>
+            Volver al panel
+        </a>
+    </div>
+
+    <div class="dev-layout">
+
+        <section class="dev-panel catalog-panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-grid-alt'></i>
+                        Catálogo de materiales
+                    </h3>
+                    <span>Busca el producto devuelto y agrégalo al carrito de ingreso.</span>
+                </div>
+
+                <span class="panel-chip" id="catalogCounter">
+                    <i class='bx bx-package'></i>
+                    Cargando...
+                </span>
+            </div>
+
+            <div class="panel-body">
+                <div class="search-box">
+                    <i class='bx bx-search'></i>
+                    <input
+                        type="text"
+                        id="catalogSearch"
+                        class="search-input"
+                        placeholder="Buscar material para devolver..."
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div id="catalogGrid" class="catalog-grid">
+                    <div class="state-box">
+                        <i class='bx bx-loader-alt bx-spin'></i>
+                        <strong>Cargando catálogo</strong>
+                        <span>Espera unos segundos...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dev-panel cart-panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-clipboard'></i>
+                        Detalle de devolución
+                    </h3>
+                    <span>Valida técnico, cantidades y series antes de confirmar.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-cart'></i>
+                    <span id="cartCount">0</span> ítem(s)
+                </span>
+            </div>
+
+            <div class="panel-body">
+                <form method="POST" id="formDevolucion">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label class="form-label" for="selectTecnico">
+                            <i class='bx bxs-user'></i>
+                            Técnico que devuelve
+                        </label>
+
+                        <div class="select-wrap">
+                            <i class='bx bx-user-check'></i>
+
+                            <select name="tecnico_id" id="selectTecnico" class="tech-select" required>
+                                <option value="">Seleccionar técnico</option>
+                                {% for t in tecnicos %}
+                                    <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="cart-summary">
+                        <div class="summary-card">
+                            <span>Productos</span>
+                            <strong id="summaryProducts">0</strong>
+                        </div>
+
+                        <div class="summary-card">
+                            <span>Cantidad total</span>
+                            <strong id="summaryQty">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class='bx bx-package'></i>
+                            Material a ingresar
+                        </label>
+
+                        <div id="cartList" class="cart-list">
+                            <div class="cart-empty">
+                                <i class='bx bx-box'></i>
+                                <strong>Carrito vacío</strong>
+                                <span>Selecciona productos del catálogo.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="hiddenInputsContainer"></div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class='bx bx-note'></i>
+                            Observaciones
+                        </label>
+
+                        <input
+                            type="text"
+                            name="notas"
+                            class="notes-input"
+                            placeholder="Ej: Material sobrante de obra, devolución por cambio, etc."
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <button type="submit" id="btnConfirmarDev" class="btn-confirm" disabled>
+                        <i class='bx bx-check-shield'></i>
+                        Confirmar ingreso
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<div class="toast-area" id="toastArea"></div>
+
+<div class="dev-modal-backdrop" id="serialModal">
+    <div class="dev-modal">
+        <div class="modal-head">
+            <div class="modal-icon">
+                <i class='bx bx-barcode-reader'></i>
+            </div>
+
+            <div>
+                <h3 class="modal-title">
+                    Series: <span id="modalProdName"></span>
+                </h3>
+                <p class="modal-subtitle">Escanea o pega los números de serie. Un serial por línea.</p>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <textarea
+                id="serialInputArea"
+                class="serial-textarea"
+                rows="7"
+                placeholder="Ej:
+ZTEGDA12345
+ZTEGDA67890
+..."
+            ></textarea>
+
+            <input type="hidden" id="modalProdId">
+
+            <div class="serial-help">
+                <i class='bx bx-info-circle'></i>
+                <span>
+                    Se eliminarán duplicados automáticamente. La cantidad del producto será igual al número de series registradas.
+                </span>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-modal cancel" onclick="closeSerialModal()">
+                <i class='bx bx-x'></i>
+                Cancelar
+            </button>
+
+            <button type="button" class="btn-modal save" onclick="saveSerials()">
+                <i class='bx bx-save'></i>
+                Guardar series
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="dev-modal-backdrop" id="confirmModal">
+    <div class="dev-modal">
+        <div class="modal-head">
+            <div class="modal-icon">
+                <i class='bx bx-check-shield'></i>
+            </div>
+
+            <div>
+                <h3 class="modal-title">Confirmar devolución</h3>
+                <p class="modal-subtitle">Validación final antes de ingresar al stock.</p>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="serial-help" style="margin-top:0;">
+                <i class='bx bx-info-circle'></i>
+                <span id="confirmMessage">
+                    Verifica que el técnico, cantidades y series sean correctas antes de continuar.
+                </span>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-modal cancel" id="btnCancelConfirm">
+                <i class='bx bx-x'></i>
+                Revisar
+            </button>
+
+            <button type="button" class="btn-modal confirm" id="btnAcceptConfirm">
+                <i class='bx bx-check-circle'></i>
+                Sí, confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_CATALOGO = "{% url 'req_catalogo_almacen' %}";
+
+    let catalogData = [];
+    let cart = [];
+    let searchTimer = null;
+
+    const gridEl = document.getElementById("catalogGrid");
+    const cartListEl = document.getElementById("cartList");
+    const searchInput = document.getElementById("catalogSearch");
+    const hiddenContainer = document.getElementById("hiddenInputsContainer");
+    const btnSubmit = document.getElementById("btnConfirmarDev");
+    const selectTecnico = document.getElementById("selectTecnico");
+    const catalogCounter = document.getElementById("catalogCounter");
+    const summaryProducts = document.getElementById("summaryProducts");
+    const summaryQty = document.getElementById("summaryQty");
+    const serialModal = document.getElementById("serialModal");
+    const confirmModal = document.getElementById("confirmModal");
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function cleanSerial(value) {
+        return String(value || "")
+            .trim()
+            .toUpperCase()
+            .replaceAll(" ", "")
+            .replaceAll("-", "")
+            .replaceAll(":", "")
+            .replaceAll("'", "")
+            .replaceAll("´", "")
+            .replaceAll("`", "");
+    }
+
+    function showToast(message, type = "success") {
+        let area = document.getElementById("toastArea");
+
+        if (!area) {
+            area = document.createElement("div");
+            area.id = "toastArea";
+            area.className = "toast-area";
+            document.body.appendChild(area);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast-msg ${type}`;
+
+        let icon = "bx-check-circle";
+
+        if (type === "error") {
+            icon = "bx-error-circle";
+        } else if (type === "warning") {
+            icon = "bx-info-circle";
+        }
+
+        toast.innerHTML = `
+            <i class='bx ${icon}'></i>
+            <span>${escapeHtml(message)}</span>
+        `;
+
+        area.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(8px)";
+            setTimeout(() => toast.remove(), 280);
+        }, 3800);
+    }
+
+    function isProductSerial(product) {
+        if (product.es_serializado === true || product.es_serializado === "true" || product.es_serializado === 1) {
+            return true;
+        }
+
+        const nombre = String(product.nombre || "").toUpperCase();
+
+        return nombre.includes("ONU") ||
+               nombre.includes("ROUTER") ||
+               nombre.includes("ONT") ||
+               nombre.includes("MODEM") ||
+               nombre.includes("MÓDEM") ||
+               nombre.includes("EQUIPO");
+    }
+
+    function updateCatalogCounter(count, loading = false) {
+        if (!catalogCounter) return;
+
+        if (loading) {
+            catalogCounter.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Cargando...";
+            return;
+        }
+
+        catalogCounter.innerHTML = `
+            <i class='bx bx-package'></i>
+            ${count} producto${count === 1 ? "" : "s"}
+        `;
+    }
+
+    async function loadCatalog(query = "") {
+        updateCatalogCounter(0, true);
+
+        gridEl.innerHTML = `
+            <div class="state-box">
+                <i class='bx bx-loader-alt bx-spin'></i>
+                <strong>Cargando catálogo</strong>
+                <span>Espera unos segundos...</span>
+            </div>
+        `;
+
+        try {
+            const url = new URL(URL_CATALOGO, window.location.origin);
+
+            if (query) {
+                url.searchParams.set("q", query);
+            }
+
+            const res = await fetch(url, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            if (!res.ok) {
+                throw new Error("No se pudo cargar el catálogo.");
+            }
+
+            const data = await res.json();
+            catalogData = data.results || [];
+
+            renderCatalog(catalogData);
+            updateCatalogCounter(catalogData.length, false);
+        } catch (error) {
+            updateCatalogCounter(0, false);
+
+            gridEl.innerHTML = `
+                <div class="state-box">
+                    <i class='bx bx-error-circle'></i>
+                    <strong>Error al cargar catálogo</strong>
+                    <span>Revisa la conexión o vuelve a intentar.</span>
+                </div>
+            `;
+
+            showToast("No se pudo cargar el catálogo de productos.", "error");
+        }
+    }
+
+    function renderCatalog(items) {
+        if (!items || items.length === 0) {
+            gridEl.innerHTML = `
+                <div class="state-box">
+                    <i class='bx bx-search-alt'></i>
+                    <strong>Sin productos</strong>
+                    <span>No se encontraron resultados con ese criterio.</span>
+                </div>
+            `;
+            return;
+        }
+
+        gridEl.innerHTML = "";
+
+        items.forEach(product => {
+            const id = product.producto_id || product.id;
+            const nombre = product.nombre || "Producto sin nombre";
+            const codigo = product.codigo || product.codigo_interno || "S/C";
+            const serial = isProductSerial(product);
+
+            const card = document.createElement("div");
+            card.className = "prod-card";
+
+            card.innerHTML = `
+                <div>
+                    <div class="prod-top">
+                        <div class="prod-icon">
+                            <i class='bx ${serial ? "bx-chip" : "bx-box"}'></i>
+                        </div>
+
+                        <div style="min-width:0;">
+                            <div class="prod-title">${escapeHtml(nombre)}</div>
+                            <span class="prod-code">${escapeHtml(codigo)}</span>
+
+                            ${serial ? `
+                                <div>
+                                    <span class="serial-tag">
+                                        <i class='bx bx-barcode'></i>
+                                        Serializado
+                                    </span>
+                                </div>
+                            ` : ""}
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-add">
+                    <i class='bx bx-plus'></i>
+                    Agregar
+                </button>
+            `;
+
+            const btn = card.querySelector(".btn-add");
+
+            btn.addEventListener("click", () => {
+                addToCart(id, nombre, codigo, serial);
+            });
+
+            gridEl.appendChild(card);
+        });
+    }
+
+    function addToCart(id, nombre, codigo, isSerial) {
+        const existing = cart.find(item => String(item.id) === String(id));
+
+        if (existing) {
+            if (!existing.isSerial) {
+                existing.qty += 1;
+                showToast("Cantidad actualizada en el carrito.", "success");
+            } else {
+                openSerialModal(id);
+            }
+
+            renderCart();
+            return;
+        }
+
+        cart.push({
+            id: id,
+            nombre: nombre,
+            codigo: codigo || "S/C",
+            qty: isSerial ? 0 : 1,
+            isSerial: Boolean(isSerial),
+            serials: []
+        });
+
+        renderCart();
+
+        if (isSerial) {
+            openSerialModal(id);
+        } else {
+            showToast("Producto agregado al carrito.", "success");
+        }
+    }
+
+    function updateQty(id, newQty) {
+        const item = cart.find(i => String(i.id) === String(id));
+
+        if (!item || item.isSerial) return;
+
+        let qty = parseInt(newQty || "1") || 1;
+
+        if (qty < 1) {
+            qty = 1;
+            showToast("La cantidad mínima es 1.", "warning");
+        }
+
+        item.qty = qty;
+        renderCart();
+    }
+
+    function removeFromCart(id) {
+        cart = cart.filter(item => String(item.id) !== String(id));
+        renderCart();
+        showToast("Producto retirado del carrito.", "warning");
+    }
+
+    function renderCart() {
+        const totalProducts = cart.length;
+        const totalQty = cart.reduce((acc, item) => acc + (parseInt(item.qty || "0") || 0), 0);
+
+        document.getElementById("cartCount").innerText = totalProducts;
+        summaryProducts.innerText = totalProducts;
+        summaryQty.innerText = totalQty;
+
+        btnSubmit.disabled = totalProducts === 0;
+
+        if (cart.length === 0) {
+            cartListEl.innerHTML = `
+                <div class="cart-empty">
+                    <i class='bx bx-box'></i>
+                    <strong>Carrito vacío</strong>
+                    <span>Selecciona productos del catálogo.</span>
+                </div>
+            `;
+
+            hiddenContainer.innerHTML = "";
+            return;
+        }
+
+        cartListEl.innerHTML = "";
+        hiddenContainer.innerHTML = "";
+
+        cart.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "cart-item";
+
+            let actionsHtml = "";
+
+            if (item.isSerial) {
+                actionsHtml = `
+                    <button type="button" class="btn-serial" data-action="serial">
+                        <i class='bx bx-barcode'></i>
+                        Series (${item.serials.length})
+                    </button>
+
+                    <span class="qty-pill">${item.qty}</span>
+                `;
+            } else {
+                actionsHtml = `
+                    <input
+                        type="number"
+                        class="cart-qty-input"
+                        value="${item.qty}"
+                        min="1"
+                        data-action="qty"
+                    >
+                `;
+            }
+
+            div.innerHTML = `
+                <div>
+                    <div class="ci-name">${escapeHtml(item.nombre)}</div>
+                    <span class="ci-code">${escapeHtml(item.codigo)}</span>
+                </div>
+
+                <div class="ci-actions">
+                    ${actionsHtml}
+
+                    <button type="button" class="btn-remove" data-action="remove" title="Quitar producto">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </div>
+            `;
+
+            const btnRemove = div.querySelector('[data-action="remove"]');
+            btnRemove.addEventListener("click", () => removeFromCart(item.id));
+
+            const btnSerial = div.querySelector('[data-action="serial"]');
+            if (btnSerial) {
+                btnSerial.addEventListener("click", () => openSerialModal(item.id));
+            }
+
+            const qtyInput = div.querySelector('[data-action="qty"]');
+            if (qtyInput) {
+                qtyInput.addEventListener("input", function () {
+                    updateQty(item.id, this.value);
+                });
+
+                qtyInput.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                    }
+                });
+            }
+
+            cartListEl.appendChild(div);
+
+            const serialsJson = item.isSerial
+                ? JSON.stringify(item.serials.map(sn => ({ sn: sn })))
+                : "";
+
+            hiddenContainer.insertAdjacentHTML("beforeend", `
+                <input type="hidden" name="productos[]" value="${escapeHtml(item.id)}">
+                <input type="hidden" name="cantidades[]" value="${escapeHtml(item.qty)}">
+                <input type="hidden" name="seriales_json[]" value='${escapeHtml(serialsJson)}'>
+            `);
+        });
+    }
+
+    function openSerialModal(id) {
+        const item = cart.find(i => String(i.id) === String(id));
+
+        if (!item) return;
+
+        document.getElementById("modalProdId").value = item.id;
+        document.getElementById("modalProdName").innerText = item.nombre;
+        document.getElementById("serialInputArea").value = item.serials.join("\n");
+
+        serialModal.classList.add("show");
+
+        setTimeout(() => {
+            document.getElementById("serialInputArea").focus();
+        }, 120);
+    }
+
+    function closeSerialModal() {
+        serialModal.classList.remove("show");
+    }
+
+    function saveSerials() {
+        const id = document.getElementById("modalProdId").value;
+        const item = cart.find(i => String(i.id) === String(id));
+
+        if (!item) return;
+
+        const rawText = document.getElementById("serialInputArea").value;
+
+        const serials = rawText
+            .split("\n")
+            .map(sn => cleanSerial(sn))
+            .filter(sn => sn !== "");
+
+        const uniqueSerials = [...new Set(serials)];
+
+        if (serials.length !== uniqueSerials.length) {
+            showToast("Se detectaron seriales duplicados y fueron eliminados.", "warning");
+        }
+
+        item.serials = uniqueSerials;
+        item.qty = uniqueSerials.length;
+
+        closeSerialModal();
+        renderCart();
+
+        if (item.qty > 0) {
+            showToast(`${item.qty} serie(s) registrada(s).`, "success");
+        } else {
+            showToast("No se registraron series para este equipo.", "warning");
+        }
+    }
+
+    function openConfirmModal() {
+        return new Promise(resolve => {
+            const totalQty = cart.reduce((acc, item) => acc + (parseInt(item.qty || "0") || 0), 0);
+            const tecnicoText = selectTecnico.options[selectTecnico.selectedIndex]?.text || "Técnico no seleccionado";
+
+            document.getElementById("confirmMessage").innerHTML = `
+                Se registrará una devolución del técnico <strong>${escapeHtml(tecnicoText)}</strong>
+                con <strong>${cart.length}</strong> producto(s) y <strong>${totalQty}</strong> unidad(es) en total.
+                <br><br>
+                Confirma que el material fue revisado físicamente antes de ingresar al stock.
+            `;
+
+            confirmModal.classList.add("show");
+
+            const btnAccept = document.getElementById("btnAcceptConfirm");
+            const btnCancel = document.getElementById("btnCancelConfirm");
+
+            const close = result => {
+                confirmModal.classList.remove("show");
+                btnAccept.onclick = null;
+                btnCancel.onclick = null;
+                resolve(result);
+            };
+
+            btnAccept.onclick = () => close(true);
+            btnCancel.onclick = () => close(false);
+
+            confirmModal.onclick = event => {
+                if (event.target === confirmModal) {
+                    close(false);
+                }
+            };
+        });
+    }
+
+    function validateBeforeSubmit() {
+        if (!selectTecnico.value) {
+            showToast("Selecciona al técnico que está devolviendo.", "error");
+            selectTecnico.focus();
+            return false;
+        }
+
+        if (cart.length === 0) {
+            showToast("Agrega al menos un producto al carrito.", "error");
+            return false;
+        }
+
+        const invalidNormal = cart.find(item => !item.isSerial && (!item.qty || item.qty < 1));
+
+        if (invalidNormal) {
+            showToast(`Revisa la cantidad de ${invalidNormal.nombre}.`, "error");
+            return false;
+        }
+
+        const emptySerial = cart.find(item => item.isSerial && item.qty === 0);
+
+        if (emptySerial) {
+            showToast(`El producto ${emptySerial.nombre} requiere series registradas.`, "error");
+            openSerialModal(emptySerial.id);
+            return false;
+        }
+
+        const totalQty = cart.reduce((acc, item) => acc + (parseInt(item.qty || "0") || 0), 0);
+
+        if (totalQty <= 0) {
+            showToast("La cantidad total de devolución no puede ser 0.", "error");
+            return false;
+        }
+
+        return true;
+    }
+
+    searchInput.addEventListener("input", event => {
+        const value = event.target.value.trim();
+
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(() => {
+            if (value.length === 0 || value.length >= 2) {
+                loadCatalog(value);
+            }
+        }, 320);
+    });
+
+    document.getElementById("formDevolucion").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (this.dataset.submitting === "true") {
+            return;
+        }
+
+        if (!validateBeforeSubmit()) {
+            return;
+        }
+
+        const confirmed = await openConfirmModal();
+
+        if (!confirmed) {
+            return;
+        }
+
+        this.dataset.submitting = "true";
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Registrando devolución...";
+
+        this.submit();
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeSerialModal();
+            confirmModal.classList.remove("show");
+        }
+    });
+
+    serialModal.addEventListener("click", event => {
+        if (event.target === serialModal) {
+            closeSerialModal();
+        }
+    });
+
+    loadCatalog();
+</script>
+
+{% endblock %}

@@ -1,0 +1,1095 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuración de Requerimiento | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --reqset-primary: #0f6bff;
+        --reqset-primary-dark: #0b4fc4;
+        --reqset-primary-soft: rgba(15, 107, 255, .10);
+
+        --reqset-navy: #071225;
+        --reqset-navy-2: #0b1b34;
+        --reqset-navy-3: #10294c;
+
+        --reqset-success: #16a34a;
+        --reqset-success-soft: rgba(22, 163, 74, .12);
+
+        --reqset-warning: #f59e0b;
+        --reqset-warning-soft: rgba(245, 158, 11, .14);
+
+        --reqset-danger: #dc2626;
+        --reqset-danger-soft: rgba(220, 38, 38, .12);
+
+        --reqset-purple: #7c3aed;
+        --reqset-purple-soft: rgba(124, 58, 237, .12);
+
+        --reqset-card: #ffffff;
+        --reqset-soft: #f8fafc;
+        --reqset-border: #d9e2ef;
+        --reqset-border-strong: #c4d0df;
+        --reqset-text: #0f172a;
+        --reqset-muted: #64748b;
+
+        --reqset-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --reqset-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .reqset-page {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: reqsetFade .25s ease-out;
+    }
+
+    @keyframes reqsetFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .reqset-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .22), transparent 34%),
+            linear-gradient(135deg, var(--reqset-navy) 0%, var(--reqset-navy-2) 52%, var(--reqset-navy-3) 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--reqset-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 350px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .reqset-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 999px;
+        right: -110px;
+        top: -130px;
+        background: rgba(6, 182, 212, .16);
+        pointer-events: none;
+    }
+
+    .reqset-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .reqset-hero-main,
+    .reqset-hero-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .reqset-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .reqset-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .reqset-hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .reqset-hero-title span {
+        color: #93c5fd;
+    }
+
+    .reqset-hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 760px;
+    }
+
+    .reqset-hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .reqset-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .reqset-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .reqset-hero-card {
+        background: rgba(255, 255, 255, .96);
+        color: var(--reqset-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .hero-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .hero-card-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--reqset-primary-soft);
+        color: var(--reqset-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .hero-card-title strong {
+        display: block;
+        color: var(--reqset-text);
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .hero-card-title span {
+        display: block;
+        color: var(--reqset-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .flow-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .flow-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: var(--reqset-text);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .flow-item i {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--reqset-primary-soft);
+        color: var(--reqset-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .reqset-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .reqset-card,
+    .locations-card {
+        background: var(--reqset-card);
+        border: 1px solid var(--reqset-border);
+        border-radius: 22px;
+        box-shadow: var(--reqset-shadow-sm);
+        overflow: hidden;
+    }
+
+    .card-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--reqset-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .card-title h2,
+    .card-title h3 {
+        margin: 0;
+        color: var(--reqset-text);
+        font-size: 16px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .card-title h2 i,
+    .card-title h3 i {
+        color: var(--reqset-primary);
+        font-size: 21px;
+    }
+
+    .card-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--reqset-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .user-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .meta-item {
+        background: #f8fafc;
+        border: 1px solid var(--reqset-border);
+        border-radius: 16px;
+        padding: 13px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .meta-item i {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--reqset-primary-soft);
+        color: var(--reqset-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .meta-item span {
+        display: block;
+        color: var(--reqset-muted);
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 3px;
+    }
+
+    .meta-item strong {
+        display: block;
+        color: var(--reqset-text);
+        font-size: 13px;
+        font-weight: 950;
+        overflow-wrap: anywhere;
+    }
+
+    .form-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .form-group {
+        min-width: 0;
+    }
+
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 8px;
+        color: var(--reqset-text);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    .form-label i {
+        color: var(--reqset-primary);
+        font-size: 16px;
+    }
+
+    .select-wrap {
+        position: relative;
+    }
+
+    .select-wrap > i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--reqset-primary);
+        font-size: 19px;
+        pointer-events: none;
+    }
+
+    .form-select {
+        width: 100%;
+        min-height: 50px;
+        background: #ffffff;
+        color: var(--reqset-text);
+        border: 1px solid var(--reqset-border-strong);
+        border-radius: 15px;
+        padding: 0 14px 0 45px;
+        outline: none;
+        font-size: 14px;
+        font-weight: 850;
+        transition: .18s ease;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    .form-select:focus {
+        border-color: var(--reqset-primary);
+        box-shadow: 0 0 0 4px var(--reqset-primary-soft);
+    }
+
+    .hidden-field {
+        display: none;
+    }
+
+    .visible-field {
+        display: block;
+        animation: fieldIn .18s ease-out;
+    }
+
+    @keyframes fieldIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .btn-save {
+        width: 100%;
+        min-height: 52px;
+        background: var(--reqset-primary);
+        color: #ffffff;
+        font-weight: 950;
+        padding: 0 15px;
+        border-radius: 15px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        transition: .18s ease;
+        box-shadow: 0 14px 28px rgba(15, 107, 255, .18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        margin-top: 2px;
+    }
+
+    .btn-save:hover {
+        background: var(--reqset-primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-save:disabled {
+        background: #d1d5db;
+        color: #6b7280;
+        box-shadow: none;
+        cursor: wait;
+        transform: none;
+    }
+
+    .note-box {
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        line-height: 1.45;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-weight: 800;
+        transition: .18s ease;
+    }
+
+    .note-box i {
+        font-size: 19px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .note-info {
+        background: var(--reqset-primary-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .18);
+    }
+
+    .note-warn {
+        background: var(--reqset-warning-soft);
+        color: #92400e;
+        border: 1px solid rgba(245, 158, 11, .25);
+    }
+
+    .note-default {
+        background: #f8fafc;
+        color: var(--reqset-muted);
+        border: 1px dashed var(--reqset-border-strong);
+    }
+
+    .locations-body {
+        padding: 16px;
+    }
+
+    .loc-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .loc-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 14px;
+        background: #f8fafc;
+        border: 1px solid var(--reqset-border);
+        border-radius: 16px;
+        color: var(--reqset-text);
+        text-decoration: none;
+        transition: .18s ease;
+    }
+
+    .loc-item:hover {
+        background: #ffffff;
+        border-color: var(--reqset-primary);
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, .06);
+    }
+
+    .loc-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .loc-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        background: var(--reqset-success-soft);
+        color: var(--reqset-success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        flex-shrink: 0;
+    }
+
+    .loc-title {
+        display: block;
+        color: var(--reqset-text);
+        font-size: 13px;
+        font-weight: 950;
+        overflow-wrap: anywhere;
+    }
+
+    .loc-sub {
+        display: block;
+        color: var(--reqset-muted);
+        font-size: 11px;
+        font-weight: 800;
+        margin-top: 3px;
+        overflow-wrap: anywhere;
+    }
+
+    .loc-item > i {
+        color: var(--reqset-primary);
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .empty-locations {
+        padding: 26px 16px;
+        text-align: center;
+        border-radius: 17px;
+        background: #f8fafc;
+        border: 1px dashed var(--reqset-border-strong);
+        color: var(--reqset-muted);
+    }
+
+    .empty-locations i {
+        display: block;
+        font-size: 34px;
+        color: #94a3b8;
+        margin-bottom: 8px;
+    }
+
+    .empty-locations strong {
+        display: block;
+        color: var(--reqset-text);
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 4px;
+    }
+
+    .toast-area {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 99999;
+        display: grid;
+        gap: 10px;
+        width: min(390px, calc(100vw - 44px));
+    }
+
+    .toast-msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #ffffff;
+        color: var(--reqset-text);
+        border: 1px solid var(--reqset-border);
+        border-left: 5px solid var(--reqset-primary);
+        border-radius: 15px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .16);
+        padding: 13px 14px;
+        transition: .25s ease;
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 850;
+    }
+
+    .toast-msg i {
+        color: var(--reqset-primary);
+        flex-shrink: 0;
+        font-size: 20px;
+        margin-top: 1px;
+    }
+
+    .toast-msg.error {
+        border-left-color: var(--reqset-danger);
+    }
+
+    .toast-msg.error i {
+        color: var(--reqset-danger);
+    }
+
+    @media (max-width: 1100px) {
+        .reqset-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .reqset-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .reqset-page {
+            gap: 18px;
+        }
+
+        .reqset-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .reqset-hero-title {
+            font-size: 26px;
+        }
+
+        .reqset-chip {
+            width: 100%;
+        }
+
+        .card-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .user-meta {
+            grid-template-columns: 1fr;
+        }
+
+        .toast-area {
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+        }
+    }
+</style>
+
+<div class="reqset-page">
+
+    <section class="reqset-hero">
+        <div class="reqset-hero-main">
+            <div class="reqset-badge">
+                <i class='bx bx-slider-alt'></i>
+                Configuración previa
+            </div>
+
+            <h1 class="reqset-hero-title">
+                Define tu <span>requerimiento</span>
+            </h1>
+
+            <p class="reqset-hero-desc">
+                Selecciona el tipo de solicitud antes de continuar. Según tu rol y sede,
+                el sistema habilitará solicitudes locales, entre sedes o compras a proveedor.
+            </p>
+
+            <div class="reqset-hero-chips">
+                <span class="reqset-chip">
+                    <i class='bx bxs-user'></i>
+                    {{ request.user.username }}
+                </span>
+
+                {% if sede %}
+                    <span class="reqset-chip">
+                        <i class='bx bxs-building'></i>
+                        {{ sede.nombre }} · {{ sede.tipo }}
+                    </span>
+                {% endif %}
+
+                {% if profile %}
+                    <span class="reqset-chip">
+                        <i class='bx bxs-badge-check'></i>
+                        {{ profile.get_rol_display }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <aside class="reqset-hero-card">
+            <div class="hero-card-title">
+                <i class='bx bx-git-branch'></i>
+                <div>
+                    <strong>Flujo de solicitud</strong>
+                    <span>Ruta según tipo de operación</span>
+                </div>
+            </div>
+
+            <div class="flow-list">
+                <div class="flow-item">
+                    <i class='bx bx-map-pin'></i>
+                    Local: consumo interno o técnico
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-transfer'></i>
+                    Entre sedes: solicitud a central
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bxs-truck'></i>
+                    Proveedor: compra externa
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="reqset-layout">
+
+        <section class="reqset-card">
+            <div class="card-head">
+                <div class="card-title">
+                    <h2>
+                        <i class='bx bx-cog'></i>
+                        Configuración de requerimiento
+                    </h2>
+                    <span>Define las reglas de la solicitud antes de ingresar al catálogo.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-shield-quarter'></i>
+                    Validación por rol
+                </span>
+            </div>
+
+            <div class="card-body">
+                <div class="user-meta">
+                    <div class="meta-item">
+                        <i class='bx bxs-user'></i>
+                        <div>
+                            <span>Usuario</span>
+                            <strong>{{ request.user.username }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="meta-item">
+                        <i class='bx bxs-building'></i>
+                        <div>
+                            <span>Sede</span>
+                            <strong>{% if sede %}{{ sede.nombre }}{% else %}No definida{% endif %}</strong>
+                        </div>
+                    </div>
+
+                    <div class="meta-item">
+                        <i class='bx bxs-badge-check'></i>
+                        <div>
+                            <span>Rol</span>
+                            <strong>{% if profile %}{{ profile.get_rol_display }}{% else %}Sin perfil{% endif %}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" action="{% url 'req_set_tipo_requerimiento' %}" id="reqConfigForm">
+                    {% csrf_token %}
+
+                    <div class="form-grid">
+                        <div class="form-group" id="wrapTipo">
+                            <label class="form-label" for="tipoReq">
+                                <i class='bx bx-list-check'></i>
+                                Tipo de solicitud
+                            </label>
+
+                            <div class="select-wrap">
+                                <i class='bx bx-category-alt'></i>
+
+                                <select name="tipo_requerimiento" id="tipoReq" class="form-select">
+                                    <option value="LOCAL" {% if tipo_requerimiento_actual == "LOCAL" %}selected{% endif %}>
+                                        LOCAL · Para técnico o consumo interno
+                                    </option>
+
+                                    {% if profile and profile.rol != "SOLICITANTE" %}
+                                        <option value="ENTRE_SEDES" {% if tipo_requerimiento_actual == "ENTRE_SEDES" %}selected{% endif %}>
+                                            ENTRE SEDES · Solicitar a almacén central
+                                        </option>
+                                    {% endif %}
+
+                                    {% if sede and sede.tipo == "CENTRAL" and profile and profile.rol != "SOLICITANTE" %}
+                                        <option value="PROVEEDOR" {% if tipo_requerimiento_actual == "PROVEEDOR" %}selected{% endif %}>
+                                            PROVEEDOR · Compra externa
+                                        </option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group hidden-field" id="wrapDestino">
+                            <label class="form-label" for="sedeDestino">
+                                <i class='bx bx-buildings'></i>
+                                Sede destino
+                            </label>
+
+                            <div class="select-wrap">
+                                <i class='bx bx-map-pin'></i>
+
+                                <select name="sede_destino_id" id="sedeDestino" class="form-select">
+                                    <option value="">Seleccionar sede central</option>
+
+                                    {% for s in sedes_central %}
+                                        <option value="{{ s.id }}" {% if sede_destino_actual_id and sede_destino_actual_id|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ s.nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group hidden-field" id="wrapProveedor">
+                            <label class="form-label" for="proveedorId">
+                                <i class='bx bxs-truck'></i>
+                                Proveedor
+                            </label>
+
+                            <div class="select-wrap">
+                                <i class='bx bx-store'></i>
+
+                                <select name="proveedor_id" id="proveedorId" class="form-select">
+                                    <option value="">Seleccionar proveedor</option>
+
+                                    {% for p in proveedores %}
+                                        <option value="{{ p.id }}" {% if proveedor_actual_id and proveedor_actual_id|stringformat:"s" == p.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ p.razon_social }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-save" id="btnGuardarConfig">
+                            <i class='bx bx-save'></i>
+                            Guardar configuración
+                        </button>
+                    </div>
+                </form>
+
+                <div id="noteReglas" class="note-box note-default">
+                    <i class='bx bx-info-circle'></i>
+                    <span id="noteText">Selecciona una opción arriba.</span>
+                </div>
+            </div>
+        </section>
+
+        <aside class="locations-card">
+            <div class="card-head">
+                <div class="card-title">
+                    <h3>
+                        <i class='bx bx-current-location'></i>
+                        Ubicaciones
+                    </h3>
+                    <span>Continúa en una ubicación específica.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-map'></i>
+                    {% if ubicaciones %}{{ ubicaciones|length }} disponibles{% else %}Sin ubicaciones{% endif %}
+                </span>
+            </div>
+
+            <div class="locations-body">
+                {% if ubicaciones %}
+                    <div class="loc-list">
+                        {% for u in ubicaciones %}
+                            <a href="/req/?ubicacion_id={{ u.id }}" class="loc-item">
+                                <div class="loc-left">
+                                    <div class="loc-icon">
+                                        <i class='bx bx-map-pin'></i>
+                                    </div>
+
+                                    <div>
+                                        <span class="loc-title">{{ u.nombre }}</span>
+                                        <span class="loc-sub">{{ u.sede.nombre }}</span>
+                                    </div>
+                                </div>
+
+                                <i class='bx bx-chevron-right'></i>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-locations">
+                        <i class='bx bx-map-alt'></i>
+                        <strong>Sin ubicaciones disponibles</strong>
+                        <span>No hay ubicaciones habilitadas para continuar.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+
+    </div>
+</div>
+
+<div class="toast-area" id="toastArea"></div>
+
+<script>
+    const tipoEl = document.getElementById("tipoReq");
+    const wrapDestino = document.getElementById("wrapDestino");
+    const wrapProveedor = document.getElementById("wrapProveedor");
+    const sedeDestino = document.getElementById("sedeDestino");
+    const proveedorId = document.getElementById("proveedorId");
+    const noteBox = document.getElementById("noteReglas");
+    const noteText = document.getElementById("noteText");
+    const reqConfigForm = document.getElementById("reqConfigForm");
+    const btnGuardarConfig = document.getElementById("btnGuardarConfig");
+
+    const rol = "{{ profile.rol|default:'' }}";
+    const sedeTipo = "{{ sede.tipo|default:'' }}";
+
+    function showToast(message, type = "info") {
+        let area = document.getElementById("toastArea");
+
+        if (!area) {
+            area = document.createElement("div");
+            area.id = "toastArea";
+            area.className = "toast-area";
+            document.body.appendChild(area);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast-msg ${type === "error" ? "error" : ""}`;
+
+        toast.innerHTML = `
+            <i class='bx ${type === "error" ? "bx-error-circle" : "bx-info-circle"}'></i>
+            <span>${message}</span>
+        `;
+
+        area.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(8px)";
+            setTimeout(() => toast.remove(), 280);
+        }, 3500);
+    }
+
+    function setFieldVisibility(field, visible) {
+        if (!field) return;
+
+        if (visible) {
+            field.classList.remove("hidden-field");
+            field.classList.add("visible-field");
+        } else {
+            field.classList.add("hidden-field");
+            field.classList.remove("visible-field");
+        }
+    }
+
+    function paintRules() {
+        let t = (tipoEl.value || "").toUpperCase();
+
+        if (rol === "SOLICITANTE") {
+            t = "LOCAL";
+            tipoEl.value = "LOCAL";
+        }
+
+        if (t === "PROVEEDOR" && sedeTipo !== "CENTRAL") {
+            t = "LOCAL";
+            tipoEl.value = "LOCAL";
+        }
+
+        if (t === "ENTRE_SEDES") {
+            setFieldVisibility(wrapDestino, true);
+            setFieldVisibility(wrapProveedor, false);
+
+            noteBox.className = "note-box note-info";
+            noteText.textContent = "Solicitas material a la Sede Central. El pedido quedará pendiente de atención por almacén.";
+
+            if (proveedorId) proveedorId.value = "";
+        } else if (t === "PROVEEDOR") {
+            setFieldVisibility(wrapDestino, false);
+            setFieldVisibility(wrapProveedor, true);
+
+            noteBox.className = "note-box note-warn";
+            noteText.textContent = "Genera una orden de compra externa. Esta opción solo aplica para Sede Central.";
+
+            if (sedeDestino) sedeDestino.value = "";
+        } else {
+            setFieldVisibility(wrapDestino, false);
+            setFieldVisibility(wrapProveedor, false);
+
+            noteBox.className = "note-box note-default";
+            noteText.textContent = "Despacho local para técnico, consumo interno o atención directa desde tu sede.";
+
+            if (sedeDestino) sedeDestino.value = "";
+            if (proveedorId) proveedorId.value = "";
+        }
+    }
+
+    tipoEl.addEventListener("change", paintRules);
+
+    if (reqConfigForm) {
+        reqConfigForm.addEventListener("submit", function(e) {
+            const tipo = (tipoEl.value || "").toUpperCase();
+
+            if (tipo === "ENTRE_SEDES" && sedeDestino && !sedeDestino.value) {
+                e.preventDefault();
+                showToast("Selecciona la sede destino para la solicitud entre sedes.", "error");
+                sedeDestino.focus();
+                return;
+            }
+
+            if (tipo === "PROVEEDOR" && proveedorId && !proveedorId.value) {
+                e.preventDefault();
+                showToast("Selecciona el proveedor para generar la compra externa.", "error");
+                proveedorId.focus();
+                return;
+            }
+
+            if (btnGuardarConfig) {
+                btnGuardarConfig.disabled = true;
+                btnGuardarConfig.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Guardando...";
+            }
+        });
+    }
+
+    paintRules();
+</script>
+
+{% endblock %}

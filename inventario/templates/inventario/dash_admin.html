@@ -1,0 +1,1387 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Panel Gerencial | Telecable{% endblock %}
+{% block page_header %}Panel Gerencial{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    :root {
+        --admin-navy: #07111f;
+        --admin-navy-2: #0d1b2f;
+        --admin-blue: #0f6bff;
+        --admin-blue-soft: rgba(15, 107, 255, .10);
+        --admin-cyan: #0ea5e9;
+        --admin-green: #16a34a;
+        --admin-green-soft: rgba(22, 163, 74, .12);
+        --admin-red: #dc2626;
+        --admin-red-soft: rgba(220, 38, 38, .12);
+        --admin-amber: #f59e0b;
+        --admin-amber-soft: rgba(245, 158, 11, .14);
+        --admin-purple: #7c3aed;
+        --admin-purple-soft: rgba(124, 58, 237, .12);
+        --admin-bg: #f3f6fb;
+        --admin-card: #ffffff;
+        --admin-border: #d9e2ef;
+        --admin-border-strong: #c4d0df;
+        --admin-text: #0f172a;
+        --admin-muted: #64748b;
+        --admin-soft: #f8fafc;
+        --admin-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --admin-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .gerencial-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: adminFade .25s ease-out;
+    }
+
+    @keyframes adminFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .gerencial-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .18), transparent 34%),
+            linear-gradient(135deg, #081326 0%, #0f213a 52%, #10294c 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--admin-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .gerencial-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        right: -110px;
+        top: -130px;
+        background: rgba(14, 165, 233, .18);
+        pointer-events: none;
+    }
+
+    .gerencial-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .hero-main,
+    .hero-filter {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .hero-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .hero-title span {
+        color: #93c5fd;
+    }
+
+    .hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 780px;
+    }
+
+    .hero-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .hero-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .hero-filter {
+        background: rgba(255, 255, 255, .96);
+        color: var(--admin-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .hero-filter label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 950;
+        color: var(--admin-text);
+        margin-bottom: 10px;
+    }
+
+    .hero-filter label i {
+        color: var(--admin-blue);
+        font-size: 19px;
+    }
+
+    .hero-filter select {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--admin-border-strong);
+        background: #ffffff;
+        color: var(--admin-text);
+        padding: 0 12px;
+        font-weight: 750;
+        outline: none;
+    }
+
+    .hero-filter select:focus {
+        border-color: var(--admin-blue);
+        box-shadow: 0 0 0 4px var(--admin-blue-soft);
+    }
+
+    .hero-filter p {
+        margin: 10px 0 0;
+        color: var(--admin-muted);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .kpi-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 142px;
+        background: var(--admin-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: var(--admin-shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 17px;
+    }
+
+    .kpi-card::after {
+        content: "";
+        position: absolute;
+        right: -50px;
+        top: -50px;
+        width: 150px;
+        height: 150px;
+        border-radius: 999px;
+        opacity: .75;
+        pointer-events: none;
+    }
+
+    .kpi-card.blue::after {
+        background: var(--admin-blue-soft);
+    }
+
+    .kpi-card.green::after {
+        background: var(--admin-green-soft);
+    }
+
+    .kpi-card.red::after {
+        background: var(--admin-red-soft);
+    }
+
+    .kpi-card.danger-active {
+        border-color: rgba(220, 38, 38, .40);
+        background: linear-gradient(135deg, #fff 0%, #fff 58%, rgba(254, 226, 226, .75) 100%);
+    }
+
+    .kpi-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 31px;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .kpi-icon.blue {
+        background: var(--admin-blue-soft);
+        color: var(--admin-blue);
+    }
+
+    .kpi-icon.green {
+        background: var(--admin-green-soft);
+        color: var(--admin-green);
+    }
+
+    .kpi-icon.red {
+        background: var(--admin-red-soft);
+        color: var(--admin-red);
+    }
+
+    .kpi-body {
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .kpi-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        color: var(--admin-text);
+        font-size: 38px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: -1px;
+    }
+
+    .kpi-value small {
+        color: var(--admin-muted);
+        font-size: 14px;
+        font-weight: 950;
+        text-transform: uppercase;
+    }
+
+    .kpi-label {
+        margin-top: 8px;
+        color: var(--admin-text);
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .kpi-help {
+        margin-top: 7px;
+        color: var(--admin-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 4px 0 -4px;
+    }
+
+    .section-head h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: var(--admin-text);
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: -.4px;
+    }
+
+    .section-head h2 i {
+        color: var(--admin-blue);
+        font-size: 25px;
+    }
+
+    .section-head p {
+        margin: 5px 0 0;
+        color: var(--admin-muted);
+        font-size: 13px;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .quick-card {
+        background: var(--admin-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        padding: 18px;
+        min-height: 118px;
+        box-shadow: var(--admin-shadow-sm);
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        transition: .18s ease;
+        text-decoration: none;
+    }
+
+    .quick-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(15, 107, 255, .32);
+        box-shadow: var(--admin-shadow);
+    }
+
+    .quick-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .quick-icon.blue {
+        background: var(--admin-blue-soft);
+        color: var(--admin-blue);
+    }
+
+    .quick-icon.green {
+        background: var(--admin-green-soft);
+        color: var(--admin-green);
+    }
+
+    .quick-icon.amber {
+        background: var(--admin-amber-soft);
+        color: #b45309;
+    }
+
+    .quick-icon.purple {
+        background: var(--admin-purple-soft);
+        color: var(--admin-purple);
+    }
+
+    .quick-text strong {
+        display: block;
+        color: var(--admin-text);
+        font-size: 14px;
+        line-height: 1.25;
+        font-weight: 950;
+    }
+
+    .quick-text span {
+        display: block;
+        margin-top: 6px;
+        color: var(--admin-muted);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+        gap: 18px;
+    }
+
+    .panel-card {
+        background: var(--admin-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 22px;
+        box-shadow: var(--admin-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--admin-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--admin-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--admin-blue);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--admin-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .chart-area {
+        position: relative;
+        height: 365px;
+        padding: 22px;
+    }
+
+    .chart-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        text-align: center;
+    }
+
+    .chart-center small {
+        display: block;
+        color: var(--admin-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .chart-center strong {
+        display: block;
+        margin-top: 5px;
+        color: var(--admin-text);
+        font-size: 20px;
+        font-weight: 950;
+        max-width: 170px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .audit-wrap {
+        width: 100%;
+        overflow: auto;
+        max-height: 430px;
+    }
+
+    .audit-table {
+        width: 100%;
+        min-width: 650px;
+        border-collapse: collapse;
+    }
+
+    .audit-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        text-align: left;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .audit-table td {
+        padding: 15px 18px;
+        border-bottom: 1px solid #edf2f7;
+        color: var(--admin-text);
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    .audit-date {
+        color: var(--admin-muted);
+        font-size: 12px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .audit-product {
+        font-weight: 900;
+        max-width: 260px;
+    }
+
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+    }
+
+    .tag-in {
+        background: var(--admin-green-soft);
+        color: #15803d;
+    }
+
+    .tag-out {
+        background: var(--admin-red-soft);
+        color: #b91c1c;
+    }
+
+    .tag-adj {
+        background: var(--admin-amber-soft);
+        color: #92400e;
+    }
+
+    .qty-cell {
+        text-align: right;
+        font-size: 14px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        padding: 44px 20px;
+        text-align: center;
+        color: var(--admin-muted);
+    }
+
+    .empty-state i {
+        display: block;
+        font-size: 38px;
+        color: #94a3b8;
+        margin-bottom: 8px;
+    }
+
+    .voice-alert-panel {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 9999;
+        width: min(580px, calc(100vw - 44px));
+        display: none;
+        align-items: center;
+        gap: 14px;
+        background: #ffffff;
+        border: 1px solid rgba(220, 38, 38, .26);
+        border-left: 5px solid var(--admin-red);
+        border-radius: 18px;
+        box-shadow: 0 22px 50px rgba(15, 23, 42, .18);
+        padding: 16px;
+    }
+
+    .voice-alert-panel.show {
+        display: flex;
+    }
+
+    .voice-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 15px;
+        background: var(--admin-red-soft);
+        color: var(--admin-red);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 25px;
+        flex-shrink: 0;
+    }
+
+    .voice-copy {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .voice-copy strong {
+        color: var(--admin-text);
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .voice-copy p {
+        margin: 4px 0 0;
+        color: var(--admin-muted);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .voice-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .voice-btn {
+        border: 0;
+        cursor: pointer;
+        border-radius: 12px;
+        padding: 10px 13px;
+        font-size: 12px;
+        font-weight: 950;
+        color: #ffffff;
+        background: var(--admin-red);
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .voice-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.04);
+    }
+
+    .voice-btn.secondary {
+        color: var(--admin-text);
+        background: #ffffff;
+        border: 1px solid var(--admin-border-strong);
+    }
+
+    @media (max-width: 1180px) {
+        .gerencial-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-filter {
+            width: 100%;
+        }
+
+        .quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 820px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .gerencial-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .hero-meta-row {
+            gap: 8px;
+        }
+
+        .hero-chip {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .chart-area {
+            height: 320px;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .gerencial-wrap {
+            gap: 18px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+        }
+
+        .hero-desc {
+            font-size: 13px;
+        }
+
+        .quick-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .kpi-card {
+            padding: 18px;
+            min-height: auto;
+        }
+
+        .kpi-icon {
+            width: 54px;
+            height: 54px;
+            font-size: 27px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+        }
+
+        .panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .chart-area {
+            height: 285px;
+            padding: 14px;
+        }
+
+        .voice-alert-panel {
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .voice-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .voice-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="gerencial-wrap">
+
+    <section class="gerencial-hero">
+        <div class="hero-main">
+            <div class="hero-badge">
+                <i class='bx bxs-crown'></i>
+                Dirección general
+            </div>
+
+            <h1 class="hero-title">
+                Panel de control <span>gerencial</span>
+            </h1>
+
+            <p class="hero-desc">
+                Supervisa inventario, equipos físicos, metraje disponible, stock crítico y movimientos recientes
+                por sede. Este panel está pensado para tomar decisiones rápidas y detectar alertas operativas.
+            </p>
+
+            <div class="hero-meta-row">
+                <span class="hero-chip">
+                    <i class='bx bxs-user'></i>
+                    {{ request.user.username }}
+                </span>
+
+                {% if sede %}
+                <span class="hero-chip">
+                    <i class='bx bx-buildings'></i>
+                    {{ sede.nombre }}
+                </span>
+                {% endif %}
+
+                <span class="hero-chip">
+                    <i class='bx bx-calendar'></i>
+                    {% now "d/m/Y" %}
+                </span>
+            </div>
+        </div>
+
+        {% if sedes %}
+        <form class="hero-filter" method="get" action="{% url 'dash_admin' %}">
+            <label for="sede_id">
+                <i class='bx bx-map-pin'></i>
+                Sede de análisis
+            </label>
+
+            <select id="sede_id" name="sede_id" onchange="this.form.submit()">
+                <option value="" disabled>Seleccione una sede...</option>
+                {% for s in sedes %}
+                    <option value="{{ s.id }}" {% if sede and s.id == sede.id %}selected{% endif %}>
+                        {{ s.nombre }}{% if s.tipo %} - {{ s.tipo }}{% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <p>
+                Cambia la sede para revisar inventario, alertas y movimientos específicos.
+            </p>
+        </form>
+        {% endif %}
+    </section>
+
+    <section class="kpi-grid">
+        <article class="kpi-card blue">
+            <div class="kpi-icon blue">
+                <i class='bx bx-server'></i>
+            </div>
+
+            <div class="kpi-body">
+                <div class="kpi-value">
+                    {{ total_equipos|default:0 }}
+                </div>
+                <div class="kpi-label">Equipos físicos en stock</div>
+                <div class="kpi-help">
+                    Unidades registradas en la sede seleccionada.
+                </div>
+            </div>
+        </article>
+
+        <article class="kpi-card green">
+            <div class="kpi-icon green">
+                <i class='bx bx-cable-car'></i>
+            </div>
+
+            <div class="kpi-body">
+                <div class="kpi-value">
+                    {{ total_cables|default:0 }} <small>m</small>
+                </div>
+                <div class="kpi-label">Metraje de cableado disponible</div>
+                <div class="kpi-help">
+                    Cantidad acumulada de productos identificados como cable.
+                </div>
+            </div>
+        </article>
+
+        <article class="kpi-card red {% if low_stock > 0 %}danger-active{% endif %}">
+            <div class="kpi-icon red">
+                <i class='bx bx-error-alt'></i>
+            </div>
+
+            <div class="kpi-body">
+                <div class="kpi-value">
+                    {{ low_stock|default:0 }}
+                </div>
+                <div class="kpi-label">Alertas de stock crítico</div>
+                <div class="kpi-help">
+                    {% if low_stock > 0 %}
+                        Requiere revisión o reposición inmediata.
+                    {% else %}
+                        Sin alertas críticas en esta sede.
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section>
+        <div class="section-head">
+            <div>
+                <h2>
+                    <i class='bx bx-command'></i>
+                    Centro de mando
+                </h2>
+                <p>Accesos principales para supervisión, reportes y control operativo.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-grid">
+        <a href="{% url 'admin_reporte_lista' %}" class="quick-card">
+            <div class="quick-icon green">
+                <i class='bx bx-line-chart'></i>
+            </div>
+            <div class="quick-text">
+                <strong>Auditoría financiera</strong>
+                <span>Consulta reportes, valorización y control económico de materiales.</span>
+            </div>
+        </a>
+
+        <a href="{% url 'inventory_list' %}" class="quick-card">
+            <div class="quick-icon blue">
+                <i class='bx bx-box'></i>
+            </div>
+            <div class="quick-text">
+                <strong>Inventario global</strong>
+                <span>Revisa existencias por producto, sede, stock mínimo y disponibilidad.</span>
+            </div>
+        </a>
+
+        <a href="{% url 'proyecto_list' %}" class="quick-card">
+            <div class="quick-icon amber">
+                <i class='bx bx-hard-hat'></i>
+            </div>
+            <div class="quick-text">
+                <strong>Supervisión de obras</strong>
+                <span>Controla proyectos activos y materiales asignados a instalaciones.</span>
+            </div>
+        </a>
+
+        <a href="{% url 'almacen_historial_global' %}" class="quick-card">
+            <div class="quick-icon purple">
+                <i class='bx bx-history'></i>
+            </div>
+            <div class="quick-text">
+                <strong>Historial de movimientos</strong>
+                <span>Consulta ingresos, salidas, ajustes y transferencias de almacén.</span>
+            </div>
+        </a>
+    </section>
+
+    <section class="content-grid">
+        <article class="panel-card">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-doughnut-chart'></i>
+                        Composición del inventario
+                    </h3>
+                    <span>Vista ejecutiva de equipos, cableado y alertas críticas.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-buildings'></i>
+                    {% if sede %}{{ sede.nombre|truncatechars:22 }}{% else %}Global{% endif %}
+                </span>
+            </div>
+
+            <div class="chart-area">
+                <canvas id="inventoryChart"></canvas>
+
+                <div class="chart-center">
+                    <div>
+                        <small>Estado general</small>
+                        <strong>
+                            {% if sede %}
+                                {{ sede.nombre|truncatechars:14 }}
+                            {% else %}
+                                Global
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="panel-card">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-time-five'></i>
+                        Auditoría en tiempo real
+                    </h3>
+                    <span>Últimos movimientos registrados en la sede seleccionada.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-refresh'></i>
+                    Últimos 10
+                </span>
+            </div>
+
+            <div class="audit-wrap">
+                <table class="audit-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha / hora</th>
+                            <th>Producto</th>
+                            <th>Tipo</th>
+                            <th style="text-align: right;">Cantidad</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for mov in ult_movs %}
+                        <tr>
+                            <td class="audit-date">
+                                {{ mov.creado_en|date:"d M - H:i" }}
+                            </td>
+
+                            <td class="audit-product">
+                                {{ mov.producto.nombre|truncatechars:34 }}
+                            </td>
+
+                            <td>
+                                {% if mov.tipo == 'IN' %}
+                                    <span class="tag tag-in">
+                                        <i class='bx bx-down-arrow-alt'></i>
+                                        Ingreso
+                                    </span>
+                                {% elif mov.tipo == 'OUT' %}
+                                    <span class="tag tag-out">
+                                        <i class='bx bx-up-arrow-alt'></i>
+                                        Salida
+                                    </span>
+                                {% else %}
+                                    <span class="tag tag-adj">
+                                        <i class='bx bx-transfer'></i>
+                                        Ajuste
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="qty-cell">
+                                {% if mov.tipo == 'IN' %}+{% elif mov.tipo == 'OUT' %}-{% endif %}{{ mov.qty }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <i class='bx bx-folder-open'></i>
+                                    No hay movimientos recientes en esta sede.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+
+<div id="voiceAlertPanel" class="voice-alert-panel">
+    <div class="voice-icon">
+        <i class='bx bx-volume-full'></i>
+    </div>
+
+    <div class="voice-copy">
+        <strong>Alertas habladas de stock crítico</strong>
+        <p id="voiceAlertText">
+            Activa la voz para recibir avisos hablados cuando exista stock crítico.
+        </p>
+        <p>
+            La alerta funciona mientras este panel esté abierto.
+        </p>
+    </div>
+
+    <div class="voice-actions">
+        <button type="button" id="btnActivarVoz" class="voice-btn">
+            Activar voz
+        </button>
+
+        <button type="button" id="btnRepetirAlerta" class="voice-btn secondary" style="display:none;">
+            Repetir
+        </button>
+
+        <button type="button" id="btnSilenciarVoz" class="voice-btn secondary" style="display:none;">
+            Silenciar
+        </button>
+    </div>
+</div>
+
+{{ total_equipos|default:0|json_script:"totalEquipos" }}
+{{ total_cables|default:0|json_script:"totalCables" }}
+{{ low_stock|default:0|json_script:"lowStock" }}
+{{ alertas_stock|default:"[]"|json_script:"alertasStockIniciales" }}
+
+<script>
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.font.family = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+    const totalEquipos = JSON.parse(document.getElementById('totalEquipos').textContent || "0");
+    const totalCables = JSON.parse(document.getElementById('totalCables').textContent || "0");
+    const lowStock = JSON.parse(document.getElementById('lowStock').textContent || "0");
+    const alertasStockIniciales = JSON.parse(document.getElementById('alertasStockIniciales').textContent || "[]");
+
+    const ctx = document.getElementById('inventoryChart');
+
+    if (ctx) {
+        const sinDatos = totalEquipos === 0 && totalCables === 0 && lowStock === 0;
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: sinDatos
+                    ? ['Sin datos registrados']
+                    : ['Equipos físicos', 'Metraje cableado', 'Stock crítico'],
+                datasets: [{
+                    data: sinDatos
+                        ? [1]
+                        : [totalEquipos, totalCables, lowStock],
+                    backgroundColor: sinDatos
+                        ? ['#cbd5e1']
+                        : ['#0f6bff', '#16a34a', '#dc2626'],
+                    borderColor: '#ffffff',
+                    borderWidth: 5,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '76%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            color: '#334155',
+                            font: {
+                                size: 12,
+                                weight: '800'
+                            },
+                            padding: 18
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        titleFont: {
+                            size: 13,
+                            weight: '800'
+                        },
+                        bodyFont: {
+                            size: 14,
+                            weight: '900'
+                        },
+                        padding: 13,
+                        cornerRadius: 12,
+                        displayColors: true
+                    }
+                }
+            }
+        });
+    }
+
+    const voiceAlertPanel = document.getElementById("voiceAlertPanel");
+    const voiceAlertText = document.getElementById("voiceAlertText");
+    const btnActivarVoz = document.getElementById("btnActivarVoz");
+    const btnRepetirAlerta = document.getElementById("btnRepetirAlerta");
+    const btnSilenciarVoz = document.getElementById("btnSilenciarVoz");
+
+    const URL_ALERTAS_VOZ = "{% url 'api_alertas_stock_voz' %}{% if sede %}?sede_id={{ sede.id }}{% endif %}";
+
+    let alertasActuales = alertasStockIniciales || [];
+    let vozActiva = localStorage.getItem("telecableAlertasVozActiva") === "true";
+    let alertasYaHabladas = JSON.parse(localStorage.getItem("telecableAlertasStockHabladas") || "[]");
+
+    function construirMensajeAlerta(alertas) {
+        if (!alertas || alertas.length === 0) {
+            return "";
+        }
+
+        if (alertas.length === 1) {
+            const item = alertas[0];
+            const minimo = item.stock_minimo > 0 ? item.stock_minimo : 5;
+
+            return `Atención. Stock crítico en ${item.sede}. El producto ${item.producto} tiene ${item.cantidad} ${item.unidad} disponible. Stock mínimo requerido: ${minimo}.`;
+        }
+
+        const principales = alertas
+            .slice(0, 3)
+            .map(item => `${item.producto}, cantidad ${item.cantidad}`)
+            .join(". ");
+
+        return `Atención. Se detectaron ${alertas.length} productos con stock crítico. ${principales}. Revise el panel gerencial.`;
+    }
+
+    function hablar(texto) {
+        if (!("speechSynthesis" in window)) {
+            console.warn("Este navegador no soporta speechSynthesis.");
+            return;
+        }
+
+        if (!texto) return;
+
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(texto);
+        utterance.lang = "es-PE";
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        const voces = window.speechSynthesis.getVoices();
+        const vozEspanol = voces.find(v => v.lang && v.lang.toLowerCase().startsWith("es"));
+
+        if (vozEspanol) {
+            utterance.voice = vozEspanol;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function actualizarPanelVoz(alertas) {
+        if (!voiceAlertPanel) return;
+
+        if (!alertas || alertas.length === 0) {
+            voiceAlertPanel.classList.remove("show");
+            return;
+        }
+
+        voiceAlertPanel.classList.add("show");
+        voiceAlertText.textContent = `Hay ${alertas.length} producto(s) en stock crítico en la sede seleccionada.`;
+
+        if (vozActiva) {
+            btnActivarVoz.style.display = "none";
+            btnRepetirAlerta.style.display = "inline-block";
+            btnSilenciarVoz.style.display = "inline-block";
+        } else {
+            btnActivarVoz.style.display = "inline-block";
+            btnRepetirAlerta.style.display = "none";
+            btnSilenciarVoz.style.display = "none";
+        }
+    }
+
+    function obtenerAlertasNuevas(alertas) {
+        return alertas.filter(item => !alertasYaHabladas.includes(item.id));
+    }
+
+    function marcarComoHabladas(alertas) {
+        const ids = alertas.map(item => item.id);
+
+        alertasYaHabladas = Array.from(new Set([
+            ...alertasYaHabladas,
+            ...ids,
+        ])).slice(-100);
+
+        localStorage.setItem("telecableAlertasStockHabladas", JSON.stringify(alertasYaHabladas));
+    }
+
+    async function consultarAlertasStock() {
+        try {
+            const res = await fetch(URL_ALERTAS_VOZ, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            const data = await res.json();
+
+            if (!data.ok) {
+                console.warn(data.error || "No se pudieron obtener alertas.");
+                return;
+            }
+
+            alertasActuales = data.alertas || [];
+            actualizarPanelVoz(alertasActuales);
+
+            if (!vozActiva || alertasActuales.length === 0) {
+                return;
+            }
+
+            const nuevas = obtenerAlertasNuevas(alertasActuales);
+
+            if (nuevas.length > 0) {
+                hablar(construirMensajeAlerta(nuevas));
+                marcarComoHabladas(nuevas);
+            }
+
+        } catch (error) {
+            console.error("Error consultando alertas de stock:", error);
+        }
+    }
+
+    if (btnActivarVoz) {
+        btnActivarVoz.addEventListener("click", () => {
+            vozActiva = true;
+            localStorage.setItem("telecableAlertasVozActiva", "true");
+
+            actualizarPanelVoz(alertasActuales);
+
+            hablar("Alertas de voz activadas.");
+
+            const nuevas = obtenerAlertasNuevas(alertasActuales);
+
+            if (nuevas.length > 0) {
+                setTimeout(() => {
+                    hablar(construirMensajeAlerta(nuevas));
+                    marcarComoHabladas(nuevas);
+                }, 1300);
+            }
+        });
+    }
+
+    if (btnRepetirAlerta) {
+        btnRepetirAlerta.addEventListener("click", () => {
+            hablar(construirMensajeAlerta(alertasActuales));
+        });
+    }
+
+    if (btnSilenciarVoz) {
+        btnSilenciarVoz.addEventListener("click", () => {
+            vozActiva = false;
+            localStorage.setItem("telecableAlertasVozActiva", "false");
+
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+
+            actualizarPanelVoz(alertasActuales);
+        });
+    }
+
+    actualizarPanelVoz(alertasActuales);
+
+    setTimeout(consultarAlertasStock, 2000);
+    setInterval(consultarAlertasStock, 30000);
+</script>
+
+{% endblock %}

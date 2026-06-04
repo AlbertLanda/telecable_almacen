@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Etiquetas - {{ producto.codigo_interno }}</title>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .acciones {
+            padding: 14px;
+            background: #ffffff;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 9px 14px;
+            border: none;
+            background: #0d6efd;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .hoja {
+            width: 190mm;
+            margin: 10mm auto;
+            background: white;
+            padding: 5mm;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, 60mm);
+            gap: 5mm;
+        }
+
+        .etiqueta {
+            width: 60mm;
+            height: 38mm;
+            border: 1.5px solid #000;
+            padding: 3mm;
+            box-sizing: border-box;
+            text-align: center;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+
+        .empresa {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+
+        .sede {
+            font-size: 7px;
+            margin-bottom: 1mm;
+        }
+
+        .producto {
+            font-size: 8px;
+            font-weight: bold;
+            margin-bottom: 1mm;
+            height: 8mm;
+            overflow: hidden;
+        }
+
+        .barcode {
+            width: 100%;
+            height: 14mm;
+            object-fit: contain;
+        }
+
+        .codigo-texto {
+            font-size: 8px;
+            font-weight: bold;
+            margin-top: 1mm;
+        }
+
+        .detalle {
+            font-size: 7px;
+            margin-top: 1mm;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .acciones {
+                display: none;
+            }
+
+            .hoja {
+                margin: 0;
+                padding: 0;
+                width: auto;
+                background: white;
+            }
+
+            .etiqueta {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="acciones">
+        <button class="btn" onclick="window.print()">Imprimir etiquetas</button>
+        <a class="btn btn-secondary" href="javascript:history.back()">Volver</a>
+
+        <strong>
+            {{ cantidad }} etiqueta(s) para {{ producto.nombre }}
+        </strong>
+    </div>
+
+    <div class="hoja">
+        {% for i in etiquetas %}
+            <div class="etiqueta">
+                <div class="empresa">TELECABLE</div>
+                <div class="sede">{{ sede.nombre }}</div>
+
+                <div class="producto">
+                    {{ producto.nombre }}
+                </div>
+
+                <img
+                    class="barcode"
+                    src="https://barcode.tec-it.com/barcode.ashx?data={{ producto.codigo_interno }}&code=Code128"
+                    alt="{{ producto.codigo_interno }}"
+                >
+
+                <div class="codigo-texto">
+                    {{ producto.codigo_interno }}
+                </div>
+
+                <div class="detalle">
+                    Unidad: {{ producto.unidad }}
+                    {% if stock %}
+                        | Stock: {{ stock.cantidad }}
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>

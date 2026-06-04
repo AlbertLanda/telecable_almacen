@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       DASHBOARD TÉCNICO (Enfoque Operativo)
+       ========================================= */
+    .dashboard-container {
+        display: flex; flex-direction: column; gap: 24px;
+        animation: fadeIn 0.4s ease-out;
+        max-width: 1200px; margin: 0 auto;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header Limpio */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center; 
+        margin-bottom: 10px; border-bottom: 1px solid var(--border-light); padding-bottom: 20px;
+        flex-wrap: wrap; gap: 15px;
+    }
+    .header-content h2 { font-size: 28px; font-weight: 700; color: var(--text-main); margin: 0; letter-spacing: -0.5px; }
+    .header-content p { color: var(--text-secondary); margin: 6px 0 0; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+
+    /* Grid de KPIs */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .kpi-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px;
+        display: flex; align-items: center; justify-content: space-between;
+        transition: 0.3s; position: relative; overflow: hidden; text-decoration: none;
+    }
+    .kpi-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: var(--shadow-card); }
+    
+    .kpi-info h3 { margin: 0; font-size: 32px; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .kpi-info p { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .kpi-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+    .ic-blue { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+    .ic-orange { background: rgba(255, 159, 10, 0.15); color: #FF9F0A; }
+    .ic-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+
+    /* Accesos Directos */
+    .section-title { font-size: 18px; color: var(--text-main); font-weight: 600; margin: 10px 0 15px 0; display: flex; align-items: center; gap: 8px; }
+    
+    .quick-actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .action-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px;
+        text-decoration: none; color: var(--text-main); transition: 0.2s; position: relative;
+    }
+    .action-card:hover { background: var(--bg-hover); border-color: var(--text-secondary); transform: translateX(4px); }
+    
+    .ac-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--bg-input); }
+    .ac-texts { flex: 1; }
+    .ac-texts h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; }
+    .ac-texts p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+    .ac-arrow { color: var(--text-tertiary); font-size: 20px; transition: 0.2s; }
+    .action-card:hover .ac-arrow { color: var(--primary); transform: translateX(2px); }
+
+    /* Proyectos Asignados */
+    .project-card {
+        background: var(--bg-input); border: 1px solid var(--border-light);
+        border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 15px; transition: 0.2s;
+    }
+    .project-card:hover { border-color: var(--primary); }
+    .proj-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--primary); }
+    
+    .btn-proj { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; transition: 0.2s; display: inline-block; }
+    .bp-warn { background: var(--warning); color: #000; box-shadow: 0 4px 10px rgba(255, 159, 10, 0.3); }
+    .bp-warn:hover { background: #ffaa00; transform: translateY(-1px); }
+    .bp-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-main); }
+    .bp-outline:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .project-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .project-card > div:last-child { width: 100%; text-align: right; }
+        .btn-proj { width: 100%; text-align: center; }
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Hola, {{ user.first_name|default:user.username }}</h2>
+            <p><i class='bx bxs-map'></i> Sede: {{ sede.nombre }} &nbsp;<span>|</span>&nbsp; Técnico Operativo</p>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <a href="{% url 'tecnico_mis_entregas' %}" style="text-decoration: none;">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3>{{ kpis.entregas }}</h3>
+                    <p>Entregas Recibidas</p>
+                </div>
+                <div class="kpi-icon ic-blue"><i class='bx bx-package'></i></div>
+            </div>
+        </a>
+        
+        <a href="{% url 'tecnico_mi_stock' %}" style="text-decoration: none;">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h3><i class='bx bx-briefcase'></i></h3>
+                    <p>Ver Mi Mochila</p>
+                </div>
+                <div class="kpi-icon ic-orange"><i class='bx bx-check-shield'></i></div>
+            </div>
+        </a>
+
+        {% if proyectos %}
+        <div class="kpi-card" style="cursor: default;">
+            <div class="kpi-info">
+                <h3>{{ proyectos|length }}</h3>
+                <p>Obras Asignadas</p>
+            </div>
+            <div class="kpi-icon ic-green"><i class='bx bx-hard-hat'></i></div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if proyectos %}
+    <div>
+        <h3 class="section-title"><i class='bx bx-hard-hat' style="color: var(--primary);"></i> Proyectos Asignados</h3>
+        {% for p in proyectos %}
+        <div class="project-card">
+            <div>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 16px; margin-bottom: 6px;">{{ p.nombre }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="proj-code">{{ p.codigo }}</span>
+                    <span style="font-size: 13px; color: var(--text-secondary);"><i class='bx bx-calendar'></i> Creado: {{ p.creado_en|date:"d M Y" }}</span>
+                </div>
+            </div>
+            
+            <div>
+                {% if p.estado == 'REVISION_TECNICA' %}
+                    <span style="display:block; font-size:10px; font-weight:700; color:var(--warning); text-transform:uppercase; margin-bottom:6px; text-align: right;">Requiere Visto Bueno</span>
+                    <a href="{% url 'proyecto_detail' p.id %}" class="btn-proj bp-warn">Revisar Ahora</a>
+                {% elif p.estado == 'EN_PROCESO' %}
+                    <span style="display:block; font-size:10px; font-weight:700; color:var(--success); text-transform:uppercase; margin-bottom:6px; text-align: right;">En Ejecución</span>
+                    <a href="{% url 'proyecto_detail' p.id %}" class="btn-proj bp-outline">Ver Detalles</a>
+                {% else %}
+                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600; background: var(--bg-card); padding: 6px 12px; border-radius: 8px;">{{ p.get_estado_display }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div>
+        <h3 class="section-title"><i class='bx bx-grid-alt'></i> Herramientas de Gestión</h3>
+        <div class="quick-actions-grid">
+            <a href="{% url 'tecnico_mi_stock' %}" class="action-card">
+                <div class="ac-icon" style="color: #FF9F0A;"><i class='bx bx-briefcase'></i></div>
+                <div class="ac-texts">
+                    <h4>Mi Mochila (Stock)</h4>
+                    <p>Ver herramientas y materiales en tu poder.</p>
+                </div>
+                <i class='bx bx-chevron-right ac-arrow'></i>
+            </a>
+
+            <a href="{% url 'tecnico_mis_entregas' %}" class="action-card">
+                <div class="ac-icon" style="color: var(--success);"><i class='bx bx-box'></i></div>
+                <div class="ac-texts">
+                    <h4>Mis Entregas</h4>
+                    <p>Historial de despachos recibidos de almacén.</p>
+                </div>
+                <i class='bx bx-chevron-right ac-arrow'></i>
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

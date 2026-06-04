@@ -1,0 +1,654 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Liquidación | Telecable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --bg2: #0f1630;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.65);
+      --muted2: rgba(255,255,255,0.45);
+
+      --primary: #4facfe;
+      --danger: #ff4757;
+      --warn: #ff6b6b;
+      --ok: #2ed573;
+      --liquidacion: #2ed573;
+
+      --shadow: 0 10px 30px rgba(0,0,0,0.28);
+      --radius: 18px;
+      --radius2: 14px;
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:'Poppins',sans-serif;
+      background:
+        radial-gradient(1000px 700px at 20% -10%, rgba(79,172,254,0.20), transparent 60%),
+        radial-gradient(900px 700px at 110% 10%, rgba(255,71,87,0.16), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, #070a14 100%);
+      color: var(--text);
+      display:flex;
+      height:100vh;
+      overflow:hidden;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width: 270px;
+      padding: 22px;
+      background: rgba(10,14,30,0.70);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      box-shadow: 10px 0 30px rgba(0,0,0,0.22);
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+      z-index:10;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 12px 10px 18px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 6px;
+    }
+    .brand img{
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: rgba(255,255,255,0.92);
+      padding: 6px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    }
+    .brand .title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+    .brand .title span:first-child{
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 16px;
+    }
+    .brand .title span:last-child{
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 4px;
+    }
+
+    .menu-btn{
+      background: transparent;
+      border: 1px solid transparent;
+      width: 100%;
+      padding: 14px 14px;
+      text-align: left;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      transition: all 0.25s ease;
+      text-decoration:none;
+      user-select:none;
+    }
+    .menu-btn i{ font-size: 20px; }
+    .menu-btn:hover{
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.10);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .menu-btn.active{
+      background: linear-gradient(135deg, rgba(46,213,115,0.30), rgba(46,213,115,0.10));
+      border-color: rgba(46,213,115,0.45);
+      color:#fff;
+      box-shadow: 0 10px 25px rgba(46,213,115,0.15);
+    }
+
+    .logout-btn{
+      margin-top:auto;
+      border: 1px solid rgba(255,71,87,0.30);
+      color: rgba(255,71,87,0.95);
+    }
+    .logout-btn:hover{
+      background: rgba(255,71,87,0.12);
+      border-color: rgba(255,71,87,0.50);
+      color: #fff;
+    }
+
+    /* Main */
+    .main{
+      flex:1;
+      padding: 28px;
+      overflow-y:auto;
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .header h2{
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+    }
+    .header p{
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .badge{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+    }
+    .badge i{ font-size: 20px; color: var(--primary); }
+    .badge span{ font-size: 13px; color: rgba(255,255,255,0.9); }
+
+    .card{
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 16px;
+    }
+
+    .alert{
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
+      font-size: 13px;
+      margin-bottom: 16px;
+      display:flex;
+      align-items:center;
+      gap: 12px;
+    }
+    .alert.success{ 
+      border-color: rgba(46,213,115,0.35); 
+      background: rgba(46,213,115,0.10); 
+    }
+    .alert.error{ 
+      border-color: rgba(255,71,87,0.40); 
+      background: rgba(255,71,87,0.10); 
+    }
+    .alert.warning{ 
+      border-color: rgba(255,107,107,0.35); 
+      background: rgba(255,107,107,0.10); 
+    }
+    .alert.info{ 
+      border-color: rgba(79,172,254,0.40); 
+      background: rgba(79,172,254,0.10); 
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .kpi{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .kpi .left{
+      display:flex;
+      align-items:center;
+      gap: 14px;
+    }
+    .kpi .icon{
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(46,213,115,0.15);
+      border: 1px solid rgba(46,213,115,0.25);
+    }
+    .kpi .icon.danger{
+      background: rgba(255,71,87,0.14);
+      border-color: rgba(255,71,87,0.28);
+    }
+    .kpi .icon i{ font-size: 22px; color: #fff; opacity: 0.95; }
+    .kpi .meta span{
+      display:block;
+      font-size: 12px;
+      color: var(--muted2);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+    .kpi .meta h3{
+      margin-top: 4px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .table-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .table-head h4{
+      font-size: 14px;
+      font-weight: 650;
+      color: rgba(255,255,255,0.95);
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .table-head h4 i{
+      color: var(--liquidacion);
+      font-size: 18px;
+    }
+    .sub{
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 4px;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    thead th{
+      text-align:left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: rgba(255,255,255,0.75);
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+      color: rgba(255,255,255,0.88);
+      vertical-align: middle;
+    }
+    tbody tr:hover td{
+      background: rgba(255,255,255,0.03);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.85);
+      white-space: nowrap;
+      gap: 6px;
+    }
+    .pill.ok{
+      border-color: rgba(46,213,115,0.35);
+      background: rgba(46,213,115,0.10);
+    }
+    .pill.warn{
+      border-color: rgba(255,107,107,0.35);
+      background: rgba(255,107,107,0.10);
+    }
+    .pill.pendiente{
+      border-color: rgba(255,193,7,0.35);
+      background: rgba(255,193,7,0.10);
+    }
+    .pill.liquidado{
+      border-color: rgba(46,213,115,0.35);
+      background: rgba(46,213,115,0.10);
+    }
+
+    .btn{
+      border: none;
+      cursor:pointer;
+      padding: 9px 14px;
+      border-radius: 12px;
+      font-weight: 650;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      color:#fff;
+      background: linear-gradient(135deg, rgba(46,213,115,0.95), rgba(46,213,115,0.75));
+      box-shadow: 0 12px 24px rgba(46,213,115,0.18);
+      transition: transform .15s ease, filter .15s ease;
+      white-space: nowrap;
+      text-decoration: none;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .btn:active{ transform: translateY(0); filter: brightness(0.98); }
+    .btn.secondary{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: none;
+    }
+    .btn.small{ padding: 8px 10px; border-radius: 10px; font-size: 12px; }
+    .btn.danger{
+      background: linear-gradient(135deg, rgba(255,71,87,0.95), rgba(255,71,87,0.75));
+      box-shadow: 0 12px 24px rgba(255,71,87,0.18);
+    }
+    .btn.danger:hover{ filter: brightness(1.05); }
+
+    .btnrow{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .sedes-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .sede-card{
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius2);
+      padding: 16px;
+      transition: all 0.25s ease;
+    }
+    .sede-card:hover{
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-2px);
+    }
+    .sede-card h5{
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.95);
+    }
+    .sede-card .tipo{
+      font-size: 12px;
+      color: var(--muted2);
+      margin-bottom: 12px;
+    }
+    .sede-card .estado{
+      margin-bottom: 12px;
+    }
+    .sede-card .acciones{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 980px){
+      body{ overflow:auto; height:auto; }
+      .sidebar{ position: sticky; top:0; height: 100vh; }
+      .grid{ grid-template-columns: 1fr; }
+      .sedes-grid{ grid-template-columns: 1fr; }
+      .btnrow{ justify-content: flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="{% static 'inventario/img/logo.png' %}" alt="Logo">
+      <div class="title">
+        <span>TELECABLE</span>
+        <span>Panel de Almacén</span>
+      </div>
+    </div>
+
+    <a class="menu-btn" href="{% url 'dash_almacen' %}">
+      <i class='bx bxs-dashboard'></i> Dashboard
+    </a>
+
+    <a class="menu-btn" href="{% url 'dash_almacen' %}">
+      <i class='bx bxs-box'></i> Inventario
+    </a>
+
+    <a class="menu-btn active" href="{% url 'liquidacion_dashboard' %}">
+      <i class='bx bxs-calculator'></i> 📊 Liquidación
+    </a>
+
+    <a class="menu-btn logout-btn" href="{% url 'logout' %}">
+      <i class='bx bx-log-out-circle'></i> Cerrar Sesión
+    </a>
+  </aside>
+
+  <main class="main">
+    <div class="header">
+      <div>
+        <h2>📊 Liquidación Semanal</h2>
+        <p>Semana a liquidar: {{ semana_liquidar }}/{{ anio_liquidar }}</p>
+      </div>
+
+      <div class="badge">
+        <i class='bx bxs-user-circle'></i>
+        <span>{{ request.user.username }} ({{ user_info.rol }})</span>
+      </div>
+    </div>
+
+    <!-- Alerta de día -->
+    <div class="alert {% if puede_liquidar %}success{% else %}warning{% endif %}">
+      <i class='bx {% if puede_liquidar %}bx-check-circle{% else %}bx-time-five{% endif %}'></i>
+      <div>
+        <strong>{{ mensaje_dia }}</strong>
+        {% if not puede_liquidar %}
+        <br>Faltan {{ dias_para_lunes }} días para el sábado
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Mensajes Django -->
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert {{ message.tags|default:'info' }}">
+        <i class='bx bx-info-circle'></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- KPIs -->
+    <div class="grid">
+      <div class="card">
+        <div class="kpi">
+          <div class="left">
+            <div class="icon">
+              <i class='bx bxs-building'></i>
+            </div>
+            <div class="meta">
+              <span>Total Sedes</span>
+              <h3>{{ estado_sedes|length }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="kpi">
+          <div class="left">
+            <div class="icon {% if liquidaciones_pendientes > 0 %}danger{% endif %}">
+              <i class='bx bxs-time-five'></i>
+            </div>
+            <div class="meta">
+              <span>Pendientes</span>
+              <h3>{{ liquidaciones_pendientes }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones de Liquidación -->
+    {% if puede_liquidar %}
+    <div class="card">
+      <div class="table-head">
+        <div>
+          <h4><i class='bx bxs-calculator'></i> Acciones de Liquidación</h4>
+          <div class="sub">Ejecuta la liquidación para las sedes que puedes administrar</div>
+        </div>
+      </div>
+
+      <!-- Liquidación Central (solo para usuarios autorizados) -->
+      {% if puede_liquidar_central %}
+      <div class="card" style="background: rgba(46,213,115,0.08); border: 1px solid rgba(46,213,115,0.20); margin-top: 12px;">
+        <div class="table-head">
+          <div>
+            <h4 style="color: var(--liquidacion);"><i class='bx bxs-factory'></i> Almacén Central</h4>
+            <div class="sub">Verificación de consistencia global del inventario</div>
+          </div>
+          <div class="btnrow">
+            <a class="btn" href="{% url 'liquidar_central' %}">
+              <i class='bx bxs-calculator'></i> Liquidar Central
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Liquidación por Sedes -->
+      <div class="sedes-grid">
+        {% for estado in estado_sedes %}
+        <div class="sede-card">
+          <h5>{{ estado.sede.nombre }}</h5>
+          <div class="tipo">
+            {% if estado.sede.tipo == 'CENTRAL' %}
+              <span class="pill ok"><i class='bx bxs-factory'></i> Central</span>
+            {% else %}
+              <span class="pill"><i class='bx bx-building'></i> Secundaria</span>
+            {% endif %}
+          </div>
+          <div class="estado">
+            {% if estado.liquidada %}
+              <span class="pill liquidado"><i class='bx bx-check-circle'></i> Liquidada</span>
+            {% else %}
+              <span class="pill pendiente"><i class='bx bx-time-five'></i> Pendiente</span>
+            {% endif %}
+          </div>
+          <div class="acciones">
+            {% if estado.puede_liquidar %}
+              <a class="btn small" href="{% url 'liquidar_sede' estado.sede.id %}">
+                <i class='bx bxs-calculator'></i> Liquidar
+              </a>
+            {% else %}
+              <span class="pill warn" style="font-size: 11px;">
+                <i class='bx bx-block'></i> Sin permiso
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="table-head">
+          <div>
+            <h4><i class='bx bx-lock-alt'></i> Liquidación Bloqueada</h4>
+            <div class="sub">La liquidación está habilitada desde Sábado hasta Lunes</div>
+          </div>
+        </div>
+        <div style="text-align: center; padding: 20px; color: var(--muted);">
+          <i class='bx bx-calendar' style="font-size: 48px; margin-bottom: 12px; display: block;"></i>
+          <p>Debes esperar hasta el próximo sábado para poder ejecutar la liquidación</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Liquidaciones Recientes -->
+    <div class="card">
+      <div class="table-head">
+        <div>
+          <h4><i class='bx bx-history'></i> Liquidaciones Recientes</h4>
+          <div class="sub">Historial de liquidaciones ejecutadas</div>
+        </div>
+        <div class="btnrow">
+          <a class="btn secondary small" href="{% url 'liquidacion_lista' %}">
+            <i class='bx bx-list-ul'></i> Ver Todo
+          </a>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Semana</th>
+            <th>Sede</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th style="text-align:right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for liquidacion in liquidaciones %}
+          <tr>
+            <td>{{ liquidacion.semana }}/{{ liquidacion.anio }}</td>
+            <td>{{ liquidacion.sede.nombre }}</td>
+            <td>
+              <span class="pill {% if liquidacion.estado == 'LIQUIDADO' %}ok{% elif liquidacion.estado == 'INCONSISTENTE' %}warn{% else %}pendiente{% endif %}">
+                {{ liquidacion.get_estado_display }}
+              </span>
+            </td>
+            <td>{{ liquidacion.creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{{ liquidacion.liquidado_por.username|default:"-" }}</td>
+            <td style="text-align:right;">
+              <div class="btnrow">
+                <a class="btn secondary small" href="{% url 'liquidacion_detalle' liquidacion.id %}">
+                  <i class='bx bx-eye'></i> Ver
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" style="text-align:center; color: var(--muted); padding: 20px;">
+              No hay liquidaciones recientes
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,149 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Liquidación {{ doc.numero }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ESTILOS BASE */
+        * { box-sizing: border-box; }
+        body { background-color: #525659; font-family: 'Roboto', Arial, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
+        .sheet { background-color: white; width: 210mm; min-height: 297mm; padding: 15mm 20mm; margin: 30px auto; box-shadow: 0 0 15px rgba(0,0,0,0.5); position: relative; }
+
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-area img { height: 50px; }
+        .company-info h1 { margin: 0; font-size: 22px; font-weight: 900; text-transform: uppercase; color: #1a1a2e; }
+        .company-info p { margin: 0; font-size: 11px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+        .meta-info { text-align: right; font-size: 11px; color: #333; line-height: 1.4; }
+
+        .doc-title { text-align: center; margin-bottom: 25px; }
+        .doc-title h2 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #ccc; display: inline-block; padding-bottom: 5px; }
+        .doc-subtitle { font-size: 12px; color: #666; margin-top: 5px; text-transform: uppercase; }
+
+        /* INFO GRID */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 25px; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; border-bottom: 1px dotted #ccc; padding-bottom: 2px; }
+        .info-row label { font-weight: 800; color: #444; }
+
+        /* TABLA (NUEVAS COLUMNAS) */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }
+        th { background: #1a1a2e; color: white; padding: 8px; text-align: center; text-transform: uppercase; font-weight: 700; border: 1px solid #000; }
+        th.left { text-align: left; }
+        td { border: 1px solid #ddd; padding: 8px; color: #333; text-align: center; vertical-align: middle; }
+        td.left { text-align: left; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        /* COLORES DE COLUMNAS */
+        .col-mochila { background-color: #eef2ff; font-weight: bold; color: #333; }
+        .col-devuelto { background-color: #f0fdf4; color: #166534; font-weight: bold; }
+        .col-merma { background-color: #fef2f2; color: #991b1b; }
+        .col-consumo { background-color: #fff7ed; color: #9a3412; font-weight: bold; }
+
+        /* FIRMAS */
+        .signatures { display: flex; justify-content: space-between; margin-top: 60px; padding: 0 20px; }
+        .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+        /* IMPRESIÓN */
+        .fab-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-fab { width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); color: white; text-decoration: none; }
+        .btn-print { background: #4e73df; } .btn-back { background: #858796; }
+
+        @media print {
+            body { background: none; display: block; }
+            .sheet { width: 100%; margin: 0; box-shadow: none; padding: 0; }
+            .fab-container { display: none; }
+            @page { margin: 15mm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fab-container">
+        <button onclick="window.print()" class="btn-fab btn-print" title="Imprimir"><i class='bx bx-printer'></i></button>
+        <a href="javascript:window.close()" class="btn-fab btn-back" title="Cerrar"><i class='bx bx-x'></i></a>
+    </div>
+
+    <div class="sheet">
+        <div class="header">
+            <div class="logo-area">
+                <img src="{% static 'inventario/img/logo.png' %}" onerror="this.style.display='none'">
+                <div class="company-info"><h1>Telecable</h1><p>Control de Almacén</p></div>
+            </div>
+            <div class="meta-info">
+                <div><b>Emisión:</b> {% now "d/m/Y H:i" %}</div>
+                <div><b>Usuario:</b> {{ request.user.username|upper }}</div>
+            </div>
+        </div>
+
+        <div class="doc-title">
+            <h2>Liquidación Semanal</h2>
+            <div class="doc-subtitle">Balance de Materiales y Herramientas</div>
+        </div>
+
+        <div class="info-grid">
+            <div class="col">
+                <div class="info-row"><label>DOCUMENTO:</label> <span>{{ doc.numero }}</span></div>
+                <div class="info-row"><label>FECHA:</label> <span>{{ doc.fecha|date:"d/m/Y H:i" }}</span></div>
+                <div class="info-row"><label>ALMACÉN:</label> <span>{{ doc.sede.nombre }}</span></div>
+            </div>
+            <div class="col">
+                <div class="info-row"><label>TÉCNICO:</label> <span>{{ doc.solicitante.get_full_name|default:doc.solicitante.username|upper }}</span></div>
+                <div class="info-row"><label>RESPONSABLE:</label> <span>{{ doc.responsable.username|upper }}</span></div>
+                <div class="info-row"><label>ESTADO:</label> <span>CONFIRMADO</span></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="left" style="width: 35%;">DESCRIPCIÓN</th>
+                    <th style="width: 8%;">U.M.</th>
+                    <th style="width: 12%; background:#dfe4ea; color:#000;">MOCHILA</th>
+                    <th style="width: 15%; background:#dcfce7; color:#14532d;">DEVUELTO</th>
+                    <th style="width: 15%; background:#fee2e2; color:#7f1d1d;">MERMA</th>
+                    <th style="width: 15%; background:#ffedd5; color:#7c2d12;">CONSUMO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="left">
+                        <strong>{{ item.producto.nombre }}</strong>
+                        <br><span style="font-size:9px; color:#666;">{{ item.producto.codigo_interno }}</span>
+                        {% if item.producto.es_activo %}
+                            <span style="font-size:8px; border:1px solid #666; padding:1px 3px; border-radius:3px;">ACTIVO</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.producto.unidad|default:"UND" }}</td>
+                    
+                    <td class="col-mochila">
+                        {{ item.cantidad|add:item.cantidad_usada|add:item.cantidad_merma }}
+                    </td>
+                    
+                    <td class="col-devuelto">{{ item.cantidad }}</td>
+                    
+                    <td class="col-merma">{{ item.cantidad_merma }}</td>
+                    <td class="col-consumo">{{ item.cantidad_usada }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="padding:20px;">No hay registros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="border: 1px dashed #666; border-radius: 8px; padding: 10px; font-size: 11px; margin-top: 10px;">
+            <strong>OBSERVACIONES:</strong><br>
+            {{ doc.observaciones|default:"Ninguna" }}
+        </div>
+
+        <div class="signatures">
+            <div class="sign-box"><br><br>LIQUIDADO POR (ALMACÉN)</div>
+            <div class="sign-box"><br><br>CONFORMIDAD (TÉCNICO)</div>
+        </div>
+    </div>
+</body>
+</html>

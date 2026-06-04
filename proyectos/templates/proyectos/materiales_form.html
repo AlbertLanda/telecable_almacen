@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       PLANIFICADOR DE MATERIALES (Enterprise)
+       ========================================= */
+    
+    .panel-container {
+        display: grid;
+        grid-template-columns: 350px 1fr; /* Panel lateral fijo + Contenido */
+        gap: 24px;
+        align-items: start;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header del Proyecto */
+    .project-header {
+        grid-column: 1 / -1; /* Ocupa todo el ancho arriba */
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 10px; border-bottom: 1px solid var(--border-light);
+        padding-bottom: 20px;
+    }
+    .ph-title h2 { margin: 0; font-size: 24px; color: var(--text-main); font-weight: 700; letter-spacing: -0.5px; }
+    .ph-meta { margin: 5px 0 0; color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .badge-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: var(--text-main); }
+
+    /* Alerta de Observación (Feedback) */
+    .feedback-alert {
+        grid-column: 1 / -1;
+        background: rgba(255, 69, 58, 0.1); border: 1px solid var(--danger); border-radius: 10px;
+        padding: 15px; margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-start;
+    }
+    .fa-icon { font-size: 24px; color: var(--danger); }
+    .fa-content h4 { margin: 0 0 5px 0; color: var(--danger); font-size: 14px; font-weight: 700; }
+    .fa-content p { margin: 0; color: var(--text-main); font-size: 13px; }
+
+    /* Panel Lateral (Agregar Item) */
+    .side-panel {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 24px;
+        position: sticky; top: 90px; /* Se queda fijo al bajar */
+        box-shadow: var(--shadow-card);
+    }
+    .sp-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    
+    /* Panel Principal (Lista) */
+    .main-panel {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 0; /* Padding interno solo en contenido */
+        overflow: hidden; /* Para bordes redondeados */
+    }
+    .mp-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+    .mp-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0; }
+
+    /* Tabla Estilo Enterprise */
+    table { width: 100%; border-collapse: collapse; }
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; font-weight: 600; 
+        padding: 12px 24px; background-color: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-light);
+    }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); font-size: 14px; vertical-align: middle; color: var(--text-main); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    /* Inputs y Botones */
+    .form-label { color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    .form-control, .form-select { 
+        background: var(--bg-input); border: 1px solid transparent; color: var(--text-main); 
+        padding: 10px 12px; border-radius: 8px; width: 100%; font-size: 14px; transition: 0.2s;
+    }
+    .form-control:focus { border-color: var(--primary); background: #3a3a3c; outline: none; }
+
+    .btn-add { 
+        width: 100%; background-color: var(--primary); color: #fff; border: none; padding: 12px; 
+        border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px;
+    }
+    .btn-add:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Acciones en Tabla */
+    .input-qty { width: 70px; text-align: center; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 6px; padding: 6px; font-weight: 600; }
+    .input-qty:focus { border-color: var(--primary); }
+
+    .btn-icon { 
+        width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; 
+        border: 1px solid transparent; cursor: pointer; transition: 0.2s; background: transparent; 
+    }
+    .btn-save-row { color: var(--success); }
+    .btn-save-row:hover { background: rgba(48, 209, 88, 0.1); border-color: var(--success); }
+    .btn-del-row { color: var(--text-secondary); }
+    .btn-del-row:hover { color: var(--danger); background: rgba(255, 69, 58, 0.1); }
+
+    /* Resumen Lateral */
+    .summary-box { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 15px; text-align: center; margin-top: 20px; }
+    .sb-num { font-size: 28px; font-weight: 700; color: var(--text-main); line-height: 1; }
+    .sb-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-top: 5px; }
+
+    @media (max-width: 992px) {
+        .panel-container { grid-template-columns: 1fr; }
+        .side-panel { position: static; order: -1; }
+    }
+</style>
+
+<div class="panel-container">
+    
+    <div class="project-header">
+        <div>
+            <div class="ph-meta"><i class='bx bx-briefcase'></i> Proyecto</div>
+            <div class="ph-title">
+                <h2>{{ proyecto.nombre }}</h2>
+            </div>
+            <div class="ph-meta" style="margin-top: 5px;">
+                <span class="badge-code">{{ proyecto.codigo }}</span>
+                <span>•</span>
+                {% if proyecto.estado == 'DISENO' %}
+                    <span style="color: var(--primary); font-weight: 600;">En Diseño</span>
+                {% elif proyecto.estado == 'OBSERVADO' %}
+                    <span style="color: var(--danger); font-weight: 600;">Observado (Corregir)</span>
+                {% else %}
+                    <span style="color: var(--text-secondary);"><i class='bx bx-lock'></i> Lectura</span>
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'proyecto_detail' proyecto.id %}" class="btn btn-ghost">
+                <i class='bx bx-check'></i> Finalizar Edición
+            </a>
+        </div>
+    </div>
+
+    {% if proyecto.estado == 'OBSERVADO' %}
+    <div class="feedback-alert">
+        <div class="fa-icon"><i class='bx bxs-error-circle'></i></div>
+        <div class="fa-content">
+            <h4>Corrección Solicitada por Técnico</h4>
+            <p>"{{ proyecto.observacion_rechazo }}"</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="side-panel">
+        <div class="sp-title"><i class='bx bx-plus-circle'></i> Agregar Material</div>
+        
+        {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+            <form method="post">
+                {% csrf_token %}
+                <div style="margin-bottom: 15px;">
+                    <label class="form-label">Producto</label>
+                    {{ form.producto }}
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label class="form-label">Cantidad Estimada</label>
+                    {{ form.cantidad_planificada }}
+                </div>
+                <button type="submit" class="btn-add">
+                    Agregar a la Lista
+                </button>
+            </form>
+        {% else %}
+            <div style="text-align: center; padding: 30px; opacity: 0.6;">
+                <i class='bx bx-lock-alt' style="font-size: 32px; color: var(--text-secondary);"></i>
+                <p style="margin-top: 10px; font-size: 13px; color: var(--text-secondary);">
+                    Proyecto en revisión o ejecución.<br>No se pueden agregar ítems.
+                </p>
+            </div>
+        {% endif %}
+
+        <div class="summary-box">
+            <div class="sb-num">{{ materiales.count }}</div>
+            <div class="sb-label">Ítems Planificados</div>
+        </div>
+    </div>
+
+    <div class="main-panel">
+        <div class="mp-header">
+            <h3 class="mp-title">Receta de Materiales</h3>
+            {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                <span style="font-size: 12px; color: var(--text-tertiary);">Edita cantidades directamente</span>
+            {% endif %}
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 45%;">Material</th>
+                        <th style="width: 25%;">Código</th>
+                        <th style="width: 15%; text-align: center;">Cantidad</th>
+                        <th style="width: 15%; text-align: center;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in materiales %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; color: var(--text-main);">{{ item.producto.nombre }}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">{{ item.producto.categoria.nombre|default:"General" }}</div>
+                        </td>
+                        <td style="font-family: monospace; color: var(--text-secondary);">
+                            {{ item.producto.codigo_interno|default:"-" }}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                                <form action="{% url 'editar_cantidad_material' item.id %}" method="POST" style="display: flex; justify-content: center; gap: 5px;">
+                                    {% csrf_token %}
+                                    <input type="number" name="nueva_cantidad" value="{{ item.cantidad_planificada }}" class="input-qty" min="1">
+                                    <button type="submit" class="btn-icon btn-save-row" title="Guardar">
+                                        <i class='bx bx-check'></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span style="font-weight: 600;">{{ item.cantidad_planificada }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                                <a href="{% url 'eliminar_material_proyecto' item.id %}" class="btn-icon btn-del-row" title="Eliminar ítem">
+                                    <i class='bx bx-trash'></i>
+                                </a>
+                            {% else %}
+                                <span style="opacity: 0.3;">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                            <i class='bx bx-list-plus' style="font-size: 32px; margin-bottom: 10px;"></i>
+                            <p>La lista está vacía. Agrega materiales desde el panel.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

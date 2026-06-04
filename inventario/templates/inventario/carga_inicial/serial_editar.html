@@ -1,0 +1,955 @@
+{% extends "base.html" %}
+
+{% block title %}Editar serial | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --edit-blue: #0f6bff;
+        --edit-blue-soft: rgba(15, 107, 255, .10);
+        --edit-green: #16a34a;
+        --edit-green-soft: rgba(22, 163, 74, .12);
+        --edit-red: #dc2626;
+        --edit-red-soft: rgba(220, 38, 38, .12);
+        --edit-amber: #f59e0b;
+        --edit-amber-soft: rgba(245, 158, 11, .14);
+        --edit-purple: #7c3aed;
+        --edit-purple-soft: rgba(124, 58, 237, .12);
+        --edit-card: #ffffff;
+        --edit-soft: #f8fafc;
+        --edit-border: #d9e2ef;
+        --edit-border-strong: #c4d0df;
+        --edit-text: #0f172a;
+        --edit-muted: #64748b;
+        --edit-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --edit-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .edit-wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: editFade .25s ease-out;
+    }
+
+    @keyframes editFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .edit-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .20), transparent 34%),
+            linear-gradient(135deg, #081326 0%, #0f213a 52%, #10294c 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--edit-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .edit-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        right: -110px;
+        top: -130px;
+        background: rgba(6, 182, 212, .16);
+        pointer-events: none;
+    }
+
+    .edit-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .hero-main,
+    .hero-info {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .hero-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .hero-title span {
+        color: #93c5fd;
+    }
+
+    .hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 760px;
+    }
+
+    .hero-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .hero-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .hero-info {
+        background: rgba(255, 255, 255, .96);
+        color: var(--edit-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .info-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .info-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--edit-purple-soft);
+        color: var(--edit-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .info-title strong {
+        display: block;
+        color: var(--edit-text);
+        font-size: 14px;
+        font-weight: 950;
+        line-height: 1.25;
+    }
+
+    .info-title span {
+        display: block;
+        color: var(--edit-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .info-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .info-item span {
+        color: var(--edit-muted);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .info-item strong {
+        color: var(--edit-text);
+        font-size: 13px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-edit {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-edit:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-edit.primary {
+        background: var(--edit-blue);
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(15, 107, 255, .20);
+    }
+
+    .btn-edit.primary:hover {
+        background: #084bcc;
+    }
+
+    .btn-edit.ghost {
+        background: #ffffff;
+        color: var(--edit-text);
+        border-color: var(--edit-border-strong);
+    }
+
+    .btn-edit.ghost:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .alert-edit {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 15px 16px;
+        border-radius: 17px;
+        border: 1px solid var(--edit-border);
+        background: #ffffff;
+        box-shadow: var(--edit-shadow-sm);
+        color: var(--edit-text);
+    }
+
+    .alert-edit i {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--edit-blue-soft);
+        color: var(--edit-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 20px;
+    }
+
+    .alert-edit strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 950;
+        margin-bottom: 3px;
+    }
+
+    .alert-edit span {
+        color: var(--edit-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .edit-grid {
+        display: grid;
+        grid-template-columns: minmax(0, .8fr) minmax(430px, 1.2fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .panel-edit {
+        background: var(--edit-card);
+        border: 1px solid var(--edit-border);
+        border-radius: 22px;
+        box-shadow: var(--edit-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .panel-edit.form-panel {
+        border-left: 5px solid var(--edit-blue);
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--edit-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--edit-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--edit-blue);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--edit-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .panel-chip.green {
+        background: #ecfdf5;
+        color: #15803d;
+        border-color: #bbf7d0;
+    }
+
+    .panel-body {
+        padding: 20px;
+    }
+
+    .form-row {
+        margin-bottom: 15px;
+    }
+
+    .label-edit {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+        color: var(--edit-text);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .label-edit i {
+        color: var(--edit-blue);
+        font-size: 17px;
+    }
+
+    .input-edit,
+    .select-edit {
+        width: 100%;
+        min-height: 44px;
+        background: #ffffff;
+        color: var(--edit-text);
+        border: 1px solid var(--edit-border-strong);
+        border-radius: 13px;
+        padding: 0 13px;
+        outline: none;
+        font-size: 14px;
+        transition: .18s ease;
+    }
+
+    .input-edit:focus,
+    .select-edit:focus {
+        border-color: var(--edit-blue);
+        box-shadow: 0 0 0 4px var(--edit-blue-soft);
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 6px;
+        color: var(--edit-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .scan-tip {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 13px;
+        border-radius: 15px;
+        background: #f8fafc;
+        border: 1px solid var(--edit-border);
+        color: var(--edit-muted);
+        font-size: 12px;
+        line-height: 1.4;
+        margin-bottom: 16px;
+    }
+
+    .scan-tip i {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--edit-blue-soft);
+        color: var(--edit-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 17px;
+    }
+
+    .detail-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .detail-item {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--edit-border);
+        background: #f8fafc;
+    }
+
+    .detail-item span {
+        display: block;
+        color: var(--edit-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 7px;
+    }
+
+    .detail-item strong {
+        display: block;
+        color: var(--edit-text);
+        font-size: 14px;
+        font-weight: 950;
+        word-break: break-word;
+    }
+
+    .code-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 9px;
+        background: var(--edit-blue-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .18);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+        background: var(--edit-green-soft);
+        color: #15803d;
+        border: 1px solid rgba(22, 163, 74, .22);
+    }
+
+    @media (max-width: 1100px) {
+        .edit-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .edit-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .edit-wrap {
+            gap: 18px;
+        }
+
+        .edit-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+        }
+
+        .hero-desc {
+            font-size: 13px;
+        }
+
+        .hero-chip {
+            width: 100%;
+        }
+
+        .panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .btn-edit {
+            width: 100%;
+        }
+
+        .action-bar {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="edit-wrap">
+
+    <section class="edit-hero">
+        <div class="hero-main">
+            <div class="hero-badge">
+                <i class='bx bx-edit-alt'></i>
+                Corrección de equipo
+            </div>
+
+            <h1 class="hero-title">
+                Editar <span>equipo serializado</span>
+            </h1>
+
+            <p class="hero-desc">
+                Corrige los datos del equipo antes de que sea despachado, asignado o movido.
+                Esta edición mantiene la trazabilidad del producto y evita errores en futuras entregas.
+            </p>
+
+            <div class="hero-meta-row">
+                <span class="hero-chip">
+                    <i class='bx bx-package'></i>
+                    Producto: {{ producto.nombre }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bxs-user'></i>
+                    {{ request.user.username }}
+                </span>
+
+                <span class="hero-chip">
+                    <i class='bx bx-calendar'></i>
+                    {% now "d/m/Y" %}
+                </span>
+            </div>
+        </div>
+
+        <aside class="hero-info">
+            <div class="info-title">
+                <i class='bx bx-chip'></i>
+                <div>
+                    <strong>{{ producto.nombre }}</strong>
+                    <span>Datos principales</span>
+                </div>
+            </div>
+
+            <div class="info-list">
+                <div class="info-item">
+                    <span>Código interno</span>
+                    <strong>{{ producto.codigo_interno }}</strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Estado</span>
+                    <strong>{{ item.get_estado_display }}</strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Unidad</span>
+                    <strong>{{ producto.unidad|default:"UND" }}</strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="action-bar">
+        <a href="{% url 'carga_inicial_seriales' producto.id %}" class="btn-edit ghost">
+            <i class='bx bx-arrow-back'></i>
+            Volver a seriales
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-edit">
+                <i class='bx bx-info-circle'></i>
+                <div>
+                    <strong>Mensaje del sistema</strong>
+                    <span>{{ message }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="edit-grid">
+
+        <article class="panel-edit">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-info-circle'></i>
+                        Datos actuales
+                    </h3>
+                    <span>Información registrada actualmente para este equipo.</span>
+                </div>
+
+                <span class="panel-chip green">
+                    <i class='bx bx-check-circle'></i>
+                    {{ item.get_estado_display }}
+                </span>
+            </div>
+
+            <div class="panel-body">
+                <div class="detail-list">
+                    <div class="detail-item">
+                        <span>GPON SN / Serial principal</span>
+                        <strong>
+                            <span class="code-pill">{{ item.serial }}</span>
+                        </strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <span>MAC Address</span>
+                        <strong>
+                            {% if item.mac_address %}
+                                <span class="code-pill">{{ item.mac_address }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <span>EN / D-SN / Serie secundaria</span>
+                        <strong>
+                            {% if item.serial_secundario %}
+                                <span class="code-pill">{{ item.serial_secundario }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <span>Código pintado / trazabilidad</span>
+                        <strong>{{ item.codigo_trazabilidad|default:"-" }}</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <span>Ubicación</span>
+                        <strong>{{ item.ubicacion.nombre|default:"Sin ubicación específica" }}</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <span>Estado operativo</span>
+                        <strong>
+                            <span class="status-badge">
+                                <i class='bx bx-check-circle'></i>
+                                {{ item.get_estado_display }}
+                            </span>
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="panel-edit form-panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-edit'></i>
+                        Formulario de corrección
+                    </h3>
+                    <span>Actualiza solo los campos que necesiten corrección.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-save'></i>
+                    Editable
+                </span>
+            </div>
+
+            <div class="panel-body">
+                <div class="scan-tip">
+                    <i class='bx bx-info-circle'></i>
+                    <div>
+                        Si usas pistola de código de barras, el Enter no guardará el formulario.
+                        Solo moverá el cursor al siguiente campo para evitar guardados accidentales.
+                    </div>
+                </div>
+
+                <form method="post" id="editSerialForm">
+                    {% csrf_token %}
+
+                    <div class="form-row">
+                        <label class="label-edit" for="serialInput">
+                            <i class='bx bx-fingerprint'></i>
+                            GPON SN / Serial principal
+                        </label>
+
+                        <input
+                            type="text"
+                            name="serial"
+                            id="serialInput"
+                            class="input-edit"
+                            value="{{ item.serial }}"
+                            required
+                            autocomplete="off"
+                            autofocus
+                        >
+
+                        <small class="help-text">
+                            Identificador principal del equipo.
+                        </small>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-edit">
+                            <i class='bx bx-wifi'></i>
+                            MAC Address
+                        </label>
+
+                        <input
+                            type="text"
+                            name="mac_address"
+                            class="input-edit"
+                            value="{{ item.mac_address|default:'' }}"
+                            placeholder="Ej: D8-31-39-67-2A-B2"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-edit">
+                            <i class='bx bx-barcode-reader'></i>
+                            EN / D-SN / Serie secundaria
+                        </label>
+
+                        <input
+                            type="text"
+                            name="serial_secundario"
+                            class="input-edit"
+                            value="{{ item.serial_secundario|default:'' }}"
+                            placeholder="Ej: EQLYT2T07003"
+                            autocomplete="off"
+                        >
+
+                        <small class="help-text">
+                            Código secundario de la etiqueta. Puede venir como EN, D-SN o serie adicional.
+                        </small>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-edit">
+                            <i class='bx bx-purchase-tag-alt'></i>
+                            Código pintado / trazabilidad
+                        </label>
+
+                        <input
+                            type="text"
+                            name="codigo_trazabilidad"
+                            class="input-edit"
+                            value="{{ item.codigo_trazabilidad|default:'' }}"
+                            placeholder="Ej: 4"
+                            autocomplete="off"
+                        >
+
+                        <small class="help-text">
+                            Número pintado físicamente en la caja o equipo.
+                        </small>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="label-edit">
+                            <i class='bx bx-map-pin'></i>
+                            Ubicación
+                        </label>
+
+                        <select name="ubicacion_id" class="select-edit">
+                            <option value="">Sin ubicación específica</option>
+                            {% for ubicacion in ubicaciones %}
+                                <option value="{{ ubicacion.id }}" {% if item.ubicacion_id == ubicacion.id %}selected{% endif %}>
+                                    {{ ubicacion.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="action-bar" style="margin-top: 18px;">
+                        <button
+                            type="submit"
+                            class="btn-edit primary"
+                            id="saveEditBtn"
+                        >
+                            <i class='bx bx-save'></i>
+                            Guardar cambios
+                        </button>
+
+                        <a href="{% url 'carga_inicial_seriales' producto.id %}" class="btn-edit ghost">
+                            <i class='bx bx-x'></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </article>
+
+    </section>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("serialInput");
+        const form = document.getElementById("editSerialForm");
+        const saveBtn = document.getElementById("saveEditBtn");
+
+        if (input) {
+            input.focus();
+            input.select();
+        }
+
+        if (form) {
+            form.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+
+                    const active = document.activeElement;
+
+                    if (active && active.tagName === "INPUT") {
+                        const fields = Array.from(
+                            form.querySelectorAll("input, select, textarea")
+                        ).filter(function (el) {
+                            return !el.disabled && el.type !== "hidden";
+                        });
+
+                        const index = fields.indexOf(active);
+
+                        if (index >= 0 && index < fields.length - 1) {
+                            fields[index + 1].focus();
+                        }
+                    }
+                }
+            });
+
+            form.addEventListener("submit", function (event) {
+                const serialValue = input ? input.value.trim() : "";
+
+                if (!serialValue) {
+                    event.preventDefault();
+                    alert("Debes ingresar el GPON SN / Serial principal del equipo.");
+                    if (input) {
+                        input.focus();
+                    }
+                    return;
+                }
+
+                const confirmado = confirm("¿Guardar cambios del equipo serializado?");
+
+                if (!confirmado) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Guardando...";
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

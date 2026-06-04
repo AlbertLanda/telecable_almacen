@@ -1,0 +1,2129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recepción de Compra | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --recv-primary: #0f6bff;
+        --recv-primary-dark: #0b4fc4;
+        --recv-primary-soft: rgba(15, 107, 255, .10);
+
+        --recv-navy: #071225;
+        --recv-navy-2: #0b1b34;
+        --recv-navy-3: #10294c;
+
+        --recv-success: #16a34a;
+        --recv-success-soft: rgba(22, 163, 74, .12);
+
+        --recv-danger: #dc2626;
+        --recv-danger-soft: rgba(220, 38, 38, .12);
+
+        --recv-warning: #f59e0b;
+        --recv-warning-soft: rgba(245, 158, 11, .14);
+
+        --recv-cyan: #06b6d4;
+        --recv-cyan-soft: rgba(6, 182, 212, .12);
+
+        --recv-purple: #7c3aed;
+        --recv-purple-soft: rgba(124, 58, 237, .12);
+
+        --recv-card: #ffffff;
+        --recv-soft: #f8fafc;
+        --recv-soft-2: #eef4ff;
+        --recv-border: #d9e2ef;
+        --recv-border-strong: #c4d0df;
+        --recv-text: #0f172a;
+        --recv-muted: #64748b;
+
+        --recv-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --recv-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .recv-page {
+        max-width: 1240px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: recvFade .25s ease-out;
+    }
+
+    @keyframes recvFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .recv-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .22), transparent 34%),
+            linear-gradient(135deg, var(--recv-navy) 0%, var(--recv-navy-2) 52%, var(--recv-navy-3) 100%);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, .10);
+        box-shadow: var(--recv-shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: stretch;
+    }
+
+    .recv-hero::before {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: 999px;
+        right: -110px;
+        top: -130px;
+        background: rgba(6, 182, 212, .16);
+        pointer-events: none;
+    }
+
+    .recv-hero::after {
+        content: "";
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        left: -90px;
+        bottom: -130px;
+        background: rgba(15, 107, 255, .13);
+        pointer-events: none;
+    }
+
+    .recv-hero-main,
+    .recv-hero-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .recv-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .recv-badge i {
+        font-size: 17px;
+        color: #60a5fa;
+    }
+
+    .recv-hero-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+        font-weight: 950;
+    }
+
+    .recv-hero-title span {
+        color: #93c5fd;
+    }
+
+    .recv-hero-desc {
+        margin: 12px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 820px;
+    }
+
+    .recv-hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .recv-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+        backdrop-filter: blur(12px);
+    }
+
+    .recv-chip i {
+        color: #60a5fa;
+        font-size: 17px;
+    }
+
+    .recv-hero-card {
+        background: rgba(255, 255, 255, .96);
+        color: var(--recv-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+        align-self: center;
+    }
+
+    .hero-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .hero-card-title i {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--recv-success-soft);
+        color: var(--recv-success);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        flex-shrink: 0;
+    }
+
+    .hero-card-title strong {
+        display: block;
+        color: var(--recv-text);
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .hero-card-title span {
+        display: block;
+        color: var(--recv-muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .recv-flow {
+        display: grid;
+        gap: 9px;
+    }
+
+    .flow-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: var(--recv-text);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .flow-item i {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .recv-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .recv-title-block h2 {
+        margin: 0;
+        color: var(--recv-text);
+        font-size: 24px;
+        font-weight: 950;
+        letter-spacing: -.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .recv-title-block h2 i {
+        color: var(--recv-primary);
+    }
+
+    .recv-title-block p {
+        margin: 5px 0 0;
+        color: var(--recv-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .btn-recv {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-recv:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-recv.ghost {
+        background: #ffffff;
+        color: var(--recv-text);
+        border-color: var(--recv-border-strong);
+    }
+
+    .btn-recv.ghost:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .req-info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .info-card {
+        background: var(--recv-card);
+        border: 1px solid var(--recv-border);
+        border-radius: 18px;
+        box-shadow: var(--recv-shadow-sm);
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .info-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .info-icon.green {
+        background: var(--recv-success-soft);
+        color: var(--recv-success);
+    }
+
+    .info-icon.purple {
+        background: var(--recv-purple-soft);
+        color: var(--recv-purple);
+    }
+
+    .info-content {
+        min-width: 0;
+    }
+
+    .info-content label {
+        display: block;
+        color: var(--recv-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 5px;
+    }
+
+    .info-content strong {
+        display: block;
+        color: var(--recv-text);
+        font-size: 15px;
+        font-weight: 950;
+        overflow-wrap: anywhere;
+    }
+
+    .info-code {
+        color: #1d4ed8 !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .recv-panel {
+        background: var(--recv-card);
+        border: 1px solid var(--recv-border);
+        border-radius: 22px;
+        box-shadow: var(--recv-shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--recv-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--recv-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        letter-spacing: -.2px;
+    }
+
+    .panel-title h3 i {
+        color: var(--recv-primary);
+        font-size: 21px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--recv-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .panel-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: #eef5ff;
+        color: #1d4ed8;
+        border: 1px solid #cfe0ff;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .recv-table-wrap {
+        overflow-x: auto;
+    }
+
+    .recv-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 880px;
+    }
+
+    .recv-table th {
+        text-align: left;
+        color: var(--recv-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--recv-border);
+        background: #f8fafc;
+        letter-spacing: .05em;
+        white-space: nowrap;
+    }
+
+    .recv-table td {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--recv-border);
+        vertical-align: top;
+        color: var(--recv-text);
+        font-size: 13px;
+    }
+
+    .recv-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .recv-table tbody tr:hover td {
+        background: #fbfdff;
+    }
+
+    .product-cell {
+        display: flex;
+        gap: 13px;
+        align-items: flex-start;
+        min-width: 0;
+    }
+
+    .product-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .prod-name {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        color: var(--recv-text);
+        font-size: 14px;
+        font-weight: 950;
+        line-height: 1.3;
+        margin-bottom: 6px;
+    }
+
+    .prod-code {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 9px;
+        background: var(--recv-primary-soft);
+        color: #1d4ed8;
+        border: 1px solid rgba(15, 107, 255, .18);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 950;
+    }
+
+    .prod-obs {
+        margin-top: 8px;
+        padding: 9px 10px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid var(--recv-border);
+        color: var(--recv-muted);
+        font-size: 12px;
+        line-height: 1.4;
+        font-style: italic;
+    }
+
+    .badge-serial {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--recv-purple-soft);
+        color: var(--recv-purple);
+        font-size: 10px;
+        font-weight: 950;
+        padding: 5px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        border: 1px solid rgba(124, 58, 237, .20);
+        letter-spacing: .04em;
+    }
+
+    .qty-requested {
+        text-align: center;
+    }
+
+    .qty-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 52px;
+        min-height: 42px;
+        padding: 0 12px;
+        border-radius: 14px;
+        background: var(--recv-warning-soft);
+        color: #92400e;
+        border: 1px solid rgba(245, 158, 11, .24);
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    .qty-unit {
+        color: var(--recv-muted);
+        font-size: 11px;
+        margin-top: 6px;
+        font-weight: 850;
+        text-transform: uppercase;
+    }
+
+    .qty-input {
+        background: #ffffff;
+        border: 1px solid var(--recv-border-strong);
+        color: var(--recv-text);
+        text-align: center;
+        font-weight: 950;
+        font-size: 14px;
+        border-radius: 13px;
+        min-height: 42px;
+        padding: 0 9px;
+        width: 86px;
+        outline: none;
+        transition: .18s ease;
+    }
+
+    .qty-input:focus {
+        border-color: var(--recv-success);
+        box-shadow: 0 0 0 4px var(--recv-success-soft);
+    }
+
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .normal-qty-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid var(--recv-border);
+    }
+
+    .normal-qty-box span {
+        color: var(--recv-muted);
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1.35;
+    }
+
+    .serial-module {
+        background: #f8fbff;
+        border: 1px solid rgba(15, 107, 255, .18);
+        border-radius: 18px;
+        padding: 15px;
+        min-width: 420px;
+    }
+
+    .serial-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(15, 107, 255, .14);
+    }
+
+    .tab-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .tab-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 11px;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid var(--recv-border);
+        color: var(--recv-muted);
+        font-size: 11px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .tab-link.active {
+        color: #ffffff;
+        background: var(--recv-success);
+        border-color: var(--recv-success);
+        box-shadow: 0 10px 20px rgba(22, 163, 74, .14);
+    }
+
+    .tab-link:hover {
+        border-color: var(--recv-primary);
+        color: var(--recv-primary);
+    }
+
+    .tab-link.active:hover {
+        color: #ffffff;
+        border-color: var(--recv-success);
+    }
+
+    .serial-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        border: 1px solid #bbf7d0;
+        color: #15803d;
+        font-size: 11px;
+        font-weight: 950;
+        white-space: nowrap;
+    }
+
+    .serial-count strong {
+        font-size: 16px;
+    }
+
+    .range-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+    }
+
+    .range-arrow {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+    }
+
+    .help-text {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--recv-muted);
+        font-size: 11px;
+        line-height: 1.4;
+        font-weight: 800;
+    }
+
+    .help-text i {
+        color: var(--recv-primary);
+        font-size: 16px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .inner-table-wrap {
+        overflow-x: auto;
+    }
+
+    .inner-table {
+        width: 100%;
+        min-width: 520px;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+    }
+
+    .inner-table th {
+        padding: 7px 6px;
+        font-size: 10px;
+        background: transparent;
+        border-bottom: 1px solid var(--recv-border);
+        color: var(--recv-muted);
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .inner-table td {
+        padding: 5px;
+        border: none;
+    }
+
+    .input-sm {
+        width: 100%;
+        min-height: 38px;
+        background: #ffffff;
+        border: 1px solid var(--recv-border-strong);
+        color: var(--recv-text);
+        padding: 0 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        outline: none;
+        transition: .18s ease;
+        text-transform: uppercase;
+    }
+
+    .input-sm:focus {
+        border-color: var(--recv-primary);
+        box-shadow: 0 0 0 4px var(--recv-primary-soft);
+    }
+
+    .btn-mini-add {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 38px;
+        padding: 0 13px;
+        border-radius: 13px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        border: 1px solid rgba(15, 107, 255, .24);
+        font-size: 12px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+    }
+
+    .btn-mini-add:hover {
+        background: var(--recv-primary);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .btn-del-row {
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 11px;
+        background: var(--recv-danger-soft);
+        color: var(--recv-danger);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        transition: .18s ease;
+    }
+
+    .btn-del-row:hover {
+        background: var(--recv-danger);
+        color: #ffffff;
+        transform: scale(1.04);
+    }
+
+    .notes-section {
+        padding: 20px;
+        border-top: 1px solid var(--recv-border);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .notes-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--recv-text);
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 9px;
+    }
+
+    .notes-label i {
+        color: var(--recv-primary);
+        font-size: 17px;
+    }
+
+    .notes-input {
+        width: 100%;
+        background: #ffffff;
+        border: 1px solid var(--recv-border-strong);
+        color: var(--recv-text);
+        padding: 13px 14px;
+        border-radius: 15px;
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        resize: vertical;
+        min-height: 78px;
+        transition: .18s ease;
+    }
+
+    .notes-input:focus {
+        border-color: var(--recv-primary);
+        box-shadow: 0 0 0 4px var(--recv-primary-soft);
+    }
+
+    .confirm-box {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 14px;
+        align-items: center;
+        margin-top: 16px;
+    }
+
+    .confirm-help {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 13px 14px;
+        border-radius: 15px;
+        background: #f8fbff;
+        border: 1px solid rgba(15, 107, 255, .18);
+        color: #1d4ed8;
+        font-size: 12px;
+        line-height: 1.45;
+        font-weight: 800;
+    }
+
+    .confirm-help i {
+        font-size: 18px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .btn-confirm {
+        width: 100%;
+        min-height: 54px;
+        background: var(--recv-success);
+        color: #ffffff;
+        border: none;
+        border-radius: 16px;
+        font-weight: 950;
+        font-size: 14px;
+        cursor: pointer;
+        transition: .18s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 9px;
+        box-shadow: 0 14px 28px rgba(22, 163, 74, .18);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .btn-confirm:hover {
+        background: #15803d;
+        transform: translateY(-2px);
+    }
+
+    .btn-confirm:disabled {
+        background: #d1d5db;
+        color: #6b7280;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .recv-toast-area {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 99999;
+        display: grid;
+        gap: 10px;
+        width: min(420px, calc(100vw - 44px));
+    }
+
+    .recv-toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #ffffff;
+        color: var(--recv-text);
+        border: 1px solid var(--recv-border);
+        border-left: 5px solid var(--recv-success);
+        border-radius: 15px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .16);
+        padding: 13px 14px;
+        transition: .25s ease;
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 850;
+    }
+
+    .recv-toast i {
+        flex-shrink: 0;
+        margin-top: 1px;
+        font-size: 20px;
+    }
+
+    .recv-toast.error {
+        border-left-color: var(--recv-danger);
+    }
+
+    .recv-toast.error i {
+        color: var(--recv-danger);
+    }
+
+    .recv-toast.warning {
+        border-left-color: var(--recv-warning);
+    }
+
+    .recv-toast.warning i {
+        color: var(--recv-warning);
+    }
+
+    .recv-toast.success {
+        border-left-color: var(--recv-success);
+    }
+
+    .recv-toast.success i {
+        color: var(--recv-success);
+    }
+
+    .recv-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 99998;
+        background: rgba(15, 23, 42, .55);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+    }
+
+    .recv-modal-backdrop.show {
+        display: flex;
+    }
+
+    .recv-modal {
+        width: min(520px, 100%);
+        background: #ffffff;
+        border-radius: 22px;
+        border: 1px solid var(--recv-border);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, .28);
+        overflow: hidden;
+        animation: recvModalIn .18s ease-out;
+    }
+
+    @keyframes recvModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .recv-modal-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--recv-border);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .recv-modal-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 15px;
+        background: var(--recv-primary-soft);
+        color: var(--recv-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .recv-modal-icon.warning {
+        background: var(--recv-warning-soft);
+        color: var(--recv-warning);
+    }
+
+    .recv-modal-icon.success {
+        background: var(--recv-success-soft);
+        color: var(--recv-success);
+    }
+
+    .recv-modal-title {
+        margin: 0;
+        color: var(--recv-text);
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .recv-modal-subtitle {
+        margin: 3px 0 0;
+        color: var(--recv-muted);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .recv-modal-body {
+        padding: 20px;
+        color: var(--recv-muted);
+        font-size: 13px;
+        line-height: 1.55;
+        font-weight: 750;
+    }
+
+    .recv-modal-actions {
+        padding: 16px 20px 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-modal {
+        min-height: 42px;
+        padding: 0 15px;
+        border-radius: 13px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-modal.cancel {
+        background: #ffffff;
+        color: var(--recv-text);
+        border-color: var(--recv-border-strong);
+    }
+
+    .btn-modal.confirm {
+        background: var(--recv-success);
+        color: #ffffff;
+    }
+
+    .btn-modal.warning {
+        background: var(--recv-warning);
+        color: #ffffff;
+    }
+
+    .btn-modal:hover {
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 1100px) {
+        .recv-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .req-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .confirm-box {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .recv-page {
+            gap: 18px;
+        }
+
+        .recv-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .recv-hero-title {
+            font-size: 26px;
+        }
+
+        .recv-chip {
+            width: 100%;
+        }
+
+        .recv-actions {
+            align-items: stretch;
+        }
+
+        .recv-title-block h2 {
+            font-size: 21px;
+        }
+
+        .btn-recv {
+            width: 100%;
+        }
+
+        .panel-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .panel-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .recv-table {
+            min-width: 0;
+        }
+
+        .recv-table thead {
+            display: none;
+        }
+
+        .recv-table,
+        .recv-table tbody,
+        .recv-table tr,
+        .recv-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .recv-table tr {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--recv-border);
+        }
+
+        .recv-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .recv-table td {
+            border-bottom: none;
+            padding: 10px 16px;
+        }
+
+        .recv-table td::before {
+            content: attr(data-label);
+            display: block;
+            margin-bottom: 8px;
+            color: var(--recv-muted);
+            font-size: 10px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        .qty-requested {
+            text-align: left;
+        }
+
+        .serial-module {
+            min-width: 0;
+        }
+
+        .serial-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .serial-count {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .range-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .range-arrow {
+            width: 100%;
+        }
+
+        .normal-qty-box {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .qty-input {
+            width: 100%;
+        }
+
+        .inner-table {
+            min-width: 500px;
+        }
+
+        .recv-toast-area {
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+        }
+
+        .recv-modal-actions {
+            flex-direction: column-reverse;
+        }
+
+        .btn-modal {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="recv-page">
+
+    <section class="recv-hero">
+        <div class="recv-hero-main">
+            <div class="recv-badge">
+                <i class='bx bx-package'></i>
+                Recepción de compra
+            </div>
+
+            <h1 class="recv-hero-title">
+                Validar ingreso <span>al almacén</span>
+            </h1>
+
+            <p class="recv-hero-desc">
+                Revisa cantidades físicas y registra series antes de confirmar el ingreso.
+                Esta acción actualizará el stock y dejará trazabilidad de la recepción.
+            </p>
+
+            <div class="recv-hero-chips">
+                <span class="recv-chip">
+                    <i class='bx bx-receipt'></i>
+                    Orden: {{ req.numero }}
+                </span>
+
+                <span class="recv-chip">
+                    <i class='bx bxs-truck'></i>
+                    {{ req.proveedor.razon_social|default:req.proveedor_manual|default:"Proveedor no definido" }}
+                </span>
+
+                <span class="recv-chip">
+                    <i class='bx bx-calendar'></i>
+                    {{ req.fecha|date:"d/m/Y" }}
+                </span>
+            </div>
+        </div>
+
+        <aside class="recv-hero-card">
+            <div class="hero-card-title">
+                <i class='bx bx-check-shield'></i>
+                <div>
+                    <strong>Control de recepción</strong>
+                    <span>Antes de sumar al inventario</span>
+                </div>
+            </div>
+
+            <div class="recv-flow">
+                <div class="flow-item">
+                    <i class='bx bx-list-check'></i>
+                    Verificar cantidades solicitadas
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-barcode-reader'></i>
+                    Registrar seriales o rangos
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-note'></i>
+                    Agregar observaciones
+                </div>
+
+                <div class="flow-item">
+                    <i class='bx bx-check-circle'></i>
+                    Confirmar ingreso final
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="recv-actions">
+        <div class="recv-title-block">
+            <h2>
+                <i class='bx bx-clipboard'></i>
+                Verificación de productos
+            </h2>
+            <p>Confirma lo recibido físicamente. Para productos serializados puedes usar rango o detalle individual.</p>
+        </div>
+
+        <a href="{% url 'dash_almacen' %}" class="btn-recv ghost">
+            <i class='bx bx-chevron-left'></i>
+            Volver al panel
+        </a>
+    </div>
+
+    <section class="req-info-grid">
+        <div class="info-card">
+            <div class="info-icon">
+                <i class='bx bx-receipt'></i>
+            </div>
+
+            <div class="info-content">
+                <label>Orden de compra</label>
+                <strong class="info-code">{{ req.numero }}</strong>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon green">
+                <i class='bx bxs-truck'></i>
+            </div>
+
+            <div class="info-content">
+                <label>Proveedor</label>
+                <strong>{{ req.proveedor.razon_social|default:req.proveedor_manual|default:"No definido" }}</strong>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-icon purple">
+                <i class='bx bx-calendar'></i>
+            </div>
+
+            <div class="info-content">
+                <label>Fecha de creación</label>
+                <strong>{{ req.fecha|date:"d M Y" }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <form method="POST" id="formRecepcion">
+        {% csrf_token %}
+
+        <section class="recv-panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <h3>
+                        <i class='bx bx-package'></i>
+                        Productos a recepcionar
+                    </h3>
+                    <span>Registra lo que llegó realmente al almacén. No se permitirá ingresar más de lo solicitado.</span>
+                </div>
+
+                <span class="panel-chip">
+                    <i class='bx bx-check-shield'></i>
+                    Validación activa
+                </span>
+            </div>
+
+            <div class="recv-table-wrap">
+                <table class="recv-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 38%;">Producto</th>
+                            <th style="width: 14%; text-align:center;">Solicitado</th>
+                            <th style="width: 48%;">Verificación de ingreso</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in req.items.all %}
+                        <tr>
+                            <td data-label="Producto">
+                                <div class="product-cell">
+                                    <div class="product-icon">
+                                        {% if item.producto.es_serializado %}
+                                            <i class='bx bx-chip'></i>
+                                        {% else %}
+                                            <i class='bx bx-box'></i>
+                                        {% endif %}
+                                    </div>
+
+                                    <div style="min-width:0;">
+                                        <div class="prod-name">
+                                            {{ item.producto.nombre }}
+
+                                            {% if item.producto.es_serializado %}
+                                                <span class="badge-serial">
+                                                    <i class='bx bx-barcode'></i>
+                                                    Series
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <span class="prod-code">
+                                            {{ item.producto.codigo_interno|default:"-" }}
+                                        </span>
+
+                                        {% if item.observacion %}
+                                            <div class="prod-obs">
+                                                "{{ item.observacion }}"
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td data-label="Solicitado">
+                                <div class="qty-requested">
+                                    <span class="qty-number">{{ item.cantidad }}</span>
+                                    <div class="qty-unit">{{ item.producto.unidad_medida|default:"UND" }}</div>
+                                </div>
+                            </td>
+
+                            <td data-label="Verificación de ingreso">
+                                {% if item.producto.es_serializado %}
+                                    <input
+                                        type="hidden"
+                                        name="qty_{{ item.id }}"
+                                        id="real_qty_{{ item.id }}"
+                                        value="0"
+                                        data-requested="{{ item.cantidad }}"
+                                    >
+
+                                    <input type="hidden" name="rango_inicio_{{ item.id }}" id="input_rango_inicio_{{ item.id }}">
+                                    <input type="hidden" name="rango_fin_{{ item.id }}" id="input_rango_fin_{{ item.id }}">
+                                    <input type="hidden" name="detalles_json_{{ item.id }}" id="input_json_{{ item.id }}">
+
+                                    <div class="serial-module" data-item-id="{{ item.id }}" data-requested="{{ item.cantidad }}">
+                                        <div class="serial-head">
+                                            <div class="tab-group">
+                                                <button type="button" class="tab-link active" onclick="switchTab(event, '{{ item.id }}', 'rango')">
+                                                    <i class='bx bx-transfer'></i>
+                                                    Rango
+                                                </button>
+
+                                                <button type="button" class="tab-link" onclick="switchTab(event, '{{ item.id }}', 'detalle')">
+                                                    <i class='bx bx-list-plus'></i>
+                                                    Detalle
+                                                </button>
+                                            </div>
+
+                                            <div class="serial-count">
+                                                Ingresando:
+                                                <strong id="display_qty_{{ item.id }}">0</strong>
+                                                / {{ item.cantidad }}
+                                            </div>
+                                        </div>
+
+                                        <div id="tab_rango_{{ item.id }}">
+                                            <div class="range-grid">
+                                                <input
+                                                    type="number"
+                                                    class="qty-input"
+                                                    placeholder="N° Inicio"
+                                                    id="start_{{ item.id }}"
+                                                    min="0"
+                                                    oninput="calcRango('{{ item.id }}')"
+                                                    autocomplete="off"
+                                                >
+
+                                                <span class="range-arrow">
+                                                    <i class='bx bx-right-arrow-alt'></i>
+                                                </span>
+
+                                                <input
+                                                    type="number"
+                                                    class="qty-input"
+                                                    placeholder="N° Fin"
+                                                    id="end_{{ item.id }}"
+                                                    min="0"
+                                                    oninput="calcRango('{{ item.id }}')"
+                                                    autocomplete="off"
+                                                >
+                                            </div>
+
+                                            <div class="help-text">
+                                                <i class='bx bx-info-circle'></i>
+                                                <span>Usa rango para precintos o códigos numéricos consecutivos. El cálculo es automático.</span>
+                                            </div>
+                                        </div>
+
+                                        <div id="tab_detalle_{{ item.id }}" style="display:none;">
+                                            <div class="inner-table-wrap">
+                                                <table class="inner-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th width="22%">Cód. pintado</th>
+                                                            <th width="32%">Serial / SN</th>
+                                                            <th width="32%">MAC Address</th>
+                                                            <th width="14%"></th>
+                                                        </tr>
+                                                    </thead>
+
+                                                    <tbody id="tbody_onu_{{ item.id }}"></tbody>
+                                                </table>
+                                            </div>
+
+                                            <button type="button" class="btn-mini-add" onclick="addOnuRow('{{ item.id }}')">
+                                                <i class='bx bx-plus'></i>
+                                                Agregar fila
+                                            </button>
+
+                                            <div class="help-text">
+                                                <i class='bx bx-info-circle'></i>
+                                                <span>Usa detalle para routers, ONUs o equipos donde necesitas SN, MAC o código pintado.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="normal-qty-box">
+                                        <input
+                                            type="number"
+                                            name="qty_{{ item.id }}"
+                                            class="qty-input normal-qty-input"
+                                            value="{{ item.cantidad }}"
+                                            min="0"
+                                            max="{{ item.cantidad }}"
+                                            data-requested="{{ item.cantidad }}"
+                                        >
+
+                                        <span>
+                                            Cantidad física recibida en almacén.
+                                            Puedes colocar 0 si el producto no llegó.
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="notes-section">
+                <label class="notes-label">
+                    <i class='bx bx-note'></i>
+                    Observaciones de recepción
+                </label>
+
+                <textarea
+                    name="notas"
+                    class="notes-input"
+                    rows="3"
+                    placeholder="Ej: La mercadería llegó completa según guía de remisión..."
+                ></textarea>
+
+                <div class="confirm-box">
+                    <div class="confirm-help">
+                        <i class='bx bx-info-circle'></i>
+                        <span>
+                            Al confirmar, el sistema registrará el ingreso en stock. Verifica cantidades, rangos y seriales antes de continuar.
+                        </span>
+                    </div>
+
+                    <button type="submit" class="btn-confirm" id="btnConfirmarIngreso">
+                        <i class='bx bx-check-circle'></i>
+                        Confirmar ingreso
+                    </button>
+                </div>
+            </div>
+        </section>
+    </form>
+
+</div>
+
+<div class="recv-toast-area" id="recvToastArea"></div>
+
+<div class="recv-modal-backdrop" id="recvConfirmModal">
+    <div class="recv-modal">
+        <div class="recv-modal-head">
+            <div class="recv-modal-icon" id="recvModalIcon">
+                <i class='bx bx-help-circle'></i>
+            </div>
+
+            <div>
+                <h3 class="recv-modal-title" id="recvModalTitle">Confirmar acción</h3>
+                <p class="recv-modal-subtitle" id="recvModalSubtitle">Validación requerida</p>
+            </div>
+        </div>
+
+        <div class="recv-modal-body" id="recvModalMessage">
+            ¿Deseas continuar?
+        </div>
+
+        <div class="recv-modal-actions">
+            <button type="button" class="btn-modal cancel" id="recvModalCancel">
+                <i class='bx bx-x'></i>
+                Cancelar
+            </button>
+
+            <button type="button" class="btn-modal confirm" id="recvModalAccept">
+                <i class='bx bx-check'></i>
+                Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showRecvToast(message, type = "success") {
+        let area = document.getElementById("recvToastArea");
+
+        if (!area) {
+            area = document.createElement("div");
+            area.id = "recvToastArea";
+            area.className = "recv-toast-area";
+            document.body.appendChild(area);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `recv-toast ${type}`;
+
+        let icon = "bx-check-circle";
+
+        if (type === "error") {
+            icon = "bx-error-circle";
+        } else if (type === "warning") {
+            icon = "bx-info-circle";
+        }
+
+        toast.innerHTML = `
+            <i class='bx ${icon}'></i>
+            <span>${message}</span>
+        `;
+
+        area.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(8px)";
+            setTimeout(() => toast.remove(), 280);
+        }, 3800);
+    }
+
+    function confirmRecvModal(options) {
+        const modal = document.getElementById("recvConfirmModal");
+        const title = document.getElementById("recvModalTitle");
+        const subtitle = document.getElementById("recvModalSubtitle");
+        const message = document.getElementById("recvModalMessage");
+        const iconBox = document.getElementById("recvModalIcon");
+        const accept = document.getElementById("recvModalAccept");
+        const cancel = document.getElementById("recvModalCancel");
+
+        title.innerText = options.title || "Confirmar acción";
+        subtitle.innerText = options.subtitle || "Validación requerida";
+        message.innerHTML = options.message || "¿Deseas continuar?";
+
+        iconBox.className = "recv-modal-icon";
+        accept.className = "btn-modal confirm";
+
+        if (options.type === "warning") {
+            iconBox.classList.add("warning");
+            accept.className = "btn-modal warning";
+            iconBox.innerHTML = "<i class='bx bx-error'></i>";
+        } else if (options.type === "success") {
+            iconBox.classList.add("success");
+            accept.className = "btn-modal confirm";
+            iconBox.innerHTML = "<i class='bx bx-check-shield'></i>";
+        } else {
+            iconBox.innerHTML = "<i class='bx bx-help-circle'></i>";
+        }
+
+        accept.innerHTML = options.acceptText || "<i class='bx bx-check'></i> Confirmar";
+        cancel.innerHTML = options.cancelText || "<i class='bx bx-x'></i> Cancelar";
+
+        modal.classList.add("show");
+
+        return new Promise(resolve => {
+            const close = result => {
+                modal.classList.remove("show");
+                accept.onclick = null;
+                cancel.onclick = null;
+                resolve(result);
+            };
+
+            accept.onclick = () => close(true);
+            cancel.onclick = () => close(false);
+
+            modal.onclick = event => {
+                if (event.target === modal) {
+                    close(false);
+                }
+            };
+        });
+    }
+
+    function getRequested(itemId) {
+        const serialModule = document.querySelector(`.serial-module[data-item-id="${itemId}"]`);
+
+        if (serialModule) {
+            return parseInt(serialModule.dataset.requested || "0");
+        }
+
+        const hiddenQty = document.getElementById(`real_qty_${itemId}`);
+
+        if (hiddenQty) {
+            return parseInt(hiddenQty.dataset.requested || "0");
+        }
+
+        return 0;
+    }
+
+    function switchTab(event, itemId, mode) {
+        const realQty = document.getElementById(`real_qty_${itemId}`);
+        const displayQty = document.getElementById(`display_qty_${itemId}`);
+        const inputRangoInicio = document.getElementById(`input_rango_inicio_${itemId}`);
+        const inputRangoFin = document.getElementById(`input_rango_fin_${itemId}`);
+        const inputJson = document.getElementById(`input_json_${itemId}`);
+
+        if (realQty) realQty.value = 0;
+        if (displayQty) displayQty.innerText = "0";
+        if (inputRangoInicio) inputRangoInicio.value = "";
+        if (inputRangoFin) inputRangoFin.value = "";
+        if (inputJson) inputJson.value = "";
+
+        const container = document.getElementById(`tab_rango_${itemId}`).closest(".serial-module");
+
+        container.querySelectorAll(".tab-link").forEach(btn => {
+            btn.classList.remove("active");
+        });
+
+        event.currentTarget.classList.add("active");
+
+        if (mode === "rango") {
+            document.getElementById(`tab_rango_${itemId}`).style.display = "block";
+            document.getElementById(`tab_detalle_${itemId}`).style.display = "none";
+
+            calcRango(itemId);
+        } else {
+            document.getElementById(`tab_rango_${itemId}`).style.display = "none";
+            document.getElementById(`tab_detalle_${itemId}`).style.display = "block";
+
+            const tbody = document.getElementById(`tbody_onu_${itemId}`);
+
+            if (tbody && tbody.querySelectorAll("tr").length === 0) {
+                addOnuRow(itemId);
+            }
+
+            calcDetalle(itemId);
+        }
+    }
+
+    function calcRango(itemId) {
+        const startInput = document.getElementById(`start_${itemId}`);
+        const endInput = document.getElementById(`end_${itemId}`);
+        const inputRangoInicio = document.getElementById(`input_rango_inicio_${itemId}`);
+        const inputRangoFin = document.getElementById(`input_rango_fin_${itemId}`);
+        const inputJson = document.getElementById(`input_json_${itemId}`);
+
+        const requested = getRequested(itemId);
+        const start = parseInt(startInput?.value || "0") || 0;
+        const end = parseInt(endInput?.value || "0") || 0;
+
+        let qty = 0;
+
+        if (start < 0 || end < 0) {
+            showRecvToast("No puedes ingresar rangos negativos.", "error");
+
+            if (startInput) startInput.value = "";
+            if (endInput) endInput.value = "";
+
+            if (inputRangoInicio) inputRangoInicio.value = "";
+            if (inputRangoFin) inputRangoFin.value = "";
+            if (inputJson) inputJson.value = "";
+
+            updateDisplay(itemId, 0);
+            return;
+        }
+
+        if (end >= start && start > 0) {
+            qty = (end - start) + 1;
+
+            if (requested > 0 && qty > requested) {
+                showRecvToast(`No puedes recepcionar más de lo solicitado. Solicitado: ${requested}.`, "error");
+
+                if (endInput) endInput.value = "";
+                if (inputRangoInicio) inputRangoInicio.value = "";
+                if (inputRangoFin) inputRangoFin.value = "";
+                if (inputJson) inputJson.value = "";
+
+                updateDisplay(itemId, 0);
+                return;
+            }
+
+            if (inputRangoInicio) inputRangoInicio.value = start;
+            if (inputRangoFin) inputRangoFin.value = end;
+            if (inputJson) inputJson.value = "";
+        } else {
+            if (inputRangoInicio) inputRangoInicio.value = "";
+            if (inputRangoFin) inputRangoFin.value = "";
+            if (inputJson) inputJson.value = "";
+        }
+
+        updateDisplay(itemId, qty);
+    }
+
+    function addOnuRow(itemId) {
+        const requested = getRequested(itemId);
+        const tbody = document.getElementById(`tbody_onu_${itemId}`);
+
+        if (!tbody) return;
+
+        const currentRows = tbody.querySelectorAll("tr").length;
+
+        if (requested > 0 && currentRows >= requested) {
+            showRecvToast(`Solo puedes registrar ${requested} equipo(s) para este producto.`, "error");
+            return;
+        }
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>
+                <input type="text" class="input-sm onu-cod44" placeholder="437..." autocomplete="off">
+            </td>
+
+            <td>
+                <input type="text" class="input-sm onu-sn" placeholder="SN..." autocomplete="off">
+            </td>
+
+            <td>
+                <input type="text" class="input-sm onu-mac" placeholder="MAC..." autocomplete="off">
+            </td>
+
+            <td>
+                <button type="button" class="btn-del-row" onclick="removeRow(this, '${itemId}')" title="Eliminar fila">
+                    <i class='bx bx-x'></i>
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+
+        row.querySelectorAll("input").forEach(input => {
+            input.addEventListener("input", () => {
+                input.value = input.value.toUpperCase();
+                calcDetalle(itemId);
+            });
+
+            input.addEventListener("keydown", event => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        const firstInput = row.querySelector("input");
+
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 60);
+        }
+
+        calcDetalle(itemId);
+    }
+
+    function removeRow(btn, itemId) {
+        btn.closest("tr").remove();
+        calcDetalle(itemId);
+    }
+
+    function calcDetalle(itemId) {
+        const tbody = document.getElementById(`tbody_onu_${itemId}`);
+        const inputJson = document.getElementById(`input_json_${itemId}`);
+        const inputRangoInicio = document.getElementById(`input_rango_inicio_${itemId}`);
+        const inputRangoFin = document.getElementById(`input_rango_fin_${itemId}`);
+        const requested = getRequested(itemId);
+
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll("tr");
+
+        let count = 0;
+        let dataList = [];
+
+        rows.forEach(row => {
+            const cod44 = row.querySelector(".onu-cod44")?.value.trim().toUpperCase() || "";
+            const sn = row.querySelector(".onu-sn")?.value.trim().toUpperCase() || "";
+            const mac = row.querySelector(".onu-mac")?.value.trim().toUpperCase() || "";
+
+            if (sn !== "" || cod44 !== "" || mac !== "") {
+                count++;
+
+                dataList.push({
+                    cod44: cod44,
+                    sn: sn,
+                    mac: mac
+                });
+            }
+        });
+
+        if (requested > 0 && count > requested) {
+            showRecvToast(`No puedes registrar más de ${requested} equipo(s).`, "error");
+            return;
+        }
+
+        if (inputJson) inputJson.value = JSON.stringify(dataList);
+        if (inputRangoInicio) inputRangoInicio.value = "";
+        if (inputRangoFin) inputRangoFin.value = "";
+
+        updateDisplay(itemId, count);
+    }
+
+    function updateDisplay(itemId, qty) {
+        const realQty = document.getElementById(`real_qty_${itemId}`);
+        const displayQty = document.getElementById(`display_qty_${itemId}`);
+
+        if (realQty) realQty.value = qty;
+        if (displayQty) displayQty.innerText = qty;
+    }
+
+    function validateNormalQuantities() {
+        const normalInputs = document.querySelectorAll(".normal-qty-input");
+
+        for (const input of normalInputs) {
+            const requested = parseInt(input.dataset.requested || "0");
+            const value = parseInt(input.value || "0") || 0;
+
+            if (value < 0) {
+                showRecvToast("No puedes recepcionar cantidades negativas.", "error");
+                input.focus();
+                return false;
+            }
+
+            if (requested > 0 && value > requested) {
+                showRecvToast(`No puedes recepcionar más de lo solicitado. Solicitado: ${requested}.`, "error");
+                input.focus();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function validateSerialQuantities() {
+        const serialModules = document.querySelectorAll(".serial-module");
+
+        for (const module of serialModules) {
+            const itemId = module.dataset.itemId;
+            const requested = parseInt(module.dataset.requested || "0");
+            const qtyActual = parseInt(document.getElementById(`real_qty_${itemId}`)?.value || "0") || 0;
+
+            if (qtyActual < 0) {
+                showRecvToast("No puedes recepcionar cantidades negativas en productos serializados.", "error");
+                return false;
+            }
+
+            if (requested > 0 && qtyActual > requested) {
+                showRecvToast(`Un producto serializado supera lo solicitado. Solicitado: ${requested}.`, "error");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function getReceptionSummary() {
+        let totalIngresando = 0;
+        let hayItemsEnCero = false;
+
+        const inputsCantidades = document.querySelectorAll('input[name^="qty_"]');
+
+        inputsCantidades.forEach(input => {
+            const cantidad = parseInt(input.value || "0") || 0;
+            totalIngresando += cantidad;
+
+            if (cantidad <= 0) {
+                hayItemsEnCero = true;
+            }
+        });
+
+        return {
+            totalIngresando,
+            hayItemsEnCero
+        };
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const formRecepcion = document.getElementById("formRecepcion");
+        const btnSubmit = document.getElementById("btnConfirmarIngreso");
+
+        document.querySelectorAll(".normal-qty-input").forEach(input => {
+            input.addEventListener("input", function () {
+                const requested = parseInt(this.dataset.requested || "0");
+                let value = parseInt(this.value || "0") || 0;
+
+                if (value < 0) {
+                    showRecvToast("No puedes recepcionar cantidades negativas.", "error");
+                    this.value = 0;
+                    value = 0;
+                }
+
+                if (requested > 0 && value > requested) {
+                    showRecvToast(`No puedes recepcionar más de lo solicitado. Solicitado: ${requested}.`, "error");
+                    this.value = requested;
+                }
+            });
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        if (formRecepcion) {
+            formRecepcion.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                if (formRecepcion.dataset.submitting === "true") {
+                    return;
+                }
+
+                if (!validateNormalQuantities()) {
+                    return;
+                }
+
+                if (!validateSerialQuantities()) {
+                    return;
+                }
+
+                const summary = getReceptionSummary();
+
+                if (summary.totalIngresando === 0) {
+                    showRecvToast("No has ingresado ninguna cantidad válida ni registrado series. El ingreso total es 0.", "error");
+                    return;
+                }
+
+                if (summary.hayItemsEnCero) {
+                    const confirmarIncompleto = await confirmRecvModal({
+                        type: "warning",
+                        title: "Recepción incompleta",
+                        subtitle: "Hay productos en cantidad 0",
+                        message: `
+                            Se detectaron productos con cantidad 0.<br><br>
+                            Esto significa que algunos materiales no ingresarán al stock.
+                            ¿Deseas continuar con una recepción incompleta?
+                        `,
+                        acceptText: "<i class='bx bx-check'></i> Sí, continuar",
+                        cancelText: "<i class='bx bx-x'></i> Revisar otra vez"
+                    });
+
+                    if (!confirmarIncompleto) {
+                        return;
+                    }
+                }
+
+                const confirmarFinal = await confirmRecvModal({
+                    type: "success",
+                    title: "Confirmar ingreso al almacén",
+                    subtitle: "Validación final de recepción",
+                    message: `
+                        Se registrará el ingreso de productos al stock.<br><br>
+                        Confirma que las cantidades, rangos y seriales fueron verificados físicamente.
+                    `,
+                    acceptText: "<i class='bx bx-check-circle'></i> Confirmar ingreso",
+                    cancelText: "<i class='bx bx-x'></i> Cancelar"
+                });
+
+                if (!confirmarFinal) {
+                    return;
+                }
+
+                formRecepcion.dataset.submitting = "true";
+
+                if (btnSubmit) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Procesando ingreso...";
+                }
+
+                formRecepcion.submit();
+            });
+        }
+    });
+</script>
+
+{% endblock %}

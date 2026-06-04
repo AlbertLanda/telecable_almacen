@@ -1,0 +1,251 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vale de Salida - {{ sal.numero }}</title>
+  
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+  <style>
+    /* --- VARIABLES DE IMPRESIÓN (Monocromo / Ahorro de Tinta) --- */
+    :root {
+      --ink: #111827;       /* Negro suave */
+      --muted: #6b7280;     /* Gris para etiquetas */
+      --line: #e5e7eb;      /* Bordes muy finos */
+      --brand: #0f172a;     /* Marca oscura */
+    }
+
+    * { box-sizing: border-box; }
+    
+    body { 
+      margin: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: #525659; /* Fondo gris oscuro del visor de PDF (solo pantalla) */
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /* --- HOJA A4 FÍSICA --- */
+    .page {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 15mm 20mm;
+      position: relative;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Sombra para que destaque en pantalla */
+      margin: 30px auto 100px auto; /* Margen abajo para la barra flotante */
+    }
+
+    /* --- ENCABEZADO --- */
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 20px; border-bottom: 2px solid var(--brand); padding-bottom: 15px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { height: 40px; width: auto; object-fit: contain; }
+    .brand-text h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; color: var(--brand); }
+    .brand-text p { margin: 0; font-size: 11px; color: var(--muted); }
+
+    .doc-info { text-align: right; }
+    .doc-title { font-size: 20px; font-weight: 800; color: var(--ink); margin: 0; letter-spacing: 0.5px; }
+    .doc-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* --- BLOQUE DE INFORMACIÓN (GRID) --- */
+    .info-box {
+      border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    
+    .row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+    .row:last-child { margin-bottom: 0; }
+    .label { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 10px; width: 100px; }
+    .value { color: var(--ink); font-weight: 700; flex: 1; text-align: right; }
+
+    /* --- TABLA --- */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11px; }
+    
+    thead th {
+      background-color: #f3f4f6; color: var(--ink); text-align: left;
+      padding: 8px 10px; font-weight: 700; text-transform: uppercase;
+      border-bottom: 1px solid var(--ink);
+    }
+    
+    tbody td {
+      padding: 8px 10px; border-bottom: 1px solid var(--line);
+      color: var(--ink); vertical-align: top;
+    }
+    
+    .col-center { text-align: center; }
+    .col-right { text-align: right; }
+    .total-row td { border-top: 2px solid var(--ink); font-weight: 800; font-size: 12px; padding-top: 10px; }
+
+    /* --- FIRMAS --- */
+    .signatures {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+      margin-top: 60px; page-break-inside: avoid;
+    }
+    .sig-box { text-align: center; }
+    .sig-line { border-top: 1px solid var(--ink); width: 80%; margin: 0 auto 8px auto; height: 1px; }
+    .sig-role { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .sig-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+
+    /* --- BARRA FLOTANTE (Solo Pantalla) --- */
+    .floating-actions {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; padding: 10px 20px; border-radius: 50px;
+      display: flex; gap: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 1000; border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .btn-float {
+      background: transparent; border: none; color: white; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+      padding: 8px 16px; border-radius: 30px; transition: 0.2s;
+    }
+    
+    .btn-back { background: rgba(255,255,255,0.1); }
+    .btn-back:hover { background: rgba(255,255,255,0.2); }
+    
+    .btn-print { background: #3b82f6; color: white; }
+    .btn-print:hover { background: #2563eb; }
+
+    /* --- MODO IMPRESIÓN (Lo que realmente sale en papel) --- */
+    @media print {
+      body { background: white; display: block; }
+      .page { margin: 0; box-shadow: none; width: 100%; height: auto; padding: 0; }
+      .floating-actions { display: none !important; }
+      @page { margin: 15mm 15mm; size: A4; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="floating-actions">
+    <button class="btn-float btn-back" onclick="history.back()">
+      <i class='bx bx-arrow-back'></i> Volver
+    </button>
+    <button class="btn-float btn-print" onclick="window.print()">
+      <i class='bx bx-printer'></i> Imprimir
+    </button>
+  </div>
+
+  <div class="page">
+    
+    <header class="header">
+      <div class="brand">
+        <img src="{% static 'inventario/img/logo.png' %}" alt="Logo" onerror="this.style.display='none'">
+        <div class="brand-text">
+          <h1>TELECABLE</h1>
+          <p>Gestión de Almacenes</p>
+        </div>
+      </div>
+      <div class="doc-info">
+        <h2 class="doc-title">NOTA DE SALIDA</h2>
+        <div class="doc-meta">
+          N°: {{ sal.numero }} <br>
+          Fecha: {{ sal.fecha|date:"d/m/Y H:i" }}
+        </div>
+      </div>
+    </header>
+
+    <div class="info-box">
+      <div class="grid-2">
+        <div>
+          <div class="row">
+            <span class="label">TIPO MOVIMIENTO:</span>
+            <span class="value">{{ sal.get_tipo_display }}</span>
+          </div>
+          <div class="row">
+            <span class="label">ALMACÉN ORIGEN:</span>
+            <span class="value">{{ sal.sede.nombre }}</span>
+          </div>
+          <div class="row">
+            <span class="label">REFERENCIA:</span>
+            <span class="value">{{ sal.origen.numero|default:"-" }}</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="row">
+            <span class="label">RESPONSABLE:</span>
+            <span class="value">{{ sal.responsable.get_full_name|default:sal.responsable.username }}</span>
+          </div>
+          <div class="row">
+            <span class="label">DESTINO / OBRA:</span>
+            <span class="value">{{ sal.ubicacion|default:"-" }}</span>
+          </div>
+          <div class="row">
+            <span class="label">ESTADO:</span>
+            <span class="value">{{ sal.get_estado_display }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 15%;">Código</th>
+          <th style="width: 55%;">Descripción del Material</th>
+          <th style="width: 15%;" class="col-center">U.M.</th>
+          <th style="width: 15%;" class="col-right">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.producto.codigo_interno|default:"-" }}</td>
+          <td>
+            <strong>{{ item.producto.nombre }}</strong>
+            {% if item.producto.marca %}
+              <br><span style="color:var(--muted); font-size:10px;">Marca: {{ item.producto.marca }}</span>
+            {% endif %}
+            {% if item.series %}
+                <div style="margin-top: 4px; font-size: 9px; font-family: monospace; color: #444;">
+                    SN: {{ item.series }}
+                </div>
+            {% endif %}
+          </td>
+          <td class="col-center">{{ item.producto.unidad|default:"UND" }}</td>
+          <td class="col-right">{{ item.cantidad }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="3" class="col-right">TOTAL ÍTEMS DESPACHADOS</td>
+          <td class="col-right">{{ total_cantidad }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {% if sal.observaciones %}
+    <div style="margin-bottom: 40px; font-size: 11px; border: 1px dashed var(--muted); padding: 10px; border-radius: 6px;">
+      <strong style="color:var(--ink);">OBSERVACIONES:</strong> <br>
+      {{ sal.observaciones }}
+    </div>
+    {% endif %}
+
+    <div class="signatures">
+      <div class="sig-box">
+        <div style="height: 50px;"></div> <div class="sig-line"></div>
+        <div class="sig-name">ALMACÉN</div>
+        <div class="sig-role">Entregado conforme</div>
+      </div>
+      <div class="sig-box">
+        <div style="height: 50px;"></div> <div class="sig-line"></div>
+        <div class="sig-name">RECIBIDO POR</div>
+        <div class="sig-role">{{ sal.responsable.get_full_name|default:sal.responsable.username }}</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       DETALLE DE PROYECTO (Enterprise Style)
+       ========================================= */
+    
+    .project-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .project-header {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        box-shadow: var(--shadow-card);
+    }
+    .ph-info h2 { margin: 0; font-size: 26px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    .ph-info p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; }
+    
+    .project-badge { 
+        background: var(--primary); color: #fff; font-size: 12px; padding: 4px 8px; 
+        border-radius: 6px; vertical-align: middle; letter-spacing: 0.5px;
+    }
+
+    .ph-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+        gap: 20px; margin-bottom: 30px;
+    }
+    .info-box {
+        background: var(--bg-input); border-radius: 10px; padding: 15px; border: 1px solid var(--border-light);
+    }
+    .ib-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+    .ib-val { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+
+    /* Barra de Progreso */
+    .progress-track {
+        background: var(--bg-body); height: 8px; border-radius: 4px; width: 100%; margin-top: 5px; overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%; border-radius: 4px; background: var(--primary); transition: width 0.6s ease;
+        width: var(--w, 0%); /* Variable CSS para evitar errores de linter */
+    }
+    .bar-success { background: var(--success); }
+
+    /* Tabla */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+    }
+    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
+    .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); }
+
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    .th-center { text-align: center; }
+    
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .col-center { text-align: center; }
+
+    /* Badges */
+    .stock-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; min-width: 30px; display: inline-block; text-align: center; }
+    .sb-ok { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+    .sb-low { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+
+    .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .st-pending { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .st-ready { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+
+    /* Botones Acción */
+    .btn-action {
+        display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px;
+        text-decoration: none; font-weight: 600; font-size: 14px; transition: 0.2s; border: none; cursor: pointer;
+    }
+    .btn-primary-solid { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); }
+    .btn-primary-solid:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    
+    .btn-ghost { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-light); }
+    .btn-ghost:hover { background: var(--bg-hover); }
+
+    .btn-pdf { color: var(--danger); background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2); }
+    .btn-pdf:hover { background: var(--danger); color: #fff; }
+
+    @media (max-width: 992px) {
+        .project-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+        .ph-actions { width: 100%; flex-wrap: wrap; }
+        .btn-action { flex: 1; justify-content: center; }
+    }
+</style>
+
+<div class="project-container">
+    
+    <div class="project-header">
+        <div class="ph-info">
+            <h2>{{ proyecto.nombre }} <span class="project-badge">{{ proyecto.codigo }}</span></h2>
+            <p>Sede: <strong>{{ proyecto.sede.nombre }}</strong></p>
+        </div>
+        <div class="ph-actions">
+            <a href="{% url 'almacen_proyectos_list' %}" class="btn-action btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+            <a href="{% url 'proyecto_pdf_salida' proyecto.id %}" target="_blank" class="btn-action btn-pdf">
+                <i class='bx bxs-file-pdf'></i> Imprimir Vale
+            </a>
+            <a href="{% url 'almacen_generar_salida' proyecto.id %}" class="btn-action btn-primary-solid">
+                <i class='bx bx-export'></i> Generar Salida
+            </a>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box">
+            <div class="ib-label">Responsable</div>
+            <div class="ib-val">
+                <i class='bx bxs-user-pin'></i> 
+                {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="ib-label">Fecha Inicio</div>
+            <div class="ib-val"><i class='bx bx-calendar'></i> {{ proyecto.inicio|date:"d M Y" }}</div>
+        </div>
+        <div class="info-box">
+            <div class="ib-label">Progreso de Entrega</div>
+            <div class="ib-val" style="display: block;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                    <span>{{ progreso }}%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar {% if progreso == 100 %}bar-success{% endif %}" style="--w: {{ progreso }}%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="card-header">
+            <h4><i class='bx bx-list-check'></i> Estado de Materiales</h4>
+        </div>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="th-center">Stock Sede</th>
+                        <th class="th-center">Planificado</th>
+                        <th class="th-center">Entregado</th>
+                        <th class="th-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in materiales %}
+                    <tr>
+                        <td>
+                            <strong style="display: block; font-size: 14px;">{{ item.producto.nombre }}</strong>
+                            <span style="font-family: monospace; color: var(--text-secondary); font-size: 12px;">{{ item.producto.codigo_interno }}</span>
+                        </td>
+                        
+                        <td class="col-center">
+                            {% if item.stock_actual < item.cantidad_planificada %}
+                                <span class="stock-badge sb-low">{{ item.stock_actual }}</span>
+                            {% else %}
+                                <span class="stock-badge sb-ok">{{ item.stock_actual }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="col-center" style="color: var(--text-secondary);">
+                            {{ item.cantidad_planificada }}
+                        </td>
+                        
+                        <td class="col-center">
+                            <strong style="font-size: 15px; color: var(--text-main);">{{ item.cantidad_entregada }}</strong>
+                        </td>
+
+                        <td class="col-center">
+                            {% if item.cantidad_entregada >= item.cantidad_planificada %}
+                                <span class="status-badge st-ready">Completo</span>
+                            {% else %}
+                                {% with pendiente=item.cantidad_planificada|add:"-"|add:item.cantidad_entregada %}
+                                    <span class="status-badge st-pending">{{ pendiente }} Pendiente</span>
+                                    {% if item.stock_actual < pendiente %}
+                                        <div style="font-size: 10px; color: var(--danger); margin-top: 4px; font-weight: 600;">
+                                            <i class='bx bxs-error-circle'></i> Falta Stock
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                            No hay materiales asignados a este proyecto.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

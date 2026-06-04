@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       MIS REQUERIMIENTOS (Enterprise Style)
+       ========================================= */
+    
+    .reqs-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Botones Header */
+    .header-actions { display: flex; gap: 12px; }
+    .btn-new {
+        background: var(--primary); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600;
+        text-decoration: none; display: flex; align-items: center; gap: 8px; transition: 0.2s; border: none;
+    }
+    .btn-new:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Tarjeta Principal */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Tabla PC */
+    .table-responsive-desktop { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .code-text { font-family: monospace; font-weight: 600; color: var(--text-main); font-size: 14px; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .st-atendido { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .st-pendiente { background: rgba(255, 69, 58, 0.15); color: var(--danger); }
+    .st-borrador { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+
+    /* Botones Acción en Tabla (MODIFICADO PARA TEXTO) */
+    .action-group { display: flex; gap: 8px; justify-content: flex-end; }
+    
+    .btn-table {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        text-decoration: none; transition: 0.2s; border: 1px solid transparent;
+    }
+    
+    .btn-repeat { color: var(--primary); background: rgba(10, 132, 255, 0.1); }
+    .btn-repeat:hover { background: var(--primary); color: #fff; }
+    
+    .btn-delete { color: var(--danger); background: rgba(255, 69, 58, 0.1); }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
+
+    /* --- VISTA MÓVIL (Tarjetas) --- */
+    .mobile-list { display: none; flex-direction: column; gap: 15px; }
+    
+    .req-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .rc-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+    
+    .rc-row { display: flex; justify-content: space-between; font-size: 13px; }
+    .rc-label { color: var(--text-secondary); }
+    .rc-val { color: var(--text-main); font-weight: 500; }
+
+    .rc-actions { margin-top: 5px; display: flex; gap: 10px; }
+    .btn-mobile { flex: 1; text-align: center; justify-content: center; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+
+    /* Estado Vacío */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
+
+    @media (max-width: 992px) {
+        .table-responsive-desktop { display: none; }
+        .mobile-list { display: flex; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .header-actions { width: 100%; }
+        .btn-new, .btn-ghost { flex: 1; justify-content: center; }
+    }
+</style>
+
+<div class="reqs-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Mis Requerimientos</h2>
+            <p>Historial de solicitudes de material</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'tecnico_dashboard' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="content-card table-responsive-desktop">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código REQ</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th style="text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reqs %}
+                <tr>
+                    <td>
+                        <span class="code-text">{{ r.numero|default:"(Borrador)" }}</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">{{ r.fecha|date:"d M Y, H:i" }}</td>
+                    <td>
+                        {% if r.estado == "REQ_BORRADOR" %}
+                            <span class="badge st-borrador">Borrador</span>
+                        {% elif r.estado == "REQ_PENDIENTE" %}
+                            <span class="badge st-pendiente">Pendiente</span>
+                        {% elif r.estado == "REQ_ATENDIDO" %}
+                            <span class="badge st-atendido">Atendido</span>
+                        {% else %}
+                            <span class="badge" style="background:var(--bg-input);">{{ r.get_estado_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-group">
+                            <a href="{% url 'req_clonar' r.id %}" class="btn-table btn-repeat">
+                                <i class='bx bx-refresh'></i> Repetir
+                            </a>
+
+                            {% if r.estado == "REQ_BORRADOR" %}
+                                <a href="{% url 'req_eliminar' r.id %}" 
+                                   class="btn-table btn-delete" 
+                                   onclick="return confirm('¿Eliminar este borrador?');">
+                                    <i class='bx bx-trash'></i> Eliminar
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <i class='bx bx-cart'></i>
+                            <h3>Sin Solicitudes</h3>
+                            <p>No has realizado pedidos aún.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mobile-list">
+        {% for r in reqs %}
+        <div class="req-card">
+            <div class="rc-top">
+                <span class="code-text">{{ r.numero|default:"(Borrador)" }}</span>
+                {% if r.estado == "REQ_BORRADOR" %}
+                    <span class="badge st-borrador">Borrador</span>
+                {% elif r.estado == "REQ_PENDIENTE" %}
+                    <span class="badge st-pendiente">Pendiente</span>
+                {% elif r.estado == "REQ_ATENDIDO" %}
+                    <span class="badge st-atendido">Atendido</span>
+                {% endif %}
+            </div>
+            
+            <div class="rc-row">
+                <span class="rc-label">Fecha:</span>
+                <span class="rc-val">{{ r.fecha|date:"d M, H:i" }}</span>
+            </div>
+
+            <div class="rc-actions">
+                <a href="{% url 'req_clonar' r.id %}" class="btn-mobile btn-repeat">
+                    <i class='bx bx-refresh'></i> Repetir
+                </a>
+                
+                {% if r.estado == "REQ_BORRADOR" %}
+                    <a href="{% url 'req_eliminar' r.id %}" class="btn-mobile btn-delete" 
+                       onclick="return confirm('¿Eliminar borrador?');">
+                        <i class='bx bx-trash'></i> Eliminar
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class='bx bx-cart'></i>
+            <h3>Sin Solicitudes</h3>
+            <p>No has realizado pedidos.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

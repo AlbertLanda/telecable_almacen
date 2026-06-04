@@ -1,0 +1,467 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Sistema | Telecable</title>
+
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            min-height: 100%;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #0f1220;
+        }
+
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            min-height: 100vh;
+            background: #0f1220;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 24px;
+        }
+
+        #particles-js {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(135deg, rgba(10, 12, 20, 0.92), rgba(15, 18, 32, 0.84)),
+                url('https://tse1.mm.bing.net/th/id/OIP.p1q7DqJmgvK4VAnVNQu3uQHaEM?rs=1&pid=ImgDetMain&o=7&rm=3');
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+        }
+
+        .login-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 410px;
+            padding: 42px 40px;
+            background: rgba(30, 34, 50, 0.34);
+            backdrop-filter: blur(17px);
+            -webkit-backdrop-filter: blur(17px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 22px;
+            box-shadow:
+                0 0 40px rgba(79, 172, 254, 0.12),
+                0 22px 70px rgba(0, 0, 0, 0.38);
+            animation: slideUp 0.75s ease-out;
+            text-align: center;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(45px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-glow {
+            width: 74px;
+            height: 74px;
+            margin: 0 auto 20px;
+            background: rgba(79, 172, 254, 0.12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 37px;
+            color: #4facfe;
+            box-shadow:
+                0 0 20px rgba(79, 172, 254, 0.34),
+                inset 0 0 18px rgba(79, 172, 254, 0.08);
+            border: 1px solid rgba(79, 172, 254, 0.34);
+        }
+
+        .login-title {
+            color: #ffffff;
+            font-size: 27px;
+            font-weight: 800;
+            margin: 0 0 6px;
+            letter-spacing: 1px;
+        }
+
+        .login-subtitle {
+            color: #8b9bb4;
+            font-size: 13px;
+            margin: 0 0 30px;
+            letter-spacing: 0.5px;
+            line-height: 1.45;
+        }
+
+        .login-alert {
+            background: rgba(255, 69, 58, 0.18);
+            color: #ff7b7b;
+            border: 1px solid rgba(255, 107, 107, 0.8);
+            border-radius: 10px;
+            padding: 11px 12px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .login-alert i {
+            font-size: 18px;
+        }
+
+        .input-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-icon-left {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4facfe;
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .input-icon-right {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b9bb4;
+            font-size: 21px;
+            cursor: pointer;
+            transition: 0.25s ease;
+            z-index: 20;
+        }
+
+        .input-icon-right:hover {
+            color: #ffffff;
+        }
+
+        .form-control-login {
+            width: 100%;
+            min-height: 47px;
+            padding: 12px 45px;
+            background: rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 11px;
+            color: #ffffff;
+            font-size: 15px;
+            outline: none;
+            transition: 0.25s ease;
+            font-family: inherit;
+            font-weight: 600;
+        }
+
+        .form-control-login::placeholder {
+            color: rgba(139, 155, 180, 0.88);
+            font-weight: 600;
+        }
+
+        .form-control-login:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 16px rgba(79, 172, 254, 0.24);
+            background: rgba(0, 0, 0, 0.50);
+        }
+
+        .btn-login {
+            width: 100%;
+            min-height: 49px;
+            padding: 14px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            border-radius: 11px;
+            color: #020617;
+            font-weight: 850;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.25s ease;
+            box-shadow: 0 5px 16px rgba(79, 172, 254, 0.32);
+            letter-spacing: 0.4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 26px rgba(79, 172, 254, 0.50);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.75;
+            cursor: wait;
+            transform: none;
+        }
+
+        .footer {
+            margin-top: 25px;
+            color: #667085;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 520px) {
+            .login-overlay {
+                padding: 18px;
+                align-items: center;
+            }
+
+            .login-card {
+                max-width: 100%;
+                padding: 34px 24px;
+                border-radius: 20px;
+            }
+
+            .logo-glow {
+                width: 66px;
+                height: 66px;
+                font-size: 33px;
+                margin-bottom: 18px;
+            }
+
+            .login-title {
+                font-size: 24px;
+            }
+
+            .login-subtitle {
+                font-size: 12px;
+                margin-bottom: 26px;
+            }
+
+            .form-control-login {
+                min-height: 46px;
+                font-size: 14px;
+            }
+
+            .btn-login {
+                min-height: 48px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-height: 620px) {
+            .login-overlay {
+                position: relative;
+                min-height: 100vh;
+                height: auto;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-overlay">
+        <div id="particles-js"></div>
+
+        <div class="login-card">
+            <div class="logo-glow">
+                <i class='bx bx-cube-alt'></i>
+            </div>
+
+            <h2 class="login-title">TELECABLE</h2>
+            <p class="login-subtitle">Acceso Seguro al Almacén</p>
+
+            <form method="POST" id="loginForm">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                    <div class="login-alert">
+                        <i class='bx bx-error-circle'></i>
+                        <span>Usuario o contraseña incorrectos</span>
+                    </div>
+                {% endif %}
+
+                <div class="input-box">
+                    <i class='bx bx-user input-icon-left'></i>
+
+                    <input
+                        type="text"
+                        name="username"
+                        id="usernameInput"
+                        class="form-control-login"
+                        placeholder="ID de Empleado"
+                        required
+                        autocomplete="username"
+                        autofocus
+                    >
+                </div>
+
+                <div class="input-box">
+                    <i class='bx bx-lock-alt input-icon-left'></i>
+
+                    <input
+                        type="password"
+                        name="password"
+                        id="passwordInput"
+                        class="form-control-login"
+                        placeholder="Contraseña"
+                        required
+                        autocomplete="current-password"
+                    >
+
+                    <i class='bx bx-show input-icon-right' id="togglePassword" title="Mostrar contraseña"></i>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <i class='bx bx-log-in-circle'></i>
+                    INGRESAR AL SISTEMA
+                </button>
+            </form>
+
+            <div class="footer">
+                © 2026 Telecable S.A. | V 2.0
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const togglePassword = document.querySelector("#togglePassword");
+        const password = document.querySelector("#passwordInput");
+        const loginForm = document.querySelector("#loginForm");
+        const btnLogin = document.querySelector("#btnLogin");
+        const usernameInput = document.querySelector("#usernameInput");
+
+        if (togglePassword && password) {
+            togglePassword.addEventListener("click", function () {
+                const type = password.getAttribute("type") === "password" ? "text" : "password";
+                password.setAttribute("type", type);
+
+                this.classList.toggle("bx-show");
+                this.classList.toggle("bx-hide");
+
+                this.style.color = type === "text" ? "#4facfe" : "#8b9bb4";
+                this.title = type === "text" ? "Ocultar contraseña" : "Mostrar contraseña";
+            });
+        }
+
+        if (loginForm) {
+            loginForm.addEventListener("submit", function (event) {
+                if (!usernameInput.value.trim()) {
+                    event.preventDefault();
+                    usernameInput.focus();
+                    return;
+                }
+
+                if (!password.value.trim()) {
+                    event.preventDefault();
+                    password.focus();
+                    return;
+                }
+
+                if (btnLogin) {
+                    btnLogin.disabled = true;
+                    btnLogin.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Validando acceso...";
+                }
+            });
+        }
+
+        if (typeof particlesJS !== "undefined") {
+            particlesJS("particles-js", {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#4facfe"
+                    },
+                    "shape": {
+                        "type": "circle"
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": true
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#4facfe",
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 1
+                            }
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       LISTA DE PROYECTOS (Enterprise Premium)
+       ========================================= */
+    
+    .projects-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        margin-bottom: 30px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+    .header-content p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Botón Volver */
+    .btn-ghost {
+        background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-light);
+        padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;
+    }
+    .btn-ghost:hover { background: var(--bg-hover); border-color: var(--text-secondary); transform: translateY(-1px); }
+
+    /* Grid de Tarjetas */
+    .projects-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 24px;
+    }
+
+    /* Tarjeta de Proyecto */
+    .project-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 16px; display: flex; flex-direction: column;
+        transition: all 0.3s ease; position: relative;
+    }
+    .project-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); }
+
+    /* Contenido Interno */
+    .card-body { padding: 24px; flex: 1; }
+    
+    .cb-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .project-code { 
+        font-family: monospace; background: rgba(255,255,255,0.05); color: var(--text-secondary); 
+        padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--border-light);
+    }
+    
+    .project-title { font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0 0 12px 0; line-height: 1.3; }
+    
+    .project-meta { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+    .meta-row i { color: var(--text-tertiary); font-size: 16px; }
+    .meta-row strong { color: var(--text-main); font-weight: 500; }
+
+    .project-desc { font-size: 13px; color: var(--text-tertiary); line-height: 1.5; margin: 0; }
+
+    /* Badges de Estado */
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+    
+    .st-diseno { background: rgba(255, 159, 10, 0.1); color: var(--warning); border-color: rgba(255, 159, 10, 0.2); }
+    .st-revision { background: rgba(255, 159, 10, 0.15); color: var(--warning); border-color: rgba(255, 159, 10, 0.3); }
+    .st-observado { background: rgba(255, 69, 58, 0.1); color: var(--danger); border-color: rgba(255, 69, 58, 0.2); }
+    .st-aprobado { background: rgba(48, 209, 88, 0.1); color: var(--success); border-color: rgba(48, 209, 88, 0.2); }
+    .st-proceso { background: rgba(10, 132, 255, 0.1); color: var(--primary); border-color: rgba(10, 132, 255, 0.2); }
+    .st-finalizado { background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border-color: rgba(255, 255, 255, 0.1); }
+
+    /* Footer de Tarjeta */
+    .card-footer {
+        padding: 16px 24px; border-top: 1px solid var(--border-light);
+        background: rgba(255,255,255,0.01); border-radius: 0 0 16px 16px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-date { font-size: 11px; color: var(--text-tertiary); font-family: monospace; }
+    
+    .btn-details {
+        color: var(--text-main); font-size: 13px; font-weight: 600; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn-details i { transition: 0.2s; color: var(--primary); font-size: 18px; }
+    .btn-details:hover { color: var(--primary); }
+    .btn-details:hover i { transform: translateX(5px); }
+
+    /* Estado Vacío */
+    .empty-state {
+        grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: var(--text-secondary);
+        background: var(--bg-card); border-radius: var(--radius); border: 1px dashed var(--border-light);
+    }
+    .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.3; }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        .projects-grid { grid-template-columns: 1fr; }
+        .btn-ghost { width: 100%; justify-content: center; }
+    }
+</style>
+
+<div class="projects-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class='bx bx-hard-hat' style="color: #FF9F0A;"></i> Proyectos y Obras</h2>
+            <p>Supervisión general de todos los proyectos activos.</p>
+        </div>
+        
+        <div>
+            <a href="{% url 'dash_admin' %}" class="btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="projects-grid">
+        {% for p in proyectos %}
+        <div class="project-card">
+            <div class="card-body">
+                <div class="cb-top">
+                    <span class="project-code">{{ p.codigo }}</span>
+                    
+                    {% if p.estado == 'DISENO' or p.estado == 'PENDIENTE' %}
+                        <span class="status-badge st-diseno">Diseño</span>
+                    {% elif p.estado == 'REVISION_TECNICA' %}
+                        <span class="status-badge st-revision">Revisión</span>
+                    {% elif p.estado == 'OBSERVADO' %}
+                        <span class="status-badge st-observado">Observado</span>
+                    {% elif p.estado == 'APROBADO' %}
+                        <span class="status-badge st-aprobado">Aprobado</span>
+                    {% elif p.estado == 'EN_PROCESO' %}
+                        <span class="status-badge st-proceso">En Ejecución</span>
+                    {% elif p.estado == 'FINALIZADO' %}
+                        <span class="status-badge st-finalizado">Finalizado</span>
+                    {% else %}
+                        <span class="status-badge st-finalizado">{{ p.get_estado_display }}</span>
+                    {% endif %}
+                </div>
+                
+                <h3 class="project-title">{{ p.nombre }}</h3>
+                
+                <div class="project-meta">
+                    <div class="meta-row">
+                        <i class='bx bxs-building'></i> 
+                        <span>Sede: <strong>{{ p.sede.nombre }}</strong></span>
+                    </div>
+                    <div class="meta-row">
+                        <i class='bx bxs-user-pin'></i> 
+                        <span>Resp: <strong>{{ p.responsable.username|default:"Sin asignar" }}</strong></span>
+                    </div>
+                </div>
+
+                <p class="project-desc">
+                    {{ p.descripcion|default:"Sin descripción registrada."|truncatechars:70 }}
+                </p>
+            </div>
+
+            <div class="card-footer">
+                <span class="footer-date">{{ p.creado_en|date:"d M Y" }}</span>
+                <a href="{% url 'proyecto_detail' p.id %}" class="btn-details">
+                    Ver Detalles <i class='bx bx-right-arrow-alt'></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class='bx bx-folder-open'></i>
+            <h3>No hay proyectos activos</h3>
+            <p>Aún no hay obras registradas en el sistema.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,1531 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Telecable | Gestión administrativa{% endblock %}</title>
+
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-main: #eef2f7;
+            --bg-card: #ffffff;
+            --bg-soft: #f8fafc;
+
+            --nav-bg: #071225;
+            --nav-bg-2: #101827;
+            --nav-border: rgba(255, 255, 255, .10);
+
+            --primary: #0f6bff;
+            --primary-dark: #084bcc;
+            --primary-soft: #e8f1ff;
+
+            --cyan: #06b6d4;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+
+            --success-soft: #eafbea;
+            --warning-soft: #fff4de;
+            --danger-soft: #ffe8e8;
+
+            --text-main: #111827;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --text-invert: #ffffff;
+
+            --border: #dce3ee;
+            --border-strong: #c9d3e2;
+
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, .06);
+            --shadow-md: 0 12px 30px rgba(15, 23, 42, .10);
+            --shadow-lg: 0 22px 55px rgba(15, 23, 42, .16);
+
+            --radius: 16px;
+            --radius-lg: 24px;
+            --topbar-height: 74px;
+
+            --font-stack: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100vh;
+            max-width: 100%;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background:
+                radial-gradient(circle at top left, rgba(15, 107, 255, .10), transparent 30%),
+                linear-gradient(180deg, #f7f9fc 0%, var(--bg-main) 100%);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        .app-layout {
+            min-height: 100vh;
+        }
+
+        .admin-navbar {
+            width: 100%;
+            height: var(--topbar-height);
+            background: linear-gradient(135deg, #08111f 0%, #101827 58%, #0b1220 100%);
+            color: var(--text-invert);
+            border-bottom: 1px solid var(--nav-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(2, 6, 23, .24);
+        }
+
+        .navbar-left,
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .navbar-left {
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+
+        .navbar-right {
+            flex: 0 0 auto;
+            margin-left: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 0 0 auto;
+            min-width: 185px;
+        }
+
+        .brand-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 14px 30px rgba(15, 107, 255, .32);
+            flex-shrink: 0;
+        }
+
+        .brand-logo i {
+            font-size: 25px;
+            color: #ffffff;
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: -.3px;
+            line-height: 1.1;
+        }
+
+        .brand-text span {
+            display: block;
+            font-size: 12px;
+            color: #aab6c8;
+            margin-top: 3px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+
+        .nav-links::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-link {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 42px;
+            padding: 0 13px;
+            border-radius: 12px;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 850;
+            white-space: nowrap;
+            transition: .18s ease;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .nav-link i {
+            font-size: 18px;
+            color: #93a4bc;
+            transition: .18s ease;
+        }
+
+        .nav-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, .08);
+            border-color: rgba(255, 255, 255, .08);
+        }
+
+        .nav-link:hover i {
+            color: #ffffff;
+        }
+
+        .nav-link.active {
+            color: #ffffff;
+            background: rgba(15, 107, 255, .22);
+            border-color: rgba(96, 165, 250, .35);
+        }
+
+        .nav-link.active i {
+            color: #60a5fa;
+        }
+
+        .nav-dropdown-btn {
+            border: 1px solid rgba(96, 165, 250, .22);
+            background: rgba(15, 107, 255, .13);
+        }
+
+        .nav-dropdown-btn .dropdown-arrow {
+            font-size: 18px;
+            margin-left: 2px;
+            transition: transform .18s ease;
+        }
+
+        .nav-dropdown-btn.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .nav-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+            padding: 0 13px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .10);
+            color: #e5e7eb;
+            font-size: 12px;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+
+        .nav-chip i {
+            font-size: 17px;
+            color: #60a5fa;
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 12px;
+            background: rgba(220, 38, 38, .14);
+            color: #fecaca;
+            border: 1px solid rgba(248, 113, 113, .18);
+            font-size: 13px;
+            font-weight: 900;
+            transition: .18s ease;
+            white-space: nowrap;
+        }
+
+        .logout-btn:hover {
+            background: rgba(220, 38, 38, .24);
+            color: #ffffff;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .07);
+            color: #ffffff;
+            border-radius: 13px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .mobile-menu-btn i {
+            font-size: 25px;
+        }
+
+        .panel-dropdown {
+            display: none;
+            position: sticky;
+            top: var(--topbar-height);
+            z-index: 998;
+            background: rgba(8, 17, 31, .97);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(255, 255, 255, .10);
+            padding: 16px 28px;
+            box-shadow: 0 18px 42px rgba(2, 6, 23, .30);
+        }
+
+        .panel-dropdown.open {
+            display: block;
+        }
+
+        .panel-dropdown-inner {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        .panel-dropdown-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .panel-dropdown-title strong {
+            display: block;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 950;
+        }
+
+        .panel-dropdown-title span {
+            display: block;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .panel-dropdown-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .06);
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .panel-dropdown-close i {
+            font-size: 22px;
+        }
+
+        .panel-dropdown-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .panel-access-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 74px;
+            padding: 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .065);
+            border: 1px solid rgba(255, 255, 255, .10);
+            color: #ffffff;
+            transition: .18s ease;
+        }
+
+        .panel-access-card:hover {
+            background: rgba(15, 107, 255, .20);
+            border-color: rgba(96, 165, 250, .38);
+            transform: translateY(-1px);
+        }
+
+        .panel-access-card.active {
+            background: rgba(15, 107, 255, .20);
+            border-color: rgba(96, 165, 250, .38);
+        }
+
+        .panel-access-card i {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(15, 107, 255, .18);
+            color: #60a5fa;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .panel-access-card strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 950;
+            color: #ffffff;
+        }
+
+        .panel-access-card span {
+            display: block;
+            font-size: 11px;
+            color: #aab6c8;
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+
+        .mobile-nav {
+            display: none;
+            background: rgba(8, 17, 31, .98);
+            border-bottom: 1px solid rgba(255, 255, 255, .10);
+            padding: 12px;
+            position: fixed;
+            top: var(--topbar-height);
+            left: 0;
+            right: 0;
+            z-index: 999;
+            max-height: calc(100dvh - var(--topbar-height));
+            overflow-y: auto;
+            box-shadow: 0 22px 55px rgba(2, 6, 23, .35);
+        }
+
+        .mobile-nav.open {
+            display: block;
+        }
+
+        .mobile-nav-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .mobile-nav .nav-link {
+            width: 100%;
+            height: 48px;
+            padding: 0 14px;
+            justify-content: flex-start;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            color: #e5e7eb;
+        }
+
+        .mobile-nav .nav-link i {
+            width: 24px;
+            min-width: 24px;
+            font-size: 20px;
+            color: #93c5fd;
+        }
+
+        .mobile-nav .nav-link span {
+            color: #e5e7eb;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .mobile-nav .nav-link.active {
+            background: rgba(15, 107, 255, .22);
+            border-color: rgba(96, 165, 250, .35);
+        }
+
+        .main-content {
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 30px 28px 42px;
+        }
+
+        .auth-content {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .page-hero {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(248, 250, 252, .94)),
+                radial-gradient(circle at top right, rgba(15, 107, 255, .10), transparent 38%);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 26px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .page-title h1,
+        .page-title h2 {
+            margin: 0;
+            font-size: clamp(24px, 2vw, 34px);
+            line-height: 1.12;
+            letter-spacing: -.8px;
+            color: var(--text-main);
+        }
+
+        .page-title p {
+            margin: 8px 0 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .page-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: var(--primary-dark);
+            font-size: 11px;
+            font-weight: 950;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 850;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .meta-pill i {
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        .card,
+        .section-card,
+        .panel-card,
+        .card-ui,
+        .glass-card {
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius) !important;
+            box-shadow: var(--shadow-sm) !important;
+            color: var(--text-main) !important;
+        }
+
+        .card:hover,
+        .section-card:hover,
+        .panel-card:hover,
+        .card-ui:hover {
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .card-header,
+        .panel-header {
+            background: var(--bg-soft) !important;
+            border-bottom: 1px solid var(--border) !important;
+            color: var(--text-main) !important;
+        }
+
+        .stat-grid,
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-card::after {
+            content: "";
+            position: absolute;
+            right: -40px;
+            top: -45px;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(15, 107, 255, .07);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .stat-icon i {
+            font-size: 27px;
+        }
+
+        .stat-icon.success {
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .stat-icon.warning {
+            background: var(--warning-soft);
+            color: var(--warning);
+        }
+
+        .stat-icon.danger {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .stat-info strong {
+            display: block;
+            font-size: 28px;
+            line-height: 1;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .stat-info span {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .stat-info small {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .btn,
+        .btn-main,
+        button.btn-main,
+        a.btn-main {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: .18s ease;
+            text-decoration: none;
+            line-height: 1.2;
+        }
+
+        .btn:hover,
+        .btn-main:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled,
+        .btn-main:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary,
+        .btn-primary-ui {
+            background: var(--primary) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primary:hover,
+        .btn-primary-ui:hover {
+            background: var(--primary-dark) !important;
+        }
+
+        .btn-success,
+        .btn-success-ui {
+            background: var(--success) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-danger,
+        .btn-danger-ui {
+            background: var(--danger-soft) !important;
+            color: var(--danger) !important;
+            border: 1px solid rgba(220, 38, 38, .18) !important;
+        }
+
+        .btn-warning,
+        .btn-warning-ui {
+            background: var(--warning-soft) !important;
+            color: #92400e !important;
+            border: 1px solid rgba(245, 158, 11, .22) !important;
+        }
+
+        .btn-ghost,
+        .btn-secondary-ui {
+            background: #ffffff !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-strong) !important;
+        }
+
+        .btn-ghost:hover,
+        .btn-secondary-ui:hover {
+            background: var(--bg-soft) !important;
+        }
+
+        input,
+        select,
+        textarea,
+        .input-ui,
+        .select-ui {
+            width: 100%;
+            background: #ffffff !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-strong) !important;
+            border-radius: 12px !important;
+            padding: 12px 14px !important;
+            font-size: 14px;
+            outline: none;
+            transition: .18s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus,
+        .input-ui:focus,
+        .select-ui:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 4px rgba(15, 107, 255, .12) !important;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        label,
+        .label-ui {
+            color: var(--text-main) !important;
+            font-weight: 900;
+            font-size: 13px;
+        }
+
+        small,
+        .help-text {
+            color: var(--text-secondary);
+        }
+
+        .table-responsive,
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: var(--radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            color: var(--text-main);
+        }
+
+        th {
+            background: #f1f5f9 !important;
+            color: #334155 !important;
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 15px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover td {
+            background: #f8fafc;
+        }
+
+        .badge,
+        .tag,
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .badge-success,
+        .tag-in {
+            background: var(--success-soft) !important;
+            color: #166534 !important;
+            border: 1px solid rgba(22, 163, 74, .18) !important;
+        }
+
+        .badge-danger,
+        .tag-out {
+            background: var(--danger-soft) !important;
+            color: #991b1b !important;
+            border: 1px solid rgba(220, 38, 38, .18) !important;
+        }
+
+        .badge-warning,
+        .tag-adj {
+            background: var(--warning-soft) !important;
+            color: #92400e !important;
+            border: 1px solid rgba(245, 158, 11, .22) !important;
+        }
+
+        .badge-info {
+            background: var(--primary-soft) !important;
+            color: var(--primary-dark) !important;
+            border: 1px solid rgba(15, 107, 255, .20) !important;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 88px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: min(430px, calc(100vw - 32px));
+        }
+
+        .toast-msg {
+            background: rgba(255, 255, 255, .96);
+            backdrop-filter: blur(14px);
+            color: var(--text-main);
+            padding: 14px 16px;
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            border: 1px solid var(--border);
+            animation: toastIn .25s ease-out;
+        }
+
+        .toast-msg i {
+            margin-top: 1px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateX(16px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .app-footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 20px 18px 34px;
+        }
+
+        @media (max-width: 1500px) {
+            .admin-navbar {
+                padding: 0 18px;
+                gap: 10px;
+            }
+
+            .brand {
+                min-width: 170px;
+            }
+
+            .brand-logo {
+                width: 40px;
+                height: 40px;
+                border-radius: 13px;
+            }
+
+            .brand-text strong {
+                font-size: 15px;
+            }
+
+            .brand-text span {
+                font-size: 11px;
+            }
+
+            .nav-link {
+                height: 42px;
+                padding: 0 11px;
+            }
+
+            .nav-chip {
+                height: 38px;
+                padding: 0 11px;
+                font-size: 12px;
+            }
+
+            .logout-btn {
+                height: 38px;
+                padding: 0 12px;
+            }
+        }
+
+        @media (max-width: 1350px) {
+            .nav-links > .nav-link:not(.nav-dropdown-btn) span {
+                display: none;
+            }
+
+            .nav-links > .nav-link:not(.nav-dropdown-btn) {
+                width: 42px;
+                padding: 0;
+            }
+
+            .panel-dropdown-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .admin-navbar {
+                padding: 0 12px;
+                overflow: visible;
+            }
+
+            .navbar-left {
+                flex: 1;
+                overflow: visible;
+            }
+
+            .brand {
+                min-width: 0;
+            }
+
+            .brand-logo {
+                width: 40px;
+                height: 40px;
+                border-radius: 14px;
+            }
+
+            .brand-text strong {
+                font-size: 14px;
+            }
+
+            .brand-text span {
+                display: none;
+            }
+
+            .nav-links {
+                display: none !important;
+            }
+
+            .mobile-menu-btn {
+                display: inline-flex !important;
+            }
+
+            .navbar-right {
+                gap: 8px;
+            }
+
+            .navbar-right .nav-chip {
+                display: none !important;
+            }
+
+            .logout-btn {
+                width: 42px;
+                min-width: 42px;
+                height: 42px;
+                padding: 0;
+            }
+
+            .logout-btn span {
+                display: none;
+            }
+
+            .panel-dropdown {
+                display: none !important;
+            }
+
+            .main-content {
+                padding: 20px 14px 34px;
+            }
+
+            .stat-grid,
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .panel-dropdown-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            :root {
+                --topbar-height: 62px;
+            }
+
+            .admin-navbar {
+                height: 62px;
+                padding: 0 10px;
+            }
+
+            .brand-logo {
+                width: 36px;
+                height: 36px;
+                border-radius: 13px;
+            }
+
+            .brand-logo i {
+                font-size: 22px;
+            }
+
+            .brand-text strong {
+                font-size: 13px;
+            }
+
+            .mobile-menu-btn,
+            .logout-btn {
+                width: 38px;
+                min-width: 38px;
+                height: 38px;
+                border-radius: 12px;
+            }
+
+            .mobile-nav {
+                top: 62px;
+                max-height: calc(100dvh - 62px);
+            }
+
+            .mobile-nav .nav-link {
+                height: 46px;
+            }
+
+            .main-content {
+                padding: 16px 12px 30px;
+            }
+
+            .page-hero {
+                padding: 20px;
+                border-radius: 18px;
+            }
+
+            .btn,
+            .btn-main,
+            button.btn-main,
+            a.btn-main {
+                width: 100%;
+            }
+
+            th,
+            td {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+
+            .toast-container {
+                top: 78px;
+                right: 12px;
+                left: 12px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .brand-text strong {
+                max-width: 110px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .navbar-right {
+                gap: 6px;
+            }
+        }
+
+   </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    {% if user.is_authenticated %}
+        <div class="app-layout">
+            <header class="admin-navbar">
+                <div class="navbar-left">
+                    <a href="{% url 'home' %}" class="brand">
+                        <div class="brand-logo">
+                            <i class='bx bxs-cube-alt'></i>
+                        </div>
+
+                        <div class="brand-text">
+                            <strong>Telecable</strong>
+                            <span>Gestión administrativa</span>
+                        </div>
+                    </a>
+
+                    <nav class="nav-links" id="desktopNav">
+                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                            <a href="{% url 'dash_admin' %}" class="nav-link">
+                                <i class='bx bx-bar-chart-square'></i>
+                                <span>Gerencia</span>
+                            </a>
+                        {% endif %}
+
+                        {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
+                            <a href="{% url 'dash_almacen' %}" class="nav-link">
+                                <i class='bx bx-store-alt'></i>
+                                <span>Almacén</span>
+                            </a>
+                        {% endif %}
+
+                        <button type="button" class="nav-link nav-dropdown-btn" id="panelDropdownBtn">
+                            <i class='bx bx-grid-alt'></i>
+                            <span>Paneles</span>
+                            <i class='bx bx-chevron-down dropdown-arrow'></i>
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="navbar-right">
+                    {% if user.profile.rol %}
+                        <span class="nav-chip">
+                            <i class='bx bx-shield-quarter'></i>
+                            {{ user.profile.get_rol_display }}
+                        </span>
+                    {% endif %}
+
+                    <span class="nav-chip">
+                        <i class='bx bx-calendar'></i>
+                        {% now "d/m/Y" %}
+                    </span>
+
+                    <a href="{% url 'logout' %}" class="logout-btn">
+                        <i class='bx bx-log-out'></i>
+                        <span>Salir</span>
+                    </a>
+
+                    <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menú">
+                        <i class='bx bx-menu'></i>
+                    </button>
+                </div>
+            </header>
+
+            <section class="panel-dropdown" id="panelDropdown">
+                <div class="panel-dropdown-inner">
+                    <div class="panel-dropdown-title">
+                        <div>
+                            <strong>Paneles disponibles</strong>
+                            <span>Accesos rápidos del sistema según tu perfil.</span>
+                        </div>
+
+                        <button type="button" class="panel-dropdown-close" id="panelDropdownClose">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </div>
+
+                    <div class="panel-dropdown-grid">
+                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                            <a href="{% url 'dash_admin' %}" class="panel-access-card">
+                                <i class='bx bx-bar-chart-square'></i>
+                                <div>
+                                    <strong>Panel gerencial</strong>
+                                    <span>Indicadores, alertas y toma de decisiones</span>
+                                </div>
+                            </a>
+                        {% endif %}
+
+                        {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
+                            <a href="{% url 'dash_almacen' %}" class="panel-access-card">
+                                <i class='bx bx-store-alt'></i>
+                                <div>
+                                    <strong>Panel almacén</strong>
+                                    <span>Operaciones principales de almacén</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'inventory_list' %}" class="panel-access-card">
+                                <i class='bx bx-package'></i>
+                                <div>
+                                    <strong>Inventario</strong>
+                                    <span>Consulta de productos y existencias</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'carga_inicial_home' %}" class="panel-access-card">
+                                <i class='bx bx-list-plus'></i>
+                                <div>
+                                    <strong>Carga inicial</strong>
+                                    <span>Registrar stock físico inicial</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'req_home_almacen' %}" class="panel-access-card">
+                                <i class='bx bx-clipboard'></i>
+                                <div>
+                                    <strong>Requerimientos</strong>
+                                    <span>Atender solicitudes pendientes</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'req_asignacion_directa' %}" class="panel-access-card">
+                                <i class='bx bx-barcode-reader'></i>
+                                <div>
+                                    <strong>Despacho directo</strong>
+                                    <span>Cargar mochila técnica</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'almacen_devolucion_rapida' %}" class="panel-access-card">
+                                <i class='bx bx-undo'></i>
+                                <div>
+                                    <strong>Devoluciones</strong>
+                                    <span>Retorno de equipos o materiales</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'almacen_historial_global' %}" class="panel-access-card">
+                                <i class='bx bx-history'></i>
+                                <div>
+                                    <strong>Historial</strong>
+                                    <span>Movimientos de inventario</span>
+                                </div>
+                            </a>
+                        {% endif %}
+
+                        {% if user.profile.rol == "SOLICITANTE" %}
+                            <a href="{% url 'req_home' %}" class="panel-access-card">
+                                <i class='bx bx-cart-add'></i>
+                                <div>
+                                    <strong>Mis solicitudes</strong>
+                                    <span>Crear y revisar requerimientos</span>
+                                </div>
+                            </a>
+                        {% endif %}
+
+                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                            <a href="{% url 'proyecto_list' %}" class="panel-access-card">
+                                <i class='bx bx-hard-hat'></i>
+                                <div>
+                                    <strong>Proyectos</strong>
+                                    <span>Supervisión de obras y avances</span>
+                                </div>
+                            </a>
+
+                            <a href="{% url 'admin_reporte_lista' %}" class="panel-access-card">
+                                <i class='bx bx-line-chart'></i>
+                                <div>
+                                    <strong>Reportes</strong>
+                                    <span>Análisis y control administrativo</span>
+                                </div>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="mobile-nav" id="mobileNav">
+                <div class="mobile-nav-grid">
+                    {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                        <a href="{% url 'dash_admin' %}" class="nav-link">
+                            <i class='bx bx-bar-chart-square'></i>
+                            <span>Panel gerencial</span>
+                        </a>
+                    {% endif %}
+
+                    {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
+                        <a href="{% url 'dash_almacen' %}" class="nav-link">
+                            <i class='bx bx-store-alt'></i>
+                            <span>Panel almacén</span>
+                        </a>
+
+                        <a href="{% url 'inventory_list' %}" class="nav-link">
+                            <i class='bx bx-package'></i>
+                            <span>Inventario</span>
+                        </a>
+
+                        <a href="{% url 'carga_inicial_home' %}" class="nav-link">
+                            <i class='bx bx-list-plus'></i>
+                            <span>Carga inicial</span>
+                        </a>
+
+                        <a href="{% url 'req_home_almacen' %}" class="nav-link">
+                            <i class='bx bx-clipboard'></i>
+                            <span>Requerimientos</span>
+                        </a>
+
+                        <a href="{% url 'req_asignacion_directa' %}" class="nav-link">
+                            <i class='bx bx-barcode-reader'></i>
+                            <span>Despacho directo</span>
+                        </a>
+
+                        <a href="{% url 'almacen_devolucion_rapida' %}" class="nav-link">
+                            <i class='bx bx-undo'></i>
+                            <span>Devoluciones</span>
+                        </a>
+
+                        <a href="{% url 'almacen_historial_global' %}" class="nav-link">
+                            <i class='bx bx-history'></i>
+                            <span>Historial</span>
+                        </a>
+                    {% endif %}
+
+                    {% if user.profile.rol == "SOLICITANTE" %}
+                        <a href="{% url 'req_home' %}" class="nav-link">
+                            <i class='bx bx-cart-add'></i>
+                            <span>Mis solicitudes</span>
+                        </a>
+                    {% endif %}
+
+                    {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                        <a href="{% url 'proyecto_list' %}" class="nav-link">
+                            <i class='bx bx-hard-hat'></i>
+                            <span>Proyectos</span>
+                        </a>
+
+                        <a href="{% url 'admin_reporte_lista' %}" class="nav-link">
+                            <i class='bx bx-line-chart'></i>
+                            <span>Reportes</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <main class="main-content">
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer class="app-footer">
+                &copy; 2026 Telecable S.A.C. | Sistema interno de gestión administrativa
+            </footer>
+        </div>
+    {% else %}
+        <section class="auth-content">
+            {% block auth_content %}{% endblock %}
+            {% block content_public %}{% endblock %}
+        </section>
+    {% endif %}
+
+    {% if messages %}
+        <div class="toast-container">
+            {% for message in messages %}
+                <div class="toast-msg">
+                    {% if message.tags == 'success' %}
+                        <i class='bx bxs-check-circle' style="color: var(--success);"></i>
+                    {% elif message.tags == 'error' %}
+                        <i class='bx bxs-error-circle' style="color: var(--danger);"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class='bx bxs-error' style="color: var(--warning);"></i>
+                    {% else %}
+                        <i class='bx bxs-info-circle' style="color: var(--primary);"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+            const mobileNav = document.getElementById("mobileNav");
+
+            if (mobileMenuBtn && mobileNav) {
+                mobileMenuBtn.addEventListener("click", function () {
+                    mobileNav.classList.toggle("open");
+
+                    const icon = mobileMenuBtn.querySelector("i");
+
+                    if (icon) {
+                        if (mobileNav.classList.contains("open")) {
+                            icon.classList.remove("bx-menu");
+                            icon.classList.add("bx-x");
+                        } else {
+                            icon.classList.remove("bx-x");
+                            icon.classList.add("bx-menu");
+                        }
+                    }
+                });
+            }
+
+            const panelDropdownBtn = document.getElementById("panelDropdownBtn");
+            const panelDropdown = document.getElementById("panelDropdown");
+            const panelDropdownClose = document.getElementById("panelDropdownClose");
+
+            if (panelDropdownBtn && panelDropdown) {
+                panelDropdownBtn.addEventListener("click", function () {
+                    panelDropdown.classList.toggle("open");
+                    panelDropdownBtn.classList.toggle("open");
+                });
+            }
+
+            if (panelDropdownClose && panelDropdown && panelDropdownBtn) {
+                panelDropdownClose.addEventListener("click", function () {
+                    panelDropdown.classList.remove("open");
+                    panelDropdownBtn.classList.remove("open");
+                });
+            }
+
+            document.addEventListener("click", function (event) {
+                if (panelDropdown && panelDropdownBtn) {
+                    const clickedInsideDropdown = panelDropdown.contains(event.target);
+                    const clickedButton = panelDropdownBtn.contains(event.target);
+
+                    if (!clickedInsideDropdown && !clickedButton) {
+                        panelDropdown.classList.remove("open");
+                        panelDropdownBtn.classList.remove("open");
+                    }
+                }
+
+                if (mobileNav && mobileMenuBtn) {
+                    const clickedInsideMobile = mobileNav.contains(event.target);
+                    const clickedMobileButton = mobileMenuBtn.contains(event.target);
+
+                    if (!clickedInsideMobile && !clickedMobileButton) {
+                        mobileNav.classList.remove("open");
+
+                        const icon = mobileMenuBtn.querySelector("i");
+
+                        if (icon) {
+                            icon.classList.remove("bx-x");
+                            icon.classList.add("bx-menu");
+                        }
+                    }
+                }
+            });
+
+            const currentPath = window.location.pathname;
+            const links = document.querySelectorAll(".nav-link, .panel-access-card");
+
+            links.forEach(link => {
+                const href = link.getAttribute("href");
+
+                if (!href || href === "#") return;
+
+                if (currentPath === href || (href !== "/" && currentPath.startsWith(href))) {
+                    link.classList.add("active");
+                }
+            });
+
+            setTimeout(() => {
+                const toasts = document.querySelectorAll(".toast-msg");
+
+                toasts.forEach(toast => {
+                    toast.style.opacity = "0";
+                    toast.style.transform = "translateY(-10px)";
+                    toast.style.transition = ".25s ease";
+
+                    setTimeout(() => toast.remove(), 260);
+                });
+            }, 4200);
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

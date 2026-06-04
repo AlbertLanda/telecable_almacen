@@ -1,0 +1,172 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vale {{ proyecto.codigo }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        /* --- RESET Y BASE --- */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #525659; /* Gris oscuro tipo visor PDF */
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- HOJA A4 --- */
+        .sheet {
+            background-color: white;
+            width: 210mm; min-height: 297mm; /* Tamaño A4 */
+            padding: 15mm 20mm;
+            margin: 30px auto;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* --- ENCABEZADO --- */
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-area img { height: 50px; }
+        .company-info h1 { margin: 0; font-size: 22px; font-weight: 900; text-transform: uppercase; color: #1a1a2e; }
+        .company-info p { margin: 0; font-size: 11px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+        
+        .meta-info { text-align: right; font-size: 11px; color: #333; line-height: 1.4; }
+
+        /* --- TÍTULO --- */
+        .doc-title { text-align: center; margin-bottom: 25px; }
+        .doc-title h2 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #ccc; display: inline-block; padding-bottom: 5px; }
+
+        /* --- GRID DE INFO (Lo que fallaba en PDF, aquí funciona perfecto) --- */
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px;
+            padding: 15px; margin-bottom: 25px;
+        }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; border-bottom: 1px dotted #ccc; padding-bottom: 2px; }
+        .info-row label { font-weight: 800; color: #444; }
+        .info-row span { font-weight: 500; color: #000; }
+
+        /* --- TABLA --- */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11px; }
+        th { background: #1a1a2e; color: white; padding: 10px; text-align: left; text-transform: uppercase; font-size: 10px; }
+        td { border-bottom: 1px solid #eee; padding: 10px; color: #333; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: bold; }
+
+        /* --- FIRMAS --- */
+        .signatures { display: flex; justify-content: space-between; margin-top: 80px; padding: 0 20px; }
+        .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+
+        /* --- BOTONES FLOTANTES (Solo para pantalla) --- */
+        .fab-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-fab {
+            width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s; color: white; text-decoration: none;
+        }
+        .btn-print { background: #4e73df; }
+        .btn-back { background: #858796; }
+        .btn-fab:hover { transform: scale(1.1); }
+
+        /* --- ESTILOS DE IMPRESIÓN (La Magia) --- */
+        @media print {
+            body { background: none; display: block; }
+            .sheet { width: 100%; margin: 0; box-shadow: none; padding: 0; }
+            .fab-container { display: none; } /* Ocultar botones al imprimir */
+            @page { margin: 15mm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fab-container">
+        <button onclick="window.print()" class="btn-fab btn-print" title="Imprimir">
+            <i class='bx bx-printer'></i>
+        </button>
+        <a href="javascript:window.close()" class="btn-fab btn-back" title="Cerrar">
+            <i class='bx bx-x'></i>
+        </a>
+    </div>
+
+    <div class="sheet">
+        
+        <div class="header">
+            <div class="logo-area">
+                <img src="{% static 'inventario/img/logo.png' %}" onerror="this.style.display='none'">
+                <div class="company-info">
+                    <h1>Telecable</h1>
+                    <p>Servicios Generales</p>
+                </div>
+            </div>
+            <div class="meta-info">
+                <div><b>Emisión:</b> {{ fecha_impresion|date:"d/m/Y H:i" }}</div>
+                <div><b>Usuario:</b> {{ usuario.username|upper }}</div>
+            </div>
+        </div>
+
+        <div class="doc-title">
+            <h2>Vale de Salida de Materiales</h2>
+        </div>
+
+        <div class="info-grid">
+            <div class="col">
+                <div class="info-row"><label>CÓDIGO OBRA:</label> <span>{{ proyecto.codigo }}</span></div>
+                <div class="info-row"><label>PROYECTO:</label> <span>{{ proyecto.nombre }}</span></div>
+                <div class="info-row"><label>SEDE:</label> <span>{{ proyecto.sede.nombre }}</span></div>
+            </div>
+            <div class="col">
+                <div class="info-row"><label>RESPONSABLE:</label> <span>{{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}</span></div>
+                <div class="info-row"><label>FECHA INICIO:</label> <span>{{ proyecto.inicio|date:"d/m/Y" }}</span></div>
+                <div class="info-row"><label>ESTADO:</label> <span>{{ proyecto.get_estado_display }}</span></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;" class="text-center">#</th>
+                    <th style="width: 120px;">CÓDIGO</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th class="text-center">U.M.</th>
+                    <th class="text-center">PLAN</th>
+                    <th class="text-center">ENTREGADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in materiales %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>{{ item.producto.codigo_interno }}</td>
+                    <td>{{ item.producto.nombre }}</td>
+                    <td class="text-center">{{ item.producto.unidad|default:"UND" }}</td>
+                    <td class="text-center text-muted">{{ item.cantidad_planificada }}</td>
+                    <td class="text-center fw-bold" style="background:#f0f0f0;">{{ item.cantidad_entregada }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="signatures">
+            <div class="sign-box">
+                <br><br>
+                ENTREGADO POR<br>
+                <span style="font-weight:400; font-size:9px;">ALMACÉN</span>
+            </div>
+            <div class="sign-box">
+                <br><br>
+                RECIBIDO CONFORME<br>
+                <span style="font-weight:400; font-size:9px;">DNI: _________________</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

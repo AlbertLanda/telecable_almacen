@@ -1,0 +1,1247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}REQ Almacén | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --req-primary: #0f6bff;
+        --req-primary-dark: #084bcc;
+        --req-primary-soft: #e8f1ff;
+
+        --req-success: #16a34a;
+        --req-success-soft: #eafbea;
+
+        --req-warning: #d97706;
+        --req-warning-soft: #fff4de;
+
+        --req-danger: #dc2626;
+        --req-danger-soft: #ffe8e8;
+
+        --req-card: #ffffff;
+        --req-soft: #f8fafc;
+        --req-border: #dce3ee;
+        --req-border-strong: #c9d3e2;
+
+        --req-text: #0f172a;
+        --req-muted: #64748b;
+        --req-light: #94a3b8;
+
+        --req-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --req-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .req-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        animation: reqFade .25s ease-out;
+    }
+
+    @keyframes reqFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .header-page {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+    }
+
+    .hp-title h1 {
+        margin: 0;
+        color: var(--req-text);
+        font-size: 28px;
+        font-weight: 950;
+        letter-spacing: -.8px;
+        line-height: 1.1;
+    }
+
+    .hp-meta {
+        margin: 8px 0 0;
+        color: var(--req-muted);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 9px;
+        font-weight: 800;
+    }
+
+    .hp-meta i {
+        color: var(--req-primary);
+        font-size: 16px;
+    }
+
+    .hp-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .left-col,
+    .right-col {
+        min-width: 0;
+    }
+
+    .req-card {
+        background: var(--req-card);
+        border: 1px solid var(--req-border);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--req-shadow-sm);
+    }
+
+    .card-title {
+        font-size: 16px;
+        font-weight: 950;
+        color: var(--req-text);
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        letter-spacing: .2px;
+    }
+
+    .card-title span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-title i {
+        color: var(--req-primary);
+        font-size: 20px;
+    }
+
+    .config-box {
+        background: var(--req-soft);
+        border-radius: 16px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 150px;
+        gap: 15px;
+        align-items: end;
+        border: 1px dashed var(--req-border-strong);
+    }
+
+    .form-group {
+        min-width: 0;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 950;
+        color: var(--req-text);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: .06em;
+    }
+
+    .input-clean {
+        background: #ffffff !important;
+        border: 1px solid var(--req-border-strong) !important;
+        color: var(--req-text) !important;
+        padding: 0 14px !important;
+        border-radius: 14px !important;
+        width: 100%;
+        min-height: 48px;
+        font-size: 14px;
+        transition: .18s ease;
+        font-family: inherit;
+        font-weight: 800;
+        outline: none;
+    }
+
+    .input-clean:focus {
+        border-color: var(--req-primary) !important;
+        box-shadow: 0 0 0 4px rgba(15, 107, 255, .12) !important;
+    }
+
+    .config-note {
+        margin: 13px 0 0;
+        font-size: 12px;
+        color: var(--req-muted);
+        font-weight: 750;
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        line-height: 1.45;
+    }
+
+    .config-note i {
+        color: var(--req-primary);
+        font-size: 16px;
+        margin-top: 1px;
+    }
+
+    .btn-primary-solid {
+        background: var(--req-primary);
+        color: #ffffff;
+        border: none;
+        padding: 0 16px;
+        min-height: 48px;
+        border-radius: 14px;
+        font-weight: 950;
+        cursor: pointer;
+        transition: .18s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        white-space: nowrap;
+        box-shadow: 0 12px 22px rgba(15, 107, 255, .18);
+    }
+
+    .btn-primary-solid:hover {
+        background: var(--req-primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary-solid:disabled {
+        opacity: .75;
+        cursor: wait;
+        transform: none;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 12px;
+        background: #ffffff;
+        color: var(--req-text);
+        border: 1px solid var(--req-border-strong);
+        font-size: 13px;
+        font-weight: 950;
+        transition: .18s ease;
+        text-decoration: none;
+    }
+
+    .btn-back:hover {
+        background: var(--req-soft);
+        transform: translateY(-1px);
+    }
+
+    .pill {
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .pill-green {
+        background: var(--req-success-soft);
+        color: #166534;
+        border-color: rgba(22, 163, 74, .20);
+    }
+
+    .pill-orange {
+        background: var(--req-warning-soft);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, .22);
+    }
+
+    .materials-panel {
+        background: var(--req-card);
+        border: 1px solid var(--req-border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: var(--req-shadow-sm);
+        margin-bottom: 24px;
+    }
+
+    .materials-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .materials-title {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .materials-title i {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+        background: var(--req-primary-soft);
+        color: var(--req-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .materials-title h2 {
+        margin: 0;
+        color: var(--req-text);
+        font-size: 17px;
+        font-weight: 950;
+        letter-spacing: -.3px;
+    }
+
+    .materials-title span {
+        display: block;
+        margin-top: 4px;
+        color: var(--req-muted);
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 750;
+    }
+
+    .search-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 52px;
+        gap: 10px;
+        margin-bottom: 22px;
+    }
+
+    .search-box {
+        position: relative;
+        min-width: 0;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: var(--req-muted);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .search-input {
+        width: 100%;
+        min-height: 52px;
+        background: #ffffff !important;
+        border: 1px solid var(--req-border-strong) !important;
+        color: var(--req-text) !important;
+        padding: 0 16px 0 48px !important;
+        border-radius: 14px !important;
+        font-size: 14px;
+        transition: .18s ease;
+        outline: none;
+        font-family: inherit;
+        font-weight: 800;
+    }
+
+    .search-input::placeholder {
+        color: var(--req-light);
+        font-weight: 700;
+    }
+
+    .search-input:focus {
+        border-color: var(--req-primary) !important;
+        box-shadow: 0 0 0 4px rgba(15, 107, 255, .12) !important;
+    }
+
+    .btn-search {
+        width: 52px;
+        height: 52px;
+        padding: 0;
+        background: var(--req-primary);
+        color: #ffffff;
+        border: none;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        cursor: pointer;
+        transition: .18s ease;
+        box-shadow: 0 12px 22px rgba(15, 107, 255, .20);
+    }
+
+    .btn-search:hover {
+        background: var(--req-primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .item-list {
+        border-top: 1px solid var(--req-border);
+    }
+
+    .item-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--req-border);
+    }
+
+    .item-row:last-child {
+        border-bottom: none;
+    }
+
+    .item-name {
+        font-weight: 950;
+        font-size: 15px;
+        color: var(--req-text);
+        margin-bottom: 6px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .item-meta {
+        font-size: 12px;
+        color: var(--req-muted);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 800;
+    }
+
+    .stock-ok {
+        color: var(--req-success);
+        font-weight: 950;
+        font-family: var(--font-stack, system-ui, sans-serif);
+    }
+
+    .stock-low {
+        color: var(--req-danger);
+        font-weight: 950;
+        font-family: var(--font-stack, system-ui, sans-serif);
+    }
+
+    .item-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .qty-control {
+        width: 64px;
+        min-height: 46px;
+        text-align: center;
+        padding: 0 !important;
+        border-radius: 13px !important;
+        border: 1px solid var(--req-border-strong) !important;
+        background: #ffffff !important;
+        color: var(--req-text) !important;
+        font-weight: 950;
+        font-size: 15px;
+        outline: none;
+    }
+
+    .qty-control:focus {
+        border-color: var(--req-primary) !important;
+        box-shadow: 0 0 0 4px rgba(15, 107, 255, .12) !important;
+    }
+
+    .btn-icon-small {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        transition: .18s ease;
+        font-size: 21px;
+        flex-shrink: 0;
+    }
+
+    .btn-add {
+        background: var(--req-primary-soft);
+        color: var(--req-primary);
+        border: 1px solid rgba(15, 107, 255, .20);
+    }
+
+    .btn-add:hover {
+        background: var(--req-primary);
+        color: #ffffff;
+    }
+
+    .btn-add:disabled {
+        opacity: .55;
+        cursor: wait;
+    }
+
+    .btn-del {
+        background: var(--req-danger-soft);
+        color: var(--req-danger);
+        border: 1px solid rgba(220, 38, 38, .18);
+    }
+
+    .btn-del:hover {
+        background: var(--req-danger);
+        color: #ffffff;
+    }
+
+    .btn-upd {
+        background: var(--req-success-soft);
+        color: var(--req-success);
+        border: 1px solid rgba(22, 163, 74, .20);
+    }
+
+    .btn-upd:hover {
+        background: var(--req-success);
+        color: #ffffff;
+    }
+
+    .sticky-cart {
+        position: sticky;
+        top: 94px;
+    }
+
+    .cart-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    #carrito {
+        min-height: 150px;
+        max-height: 450px;
+        overflow-y: auto;
+        padding-right: 5px;
+        margin-top: 15px;
+    }
+
+    .cart-footer {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--req-border);
+    }
+
+    .btn-confirm {
+        width: 100%;
+        background-color: var(--req-success);
+        color: #ffffff;
+        border: none;
+        padding: 16px;
+        border-radius: 15px;
+        font-weight: 950;
+        font-size: 14px;
+        cursor: pointer;
+        transition: .18s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 12px 24px rgba(22, 163, 74, .18);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .btn-confirm:hover {
+        background-color: #15803d;
+        transform: translateY(-2px);
+    }
+
+    .btn-confirm:disabled {
+        opacity: .65;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .empty-box {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--req-muted);
+        background: var(--req-soft);
+        border-radius: 16px;
+        border: 1px dashed var(--req-border-strong);
+    }
+
+    .empty-box i {
+        font-size: 34px;
+        margin-bottom: 10px;
+        color: var(--req-light);
+        display: block;
+    }
+
+    .empty-box p {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .send-disabled-box {
+        text-align: center;
+        padding: 16px;
+        background: var(--req-soft);
+        border-radius: 14px;
+        color: var(--req-muted);
+        font-size: 12px;
+        border: 1px dashed var(--req-border-strong);
+        font-weight: 800;
+        line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+        .grid-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .sticky-cart {
+            position: static;
+            order: -1;
+        }
+
+        .right-col {
+            order: -1;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .req-page {
+            gap: 18px;
+        }
+
+        .header-page {
+            flex-direction: column;
+        }
+
+        .hp-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .btn-back,
+        .pill {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .req-card,
+        .materials-panel {
+            padding: 20px;
+            border-radius: 18px;
+        }
+
+        .config-box {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-primary-solid {
+            width: 100%;
+        }
+
+        .materials-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .search-row {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-search {
+            width: 100%;
+        }
+
+        .item-row {
+            grid-template-columns: 1fr;
+            align-items: stretch;
+        }
+
+        .item-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 48px;
+        }
+
+        .qty-control {
+            width: 100%;
+        }
+
+        .btn-icon-small {
+            width: 48px;
+            height: 46px;
+        }
+    }
+</style>
+
+<div class="req-page">
+
+    <div class="header-page">
+        <div class="hp-info">
+            <div class="hp-title">
+                <h1>Gestión de REQ</h1>
+            </div>
+
+            <div class="hp-meta">
+                <i class='bx bxs-map'></i>
+                <span>{{ sede.nombre }}</span>
+
+                <span>|</span>
+
+                <i class='bx bxs-user'></i>
+                <span>{{ request.user.username }}</span>
+            </div>
+        </div>
+
+        <div class="hp-actions">
+            <a href="{% url 'dash_almacen' %}" class="btn-back">
+                <i class='bx bx-arrow-back'></i>
+                Volver
+            </a>
+
+            {% if req and req.id %}
+                <a href="{% url 'req_print' req.id %}" target="_blank" class="btn-back">
+                    <i class='bx bx-printer'></i>
+                    Imprimir
+                </a>
+            {% endif %}
+
+            {% if sede.tipo == "CENTRAL" %}
+                <span class="pill pill-green">
+                    <i class='bx bxs-truck'></i>
+                    Modo proveedor
+                </span>
+            {% else %}
+                <span class="pill pill-orange">
+                    <i class='bx bx-transfer'></i>
+                    Entre sedes
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid-layout">
+
+        <div class="left-col">
+
+            <div class="req-card">
+                <div class="card-title">
+                    <span>
+                        <i class='bx bx-cog'></i>
+                        1. Configuración del pedido
+                    </span>
+
+                    <i class='bx bxs-cog'></i>
+                </div>
+
+                <div class="config-box">
+                    <div class="form-group">
+                        {% if sede.tipo == "CENTRAL" %}
+                            <label class="form-label">Nombre del proveedor / razón social</label>
+
+                            <input
+                                type="text"
+                                id="txtProveedor"
+                                class="input-clean"
+                                placeholder="Ej: Ferretería Central SAC..."
+                                value="{{ req.proveedor_manual|default:'' }}"
+                                autocomplete="off"
+                            >
+                        {% else %}
+                            <label class="form-label">Sede destino (almacén central)</label>
+
+                            <select id="selDestino" class="input-clean">
+                                <option value="">-- Seleccionar Central --</option>
+
+                                {% for s in sedes_central %}
+                                    <option value="{{ s.id }}" {% if req.sede_destino_id == s.id %}selected{% endif %}>
+                                        {{ s.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
+                    </div>
+
+                    <button type="button" id="btnGuardarCfg" class="btn-primary-solid">
+                        <i class='bx bx-save'></i>
+                        Guardar Config.
+                    </button>
+                </div>
+
+                <p class="config-note">
+                    <i class='bx bx-info-circle'></i>
+                    <span>Asegúrate de guardar la configuración antes de generar la orden final.</span>
+                </p>
+            </div>
+
+            <section class="materials-panel">
+                <div class="materials-header">
+                    <div class="materials-title">
+                        <i class='bx bx-search-alt-2'></i>
+
+                        <div>
+                            <h2>2. Buscar materiales</h2>
+                            <span>Consulta productos disponibles y agrégalos al requerimiento.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-row">
+                    <div class="search-box">
+                        <i class='bx bx-search search-icon'></i>
+
+                        <input
+                            id="q"
+                            class="search-input"
+                            placeholder="Buscar producto por nombre o código..."
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <button type="button" id="btnBuscar" class="btn-search" title="Buscar">
+                        <i class='bx bx-right-arrow-alt'></i>
+                    </button>
+                </div>
+
+                <div id="catalogo" class="item-list"></div>
+            </section>
+        </div>
+
+        <div class="right-col">
+            <div class="req-card sticky-cart">
+                <div class="card-title cart-title-row">
+                    <span>
+                        <i class='bx bx-cart'></i>
+                        Carrito de compras
+                    </span>
+
+                    <span class="pill" style="background:var(--req-soft); color:var(--req-text); border:1px solid var(--req-border);" id="cartCount">
+                        0 ÍTEMS
+                    </span>
+                </div>
+
+                <div id="carrito"></div>
+
+                <div class="cart-footer">
+                    {% if req and req.id %}
+                        <form method="post" action="{% url 'req_enviar' req.id %}" id="formEnviarOrden">
+                            {% csrf_token %}
+
+                            <button type="submit" class="btn-confirm" id="btnGenerarOrden">
+                                {% if sede.tipo == "CENTRAL" %}
+                                    <i class='bx bx-check-double'></i>
+                                    Generar orden de compra
+                                {% else %}
+                                    <i class='bx bx-send'></i>
+                                    Enviar solicitud a central
+                                {% endif %}
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="send-disabled-box">
+                            Guarda el proveedor o sede destino en el Paso 1 para habilitar el envío.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        const v = `; ${document.cookie}`;
+        const parts = v.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return "";
+    }
+
+    const csrftoken = getCookie('csrftoken');
+    const currentReqId = "{{ req.id|default:'' }}";
+    const sedeTipo = "{{ sede.tipo|default:'SUCURSAL' }}".toUpperCase();
+    const btnGuardarCfg = document.getElementById("btnGuardarCfg");
+
+    const formEnviarOrden = document.getElementById('formEnviarOrden');
+    const btnGenerarOrden = document.getElementById('btnGenerarOrden');
+
+    if (formEnviarOrden && btnGenerarOrden) {
+        formEnviarOrden.addEventListener('submit', function () {
+            btnGenerarOrden.disabled = true;
+            btnGenerarOrden.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Procesando orden...";
+        });
+    }
+
+    function el(tag, html) {
+        const d = document.createElement(tag);
+        d.innerHTML = html;
+        return d.firstElementChild;
+    }
+
+    function escapeHtml(str) {
+        return String(str || "").replace(/[&<>"']/g, (m) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[m]));
+    }
+
+    async function fetchJSON(url, opts = {}) {
+        const res = await fetch(url, opts);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            throw new Error(data.error || ('HTTP ' + res.status));
+        }
+
+        return data;
+    }
+
+    async function guardarConfig() {
+        if (!btnGuardarCfg) return;
+
+        const originalText = btnGuardarCfg.innerHTML;
+
+        btnGuardarCfg.disabled = true;
+        btnGuardarCfg.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Guardando...";
+
+        try {
+            const fd = new FormData();
+
+            fd.append("req_id", currentReqId);
+
+            const inputProveedor = document.getElementById("txtProveedor");
+            const selectDestino = document.getElementById("selDestino");
+
+            if (sedeTipo === "CENTRAL" || inputProveedor) {
+                const provNombre = inputProveedor ? inputProveedor.value.trim() : "";
+
+                if (!provNombre) {
+                    alert("⚠️ Escribe el nombre del proveedor.");
+                    btnGuardarCfg.disabled = false;
+                    btnGuardarCfg.innerHTML = originalText;
+                    return;
+                }
+
+                fd.append("tipo_requerimiento", "PROVEEDOR");
+                fd.append("proveedor_manual", provNombre);
+            } else {
+                const dest = selectDestino ? selectDestino.value : "";
+
+                if (!dest) {
+                    alert("⚠️ Selecciona sede destino.");
+                    btnGuardarCfg.disabled = false;
+                    btnGuardarCfg.innerHTML = originalText;
+                    return;
+                }
+
+                fd.append("tipo_requerimiento", "ENTRE_SEDES");
+                fd.append("sede_destino_id", dest);
+            }
+
+            await fetchJSON("/req/set-tipo/", {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": csrftoken
+                },
+                body: fd
+            });
+
+            window.location.reload();
+        } catch (e) {
+            alert("Error: " + (e.message || "No se pudo guardar."));
+            btnGuardarCfg.disabled = false;
+            btnGuardarCfg.innerHTML = originalText;
+        }
+    }
+
+    function renderCatalogo(rows) {
+        const box = document.getElementById('catalogo');
+
+        box.innerHTML = '';
+
+        if (!rows || rows.length === 0) {
+            box.appendChild(el('div', `
+                <div class="empty-box">
+                    <i class='bx bx-search'></i>
+                    <p>No se encontraron resultados.</p>
+                </div>
+            `));
+
+            return;
+        }
+
+        rows.forEach(r => {
+            let origenStock = "";
+
+            if (sedeTipo !== "CENTRAL") {
+                origenStock = "<span style='font-size:11px; color:var(--req-muted); font-family:var(--font-stack, system-ui, sans-serif);'>(En Central)</span>";
+            }
+
+            const dispClass = r.disponible > 0 ? 'stock-ok' : 'stock-low';
+            const dispTxt = (r.disponible === null || r.disponible === undefined) ? "—" : r.disponible;
+
+            const node = el('div', `
+                <div class="item-row">
+                    <div style="min-width:0;">
+                        <div class="item-name">${escapeHtml(r.nombre)}</div>
+
+                        <div class="item-meta">
+                            <span>${escapeHtml(r.codigo || "S/C")}</span>
+                            <span style="opacity:.35;">|</span>
+                            <span class="${dispClass}">Stock: ${dispTxt}</span>
+                            ${origenStock}
+                        </div>
+                    </div>
+
+                    <div class="item-actions">
+                        <input class="qty-control" type="number" min="1" value="1" />
+                        <button type="button" class="btn-icon-small btn-add" title="Agregar">
+                            <i class='bx bx-plus'></i>
+                        </button>
+                    </div>
+                </div>
+            `);
+
+            const qty = node.querySelector('input');
+            const btn = node.querySelector('button');
+
+            btn.addEventListener('click', async () => {
+                const cantidad = parseInt(qty.value || '1', 10);
+
+                if (!cantidad || cantidad <= 0) return;
+
+                btn.disabled = true;
+                btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+
+                try {
+                    await fetchJSON('/req/add-producto/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: new URLSearchParams({
+                            producto_id: String(r.producto_id),
+                            cantidad: String(cantidad)
+                        })
+                    });
+
+                    await cargarCarrito();
+                } catch (e) {
+                    alert(e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = "<i class='bx bx-plus'></i>";
+                }
+            });
+
+            box.appendChild(node);
+        });
+    }
+
+    function renderCarrito(items) {
+        const box = document.getElementById('carrito');
+        const badge = document.getElementById('cartCount');
+
+        box.innerHTML = '';
+
+        if (!items || items.length === 0) {
+            badge.innerText = "0 ÍTEMS";
+
+            box.appendChild(el('div', `
+                <div class="empty-box">
+                    <i class='bx bx-basket'></i>
+                    <p>El carrito está vacío.</p>
+                </div>
+            `));
+
+            if (btnGenerarOrden) {
+                btnGenerarOrden.disabled = true;
+            }
+
+            return;
+        }
+
+        badge.innerText = `${items.length} ÍTEM(S)`;
+
+        if (btnGenerarOrden) {
+            btnGenerarOrden.disabled = false;
+        }
+
+        items.forEach(it => {
+            const node = el('div', `
+                <div class="item-row" style="padding:12px; background:var(--req-soft); border-radius:14px; margin-bottom:9px; border:1px solid var(--req-border);">
+                    <div style="flex:1; min-width:0; padding-right:10px;">
+                        <div class="item-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px;">
+                            ${escapeHtml(it.nombre)}
+                        </div>
+
+                        <div class="item-meta" style="font-size:11px;">
+                            ${escapeHtml(it.codigo || '-')}
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:7px; align-items:center;">
+                        <input class="qty-control" type="number" min="1" value="${escapeHtml(String(it.cantidad))}" style="width:58px; min-height:38px;" />
+
+                        <button type="button" class="btn-icon-small btn-upd" title="Actualizar cantidad" style="width:34px; height:34px;">
+                            <i class='bx bx-check'></i>
+                        </button>
+
+                        <button type="button" class="btn-icon-small btn-del" title="Quitar" style="width:34px; height:34px;">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                </div>
+            `);
+
+            const qty = node.querySelector('input');
+            const btnUpd = node.querySelectorAll('button')[0];
+            const btnDel = node.querySelectorAll('button')[1];
+
+            btnUpd.addEventListener('click', async () => {
+                const cantidad = parseInt(qty.value || '1', 10);
+
+                if (!cantidad || cantidad <= 0) return;
+
+                btnUpd.disabled = true;
+
+                try {
+                    await fetchJSON('/req/set-qty/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: new URLSearchParams({
+                            producto_id: String(it.producto_id),
+                            cantidad: String(cantidad)
+                        })
+                    });
+
+                    await cargarCarrito();
+                } catch (e) {
+                    alert(e.message);
+                } finally {
+                    btnUpd.disabled = false;
+                }
+            });
+
+            btnDel.addEventListener('click', async () => {
+                btnDel.disabled = true;
+
+                try {
+                    await fetchJSON('/req/remove-producto/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: new URLSearchParams({
+                            producto_id: String(it.producto_id)
+                        })
+                    });
+
+                    await cargarCarrito();
+                } catch (e) {
+                    alert(e.message);
+                } finally {
+                    btnDel.disabled = false;
+                }
+            });
+
+            box.appendChild(node);
+        });
+    }
+
+    async function buscar() {
+        const q = (document.getElementById('q').value || '').trim();
+        const modo = (sedeTipo === "CENTRAL") ? "proveedor" : "entre_sedes";
+        const btn = document.getElementById('btnBuscar');
+
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+
+        try {
+            const data = await fetchJSON('/req/catalogo/?modo=' + modo + '&q=' + encodeURIComponent(q), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            renderCatalogo(data.results || []);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            btn.innerHTML = "<i class='bx bx-right-arrow-alt'></i>";
+        }
+    }
+
+    async function cargarCarrito() {
+        try {
+            const data = await fetchJSON('/req/carrito/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            renderCarrito(data.items || []);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    if (btnGuardarCfg) {
+        btnGuardarCfg.addEventListener("click", guardarConfig);
+    }
+
+    document.getElementById('btnBuscar').addEventListener('click', buscar);
+
+    document.getElementById('q').addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+            ev.preventDefault();
+            buscar();
+        }
+    });
+
+    buscar();
+    cargarCarrito();
+</script>
+
+{% endblock %}

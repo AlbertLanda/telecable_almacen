@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* =========================================
+       REPORTE FINANCIERO (Enterprise Style)
+       ========================================= */
+    
+    .report-container {
+        max-width: 1200px; margin: 0 auto;
+        animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Header */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .header-content h2 { margin: 0; font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+    /* Tarjeta Principal */
+    .content-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: var(--radius); overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Tabla */
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    
+    th { 
+        text-align: left; color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; 
+        padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    }
+    .th-right { text-align: right; }
+    
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 14px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-hover); }
+
+    .col-right { text-align: right; }
+
+    /* Estilos de Celda */
+    .project-code { font-weight: 700; color: var(--text-main); display: block; font-size: 15px; }
+    .project-name { font-size: 13px; color: var(--text-secondary); }
+
+    .cost-val { font-weight: 700; font-size: 16px; color: var(--success); font-family: monospace; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .st-pendiente { background: rgba(255, 159, 10, 0.15); color: var(--warning); }
+    .st-proceso { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+    .st-finalizado { background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border-light); }
+
+    /* Botón Acción */
+    .btn-audit {
+        color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light);
+        text-decoration: none; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn-audit:hover { background: var(--bg-hover); color: var(--primary); border-color: var(--primary); }
+
+    /* Estado Vacío */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.3; }
+
+    @media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    }
+</style>
+
+<div class="report-container">
+    
+    <div class="page-header">
+        <div class="header-content">
+            <h2>Reporte Financiero</h2>
+            <p>Auditoría de costos reales por proyecto</p>
+        </div>
+        <div>
+            <a href="{% url 'dash_admin' %}" class="btn btn-ghost">
+                <i class='bx bx-arrow-back'></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="content-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código / Obra</th>
+                        <th>Estado</th>
+                        <th>Responsable</th>
+                        <th class="th-right">Costo Real</th>
+                        <th class="th-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in proyectos %}
+                    <tr>
+                        <td>
+                            <span class="project-code">{{ p.codigo }}</span>
+                            <span class="project-name">{{ p.nombre }}</span>
+                        </td>
+                        <td>
+                            {% if p.estado == 'PENDIENTE' %}
+                                <span class="badge st-pendiente">Diseño</span>
+                            {% elif p.estado == 'EN_PROCESO' %}
+                                <span class="badge st-proceso">En Ejecución</span>
+                            {% else %}
+                                <span class="badge st-finalizado">Finalizado</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.responsable.username|default:"--" }}</td>
+                        
+                        <td class="col-right">
+                            <span class="cost-val">S/ {{ p.costo_total_real }}</span>
+                        </td>
+
+                        <td class="col-right">
+                            <a href="{% url 'admin_detalle_financiero' p.id %}" class="btn-audit">
+                                <i class='bx bx-search-alt'></i> Auditar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class='bx bx-briefcase'></i>
+                                <h3>Sin Obras</h3>
+                                <p>No hay proyectos registrados para auditar.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
