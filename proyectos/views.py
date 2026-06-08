@@ -82,39 +82,57 @@ def proyecto_create(request):
 @login_required
 def proyecto_materiales(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
-    if request.method == 'POST':
-        # ✅ Solo permitir editar en DISEÑO u OBSERVADO
-        if proyecto.estado not in [EstadoProyecto.DISENO, EstadoProyecto.OBSERVADO]:
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para editar los materiales de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if request.method == "POST":
+        if not proyecto.puede_editar_materiales:
             messages.error(request, "No puedes editar materiales en este estado.")
-            return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+            return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
         form = ProyectoMaterialForm(request.POST)
+
         if form.is_valid():
             nuevo_material = form.save(commit=False)
             nuevo_material.proyecto = proyecto
-            
-            existente = ProyectoMaterial.objects.filter(proyecto=proyecto, producto=nuevo_material.producto).first()
-            
+
+            observacion_diseno = request.POST.get("observacion_diseno", "").strip()
+
+            existente = ProyectoMaterial.objects.filter(
+                proyecto=proyecto,
+                producto=nuevo_material.producto,
+            ).first()
+
             if existente:
                 existente.cantidad_planificada += nuevo_material.cantidad_planificada
+
+                if observacion_diseno:
+                    existente.observacion_diseno = observacion_diseno
+
                 existente.save()
                 messages.success(request, f"Actualizado: {nuevo_material.producto.nombre}.")
             else:
+                nuevo_material.observacion_diseno = observacion_diseno
                 nuevo_material.save()
                 messages.success(request, f"Agregado: {nuevo_material.producto.nombre}.")
-            
-            return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+
+            if proyecto.estado == EstadoProyecto.OBSERVADO:
+                proyecto.observacion_rechazo = ""
+                proyecto.save(update_fields=["observacion_rechazo"])
+
+            return redirect("proyecto_materiales", proyecto_id=proyecto.id)
     else:
         form = ProyectoMaterialForm()
 
-    materiales = proyecto.materiales.select_related('producto').all()
+    materiales = proyecto.materiales.select_related("producto").all()
 
-    return render(request, 'proyectos/materiales_form.html', {
-        'proyecto': proyecto,
-        'form': form,
-        'materiales': materiales,
-        'url_finalizar': 'disenador_dashboard'
+    return render(request, "proyectos/materiales_form.html", {
+        "proyecto": proyecto,
+        "form": form,
+        "materiales": materiales,
+        "url_finalizar": "disenador_dashboard",
     })
 
 
@@ -504,23 +522,35 @@ def admin_detalle_financiero(request, proyecto_id):
 @login_required
 def proyecto_enviar_a_revision(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
+
     if request.user != proyecto.creado_por and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "No tienes permiso para enviar este proyecto a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if proyecto.estado not in [EstadoProyecto.DISENO, EstadoProyecto.OBSERVADO]:
-        messages.error(request, "Estado incorrecto para enviar a revisión.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+    if not proyecto.responsable:
+        messages.error(request, "Debes asignar un responsable PEX antes de enviar a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if not proyecto.materiales.exists():
-        messages.error(request, "Agrega materiales primero.")
-        return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+    if not proyecto.puede_enviar_a_revision:
+        messages.error(request, "El proyecto no está listo para enviarse a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.REVISION_TECNICA
-    proyecto.save()
-    messages.success(request, f"Enviado a {proyecto.responsable.username} para revisión.")
-    return redirect('disenador_dashboard')
+    proyecto.fecha_envio_revision = timezone.now()
+    proyecto.fecha_observacion = None
+    proyecto.observacion_rechazo = ""
+    proyecto.save(update_fields=[
+        "estado",
+        "fecha_envio_revision",
+        "fecha_observacion",
+        "observacion_rechazo",
+    ])
+
+    messages.success(
+        request,
+        f"Proyecto enviado a revisión técnica de {proyecto.responsable.get_full_name() or proyecto.responsable.username}.",
+    )
+    return redirect("disenador_dashboard")
 
 
 @login_required
@@ -528,36 +558,60 @@ def proyecto_aprobar_tecnico(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "Solo el responsable puede aprobar.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "Solo el responsable PEX puede aprobar este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if proyecto.estado != EstadoProyecto.REVISION_TECNICA:
-        messages.error(request, "No está en revisión.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+    if not proyecto.puede_aprobar_pex:
+        messages.error(request, "El proyecto no está en revisión técnica.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.materiales.exists():
+        messages.error(request, "No puedes aprobar un proyecto sin materiales.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.APROBADO
     proyecto.fecha_aprobacion = timezone.now()
+    proyecto.fecha_observacion = None
     proyecto.observacion_rechazo = ""
-    proyecto.save()
-    
-    messages.success(request, "✅ Proyecto APROBADO. Almacén notificado.")
-    return redirect('tecnico_dashboard')
+    proyecto.save(update_fields=[
+        "estado",
+        "fecha_aprobacion",
+        "fecha_observacion",
+        "observacion_rechazo",
+    ])
+
+    messages.success(request, "✅ Proyecto aprobado. Almacén ya puede despachar materiales.")
+    return redirect("tecnico_dashboard")
 
 
 @login_required
 def proyecto_observar_tecnico(request, proyecto_id):
-    if request.method != "POST": return redirect('proyecto_detail', pk=proyecto_id)
+    if request.method != "POST":
+        return redirect("proyecto_detail", pk=proyecto_id)
 
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     motivo = request.POST.get("motivo", "").strip()
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "No tienes permiso para observar este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.puede_aprobar_pex:
+        messages.error(request, "Solo puedes observar proyectos en revisión técnica.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not motivo:
+        messages.error(request, "Debes indicar el motivo de la observación.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.OBSERVADO
     proyecto.observacion_rechazo = motivo
-    proyecto.save()
+    proyecto.fecha_observacion = timezone.now()
+    proyecto.save(update_fields=[
+        "estado",
+        "observacion_rechazo",
+        "fecha_observacion",
+    ])
 
-    messages.warning(request, "Proyecto observado y devuelto al diseñador.")
-    return redirect('tecnico_dashboard')
+    messages.warning(request, "Proyecto observado y devuelto al diseñador para corrección.")
+    return redirect("tecnico_dashboard")
