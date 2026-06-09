@@ -307,26 +307,76 @@ def tecnico_mis_reqs(request):
 @login_required
 def liquidacion_tecnico_lista(request):
     """
-    Lista de técnicos que tienen material en su poder (Mochila > 0).
-    FILTRO: Solo muestra técnicos de la misma SEDE que el usuario logueado.
+    Lista de técnicos que tienen material en su poder por mochila semanal.
+
+    Importante:
+    - La liquidación semanal NO debe incluir responsables PEX cuya carga proviene
+      de una obra ya finalizada/liquidada por acta.
+    - Si el técnico solo tiene stock relacionado a proyectos FINALIZADOS, no debe salir aquí.
     """
-    # Validación de rol (Almacén, Admin, Jefa)
     if not request.user.profile.rol in ['ALMACEN', 'ADMIN', 'JEFA']:
         return redirect('home')
-    
-    # 1. Obtener la sede del almacenero logueado
+
     try:
         sede_actual = request.user.profile.get_sede_operativa()
-    except:
+    except Exception:
         messages.error(request, "No tienes una sede asignada para ver liquidaciones.")
         return redirect('dash_almacen')
 
-    # 2. Consulta filtrada por deuda y POR SEDE
-    tecnicos_con_deuda = User.objects.filter(
-        mi_stock__cantidad__gt=0,            # Que deba algo
-        profile__sede_principal=sede_actual  # Que sea de MI sede
+    tecnicos_base = User.objects.filter(
+        mi_stock__cantidad__gt=0,
+        profile__sede_principal=sede_actual,
     ).distinct()
-    
+
+    tecnicos_con_deuda = []
+
+    for tecnico in tecnicos_base:
+        stock_actual = StockTecnico.objects.filter(
+            tecnico=tecnico,
+            cantidad__gt=0,
+        ).select_related("producto")
+
+        tiene_deuda_semanal = False
+
+        for stock in stock_actual:
+            # Cantidad de ese producto que todavía está vinculada a obras PEX
+            # activas/no cerradas donde el técnico es responsable o receptor.
+            cantidad_en_obras_activas = AsignacionCuadrilla.objects.filter(
+                producto=stock.producto,
+                estado__in=["ENTREGADO", "CONSUMIDO", "MERMA", "PERDIDO"],
+            ).filter(
+                Q(entregado_por=tecnico) | Q(recibido_por=tecnico)
+            ).exclude(
+                proyecto__estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+            ).aggregate(
+                total=Sum("cantidad")
+            )["total"] or 0
+
+            # Cantidad relacionada a obras ya cerradas/liquidadas.
+            cantidad_en_obras_cerradas = AsignacionCuadrilla.objects.filter(
+                producto=stock.producto,
+                estado__in=["ENTREGADO", "CONSUMIDO", "MERMA", "PERDIDO"],
+            ).filter(
+                Q(entregado_por=tecnico) | Q(recibido_por=tecnico)
+            ).filter(
+                proyecto__estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+            ).aggregate(
+                total=Sum("cantidad")
+            )["total"] or 0
+
+            # Si el stock actual queda explicado por obras cerradas,
+            # no lo mandamos a liquidación semanal.
+            stock_no_obra_cerrada = int(stock.cantidad or 0) - int(cantidad_en_obras_cerradas or 0)
+
+            # Si todavía tiene mochila no explicada por obra cerrada,
+            # o tiene materiales de obra activa, sí aparece.
+            if stock_no_obra_cerrada > 0 or cantidad_en_obras_activas > 0:
+                tiene_deuda_semanal = True
+                break
+
+        if tiene_deuda_semanal:
+            tecnicos_con_deuda.append(tecnico)
+
     return render(request, 'operaciones/liquidacion_tecnicos_lista.html', {
         'tecnicos': tecnicos_con_deuda
     })

@@ -101,22 +101,22 @@ def _resolve_sede_activa(request, profile: UserProfile, sedes_disponibles):
 
 def _stocks_criticos_por_sede(sede, limite=10):
     """
-    Devuelve productos con stock crítico de una sede.
+    Devuelve productos con stock crítico real de una sede.
 
     Regla:
-    - Si producto.stock_minimo > 0:
-        crítico cuando cantidad <= stock_minimo.
-    - Si producto.stock_minimo = 0:
-        crítico cuando cantidad <= 5.
+    - Solo alerta si el producto tiene stock_minimo configurado.
+    - Si stock_minimo = 0, NO se alerta porque se interpreta como
+      "sin mínimo configurado".
     """
     if not sede:
         return Stock.objects.none()
 
     return (
-        Stock.objects.filter(sede=sede, producto__activo=True)
-        .filter(
-            Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
-            | Q(producto__stock_minimo=0, cantidad__lte=5)
+        Stock.objects.filter(
+            sede=sede,
+            producto__activo=True,
+            producto__stock_minimo__gt=0,
+            cantidad__lte=F("producto__stock_minimo"),
         )
         .select_related("producto", "sede")
         .order_by("cantidad", "producto__nombre")[:limite]
@@ -356,10 +356,11 @@ def dash_almacen(request):
     # 4. KPI: STOCK BAJO
     # ==========================================
     query_stock_bajo = (
-        Stock.objects.filter(sede=sede, producto__activo=True)
-        .filter(
-            Q(producto__stock_minimo__gt=0, cantidad__lte=F("producto__stock_minimo"))
-            | Q(producto__stock_minimo=0, cantidad__lte=5)
+        Stock.objects.filter(
+            sede=sede,
+            producto__activo=True,
+            producto__stock_minimo__gt=0,
+            cantidad__lte=F("producto__stock_minimo"),
         )
         .select_related("producto")
     )
@@ -379,11 +380,10 @@ def dash_almacen(request):
     # ==========================================
     # 6. KPI: PROYECTOS ACTIVOS
     # ==========================================
-    count_proyectos_activos = (
-        Proyecto.objects.filter(sede=sede)
-        .exclude(estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO])
-        .count()
-    )
+    count_proyectos_activos = Proyecto.objects.filter(
+        sede=sede,
+        estado=EstadoProyecto.APROBADO
+    ).count()
 
     # ==========================================
     # 7. KPI TOTAL
@@ -531,14 +531,33 @@ def almacen_historial_global(request):
     )
 
     for c in compras:
-        if "DEVOLUCION" in (c.referencia or "").upper():
+        referencia = (c.referencia or "").upper()
+
+        if "DEVOLUCION" in referencia:
             c.tipo_movimiento = "DEVOLUCION"
+
             if c.entregado_por:
                 c.tecnico_nombre = c.entregado_por.get_full_name() or c.entregado_por.username
+            elif c.solicitante:
+                c.tecnico_nombre = c.solicitante.get_full_name() or c.solicitante.username
             else:
                 c.tecnico_nombre = "Técnico (Sin datos)"
+
+        elif referencia.startswith("RETORNO OBRA-") or referencia.startswith("RETORNO DE OBRA-"):
+            c.tipo_movimiento = "RETORNO_OBRA"
+
+            if c.entregado_por:
+                c.tecnico_nombre = c.entregado_por.get_full_name() or c.entregado_por.username
+            elif c.solicitante:
+                c.tecnico_nombre = c.solicitante.get_full_name() or c.solicitante.username
+            elif c.responsable:
+                c.tecnico_nombre = c.responsable.get_full_name() or c.responsable.username
+            else:
+                c.tecnico_nombre = "Responsable PEX"
+
         else:
             c.tipo_movimiento = "COMPRA"
+
             if c.proveedor:
                 c.tecnico_nombre = c.proveedor.razon_social
             elif c.proveedor_manual:
@@ -560,7 +579,24 @@ def almacen_historial_global(request):
         else:
             p.tecnico_nombre = "Sin Asignar"
 
-    # 4. Transferencias
+    # 4. Salidas por obras PEX
+    salidas_obras = DocumentoInventario.objects.filter(
+        sede=sede,
+        tipo=TipoDocumento.SAL,
+        estado=EstadoDocumento.CONFIRMADO,
+        sede_destino__isnull=True,
+        referencia__startswith="OBRA-",
+    ).select_related("responsable", "solicitante")
+
+    for s in salidas_obras:
+        s.tipo_movimiento = "SALIDA_OBRA"
+
+        if s.solicitante:
+            s.tecnico_nombre = s.solicitante.get_full_name() or s.solicitante.username
+        else:
+            s.tecnico_nombre = "Responsable PEX"
+
+    # 5. Transferencias
     transferencias = DocumentoInventario.objects.filter(
         sede=sede,
         tipo=TipoDocumento.SAL,
@@ -572,9 +608,9 @@ def almacen_historial_global(request):
         t.tipo_movimiento = "TRANSFERENCIA"
         t.tecnico_nombre = f"Destino: {t.sede_destino.nombre}"
 
-    # 5. Unificar todo
+    # 6. Unificar todo
     historial = sorted(
-        chain(liquidaciones, compras, proyectos, transferencias),
+        chain(liquidaciones, compras, proyectos, salidas_obras, transferencias),
         key=attrgetter("fecha"),
         reverse=True,
     )

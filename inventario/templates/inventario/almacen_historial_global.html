@@ -486,6 +486,11 @@
                                         <i class='bx bx-reply'></i>
                                         Devolución
                                     </span>
+                                {% elif item.tipo_movimiento == 'RETORNO_OBRA' %}
+                                    <span class="badge tb-dev">
+                                        <i class='bx bx-undo'></i>
+                                        Retorno Obra
+                                    </span>
                                 {% elif item.tipo_movimiento == 'CIERRE_OBRA' %}
                                     <span class="badge tb-obra">
                                         <i class='bx bx-building'></i>
@@ -495,6 +500,11 @@
                                     <span class="badge tb-trans">
                                         <i class='bx bx-transfer'></i>
                                         Traslado
+                                    </span>
+                                {% elif item.tipo_movimiento == 'SALIDA_OBRA' %}
+                                    <span class="badge tb-obra">
+                                        <i class='bx bx-package'></i>
+                                        Salida Obra
                                     </span>
                                 {% elif item.tipo_movimiento == 'COMPRA' %}
                                     <span class="badge tb-compra">
@@ -542,6 +552,11 @@
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
                                         Guía Salida
                                     </a>
+                                {% elif item.tipo_movimiento == 'SALIDA_OBRA' %}
+                                    <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">
+                                        <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
+                                        Guía Salida
+                                    </a>
                                 {% elif item.tipo_movimiento == 'LIQ_TECNICO' %}
                                     <a href="{% url 'liquidacion_tecnico_print' item.id %}" target="_blank" class="btn-action-table">
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
@@ -552,6 +567,10 @@
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
                                         Constancia
                                     </a>
+                                {% elif item.tipo_movimiento == 'RETORNO_OBRA' %}
+                                    <span style="font-size:11px; color:#94a3b8; font-weight:850;">
+                                        Retorno registrado
+                                    </span>  
                                 {% elif item.tipo_movimiento == 'COMPRA' %}
                                     {% if item.origen %}
                                         <a href="{% url 'req_print' item.origen.id %}" target="_blank" class="btn-action-table">

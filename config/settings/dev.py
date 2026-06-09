@@ -23,3 +23,15 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
 SECURE_SSL_REDIRECT = False
+
+# Base de datos local para desarrollo
+# Así pruebas proyectos, despachos y cambios sin tocar Azure/PostgreSQL.
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
+
+# En desarrollo, los correos se imprimen en consola y no se envían realmente.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

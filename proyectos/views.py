@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Sum, F, Q
 from decimal import Decimal
@@ -7,11 +8,11 @@ import datetime
 from inventario.models import Stock
 from django.db import transaction
 from inventario.models import (
-    UserProfile, DocumentoInventario, DocumentoItem, Stock, 
-    TipoDocumento, EstadoDocumento, ItemSerializado
+    UserProfile, DocumentoInventario, DocumentoItem, Stock,
+    TipoDocumento, EstadoDocumento, ItemSerializado, StockTecnico, MovimientoInventario
 )
 # Importamos modelos locales
-from .models import Proyecto, ProyectoMaterial, ProyectoAsignacion, EstadoProyecto
+from .models import Proyecto, ProyectoMaterial, ProyectoAsignacion, EstadoProyecto, AsignacionCuadrilla, EstadoTransferenciaCuadrilla
 # ✅ IMPORTANTE: Agregamos ProyectoMaterialForm aquí abajo 👇
 from .forms import ProyectoForm, ProyectoMaterialForm 
 
@@ -82,39 +83,53 @@ def proyecto_create(request):
 @login_required
 def proyecto_materiales(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
-    if request.method == 'POST':
-        # ✅ Solo permitir editar en DISEÑO u OBSERVADO
-        if proyecto.estado not in [EstadoProyecto.DISENO, EstadoProyecto.OBSERVADO]:
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para editar los materiales de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if request.method == "POST":
+        if not proyecto.puede_editar_materiales:
             messages.error(request, "No puedes editar materiales en este estado.")
-            return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+            return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
         form = ProyectoMaterialForm(request.POST)
+
         if form.is_valid():
             nuevo_material = form.save(commit=False)
             nuevo_material.proyecto = proyecto
-            
-            existente = ProyectoMaterial.objects.filter(proyecto=proyecto, producto=nuevo_material.producto).first()
-            
+
+            observacion_diseno = request.POST.get("observacion_diseno", "").strip()
+
+            existente = ProyectoMaterial.objects.filter(
+                proyecto=proyecto,
+                producto=nuevo_material.producto,
+            ).first()
+
             if existente:
                 existente.cantidad_planificada += nuevo_material.cantidad_planificada
+
+                if observacion_diseno:
+                    existente.observacion_diseno = observacion_diseno
+
                 existente.save()
                 messages.success(request, f"Actualizado: {nuevo_material.producto.nombre}.")
             else:
+                nuevo_material.observacion_diseno = observacion_diseno
                 nuevo_material.save()
                 messages.success(request, f"Agregado: {nuevo_material.producto.nombre}.")
-            
-            return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+
+            return redirect("proyecto_materiales", proyecto_id=proyecto.id)
     else:
         form = ProyectoMaterialForm()
 
-    materiales = proyecto.materiales.select_related('producto').all()
+    materiales = proyecto.materiales.select_related("producto").all()
 
-    return render(request, 'proyectos/materiales_form.html', {
-        'proyecto': proyecto,
-        'form': form,
-        'materiales': materiales,
-        'url_finalizar': 'disenador_dashboard'
+    return render(request, "proyectos/materiales_form.html", {
+        "proyecto": proyecto,
+        "form": form,
+        "materiales": materiales,
+        "url_finalizar": "disenador_dashboard",
     })
 
 
@@ -389,56 +404,112 @@ def almacen_liquidacion_lista(request):
 @login_required
 def almacen_liquidar_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
+
+    profile = getattr(request.user, "profile", None)
+    if not profile or profile.rol != UserProfile.Rol.ALMACEN:
+        messages.error(request, "No tienes permisos para liquidar obras.")
+        return redirect("home")
+
+    if proyecto.estado != EstadoProyecto.EN_PROCESO:
+        messages.warning(request, "Solo puedes liquidar proyectos en proceso.")
+        return redirect("almacen_liquidacion_lista")
+
     materiales = []
-    for m in proyecto.materiales.all():
+
+    for m in proyecto.materiales.select_related("producto").all():
         if m.cantidad_entregada > 0:
             m.max_devolucion = m.cantidad_entregada - (m.cantidad_devuelta + m.cantidad_merma)
+
             if m.max_devolucion > 0:
                 materiales.append(m)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             with transaction.atomic():
                 doc_ing = None
                 hubo_buenos = False
-                
-                for m in materiales:
-                    good = int(request.POST.get(f'input_good_{m.id}', 0))
-                    bad = int(request.POST.get(f'input_bad_{m.id}', 0))
-                    
-                    if good > 0:
-                        if not doc_ing:
-                            doc_ing = DocumentoInventario.objects.create(
-                                tipo=TipoDocumento.ING, estado=EstadoDocumento.BORRADOR,
-                                sede=proyecto.sede, responsable=request.user,
-                                solicitante=proyecto.responsable, referencia=f"RETORNO {proyecto.codigo}",
-                                fecha=timezone.now()
-                            )
-                        DocumentoItem.objects.create(documento=doc_ing, producto=m.producto, cantidad=good)
-                        hubo_buenos = True
 
+                for m in materiales:
+                    good = int(request.POST.get(f"input_good_{m.id}", 0) or 0)
+                    bad = int(request.POST.get(f"input_bad_{m.id}", 0) or 0)
+
+                    total_cierre = good + bad
+
+                    if total_cierre > m.max_devolucion:
+                        raise ValueError(
+                            f"Error en {m.producto.nombre}: la devolución + merma supera lo pendiente."
+                        )
+
+                    # Actualizamos liquidación del material de obra
                     m.cantidad_devuelta += good
                     m.cantidad_merma += bad
                     m.cantidad_usada = m.cantidad_entregada - (m.cantidad_devuelta + m.cantidad_merma)
-                    if not m.costo_unitario: m.costo_unitario = m.producto.costo_unitario
+
+                    if not m.costo_unitario:
+                        m.costo_unitario = m.producto.costo_unitario
+
                     m.save()
 
-                if hubo_buenos and doc_ing: doc_ing.confirmar()
-                
+                    # Si vuelve material bueno al almacén, creamos documento ING
+                    if good > 0:
+                        if not doc_ing:
+                            doc_ing = DocumentoInventario.objects.create(
+                                tipo=TipoDocumento.ING,
+                                estado=EstadoDocumento.BORRADOR,
+                                sede=proyecto.sede,
+                                responsable=request.user,
+                                solicitante=proyecto.responsable,
+                                referencia=f"RETORNO {proyecto.codigo}",
+                                observaciones=f"Retorno de materiales de obra {proyecto.codigo}",
+                                fecha=timezone.now(),
+                            )
+
+                        DocumentoItem.objects.create(
+                            documento=doc_ing,
+                            producto=m.producto,
+                            cantidad=good,
+                            observacion="Retorno de obra PEX",
+                        )
+
+                        hubo_buenos = True
+
+                    # ✅ CLAVE: limpiar mochila del responsable PEX
+                    # Todo lo entregado para la obra queda cerrado por acta:
+                    # bueno devuelto + merma + consumido.
+                    stock_tecnico = StockTecnico.objects.filter(
+                        tecnico=proyecto.responsable,
+                        producto=m.producto,
+                    ).first()
+
+                    if stock_tecnico:
+                        cantidad_a_descontar = int(m.cantidad_entregada or 0)
+
+                        stock_tecnico.cantidad = max(
+                            int(stock_tecnico.cantidad or 0) - cantidad_a_descontar,
+                            0,
+                        )
+
+                        if stock_tecnico.cantidad <= 0:
+                            stock_tecnico.delete()
+                        else:
+                            stock_tecnico.save(update_fields=["cantidad"])
+
+                if hubo_buenos and doc_ing:
+                    doc_ing.confirmar()
+
                 proyecto.estado = EstadoProyecto.FINALIZADO
                 proyecto.fin = timezone.now()
-                proyecto.save()
-                
+                proyecto.save(update_fields=["estado", "fin", "actualizado_en"])
+
                 messages.success(request, f"Proyecto {proyecto.codigo} LIQUIDADO.")
-                return redirect('almacen_liquidacion_lista')
+                return redirect("almacen_liquidacion_lista")
 
         except Exception as e:
             messages.error(request, str(e))
 
-    return render(request, 'proyectos/almacen_liquidar_proyecto.html', {
-        'proyecto': proyecto,
-        'materiales': materiales
+    return render(request, "proyectos/almacen_liquidar_proyecto.html", {
+        "proyecto": proyecto,
+        "materiales": materiales,
     })
 
 
@@ -504,23 +575,35 @@ def admin_detalle_financiero(request, proyecto_id):
 @login_required
 def proyecto_enviar_a_revision(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
+
     if request.user != proyecto.creado_por and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "No tienes permiso para enviar este proyecto a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if proyecto.estado not in [EstadoProyecto.DISENO, EstadoProyecto.OBSERVADO]:
-        messages.error(request, "Estado incorrecto para enviar a revisión.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+    if not proyecto.responsable:
+        messages.error(request, "Debes asignar un responsable PEX antes de enviar a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if not proyecto.materiales.exists():
-        messages.error(request, "Agrega materiales primero.")
-        return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+    if not proyecto.puede_enviar_a_revision:
+        messages.error(request, "El proyecto no está listo para enviarse a revisión.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.REVISION_TECNICA
-    proyecto.save()
-    messages.success(request, f"Enviado a {proyecto.responsable.username} para revisión.")
-    return redirect('disenador_dashboard')
+    proyecto.fecha_envio_revision = timezone.now()
+    proyecto.fecha_observacion = None
+    proyecto.observacion_rechazo = ""
+    proyecto.save(update_fields=[
+        "estado",
+        "fecha_envio_revision",
+        "fecha_observacion",
+        "observacion_rechazo",
+    ])
+
+    messages.success(
+        request,
+        f"Proyecto enviado a revisión técnica de {proyecto.responsable.get_full_name() or proyecto.responsable.username}.",
+    )
+    return redirect("disenador_dashboard")
 
 
 @login_required
@@ -528,36 +611,197 @@ def proyecto_aprobar_tecnico(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "Solo el responsable puede aprobar.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "Solo el responsable PEX puede aprobar este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
-    if proyecto.estado != EstadoProyecto.REVISION_TECNICA:
-        messages.error(request, "No está en revisión.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+    if not proyecto.puede_aprobar_pex:
+        messages.error(request, "El proyecto no está en revisión técnica.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.materiales.exists():
+        messages.error(request, "No puedes aprobar un proyecto sin materiales.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.APROBADO
     proyecto.fecha_aprobacion = timezone.now()
+    proyecto.fecha_observacion = None
     proyecto.observacion_rechazo = ""
-    proyecto.save()
-    
-    messages.success(request, "✅ Proyecto APROBADO. Almacén notificado.")
-    return redirect('tecnico_dashboard')
+    proyecto.save(update_fields=[
+        "estado",
+        "fecha_aprobacion",
+        "fecha_observacion",
+        "observacion_rechazo",
+    ])
+
+    messages.success(request, "✅ Proyecto aprobado. Almacén ya puede despachar materiales.")
+    return redirect("tecnico_dashboard")
 
 
 @login_required
 def proyecto_observar_tecnico(request, proyecto_id):
-    if request.method != "POST": return redirect('proyecto_detail', pk=proyecto_id)
+    if request.method != "POST":
+        return redirect("proyecto_detail", pk=proyecto_id)
 
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     motivo = request.POST.get("motivo", "").strip()
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso.")
-        return redirect('proyecto_detail', pk=proyecto.id)
+        messages.error(request, "No tienes permiso para observar este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.puede_aprobar_pex:
+        messages.error(request, "Solo puedes observar proyectos en revisión técnica.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not motivo:
+        messages.error(request, "Debes indicar el motivo de la observación.")
+        return redirect("proyecto_detail", pk=proyecto.id)
 
     proyecto.estado = EstadoProyecto.OBSERVADO
     proyecto.observacion_rechazo = motivo
-    proyecto.save()
+    proyecto.fecha_observacion = timezone.now()
+    proyecto.save(update_fields=[
+        "estado",
+        "observacion_rechazo",
+        "fecha_observacion",
+    ])
 
-    messages.warning(request, "Proyecto observado y devuelto al diseñador.")
-    return redirect('tecnico_dashboard')
+    messages.warning(request, "Proyecto observado y devuelto al diseñador para corrección.")
+    return redirect("tecnico_dashboard")
+
+@login_required
+def proyecto_asignar_cuadrilla(request, proyecto_id):
+    proyecto = get_object_or_404(
+        Proyecto.objects.select_related("sede", "creado_por", "responsable"),
+        id=proyecto_id,
+    )
+
+    puede_asignar = (
+        request.user.is_superuser
+        or request.user == proyecto.responsable
+        or getattr(getattr(request.user, "profile", None), "rol", None) in ["ADMIN", "JEFA"]
+    )
+
+    if not puede_asignar:
+        messages.error(request, "No tienes permisos para asignar materiales de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if proyecto.estado not in [EstadoProyecto.APROBADO, EstadoProyecto.EN_PROCESO]:
+        messages.warning(request, "Solo puedes asignar materiales cuando el proyecto esté aprobado o en ejecución.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    materiales = (
+        ProyectoMaterial.objects
+        .select_related("producto")
+        .filter(proyecto=proyecto)
+        .order_by("producto__nombre")
+    )
+
+    tecnicos = (
+        User.objects
+        .filter(
+            is_active=True,
+            profile__rol=UserProfile.Rol.SOLICITANTE,
+        )
+        .exclude(id=request.user.id)
+        .select_related("profile")
+        .order_by("first_name", "last_name", "username")
+    )
+
+    asignaciones = (
+        AsignacionCuadrilla.objects
+        .filter(proyecto=proyecto)
+        .select_related("entregado_por", "recibido_por", "producto")
+        .prefetch_related("seriales")
+        .order_by("-fecha_entrega", "-id")
+    )
+
+    for material in materiales:
+        asignado_cuadrilla = AsignacionCuadrilla.objects.filter(
+            proyecto=proyecto,
+            producto=material.producto,
+            estado=EstadoTransferenciaCuadrilla.ENTREGADO,
+        ).aggregate(total=Sum("cantidad"))["total"] or 0
+
+        material.asignado_cuadrilla = int(asignado_cuadrilla or 0)
+        material.disponible_cuadrilla = max(
+            int(material.cantidad_entregada or 0) - int(asignado_cuadrilla or 0),
+            0,
+        )
+
+    if request.method == "POST":
+        tecnico_id = request.POST.get("tecnico_id")
+        observaciones = (request.POST.get("observaciones") or "").strip()
+
+        tecnico = User.objects.filter(id=tecnico_id, is_active=True).first()
+
+        if not tecnico:
+            messages.error(request, "Selecciona un técnico válido.")
+            return redirect("proyecto_asignar_cuadrilla", proyecto_id=proyecto.id)
+
+        if tecnico == request.user:
+            messages.error(request, "No puedes asignarte materiales a ti mismo en este flujo.")
+            return redirect("proyecto_asignar_cuadrilla", proyecto_id=proyecto.id)
+
+        creadas = 0
+
+        try:
+            with transaction.atomic():
+                for material in materiales:
+                    raw_qty = request.POST.get(f"qty_{material.id}", "0")
+
+                    try:
+                        qty = int(raw_qty or 0)
+                    except ValueError:
+                        qty = 0
+
+                    if qty <= 0:
+                        continue
+
+                    asignado_cuadrilla = AsignacionCuadrilla.objects.filter(
+                        proyecto=proyecto,
+                        producto=material.producto,
+                        estado=EstadoTransferenciaCuadrilla.ENTREGADO,
+                    ).aggregate(total=Sum("cantidad"))["total"] or 0
+
+                    disponible_cuadrilla = int(material.cantidad_entregada or 0) - int(asignado_cuadrilla or 0)
+
+                    if qty > disponible_cuadrilla:
+                        messages.error(
+                            request,
+                            f"No puedes asignar {qty} de {material.producto.nombre}. "
+                            f"Disponible para cuadrilla: {disponible_cuadrilla}."
+                        )
+                        raise ValueError("Cantidad supera disponible para cuadrilla")
+
+                    asignacion = AsignacionCuadrilla.objects.create(
+                        proyecto=proyecto,
+                        entregado_por=request.user,
+                        recibido_por=tecnico,
+                        producto=material.producto,
+                        cantidad=qty,
+                        estado=EstadoTransferenciaCuadrilla.ENTREGADO,
+                        observaciones=observaciones,
+                        fecha_entrega=timezone.now(),
+                    )
+
+                    creadas += 1
+
+                if creadas == 0:
+                    messages.warning(request, "Debes ingresar al menos una cantidad mayor a cero.")
+                    raise ValueError("Sin cantidades")
+
+        except ValueError:
+            return redirect("proyecto_asignar_cuadrilla", proyecto_id=proyecto.id)
+
+        messages.success(request, f"Materiales asignados correctamente a {tecnico.get_full_name() or tecnico.username}.")
+        return redirect("proyecto_asignar_cuadrilla", proyecto_id=proyecto.id)
+
+    context = {
+        "proyecto": proyecto,
+        "materiales": materiales,
+        "tecnicos": tecnicos,
+        "asignaciones": asignaciones,
+    }
+
+    return render(request, "proyectos/asignar_cuadrilla.html", context)

@@ -1271,13 +1271,33 @@
     function actualizarPanelVoz(alertas) {
         if (!voiceAlertPanel) return;
 
-        if (!alertas || alertas.length === 0) {
+        const listaAlertas = Array.isArray(alertas) ? alertas : [];
+
+        if (listaAlertas.length === 0) {
+            alertasActuales = [];
+
             voiceAlertPanel.classList.remove("show");
+            voiceAlertPanel.style.display = "none";
+
+            if (voiceAlertText) {
+                voiceAlertText.textContent = "No hay alertas de stock crítico en la sede seleccionada.";
+            }
+
+            if (btnActivarVoz) btnActivarVoz.style.display = "inline-block";
+            if (btnRepetirAlerta) btnRepetirAlerta.style.display = "none";
+            if (btnSilenciarVoz) btnSilenciarVoz.style.display = "none";
+
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+            }
+
             return;
         }
 
+        voiceAlertPanel.style.display = "flex";
         voiceAlertPanel.classList.add("show");
-        voiceAlertText.textContent = `Hay ${alertas.length} producto(s) en stock crítico en la sede seleccionada.`;
+
+        voiceAlertText.textContent = `Hay ${listaAlertas.length} producto(s) en stock crítico en la sede seleccionada.`;
 
         if (vozActiva) {
             btnActivarVoz.style.display = "none";
@@ -1308,6 +1328,7 @@
     async function consultarAlertasStock() {
         try {
             const res = await fetch(URL_ALERTAS_VOZ, {
+                cache: "no-store",
                 headers: {
                     "X-Requested-With": "XMLHttpRequest"
                 }
@@ -1317,10 +1338,12 @@
 
             if (!data.ok) {
                 console.warn(data.error || "No se pudieron obtener alertas.");
+                alertasActuales = [];
+                actualizarPanelVoz([]);
                 return;
             }
 
-            alertasActuales = data.alertas || [];
+            alertasActuales = Array.isArray(data.alertas) ? data.alertas : [];
             actualizarPanelVoz(alertasActuales);
 
             if (!vozActiva || alertasActuales.length === 0) {
@@ -1378,9 +1401,9 @@
         });
     }
 
-    actualizarPanelVoz(alertasActuales);
+    actualizarPanelVoz([]);
 
-    setTimeout(consultarAlertasStock, 2000);
+    consultarAlertasStock();
     setInterval(consultarAlertasStock, 30000);
 </script>
 

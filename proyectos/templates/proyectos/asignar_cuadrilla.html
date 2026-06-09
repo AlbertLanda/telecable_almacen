@@ -1,0 +1,768 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    :root {
+        --pex-primary: #0f6bff;
+        --pex-primary-dark: #084bcc;
+        --pex-primary-soft: rgba(15, 107, 255, .10);
+        --pex-success: #16a34a;
+        --pex-success-soft: rgba(22, 163, 74, .12);
+        --pex-warning: #f59e0b;
+        --pex-warning-soft: rgba(245, 158, 11, .14);
+        --pex-danger: #dc2626;
+        --pex-danger-soft: rgba(220, 38, 38, .12);
+        --pex-card: #ffffff;
+        --pex-soft: #f8fafc;
+        --pex-border: #d9e2ef;
+        --pex-border-strong: #c4d0df;
+        --pex-text: #0f172a;
+        --pex-muted: #64748b;
+        --pex-light: #94a3b8;
+        --pex-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --pex-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .pex-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: fadeIn .22s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .pex-hero {
+        border-radius: 24px;
+        padding: 26px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .22), transparent 34%),
+            linear-gradient(135deg, #071225 0%, #0b1b34 55%, #10294c 100%);
+        color: #fff;
+        box-shadow: var(--pex-shadow);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 20px;
+        align-items: stretch;
+        overflow: hidden;
+    }
+
+    .pex-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .pex-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(26px, 4vw, 40px);
+        line-height: 1.05;
+        font-weight: 950;
+        letter-spacing: -1px;
+    }
+
+    .pex-code {
+        display: inline-flex;
+        margin-top: 12px;
+        padding: 7px 10px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #dbeafe;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .pex-desc {
+        margin: 14px 0 0;
+        color: #cbd5e1;
+        line-height: 1.55;
+        font-size: 14px;
+        max-width: 850px;
+    }
+
+    .pex-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .pex-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        color: #e5edf9;
+        background: rgba(255, 255, 255, .09);
+        border: 1px solid rgba(255, 255, 255, .12);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .hero-card {
+        background: rgba(255, 255, 255, .96);
+        color: var(--pex-text);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
+    }
+
+    .hero-stat {
+        display: grid;
+        gap: 12px;
+    }
+
+    .stat-item {
+        border: 1px solid var(--pex-border);
+        border-radius: 16px;
+        padding: 13px;
+        background: #fff;
+    }
+
+    .stat-item span {
+        display: block;
+        color: var(--pex-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 6px;
+    }
+
+    .stat-item strong {
+        color: var(--pex-text);
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    .pex-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .pex-panel {
+        background: var(--pex-card);
+        border: 1px solid var(--pex-border);
+        border-radius: 22px;
+        box-shadow: var(--pex-shadow-sm);
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .panel-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--pex-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .panel-title h3 {
+        margin: 0;
+        color: var(--pex-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .panel-title span {
+        display: block;
+        margin-top: 5px;
+        color: var(--pex-muted);
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 750;
+    }
+
+    .panel-body {
+        padding: 18px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .form-group label {
+        display: block;
+        color: var(--pex-text);
+        font-size: 12px;
+        font-weight: 950;
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--pex-border-strong);
+        border-radius: 14px;
+        padding: 10px 12px;
+        color: var(--pex-text);
+        background: #fff;
+        outline: none;
+        font-family: inherit;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        border-color: var(--pex-primary);
+        box-shadow: 0 0 0 4px var(--pex-primary-soft);
+    }
+
+    textarea.form-control {
+        min-height: 92px;
+        resize: vertical;
+    }
+
+    .materials-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .material-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 130px;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid var(--pex-border);
+        border-radius: 18px;
+        padding: 14px;
+        background: #fff;
+    }
+
+    .material-name {
+        display: block;
+        color: var(--pex-text);
+        font-size: 14px;
+        font-weight: 950;
+        line-height: 1.35;
+        margin-bottom: 6px;
+    }
+
+    .material-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mini-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 8px;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: var(--pex-muted);
+        border: 1px solid var(--pex-border);
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .mini-pill.ok {
+        background: var(--pex-success-soft);
+        color: #15803d;
+        border-color: rgba(22, 163, 74, .20);
+    }
+
+    .mini-pill.warn {
+        background: var(--pex-warning-soft);
+        color: #92400e;
+        border-color: rgba(245, 158, 11, .24);
+    }
+
+    .qty-input {
+        width: 100%;
+        height: 44px;
+        text-align: center;
+        border-radius: 14px;
+        border: 1px solid var(--pex-border-strong);
+        font-size: 15px;
+        font-weight: 950;
+        color: var(--pex-text);
+        outline: none;
+    }
+
+    .qty-input:focus {
+        border-color: var(--pex-primary);
+        box-shadow: 0 0 0 4px var(--pex-primary-soft);
+    }
+
+    .btn-pex {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 950;
+        text-decoration: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: .18s ease;
+        white-space: nowrap;
+    }
+
+    .btn-pex:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-pex.primary {
+        background: var(--pex-primary);
+        color: #fff;
+        box-shadow: 0 12px 22px rgba(15, 107, 255, .18);
+    }
+
+    .btn-pex.primary:hover {
+        background: var(--pex-primary-dark);
+    }
+
+    .btn-pex.ghost {
+        background: #fff;
+        color: var(--pex-text);
+        border-color: var(--pex-border-strong);
+    }
+
+    .btn-pex.ghost:hover {
+        background: var(--pex-soft);
+    }
+
+    .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+    }
+
+    .timeline {
+        display: grid;
+        gap: 12px;
+    }
+
+    .assign-card {
+        border: 1px solid var(--pex-border);
+        border-radius: 18px;
+        padding: 14px;
+        background: #fff;
+    }
+
+    .assign-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .assign-title {
+        color: var(--pex-text);
+        font-size: 13px;
+        font-weight: 950;
+        line-height: 1.35;
+    }
+
+    .assign-date {
+        color: var(--pex-muted);
+        font-size: 11px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+
+    .assign-product {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px;
+        background: #f8fafc;
+        border: 1px solid var(--pex-border);
+        border-radius: 14px;
+        color: var(--pex-text);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .assign-product strong {
+        font-weight: 950;
+    }
+
+    .assign-note {
+        margin-top: 9px;
+        color: var(--pex-muted);
+        font-size: 12px;
+        line-height: 1.4;
+        font-weight: 750;
+    }
+
+    .empty-state {
+        padding: 42px 18px;
+        text-align: center;
+        color: var(--pex-muted);
+    }
+
+    .empty-state i {
+        display: block;
+        font-size: 42px;
+        color: var(--pex-light);
+        margin-bottom: 10px;
+    }
+
+    .empty-state strong {
+        display: block;
+        color: var(--pex-text);
+        font-size: 15px;
+        font-weight: 950;
+        margin-bottom: 5px;
+    }
+
+    .empty-state span {
+        font-size: 13px;
+        line-height: 1.45;
+        font-weight: 750;
+    }
+
+    .notice {
+        border: 1px solid rgba(15, 107, 255, .18);
+        background: #f8fbff;
+        color: #1e3a8a;
+        border-radius: 18px;
+        padding: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 13px;
+        font-weight: 750;
+        line-height: 1.45;
+        margin-bottom: 14px;
+    }
+
+    .notice i {
+        font-size: 22px;
+        color: var(--pex-primary);
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 1050px) {
+        .pex-hero,
+        .pex-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .pex-hero {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .pex-chip {
+            width: 100%;
+        }
+
+        .material-row {
+            grid-template-columns: 1fr;
+        }
+
+        .actions,
+        .btn-pex {
+            width: 100%;
+        }
+
+        .panel-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<div class="pex-page">
+
+    <section class="pex-hero">
+        <div>
+            <div class="pex-badge">
+                <i class='bx bx-transfer-alt'></i>
+                Entrega PEX a técnicos
+            </div>
+
+            <h1 class="pex-title">{{ proyecto.nombre }}</h1>
+
+            <span class="pex-code">{{ proyecto.codigo }}</span>
+
+            <p class="pex-desc">
+                Registra la entrega de materiales desde el responsable PEX hacia técnicos o cuadrillas.
+                Cada movimiento queda asociado al proyecto para mantener trazabilidad.
+            </p>
+
+            <div class="pex-meta-row">
+                <span class="pex-chip">
+                    <i class='bx bxs-building'></i>
+                    {{ proyecto.sede.nombre }}
+                </span>
+
+                <span class="pex-chip">
+                    <i class='bx bx-hard-hat'></i>
+                    Responsable PEX: {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+                </span>
+
+                <span class="pex-chip">
+                    <i class='bx bx-user'></i>
+                    Entrega: {{ request.user.get_full_name|default:request.user.username }}
+                </span>
+            </div>
+        </div>
+
+        <aside class="hero-card">
+            <div class="hero-stat">
+                <div class="stat-item">
+                    <span>Planificado</span>
+                    <strong>{{ proyecto.total_materiales_planificados }}</strong>
+                </div>
+
+                <div class="stat-item">
+                    <span>Asignado / Entregado</span>
+                    <strong>{{ proyecto.total_materiales_entregados }}</strong>
+                </div>
+
+                <div class="stat-item">
+                    <span>Pendiente</span>
+                    <strong>{{ proyecto.total_materiales_pendientes }}</strong>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <div class="pex-layout">
+
+        <main>
+            <section class="pex-panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <h3>
+                            <i class='bx bx-package'></i>
+                            Asignar materiales
+                        </h3>
+                        <span>Selecciona el técnico y coloca las cantidades a entregar.</span>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="notice">
+                        <i class='bx bx-info-circle'></i>
+                        <div>
+                            Ingresa cantidades solo en los materiales que entregarás ahora.
+                            El sistema no permitirá asignar más de lo pendiente.
+                        </div>
+                    </div>
+
+                    <form method="POST" id="formAsignar">
+                        {% csrf_token %}
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="tecnico_id">Técnico que recibe</label>
+                                <select name="tecnico_id" id="tecnico_id" class="form-control" required>
+                                    <option value="">Selecciona un técnico...</option>
+
+                                    {% for tecnico in tecnicos %}
+                                        <option value="{{ tecnico.id }}">
+                                            {{ tecnico.get_full_name|default:tecnico.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="observaciones">Observación general</label>
+                                <textarea
+                                    name="observaciones"
+                                    id="observaciones"
+                                    class="form-control"
+                                    placeholder="Ej: Material entregado para instalación de fibra en campo..."
+                                ></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Materiales disponibles del proyecto</label>
+
+                                <div class="materials-list">
+                                    {% for material in materiales %}
+                                        <div class="material-row">
+                                            <div>
+                                                <strong class="material-name">{{ material.producto.nombre }}</strong>
+
+                                                <div class="material-meta">
+                                                    <span class="mini-pill">
+                                                        Código:
+                                                        {{ material.producto.codigo_interno|default:material.producto.barcode|default:"S/C" }}
+                                                    </span>
+
+                                                    <span class="mini-pill">
+                                                        Planificado: {{ material.cantidad_planificada }}
+                                                    </span>
+
+                                                    <span class="mini-pill ok">
+                                                        Despachado almacén: {{ material.cantidad_entregada }}
+                                                    </span>
+
+                                                    <span class="mini-pill">
+                                                        Ya asignado: {{ material.asignado_cuadrilla }}
+                                                    </span>
+
+                                                    <span class="mini-pill warn">
+                                                        Disponible: {{ material.disponible_cuadrilla }}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <input
+                                                    type="number"
+                                                    name="qty_{{ material.id }}"
+                                                    class="qty-input"
+                                                    min="0"
+                                                    max="{{ material.disponible_cuadrilla }}"
+                                                    value="0"
+                                                    {% if material.disponible_cuadrilla <= 0 %}disabled{% endif %}
+                                                >
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        <div class="empty-state">
+                                            <i class='bx bx-box'></i>
+                                            <strong>Sin materiales</strong>
+                                            <span>Este proyecto aún no tiene materiales registrados.</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <a href="{% url 'proyecto_detail' proyecto.id %}" class="btn-pex ghost">
+                                <i class='bx bx-arrow-back'></i>
+                                Volver al proyecto
+                            </a>
+
+                            <button type="submit" class="btn-pex primary" id="btnAsignar">
+                                <i class='bx bx-send'></i>
+                                Registrar entrega
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+
+        <aside>
+            <section class="pex-panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <h3>
+                            <i class='bx bx-history'></i>
+                            Historial de entregas
+                        </h3>
+                        <span>Movimientos registrados para este proyecto.</span>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="timeline">
+                        {% for a in asignaciones %}
+                            <div class="assign-card">
+                                <div class="assign-top">
+                                    <div class="assign-title">
+                                        {{ a.entregado_por.get_full_name|default:a.entregado_por.username }}
+                                        →
+                                        {{ a.recibido_por.get_full_name|default:a.recibido_por.username }}
+                                    </div>
+
+                                    <div class="assign-date">
+                                        {{ a.fecha_entrega|date:"d/m/Y H:i" }}
+                                    </div>
+                                </div>
+
+                                <div class="assign-product">
+                                    <span>{{ a.producto.nombre }}</span>
+                                    <strong>x {{ a.cantidad }}</strong>
+                                </div>
+
+                                {% if a.seriales.all %}
+                                    <div class="assign-note">
+                                        <strong>Seriales/MAC:</strong>
+                                        {% for serial in a.seriales.all %}
+                                            {{ serial }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+
+                                {% if a.observaciones %}
+                                    <div class="assign-note">
+                                        <strong>Obs:</strong> {{ a.observaciones }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <div class="empty-state">
+                                <i class='bx bx-time-five'></i>
+                                <strong>Sin entregas registradas</strong>
+                                <span>Aún no se han asignado materiales a técnicos.</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+    </div>
+</div>
+
+<script>
+    const formAsignar = document.getElementById("formAsignar");
+    const btnAsignar = document.getElementById("btnAsignar");
+
+    if (formAsignar && btnAsignar) {
+        formAsignar.addEventListener("submit", function () {
+            btnAsignar.disabled = true;
+            btnAsignar.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Registrando...";
+        });
+    }
+</script>
+
+{% endblock %}
