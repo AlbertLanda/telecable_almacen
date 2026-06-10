@@ -852,18 +852,6 @@
                 <h2>Preparación de materiales</h2>
                 <p>Escanea productos o agrégalos a la mochila. El stock se descuenta recién al confirmar el despacho.</p>
             </div>
-        </div>
-
-        <button
-            type="button"
-            class="btn-back"
-            id="btnVolverPanel"
-            onclick="window.location.assign('/dashboard/almacen/');"
-        >
-            <i class='bx bx-arrow-back'></i>
-            Volver al panel
-        </button>
-    </div>
 
     <div class="assign-container">
 
@@ -1018,17 +1006,11 @@
     const formAsignacion = document.getElementById("formAsignacion");
     const selectTecnico = document.getElementById("id_solicitante") || document.getElementById("selectTecnico");
     const iaStatus = document.getElementById("iaStatus");
-    const btnVolverPanel = document.getElementById("btnVolverPanel");
 
     let debounceTimer;
     let barcodeString = "";
     let barcodeTimer = null;
 
-    if (btnVolverPanel) {
-        btnVolverPanel.addEventListener("click", function () {
-            window.location.assign("/dashboard/almacen/");
-        });
-    }
 
     function escapeHtml(value) {
         return String(value ?? "")

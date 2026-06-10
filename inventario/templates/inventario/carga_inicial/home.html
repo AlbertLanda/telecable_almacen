@@ -1468,17 +1468,41 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const input = document.getElementById("scanInput");
-
-        if (input) {
-            input.focus();
-
-            input.addEventListener("keydown", function (event) {
+        // 1. Lógica para el buscador principal
+        const scanInput = document.getElementById("scanInput");
+        if (scanInput) {
+            scanInput.focus();
+            scanInput.addEventListener("keydown", function (event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
-                    input.form.submit();
+                    scanInput.form.submit();
                 }
             });
+        }
+
+        // 2. NUEVA Lógica para el campo "Barcode opcional" en producto nuevo
+        // Guardamos la URL generada por Django en una variable usando backticks
+        const urlNuevoProducto = `{% url 'carga_inicial_registrar_nuevo' %}`;
+        
+        // Seleccionamos el formulario usando esa variable
+        const formNuevo = document.querySelector(`form[action="${urlNuevoProducto}"]`);
+        
+        if (formNuevo) {
+            const barcodeInputNuevo = formNuevo.querySelector('input[name="barcode"]');
+            const unidadSelect = formNuevo.querySelector('select[name="unidad"]');
+
+            if (barcodeInputNuevo) {
+                barcodeInputNuevo.addEventListener("keydown", function (event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault(); // Corta el envío automático
+                        
+                        // Pasa el foco al siguiente campo (Unidad de medida)
+                        if (unidadSelect) {
+                            unidadSelect.focus();
+                        }
+                    }
+                });
+            }
         }
     });
 </script>
