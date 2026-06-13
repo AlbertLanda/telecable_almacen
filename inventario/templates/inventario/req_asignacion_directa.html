@@ -729,14 +729,18 @@
         margin-bottom: 10px;
     }
 
+    /* CORRECCIÓN PRINCIPAL AL CONTENEDOR DE TOASTS */
     .toast-container {
         position: fixed;
         right: 22px;
         bottom: 22px;
         z-index: 99999;
-        display: grid;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
         gap: 10px;
         width: min(420px, calc(100vw - 44px));
+        pointer-events: none; /* Esto evita que el contenedor bloquee los clics */
     }
 
     .toast-msg {
@@ -753,6 +757,8 @@
         font-size: 13px;
         line-height: 1.4;
         font-weight: 850;
+        pointer-events: auto; /* Esto permite seguir haciendo hover o clic solo a la alerta */
+        width: 100%;
     }
 
     .toast-msg i {
@@ -847,13 +853,11 @@
     <div class="page-header">
         <div class="page-title-main">
             <i class='bx bxs-package'></i>
-
             <div>
                 <h2>Preparación de materiales</h2>
                 <p>Escanea productos o agrégalos a la mochila. El stock se descuenta recién al confirmar el despacho.</p>
             </div>
-
-    <div class="assign-container">
+        </div> </div> <div class="assign-container">
 
         <section class="card-panel catalog-panel">
             <div class="panel-head">
