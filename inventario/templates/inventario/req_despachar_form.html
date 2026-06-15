@@ -702,10 +702,25 @@
     }
 
     .picked-list {
-        max-height: 150px;
+        max-height: 220px;
         overflow-y: auto;
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 7px;
+        padding-right: 4px;
+    }
+
+    .picked-item > div {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .picked-item strong,
+    .picked-item span {
+        display: block;
+        max-width: 230px;
+        overflow-wrap: anywhere;
     }
 
     .picked-empty {
@@ -851,11 +866,16 @@
     .toast-container {
         position: fixed;
         right: 22px;
-        bottom: 22px;
+        top: 90px;
+        bottom: auto;
         z-index: 99999;
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 10px;
-        width: min(420px, calc(100vw - 44px));
+        width: min(360px, calc(100vw - 44px));
+        max-height: 45vh;
+        overflow-y: auto;
+        pointer-events: none;
     }
 
     .toast-msg {
@@ -872,6 +892,11 @@
         font-size: 13px;
         line-height: 1.4;
         font-weight: 850;
+        min-height: auto;
+        height: auto;
+        max-height: 120px;
+        overflow: hidden;
+        pointer-events: auto;
     }
 
     .toast-msg i {
@@ -1553,33 +1578,38 @@
 
     function renderPicked(itemId) {
         const list = document.getElementById(`selected_list_${itemId}`);
-        const emptyMsg = document.getElementById(`empty_msg_${itemId}`);
         const picked = window[`picked_${itemId}`] || [];
 
-        if (!list || !emptyMsg) return;
+        if (!list) return;
 
         list.innerHTML = "";
 
         if (picked.length === 0) {
-            emptyMsg.style.display = "block";
-            list.appendChild(emptyMsg);
+            list.innerHTML = `
+                <div class="picked-empty" id="empty_msg_${itemId}">
+                    0 equipos seleccionados.
+                </div>
+            `;
             updateCounters(itemId, 0, []);
             return;
         }
-
-        emptyMsg.style.display = "none";
 
         picked.forEach((item, index) => {
             const div = document.createElement("div");
             div.className = "picked-item";
 
             const principal = item.cod44 || item.serial || item.mac || item.serial_secundario || "Equipo";
-            const secundario = item.serial || item.mac || item.serial_secundario || "";
+
+            const detalles = [
+                item.serial ? `SN: ${item.serial}` : "",
+                item.mac ? `MAC: ${item.mac}` : "",
+                item.serial_secundario ? `D-SN: ${item.serial_secundario}` : ""
+            ].filter(Boolean).join(" | ");
 
             div.innerHTML = `
                 <div>
                     <strong>${principal}</strong>
-                    ${secundario ? `<span>${secundario}</span>` : ""}
+                    ${detalles ? `<span>${detalles}</span>` : ""}
                 </div>
                 <i class='bx bx-x btn-remove-item' onclick="removePicked('${itemId}', ${index})"></i>
             `;
@@ -1589,6 +1619,8 @@
 
         const ids = picked.map(item => item.id);
         updateCounters(itemId, picked.length, ids);
+
+        list.scrollTop = list.scrollHeight;
     }
 
     function removePicked(itemId, index) {
