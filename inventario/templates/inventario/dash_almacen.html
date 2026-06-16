@@ -1003,23 +1003,25 @@
             </div>
         </article>
 
-        <article class="kpi-card red {% if kpi_stock > 0 %}danger-active{% endif %}">
-            <div class="kpi-icon red">
-                <i class='bx bx-error-circle'></i>
-            </div>
-
-            <div class="kpi-body">
-                <div class="kpi-value">{{ kpi_stock|default:0 }}</div>
-                <div class="kpi-label">Stock crítico</div>
-                <div class="kpi-help">
-                    {% if kpi_stock > 0 %}
-                        Productos que necesitan reposición o revisión inmediata.
-                    {% else %}
-                        Inventario dentro de niveles óptimos.
-                    {% endif %}
+        <a href="{% url 'inventory_list' %}?filtro=critico" style="text-decoration: none; color: inherit; display: block;">
+            <article class="kpi-card red {% if kpi_stock > 0 %}danger-active{% endif %}">
+                <div class="kpi-icon red">
+                    <i class='bx bx-error-circle'></i>
                 </div>
-            </div>
-        </article>
+
+                <div class="kpi-body">
+                    <div class="kpi-value">{{ kpi_stock|default:0 }}</div>
+                    <div class="kpi-label">Stock crítico</div>
+                    <div class="kpi-help">
+                        {% if kpi_stock > 0 %}
+                            Productos que necesitan reposición o revisión inmediata.
+                        {% else %}
+                            Inventario dentro de niveles óptimos.
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        </a>
     </section>
 
     <section>

@@ -293,6 +293,14 @@ def inventory_list(request):
     if query:
         stocks = stocks.filter(producto__nombre__icontains=query)
 
+    filtro = request.GET.get("filtro")
+    if filtro == "critico":
+        stocks = stocks.filter(
+            producto__activo=True,
+            producto__stock_minimo__gt=0,
+            cantidad__lte=F("producto__stock_minimo")
+        )
+
     return render(
         request,
         "inventario/inventory_list.html",
@@ -302,6 +310,7 @@ def inventory_list(request):
             "sedes": sedes_disponibles,
             "stocks": stocks,
             "query": query,
+            "filtro": filtro,
         },
     )
 
@@ -407,27 +416,41 @@ def dash_almacen(request):
     # ==========================================
     # 9. LÓGICA PARA GRÁFICOS
     # ==========================================
-    CRITICO = 5
-    BAJO = 15
-
     agg_stock = Stock.objects.filter(sede=sede_actual).aggregate(
         stock_critico=Sum(
             Case(
-                When(cantidad__lte=CRITICO, then=1),
+                When(
+                    producto__activo=True,
+                    producto__stock_minimo__gt=0,
+                    cantidad__lte=F("producto__stock_minimo"),
+                    then=1
+                ),
                 default=0,
                 output_field=IntegerField(),
             )
         ),
         stock_bajo=Sum(
             Case(
-                When(cantidad__gt=CRITICO, cantidad__lte=BAJO, then=1),
+                When(
+                    producto__activo=True,
+                    producto__stock_minimo__gt=0,
+                    cantidad__gt=F("producto__stock_minimo"),
+                    cantidad__lte=F("producto__stock_minimo") * 1.5, # Ejemplo: Un 50% por encima del mínimo es "Bajo"
+                    then=1
+                ),
                 default=0,
                 output_field=IntegerField(),
             )
         ),
         stock_saludable=Sum(
             Case(
-                When(cantidad__gt=BAJO, then=1),
+                # Es saludable si supera el umbral de bajo, o si el producto no tiene mínimo configurado
+                When(
+                    Q(cantidad__gt=F("producto__stock_minimo") * 1.5) | 
+                    Q(producto__stock_minimo=0) | 
+                    Q(producto__activo=False),
+                    then=1
+                ),
                 default=0,
                 output_field=IntegerField(),
             )
