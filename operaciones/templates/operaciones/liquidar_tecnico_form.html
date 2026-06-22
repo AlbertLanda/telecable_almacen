@@ -192,19 +192,52 @@
                                 </span>
                             </td>
 
-                            <td class="col-input">
-                                <input type="number" name="devuelto_{{ item.id }}" 
-                                       class="qty-input input-green input-calc" 
-                                       data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
-                                       min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
-                            </td>
+                            {% if item.producto.es_serializado %}
+                                <td colspan="2" style="padding: 12px;">
+                                    <div style="background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; border: 1px dashed var(--border-light);">
+                                        <div style="font-size: 10px; font-weight: bold; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Selecciona los equipos físicos devueltos:</div>
+                                        
+                                        <div style="max-height: 180px; overflow-y: auto;">
+                                        {% for equipo in equipos_asignados %}
+                                            {% if equipo.producto.id == item.producto.id %}
+                                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                    <span style="font-family: monospace; font-size: 12px; color: var(--text-main);">
+                                                        <i class='bx bx-barcode'></i> {{ equipo.codigo_trazabilidad|default:"SN:" }} {{ equipo.serial }}
+                                                    </span>
+                                                    <div style="display: flex; gap: 15px;">
+                                                        <label style="cursor: pointer; font-size: 12px; color: var(--success); display:flex; align-items:center; gap:4px;">
+                                                            <input type="checkbox" name="check_devuelto_{{ item.id }}" value="{{ equipo.id }}" class="check-serial" data-type="devuelto" data-itemid="{{ item.id }}">
+                                                            Bueno
+                                                        </label>
+                                                        <label style="cursor: pointer; font-size: 12px; color: var(--danger); display:flex; align-items:center; gap:4px;">
+                                                            <input type="checkbox" name="check_merma_{{ item.id }}" value="{{ equipo.id }}" class="check-serial" data-type="merma" data-itemid="{{ item.id }}">
+                                                            Dañado
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        </div>
+                                    </div>
+                                    
+                                    <input type="hidden" name="devuelto_{{ item.id }}" id="hidden_devuelto_{{ item.id }}" value="0" class="input-calc" data-activo="{{ item.producto.es_activo|yesno:'true,false' }}">
+                                    <input type="hidden" name="merma_{{ item.id }}" id="hidden_merma_{{ item.id }}" value="0" class="input-calc" data-activo="{{ item.producto.es_activo|yesno:'true,false' }}">
+                                </td>
+                            {% else %}
+                                <td class="col-input">
+                                    <input type="number" name="devuelto_{{ item.id }}" 
+                                           class="qty-input input-green input-calc" 
+                                           data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
+                                           min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
+                                </td>
 
-                            <td class="col-input">
-                                <input type="number" name="merma_{{ item.id }}" 
-                                       class="qty-input input-red input-calc" 
-                                       data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
-                                       min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
-                            </td>
+                                <td class="col-input">
+                                    <input type="number" name="merma_{{ item.id }}" 
+                                           class="qty-input input-red input-calc" 
+                                           data-activo="{{ item.producto.es_activo|yesno:'true,false' }}"
+                                           min="0" max="{{ item.cantidad }}" value="0" autocomplete="off">
+                                </td>
+                            {% endif %}
 
                             <td class="col-consumo">
                                 <span class="span-consumo">
@@ -339,6 +372,36 @@
         if (e.target === modalConfirm) {
             modalConfirm.style.display = 'none';
         }
+    });
+
+    // === NUEVA LÓGICA PARA CHECKBOXES DE ONUs ===
+    document.querySelectorAll('.check-serial').forEach(chk => {
+        chk.addEventListener('change', function() {
+            let itemId = this.dataset.itemid;
+            let type = this.dataset.type;
+            
+            // Si marco uno, desmarco el opuesto (No puede ser Bueno y Merma a la vez)
+            if (this.checked) {
+                let oppositeType = type === 'devuelto' ? 'merma' : 'devuelto';
+                let oppositeBox = this.closest('div').querySelector(`.check-serial[data-type="${oppositeType}"]`);
+                if (oppositeBox && oppositeBox.checked) {
+                    oppositeBox.checked = false;
+                }
+            }
+
+            // Sumar los checks marcados
+            let countDevueltos = document.querySelectorAll(`.check-serial[data-type="devuelto"][data-itemid="${itemId}"]:checked`).length;
+            let countMermas = document.querySelectorAll(`.check-serial[data-type="merma"][data-itemid="${itemId}"]:checked`).length;
+
+            // Actualizar los inputs ocultos
+            let hiddenDev = document.getElementById(`hidden_devuelto_${itemId}`);
+            let hiddenMer = document.getElementById(`hidden_merma_${itemId}`);
+            hiddenDev.value = countDevueltos;
+            hiddenMer.value = countMermas;
+
+            // Disparar el evento para que tu JS original calcule el consumo
+            hiddenDev.dispatchEvent(new Event('input'));
+        });
     });
 </script>
 {% endblock %}

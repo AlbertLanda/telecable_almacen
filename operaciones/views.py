@@ -389,6 +389,12 @@ def liquidar_tecnico(request, tecnico_id):
 
     tecnico = get_object_or_404(User, id=tecnico_id)
     mochila = StockTecnico.objects.filter(tecnico=tecnico, cantidad__gt=0).select_related('producto')
+    
+    # 🚀 CAMBIO CLAVE: Consultamos los equipos aquí arriba, afuera del POST
+    equipos_asignados = ItemSerializado.objects.filter(
+        asignado_a=tecnico, 
+        estado=ItemSerializado.Estado.ASIGNADO
+    )
 
     if request.method == 'POST':
         try:
@@ -412,20 +418,56 @@ def liquidar_tecnico(request, tecnico_id):
                 reporte_mermas = [] 
 
                 for item in mochila:
-                    cant_devuelta = int(request.POST.get(f'devuelto_{item.id}', 0)) # Buenos
-                    cant_merma = int(request.POST.get(f'merma_{item.id}', 0))       # Malos
-                    
-                    total_salida = cant_devuelta + cant_merma
-                    
-                    # Cálculo del Consumo (Lo que no devolvió ni rompió, se asume instalado)
-                    # OJO: Si es herramienta, el consumo es 0 logicamente, pero matemáticamente es la diferencia
-                    consumo_calculado = item.cantidad - total_salida
+                    # ====== NUEVA LÓGICA DE SEPARACIÓN ======
+                    if item.producto.es_serializado:
+                        # 1. Recuperar listas de IDs de los checkboxes del HTML
+                        devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
+                        mermas_ids = request.POST.getlist(f'check_merma_{item.id}')
+                        
+                        cant_devuelta = len(devueltos_ids)
+                        cant_merma = len(mermas_ids)
+                        total_salida = cant_devuelta + cant_merma
+                        consumo_calculado = item.cantidad - total_salida
+                        
+                        if total_salida > item.cantidad:
+                            raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
-                    if total_salida > item.cantidad:
-                        raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
+                        # 2. Retornar al almacén los marcados como "Buenos"
+                        if devueltos_ids:
+                            ItemSerializado.objects.filter(id__in=devueltos_ids).update(
+                                estado=ItemSerializado.Estado.EN_ALMACEN,
+                                asignado_a=None
+                            )
+                            
+                        # 3. Mandar a merma los marcados como "Dañados"
+                        if mermas_ids:
+                            ItemSerializado.objects.filter(id__in=mermas_ids).update(
+                                estado=ItemSerializado.Estado.MERMA,
+                                asignado_a=None
+                            )
+                            
+                        # 4. Los que NO marcó el de almacén, asumimos que se instalaron en clientes
+                        todos_ids = devueltos_ids + mermas_ids
+                        ItemSerializado.objects.filter(
+                            asignado_a=tecnico, 
+                            producto=item.producto, 
+                            estado=ItemSerializado.Estado.ASIGNADO
+                        ).exclude(id__in=todos_ids).update(
+                            estado=ItemSerializado.Estado.INSTALADO
+                        )
+
+                    else:
+                        # ====== LÓGICA ORIGINAL PARA CABLES/CONECTORES ======
+                        cant_devuelta = int(request.POST.get(f'devuelto_{item.id}', 0))
+                        cant_merma = int(request.POST.get(f'merma_{item.id}', 0))
+                        
+                        total_salida = cant_devuelta + cant_merma
+                        consumo_calculado = item.cantidad - total_salida
+
+                        if total_salida > item.cantidad:
+                            raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
                     # 2. GUARDAR EL DETALLE COMPLETO EN EL DOCUMENTO (Para el PDF)
-                    # Usamos los campos que ya existen en tu modelo DocumentoItem
                     DocumentoItem.objects.create(
                         documento=doc_ing,
                         producto=item.producto,
@@ -472,9 +514,11 @@ def liquidar_tecnico(request, tecnico_id):
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
 
+    # 🚀 UN SOLO RETURN RENDER AL FINAL PARA TODA LA VISTA
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
         'tecnico': tecnico,
-        'mochila': mochila
+        'mochila': mochila,
+        'equipos_asignados': equipos_asignados # <-- Ahora sí viajará siempre al frontend
     })
 
 
