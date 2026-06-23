@@ -27,12 +27,9 @@
     
     .date-row td { background: rgba(10, 132, 255, 0.05); color: var(--primary); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 20px;}
     
-    .badge-sal { background: rgba(10, 132, 255, 0.15); color: var(--primary); padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
-    
-    /* Botón Guía Salida (Idéntico a tu imagen) */
-    .btn-pdf { border: 1px solid var(--border-light); color: var(--text-main); background: transparent; padding: 6px 16px; border-radius: 8px; font-weight: 700; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
-    .btn-pdf:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
-    .btn-pdf i { color: var(--danger); font-size: 18px; } /* Icono PDF rojo */
+    .badge-liq { background: rgba(48, 209, 88, 0.15); color: var(--success); padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-pdf { border: 1px solid var(--danger); color: var(--danger); background: transparent; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-pdf:hover { background: var(--danger); color: #fff; }
 </style>
 
 <div style="max-width: 1200px; margin: 0 auto; animation: fadeIn 0.4s ease-out;">
@@ -40,8 +37,8 @@
     <!-- Encabezado -->
     <div class="history-header">
         <div>
-            <h2><i class='bx bx-package' style="color: var(--primary);"></i> Mis Entregas</h2>
-            <p>Historial de guías de salida recibidas de almacén</p>
+            <h2><i class='bx bx-history' style="color: var(--primary);"></i> Mis Liquidaciones</h2>
+            <p>Registro personal de {{ user.first_name|default:user.username }}</p>
         </div>
         <a href="{% url 'tecnico_dashboard' %}" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
             <i class='bx bx-left-arrow-alt'></i> Volver al Panel
@@ -51,7 +48,7 @@
     <!-- Buscador -->
     <div class="search-bar">
         <i class='bx bx-search fs-4 text-muted'></i>
-        <input type="text" placeholder="Buscar por número de guía o fecha...">
+        <input type="text" placeholder="Buscar por referencia, código o fecha...">
     </div>
 
     <!-- Tabla -->
@@ -62,48 +59,41 @@
                     <tr>
                         <th>Hora</th>
                         <th>Tipo</th>
-                        <th>Nro. Guía (SAL)</th>
-                        <th>Origen (REQ)</th>
+                        <th>Referencia / Código</th>
+                        <th>Responsable / Técnico</th>
                         <th class="text-center">Documento</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for s in sals %}
-                        <!-- Agrupador por fechas -->
-                        {% ifchanged s.fecha.date %}
+                    {% for liq in liquidaciones %}
+                        <!-- Agrupador por fechas de Django -->
+                        {% ifchanged liq.fecha.date %}
                         <tr class="date-row">
-                            <td colspan="5"><i class='bx bx-calendar'></i> {{ s.fecha|date:"d M Y" }}</td>
+                            <td colspan="5"><i class='bx bx-calendar'></i> {{ liq.fecha|date:"d M Y" }}</td>
                         </tr>
                         {% endifchanged %}
                         
                         <!-- Fila de datos -->
                         <tr>
-                            <td style="color: var(--text-secondary); font-weight: 500;">{{ s.fecha|date:"H:i" }}</td>
-                            <td><span class="badge-sal"><i class='bx bx-box'></i> SALIDA</span></td>
-                            
-                            <!-- AHORA PINTAMOS LA SALIDA (SAL) -->
-                            <td style="font-weight: 700; font-size: 15px;">{{ s.numero|default:"SAL-PENDIENTE" }}</td>
-                            
-                            <td style="color: var(--text-secondary); font-size: 13px;">
-                                {% if s.origen %}
-                                    <span style="font-family: monospace;"><i class='bx bx-file'></i> {{ s.origen.numero }}</span>
-                                {% else %}
-                                    <span style="font-style: italic;">Entrega Directa</span>
-                                {% endif %}
+                            <td style="color: var(--text-secondary); font-weight: 500;">{{ liq.fecha|date:"H:i" }}</td>
+                            <td><span class="badge-liq"><i class='bx bx-check-shield'></i> LIQ. SEMANAL</span></td>
+                            <td style="font-weight: 700;">{{ liq.numero|default:"LIQ-SEMANAL" }}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px; color: var(--text-main); font-weight: 500;">
+                                    <i class='bx bxs-user-circle fs-4 text-muted'></i> {{ liq.solicitante.username }}
+                                </div>
                             </td>
-                            
                             <td class="text-center">
-                                <!-- Redirigimos al print y abrimos en pestaña nueva -->
-                                <a href="{% url 'sal_print' s.id %}" target="_blank" class="btn-pdf">
-                                    <i class='bx bxs-file-pdf'></i> Guía Salida
+                                <a href="{% url 'liquidacion_tecnico_print' liq.id %}" target="_blank" class="btn-pdf">
+                                    <i class='bx bxs-file-pdf'></i> Acta Liq.
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
                             <td colspan="5" class="text-center" style="padding: 60px 20px; color: var(--text-secondary);">
-                                <i class='bx bx-package' style="font-size: 40px; margin-bottom: 10px;"></i><br>
-                                Aún no tienes entregas registradas a tu nombre.
+                                <i class='bx bx-info-circle' style="font-size: 40px; margin-bottom: 10px;"></i><br>
+                                No tienes liquidaciones registradas en el sistema.
                             </td>
                         </tr>
                     {% endfor %}

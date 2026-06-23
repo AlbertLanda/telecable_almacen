@@ -180,6 +180,21 @@
         {% endfor %}
     </div>
 
+    <td>
+        <strong style="display: block;">{{ item.producto.nombre }}</strong>
+        
+        {% if item.equipos %}
+            <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px;">
+                {% for equipo in item.equipos %}
+                    <span style="background: rgba(10, 132, 255, 0.2); color: var(--primary); 
+                                padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                        #{{ equipo.codigo_trazabilidad|default:equipo.serial }}
+                    </span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </td>
+
 </div>
 
 <script>

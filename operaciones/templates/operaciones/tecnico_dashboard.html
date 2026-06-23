@@ -3,6 +3,34 @@
 
 {% block content %}
 <style>
+    /* Estilos para Mi Mochila (Tarjetas) */
+    .btn-tab {
+        background: var(--bg-card); border: 1px solid var(--border-light); color: var(--text-secondary);
+        padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;
+        display: flex; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn-tab:hover { background: var(--bg-hover); }
+    .btn-tab.active { background: rgba(10, 132, 255, 0.05); border-color: var(--primary); color: var(--primary); }
+    
+    .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    
+    .stock-card {
+        background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px;
+        padding: 16px; display: flex; align-items: center; gap: 15px; transition: 0.2s;
+    }
+    .stock-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+    .sc-material { border-left: 4px solid var(--primary); }
+    .sc-herramienta { border-left: 4px solid #FF9F0A; }
+    
+    .sc-icon { color: var(--text-secondary); font-size: 24px; }
+    .sc-info { flex: 1; overflow: hidden; }
+    .sc-info h4 { margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-info p { margin: 0; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+    
+    .sc-qty { text-align: right; }
+    .sc-qty h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .sc-qty span { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+
     /* =========================================
        DASHBOARD TÉCNICO (Enfoque Operativo)
        ========================================= */
@@ -23,7 +51,7 @@
     .header-content p { color: var(--text-secondary); margin: 6px 0 0; display: flex; align-items: center; gap: 6px; font-size: 14px; }
 
     /* Grid de KPIs */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
     .kpi-card {
         background: var(--bg-card); border: 1px solid var(--border-light);
         border-radius: var(--radius); padding: 24px;
@@ -40,24 +68,9 @@
     .ic-orange { background: rgba(255, 159, 10, 0.15); color: #FF9F0A; }
     .ic-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
 
-    /* Accesos Directos */
+    /* Secciones Generales */
     .section-title { font-size: 18px; color: var(--text-main); font-weight: 600; margin: 10px 0 15px 0; display: flex; align-items: center; gap: 8px; }
     
-    .quick-actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-    .action-card {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px;
-        text-decoration: none; color: var(--text-main); transition: 0.2s; position: relative;
-    }
-    .action-card:hover { background: var(--bg-hover); border-color: var(--text-secondary); transform: translateX(4px); }
-    
-    .ac-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--bg-input); }
-    .ac-texts { flex: 1; }
-    .ac-texts h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; }
-    .ac-texts p { margin: 0; font-size: 13px; color: var(--text-secondary); }
-    .ac-arrow { color: var(--text-tertiary); font-size: 20px; transition: 0.2s; }
-    .action-card:hover .ac-arrow { color: var(--primary); transform: translateX(2px); }
-
     /* Proyectos Asignados */
     .project-card {
         background: var(--bg-input); border: 1px solid var(--border-light);
@@ -72,6 +85,33 @@
     .bp-warn:hover { background: #ffaa00; transform: translateY(-1px); }
     .bp-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-main); }
     .bp-outline:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
+
+    /* Tarjetas de Tablas (Mochila y Liquidaciones) */
+    .custom-table-card {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 16px; overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+    .ct-header {
+        background: var(--bg-input); padding: 14px 20px;
+        border-bottom: 1px solid var(--border-light);
+        font-weight: 600; font-size: 14px; color: var(--text-main);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .custom-table-card table { width: 100%; color: var(--text-main); margin-bottom: 0; }
+    .custom-table-card th { 
+        padding: 12px 20px; font-size: 12px; color: var(--text-secondary); 
+        border-bottom: 1px solid var(--border-light); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .custom-table-card td { 
+        padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); 
+        vertical-align: middle; font-size: 14px;
+    }
+    .custom-table-card tr:last-child td { border-bottom: none; }
+    .custom-table-card tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .qty-badge { background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 6px; font-family: monospace; font-weight: bold; }
+    .doc-badge { background: rgba(10, 132, 255, 0.15); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;}
 
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -94,18 +134,18 @@
         <a href="{% url 'tecnico_mis_entregas' %}" style="text-decoration: none;">
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h3>{{ kpis.entregas }}</h3>
-                    <p>Entregas Recibidas</p>
+                    <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Mis Entregas</h4>
+                    <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Historial de despachos recibidos</p>
                 </div>
                 <div class="kpi-icon ic-blue"><i class='bx bx-package'></i></div>
             </div>
         </a>
         
-        <a href="{% url 'tecnico_mi_stock' %}" style="text-decoration: none;">
+        <a href="{% url 'tecnico_mis_liquidaciones' %}" style="text-decoration: none;">
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h3><i class='bx bx-briefcase'></i></h3>
-                    <p>Ver Mi Mochila</p>
+                    <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Mis Liquidaciones</h4>
+                    <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Registro de actas semanales</p>
                 </div>
                 <div class="kpi-icon ic-orange"><i class='bx bx-check-shield'></i></div>
             </div>
@@ -114,8 +154,8 @@
         {% if proyectos %}
         <div class="kpi-card" style="cursor: default;">
             <div class="kpi-info">
-                <h3>{{ proyectos|length }}</h3>
-                <p>Obras Asignadas</p>
+                <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Obras Asignadas</h4>
+                <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Proyectos activos en ejecución</p>
             </div>
             <div class="kpi-icon ic-green"><i class='bx bx-hard-hat'></i></div>
         </div>
@@ -151,28 +191,102 @@
     </div>
     {% endif %}
 
+    <!-- SECCIÓN: MI MOCHILA -->
     <div>
-        <h3 class="section-title"><i class='bx bx-grid-alt'></i> Herramientas de Gestión</h3>
-        <div class="quick-actions-grid">
-            <a href="{% url 'tecnico_mi_stock' %}" class="action-card">
-                <div class="ac-icon" style="color: #FF9F0A;"><i class='bx bx-briefcase'></i></div>
-                <div class="ac-texts">
-                    <h4>Mi Mochila (Stock)</h4>
-                    <p>Ver herramientas y materiales en tu poder.</p>
-                </div>
-                <i class='bx bx-chevron-right ac-arrow'></i>
-            </a>
+        <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila (Stock en tu poder)</h3>
+        
+        <!-- Pestañas (Tabs) y Buscador -->
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-materiales" class="btn-tab active" onclick="switchMochilaTab('materiales')">
+                    <i class='bx bx-box'></i> Materiales
+                </button>
+                <button id="btn-herramientas" class="btn-tab" onclick="switchMochilaTab('herramientas')">
+                    <i class='bx bx-wrench'></i> Herramientas
+                </button>
+            </div>
+            
+            <div class="search-bar" style="margin-bottom: 0; width: 100%; max-width: 400px; padding: 4px 15px;">
+                <i class='bx bx-search fs-5 text-muted'></i>
+                <input type="text" id="buscador-mochila" onkeyup="filtrarMochila()" placeholder="Filtrar inventario..." style="padding: 6px 0;">
+            </div>
+        </div>
 
-            <a href="{% url 'tecnico_mis_entregas' %}" class="action-card">
-                <div class="ac-icon" style="color: var(--success);"><i class='bx bx-box'></i></div>
-                <div class="ac-texts">
-                    <h4>Mis Entregas</h4>
-                    <p>Historial de despachos recibidos de almacén.</p>
+        <!-- GRID DE MATERIALES -->
+        <div id="grid-materiales" class="stock-grid">
+            {% for item in materiales %}
+            <div class="stock-card sc-material" data-nombre="{{ item.producto.nombre|lower }} {{ item.producto.codigo_interno|lower }}">
+                <div class="sc-icon"><i class='bx bx-archive'></i></div>
+                <div class="sc-info">
+                    <h4>{{ item.producto.nombre }}</h4>
+                    <p>{{ item.producto.codigo_interno }}</p>
                 </div>
-                <i class='bx bx-chevron-right ac-arrow'></i>
-            </a>
+                <div class="sc-qty">
+                    <h2>{{ item.cantidad }}</h2>
+                    <span>{{ item.producto.unidad }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-light);">
+                <i class='bx bx-box' style="font-size: 30px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p style="margin:0;">No tienes materiales en tu mochila.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- GRID DE HERRAMIENTAS -->
+        <div id="grid-herramientas" class="stock-grid" style="display: none;">
+            {% for item in herramientas %}
+            <div class="stock-card sc-herramienta" data-nombre="{{ item.producto.nombre|lower }} {{ item.producto.codigo_interno|lower }}">
+                <div class="sc-icon"><i class='bx bx-wrench'></i></div>
+                <div class="sc-info">
+                    <h4>{{ item.producto.nombre }}</h4>
+                    <p>{{ item.producto.codigo_interno }}</p>
+                </div>
+                <div class="sc-qty">
+                    <h2>{{ item.cantidad }}</h2>
+                    <span>{{ item.producto.unidad }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-light);">
+                <i class='bx bx-wrench' style="font-size: 30px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p style="margin:0;">No tienes herramientas asignadas.</p>
+            </div>
+            {% endfor %}
         </div>
     </div>
-
 </div>
+<script>
+    // Lógica para Pestañas de Mochila
+    function switchMochilaTab(tab) {
+        document.getElementById('btn-materiales').classList.remove('active');
+        document.getElementById('btn-herramientas').classList.remove('active');
+        
+        if (tab === 'materiales') {
+            document.getElementById('btn-materiales').classList.add('active');
+            document.getElementById('grid-materiales').style.display = 'grid';
+            document.getElementById('grid-herramientas').style.display = 'none';
+        } else {
+            document.getElementById('btn-herramientas').classList.add('active');
+            document.getElementById('grid-materiales').style.display = 'none';
+            document.getElementById('grid-herramientas').style.display = 'grid';
+        }
+    }
+
+    // Lógica para el Buscador de Mochila
+    function filtrarMochila() {
+        let input = document.getElementById('buscador-mochila').value.toLowerCase();
+        let cards = document.querySelectorAll('.stock-card');
+        
+        cards.forEach(card => {
+            let nombre = card.getAttribute('data-nombre');
+            if (nombre.includes(input)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
 {% endblock %}

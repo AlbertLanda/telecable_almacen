@@ -202,15 +202,13 @@ class LiquidacionListView(LoginRequiredMixin, ListView):
 @login_required
 def tecnico_dashboard(request):
     """
-    Dashboard del técnico con KPIs, Gráfica Lineal y Gráfica Circular.
+    Dashboard del técnico.
     """
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     sede = profile.get_sede_operativa()
     
-    # Base Query: Todos los REQ de este usuario
+    # KPIs existentes
     reqs_qs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, responsable=request.user)
-    
-    # 1. KPIs
     kpis = {
         "reqs_activos": reqs_qs.filter(estado__in=[EstadoDocumento.REQ_BORRADOR, EstadoDocumento.REQ_PENDIENTE]).count(),
         "reqs_atendidos": reqs_qs.filter(estado=EstadoDocumento.REQ_ATENDIDO).count(),
@@ -222,61 +220,42 @@ def tecnico_dashboard(request):
         ).count(),
     }
 
-    # 2. Datos para GRÁFICO LINEAL (Últimos 7 días)
-    hoy = timezone.localdate()
-    inicio_grafico = hoy - timedelta(days=6)
-    
-    datos_reqs = (
-        reqs_qs
-        .filter(fecha__date__gte=inicio_grafico, fecha__date__lte=hoy)
-        .annotate(fecha_dia=TruncDate('fecha'))
-        .values('fecha_dia')
-        .annotate(cantidad=Count('id'))
-        .order_by('fecha_dia')
-    )
-    mapa_reqs = {d['fecha_dia']: d['cantidad'] for d in datos_reqs}
-    
-    labels_linea = []
-    data_linea = []
-    for i in range(7):
-        dia = inicio_grafico + timedelta(days=i)
-        labels_linea.append(dia.strftime("%d/%m"))
-        data_linea.append(mapa_reqs.get(dia, 0))
+    proyectos_asignados = Proyecto.objects.filter(
+        responsable=request.user
+    ).exclude(
+        estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+    ).order_by('estado', '-creado_en')
 
-    # 3. Datos para GRÁFICO CIRCULAR (Estados) <--- ¡ESTO FALTABA!
-    # Agrupamos por estado y contamos cuántos hay de cada uno
-    estados_raw = reqs_qs.values('estado').annotate(total=Count('id'))
-    
-    labels_circulo = []
-    data_circulo = []
-    
-    for e in estados_raw:
-        # Convertimos el código "REQ_PENDIENTE" a texto legible
-        nombre_estado = dict(EstadoDocumento.choices).get(e['estado'], e['estado'])
-        # Opcional: Limpiar el texto para que se vea mejor en la gráfica
-        nombre_estado = nombre_estado.replace("REQ - ", "") 
-        
-        labels_circulo.append(nombre_estado)
-        data_circulo.append(e['total'])
+    # 🚀 NUEVO 1: Historial de Liquidaciones del técnico
+    # Buscamos los INGRESOS (ING) que tengan referencia LIQ-SEMANAL y donde él sea el solicitante
+    liquidaciones_historial = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.ING,
+        referencia="LIQ-SEMANAL",
+        solicitante=request.user
+    ).order_by('-fecha')[:10] # Mostramos las últimas 10
 
-    # 4. Empaquetar todo para el Template
-    chart = {
-        # Gráfica Lineal
-        "req_labels": labels_linea,
-        "req_data": data_linea,
-        
-        # Gráfica Circular (NUEVO)
-        "estado_labels": labels_circulo,
-        "estado_data": data_circulo,
-    }
-
-    reqs_recientes = reqs_qs.order_by("-fecha")[:10]
+    # 🚀 NUEVO 2: Traer la mochila (Stock) directamente al dashboard
+    stock_qs = StockTecnico.objects.filter(
+        tecnico=request.user, 
+        cantidad__gt=0
+    ).select_related('producto').order_by('producto__nombre')
     
+    herramientas = []
+    materiales = []
+    
+    for item in stock_qs:
+        if item.producto.es_activo:
+            herramientas.append(item)
+        else:
+            materiales.append(item)
+
     return render(request, "operaciones/tecnico_dashboard.html", {
         "sede": sede, 
         "kpis": kpis, 
-        "chart": chart,
-        "reqs_recientes": reqs_recientes
+        "proyectos": proyectos_asignados,
+        "liquidaciones_historial": liquidaciones_historial, # Pasamos liquidaciones
+        "herramientas": herramientas,                       # Pasamos herramientas
+        "materiales": materiales                            # Pasamos materiales
     })
 
 @login_required
@@ -286,14 +265,15 @@ def tecnico_mis_entregas(request):
     """
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     
-    # Buscamos SAL Confirmadas
-    # Filtro: (Responsable es usuario) O (Origen REQ Responsable es usuario)
+    # Buscamos SAL Confirmadas donde el técnico sea el solicitante (directo) 
+    # o el responsable del REQ original.
     sals = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.SAL,
-        estado=EstadoDocumento.CONFIRMADO  # Solo mostramos confirmadas como "Entregas"
+        estado=EstadoDocumento.CONFIRMADO
     ).filter(
-        models.Q(responsable=request.user) |
-        models.Q(origen__responsable=request.user)
+        models.Q(solicitante=request.user) |
+        models.Q(origen__responsable=request.user) |
+        models.Q(responsable=request.user)
     ).select_related("origen", "sede").order_by("-fecha")[:50]
 
     return render(request, "operaciones/tecnico_mis_entregas.html", {"sals": sals})
@@ -390,7 +370,7 @@ def liquidar_tecnico(request, tecnico_id):
     tecnico = get_object_or_404(User, id=tecnico_id)
     mochila = StockTecnico.objects.filter(tecnico=tecnico, cantidad__gt=0).select_related('producto')
     
-    # 🚀 CAMBIO CLAVE: Consultamos los equipos aquí arriba, afuera del POST
+    # 🚀 Consultamos los equipos aquí arriba, afuera del POST
     equipos_asignados = ItemSerializado.objects.filter(
         asignado_a=tecnico, 
         estado=ItemSerializado.Estado.ASIGNADO
@@ -401,6 +381,11 @@ def liquidar_tecnico(request, tecnico_id):
             with transaction.atomic():
                 sede_almacen = request.user.profile.get_sede_operativa()
                 notas_usuario = request.POST.get('observaciones', '')
+                
+                # 🚀 NUEVO: Obtener la primera ubicación física de la sede 
+                # para asignarla automáticamente a los equipos que regresan
+                from inventario.models import Ubicacion
+                ubicacion_retorno = Ubicacion.objects.filter(sede=sede_almacen).first()
                 
                 # 1. Crear Cabecera
                 doc_ing = DocumentoInventario.objects.create(
@@ -418,7 +403,6 @@ def liquidar_tecnico(request, tecnico_id):
                 reporte_mermas = [] 
 
                 for item in mochila:
-                    # ====== NUEVA LÓGICA DE SEPARACIÓN ======
                     if item.producto.es_serializado:
                         # 1. Recuperar listas de IDs de los checkboxes del HTML
                         devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
@@ -436,17 +420,19 @@ def liquidar_tecnico(request, tecnico_id):
                         if devueltos_ids:
                             ItemSerializado.objects.filter(id__in=devueltos_ids).update(
                                 estado=ItemSerializado.Estado.EN_ALMACEN,
-                                asignado_a=None
+                                asignado_a=None,
+                                ubicacion=ubicacion_retorno # <-- AHORA SÍ LE COLOCA LA UBICACIÓN FÍSICA
                             )
                             
                         # 3. Mandar a merma los marcados como "Dañados"
                         if mermas_ids:
                             ItemSerializado.objects.filter(id__in=mermas_ids).update(
                                 estado=ItemSerializado.Estado.MERMA,
-                                asignado_a=None
+                                asignado_a=None,
+                                ubicacion=ubicacion_retorno # <-- TAMBIÉN LE COLOCA UBICACIÓN
                             )
                             
-                        # 4. Los que NO marcó el de almacén, asumimos que se instalaron en clientes
+                        # 4. Los que NO marcó el de almacén, asumimos que se instalaron
                         todos_ids = devueltos_ids + mermas_ids
                         ItemSerializado.objects.filter(
                             asignado_a=tecnico, 
@@ -471,13 +457,13 @@ def liquidar_tecnico(request, tecnico_id):
                     DocumentoItem.objects.create(
                         documento=doc_ing,
                         producto=item.producto,
-                        cantidad=cant_devuelta,        # Lo que entra al almacén físicamente
-                        cantidad_usada=consumo_calculado, # Lo que se instaló
-                        cantidad_merma=cant_merma,     # Lo que se rompió
+                        cantidad=cant_devuelta,        
+                        cantidad_usada=consumo_calculado, 
+                        cantidad_merma=cant_merma,     
                         observacion="Liq. Técnico"
                     )
 
-                    # 3. MOVER STOCK FÍSICO DE ALMACÉN (Solo lo bueno entra)
+                    # 3. MOVER STOCK FÍSICO DE ALMACÉN
                     if cant_devuelta > 0:
                         MovimientoInventario.objects.create(
                             producto=item.producto,
@@ -491,12 +477,10 @@ def liquidar_tecnico(request, tecnico_id):
                     
                     # 4. ACTUALIZAR STOCK DEL TÉCNICO (Mochila)
                     if item.producto.es_activo:
-                        # Herramienta: Solo baja lo que devolvió o rompió
                         item.cantidad -= total_salida
                         if item.cantidad == 0: item.delete()
                         else: item.save()
                     else:
-                        # Consumible: Se pone a CERO (todo lo que no volvió se considera consumido)
                         item.cantidad = 0 
                         item.save()
 
@@ -514,7 +498,6 @@ def liquidar_tecnico(request, tecnico_id):
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
 
-    # 🚀 UN SOLO RETURN RENDER AL FINAL PARA TODA LA VISTA
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
         'tecnico': tecnico,
         'mochila': mochila,
@@ -582,34 +565,58 @@ def tecnico_dashboard(request):
     profile = _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
     sede = profile.get_sede_operativa()
     
-    # ... (KPIs existentes se mantienen igual) ...
     reqs_qs = DocumentoInventario.objects.filter(tipo=TipoDocumento.REQ, responsable=request.user)
     
     kpis = {
-        # ... (Tus KPIs actuales) ...
         "reqs_activos": reqs_qs.filter(estado__in=[EstadoDocumento.REQ_BORRADOR, EstadoDocumento.REQ_PENDIENTE]).count(),
         "reqs_atendidos": reqs_qs.filter(estado=EstadoDocumento.REQ_ATENDIDO).count(),
         "entregas": DocumentoInventario.objects.filter(
             tipo=TipoDocumento.SAL, 
             estado=EstadoDocumento.CONFIRMADO
         ).filter(
-            models.Q(responsable=request.user) | models.Q(origen__responsable=request.user)
+            models.Q(solicitante=request.user) | 
+            models.Q(responsable=request.user) | 
+            models.Q(origen__responsable=request.user)
         ).count(),
     }
 
-    # 🚀 NUEVO: Buscar Proyectos asignados a este técnico
-    # Le mostramos los que están "En Revisión" (Prioridad) y los "En Proceso"
+    # Proyectos asignados a este técnico
     proyectos_asignados = Proyecto.objects.filter(
         responsable=request.user
     ).exclude(
         estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
-    ).order_by('estado', '-creado_en') # Ordenar para que 'En Revisión' salga o se note
+    ).order_by('estado', '-creado_en')
 
+    # 🚀 NUEVO 1: Historial de Liquidaciones (Para el número en la tarjeta superior)
+    liquidaciones_historial = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.ING,
+        referencia="LIQ-SEMANAL",
+        solicitante=request.user
+    )
+
+    # 🚀 NUEVO 2: Consultar la Mochila (StockTecnico) para dibujarlo en pantalla
+    stock_qs = StockTecnico.objects.filter(
+        tecnico=request.user, 
+        cantidad__gt=0
+    ).select_related('producto').order_by('producto__nombre')
+    
+    herramientas = []
+    materiales = []
+    
+    for item in stock_qs:
+        if item.producto.es_activo:
+            herramientas.append(item)
+        else:
+            materiales.append(item)
+
+    # Pasamos TODAS las variables al diccionario final
     return render(request, "operaciones/tecnico_dashboard.html", {
         "sede": sede, 
         "kpis": kpis, 
-        # "chart": chart,  <-- Si quitaste los gráficos, puedes borrar esto
-        "proyectos": proyectos_asignados, # <--- PASAMOS LOS PROYECTOS
+        "proyectos": proyectos_asignados,
+        "liquidaciones_historial": liquidaciones_historial, # <-- PASAMOS ESTO
+        "herramientas": herramientas,                       # <-- PASAMOS ESTO
+        "materiales": materiales                            # <-- PASAMOS ESTO
     })
 
 @login_required
@@ -691,3 +698,19 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
         'mi_stock': mi_stock,
         'mis_equipos': mis_equipos
     })
+
+@login_required
+def tecnico_mis_liquidaciones(request):
+    """
+    Lista el historial dedicado de liquidaciones semanales del técnico.
+    """
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+    
+    # Buscamos los ingresos por liquidación donde él sea el solicitante
+    liquidaciones = DocumentoInventario.objects.filter(
+        tipo=TipoDocumento.ING,
+        referencia="LIQ-SEMANAL",
+        solicitante=request.user
+    ).order_by("-fecha")
+
+    return render(request, "operaciones/tecnico_mis_liquidaciones.html", {"liquidaciones": liquidaciones})
