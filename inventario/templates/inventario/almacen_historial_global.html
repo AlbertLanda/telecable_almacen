@@ -280,6 +280,12 @@
         border-color: rgba(124, 58, 237, 0.22);
     }
 
+    .tb-tec {
+        background: rgba(139, 92, 246, 0.12); /* Color morado */
+        color: #7c3aed;
+        border-color: rgba(139, 92, 246, 0.22);
+    }
+
     .btn-action-table {
         padding: 8px 12px;
         border-radius: 11px;
@@ -496,6 +502,11 @@
                                         <i class='bx bx-building'></i>
                                         Cierre Obra
                                     </span>
+                                {% elif item.tipo_movimiento == 'SALIDA_TECNICO' %}
+                                    <span class="badge tb-tec">
+                                        <i class='bx bx-user-voice'></i>
+                                        Salida a Técnico
+                                    </span>               
                                 {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
                                     <span class="badge tb-trans">
                                         <i class='bx bx-transfer'></i>
@@ -552,7 +563,7 @@
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
                                         Guía Salida
                                     </a>
-                                {% elif item.tipo_movimiento == 'SALIDA_OBRA' %}
+                                {% elif item.tipo_movimiento == 'SALIDA_OBRA' or item.tipo_movimiento == 'SALIDA_TECNICO' %}
                                     <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
                                         Guía Salida

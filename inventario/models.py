@@ -652,6 +652,13 @@ class DocumentoInventario(models.Model):
                 qty_mov = int(it.cantidad)
             else:
                 raise ValidationError("Tipo no soportado para confirmar.")
+            
+            if self.tipo == TipoDocumento.SAL and self.solicitante:
+                nota_movimiento = f"DESPACHO A TÉCNICO: {self.solicitante.username}"
+            elif self.tipo == TipoDocumento.MER:
+                nota_movimiento = "MERMA / BAJA DE INVENTARIO"
+            else:
+                nota_movimiento = it.observacion or "Salida de almacén"
 
             # 1. Movimiento de Almacén (Resta stock físico de la sede)
             mov = MovimientoInventario.objects.create(
@@ -663,7 +670,7 @@ class DocumentoInventario(models.Model):
                 # costo_unitario=it.costo_unitario, # Descomenta si usas costos
                 referencia=self.numero,
                 usuario=self.responsable,
-                nota=it.observacion or "",
+                nota=nota_movimiento, # <--- AHORA SÍ, SOLO HAY UNA NOTA
             )
             mov.aplicar()
 
@@ -680,12 +687,6 @@ class DocumentoInventario(models.Model):
                     )
                     stock_tech.cantidad += qty_mov
                     stock_tech.save()
-
-        if entregado_por:
-            self.entregado_por = entregado_por
-
-        self.estado = EstadoDocumento.CONFIRMADO
-        self.save(update_fields=["estado", "entregado_por"])
 
         if entregado_por:
             self.entregado_por = entregado_por

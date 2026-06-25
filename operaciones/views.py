@@ -580,43 +580,56 @@ def tecnico_dashboard(request):
         ).count(),
     }
 
-    # Proyectos asignados a este técnico
     proyectos_asignados = Proyecto.objects.filter(
         responsable=request.user
     ).exclude(
         estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
     ).order_by('estado', '-creado_en')
 
-    # 🚀 NUEVO 1: Historial de Liquidaciones (Para el número en la tarjeta superior)
     liquidaciones_historial = DocumentoInventario.objects.filter(
         tipo=TipoDocumento.ING,
         referencia="LIQ-SEMANAL",
         solicitante=request.user
     )
 
-    # 🚀 NUEVO 2: Consultar la Mochila (StockTecnico) para dibujarlo en pantalla
+    # =========================================================
+    # MAGIA: Traemos la mochila y le pegamos los números físicos
+    # =========================================================
     stock_qs = StockTecnico.objects.filter(
         tecnico=request.user, 
         cantidad__gt=0
     ).select_related('producto').order_by('producto__nombre')
     
+    equipos_fisicos = ItemSerializado.objects.filter(
+        asignado_a=request.user,
+        estado=ItemSerializado.Estado.ASIGNADO
+    ).select_related('producto')
+    
     herramientas = []
     materiales = []
     
     for item in stock_qs:
+        sus_equipos = [e for e in equipos_fisicos if e.producto.id == item.producto.id]
+        
+        # Armamos el paquete que el HTML va a leer
+        item_data = {
+            'producto': item.producto,
+            'cantidad': item.cantidad,
+            'equipos': sus_equipos
+        }
+        
         if item.producto.es_activo:
-            herramientas.append(item)
+            herramientas.append(item_data)
         else:
-            materiales.append(item)
+            materiales.append(item_data)
 
-    # Pasamos TODAS las variables al diccionario final
     return render(request, "operaciones/tecnico_dashboard.html", {
         "sede": sede, 
         "kpis": kpis, 
         "proyectos": proyectos_asignados,
-        "liquidaciones_historial": liquidaciones_historial, # <-- PASAMOS ESTO
-        "herramientas": herramientas,                       # <-- PASAMOS ESTO
-        "materiales": materiales                            # <-- PASAMOS ESTO
+        "liquidaciones_historial": liquidaciones_historial,
+        "herramientas": herramientas,
+        "materiales": materiales
     })
 
 @login_required

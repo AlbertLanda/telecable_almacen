@@ -60,15 +60,14 @@
     }
     .kpi-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: var(--shadow-card); }
     
-    .kpi-info h3 { margin: 0; font-size: 32px; font-weight: 800; color: var(--text-main); line-height: 1; }
-    .kpi-info p { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-info h4 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .kpi-info p { margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
     
     .kpi-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
     .ic-blue { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
     .ic-orange { background: rgba(255, 159, 10, 0.15); color: #FF9F0A; }
     .ic-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
 
-    /* Secciones Generales */
     .section-title { font-size: 18px; color: var(--text-main); font-weight: 600; margin: 10px 0 15px 0; display: flex; align-items: center; gap: 8px; }
     
     /* Proyectos Asignados */
@@ -86,32 +85,9 @@
     .bp-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-main); }
     .bp-outline:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
 
-    /* Tarjetas de Tablas (Mochila y Liquidaciones) */
-    .custom-table-card {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: 16px; overflow: hidden;
-        box-shadow: var(--shadow-card);
-    }
-    .ct-header {
-        background: var(--bg-input); padding: 14px 20px;
-        border-bottom: 1px solid var(--border-light);
-        font-weight: 600; font-size: 14px; color: var(--text-main);
-        display: flex; align-items: center; justify-content: space-between;
-    }
-    .custom-table-card table { width: 100%; color: var(--text-main); margin-bottom: 0; }
-    .custom-table-card th { 
-        padding: 12px 20px; font-size: 12px; color: var(--text-secondary); 
-        border-bottom: 1px solid var(--border-light); text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .custom-table-card td { 
-        padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); 
-        vertical-align: middle; font-size: 14px;
-    }
-    .custom-table-card tr:last-child td { border-bottom: none; }
-    .custom-table-card tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .qty-badge { background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 6px; font-family: monospace; font-weight: bold; }
-    .doc-badge { background: rgba(10, 132, 255, 0.15); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;}
+    .search-bar { position: relative; margin-bottom: 0; width: 100%; max-width: 400px; }
+    .search-bar input { width: 100%; padding: 10px 10px 10px 40px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light); color: var(--text-main); }
+    .search-bar i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
 
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -134,8 +110,8 @@
         <a href="{% url 'tecnico_mis_entregas' %}" style="text-decoration: none;">
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Mis Entregas</h4>
-                    <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Historial de despachos recibidos</p>
+                    <h4>Mis Entregas</h4>
+                    <p>Historial de despachos recibidos</p>
                 </div>
                 <div class="kpi-icon ic-blue"><i class='bx bx-package'></i></div>
             </div>
@@ -144,8 +120,8 @@
         <a href="{% url 'tecnico_mis_liquidaciones' %}" style="text-decoration: none;">
             <div class="kpi-card">
                 <div class="kpi-info">
-                    <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Mis Liquidaciones</h4>
-                    <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Registro de actas semanales</p>
+                    <h4>Mis Liquidaciones</h4>
+                    <p>Registro de actas semanales</p>
                 </div>
                 <div class="kpi-icon ic-orange"><i class='bx bx-check-shield'></i></div>
             </div>
@@ -154,8 +130,8 @@
         {% if proyectos %}
         <div class="kpi-card" style="cursor: default;">
             <div class="kpi-info">
-                <h4 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Obras Asignadas</h4>
-                <p style="margin: 6px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 500; text-transform: none; letter-spacing: normal;">Proyectos activos en ejecución</p>
+                <h4>Obras Asignadas</h4>
+                <p>Proyectos activos en ejecución</p>
             </div>
             <div class="kpi-icon ic-green"><i class='bx bx-hard-hat'></i></div>
         </div>
@@ -191,11 +167,9 @@
     </div>
     {% endif %}
 
-    <!-- SECCIÓN: MI MOCHILA -->
     <div>
         <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila (Stock en tu poder)</h3>
         
-        <!-- Pestañas (Tabs) y Buscador -->
         <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; gap: 10px;">
                 <button id="btn-materiales" class="btn-tab active" onclick="switchMochilaTab('materiales')">
@@ -206,20 +180,29 @@
                 </button>
             </div>
             
-            <div class="search-bar" style="margin-bottom: 0; width: 100%; max-width: 400px; padding: 4px 15px;">
+            <div class="search-bar">
                 <i class='bx bx-search fs-5 text-muted'></i>
-                <input type="text" id="buscador-mochila" onkeyup="filtrarMochila()" placeholder="Filtrar inventario..." style="padding: 6px 0;">
+                <input type="text" id="buscador-mochila" onkeyup="filtrarMochila()" placeholder="Filtrar inventario...">
             </div>
         </div>
 
-        <!-- GRID DE MATERIALES -->
-        <div id="grid-materiales" class="stock-grid">
+        <div id="grid-materiales" class="stock-grid" style="display: grid;">
             {% for item in materiales %}
             <div class="stock-card sc-material" data-nombre="{{ item.producto.nombre|lower }} {{ item.producto.codigo_interno|lower }}">
                 <div class="sc-icon"><i class='bx bx-archive'></i></div>
                 <div class="sc-info">
                     <h4>{{ item.producto.nombre }}</h4>
                     <p>{{ item.producto.codigo_interno }}</p>
+                    
+                    {% if item.equipos %}
+                    <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
+                        {% for equipo in item.equipos %}
+                            <span style="background: rgba(10, 132, 255, 0.15); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: 600;">
+                                #{{ equipo.codigo_trazabilidad|default:equipo.serial }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="sc-qty">
                     <h2>{{ item.cantidad }}</h2>
@@ -234,7 +217,6 @@
             {% endfor %}
         </div>
 
-        <!-- GRID DE HERRAMIENTAS -->
         <div id="grid-herramientas" class="stock-grid" style="display: none;">
             {% for item in herramientas %}
             <div class="stock-card sc-herramienta" data-nombre="{{ item.producto.nombre|lower }} {{ item.producto.codigo_interno|lower }}">
@@ -242,6 +224,16 @@
                 <div class="sc-info">
                     <h4>{{ item.producto.nombre }}</h4>
                     <p>{{ item.producto.codigo_interno }}</p>
+                    
+                    {% if item.equipos %}
+                    <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
+                        {% for equipo in item.equipos %}
+                            <span style="background: rgba(255, 159, 10, 0.15); color: #FF9F0A; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: 600;">
+                                #{{ equipo.codigo_trazabilidad|default:equipo.serial }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="sc-qty">
                     <h2>{{ item.cantidad }}</h2>
@@ -257,6 +249,7 @@
         </div>
     </div>
 </div>
+
 <script>
     // Lógica para Pestañas de Mochila
     function switchMochilaTab(tab) {
@@ -281,7 +274,13 @@
         
         cards.forEach(card => {
             let nombre = card.getAttribute('data-nombre');
-            if (nombre.includes(input)) {
+            
+            // Buscar también dentro de los códigos de serie
+            let serials = "";
+            let badges = card.querySelectorAll('.sc-info span');
+            badges.forEach(b => serials += b.textContent.toLowerCase());
+            
+            if (nombre.includes(input) || serials.includes(input)) {
                 card.style.display = 'flex';
             } else {
                 card.style.display = 'none';
