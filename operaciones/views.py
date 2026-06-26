@@ -435,7 +435,8 @@ def liquidar_tecnico(request, tecnico_id):
                                 producto=item.producto, 
                                 estado=ItemSerializado.Estado.ASIGNADO
                             ).exclude(id__in=todos_ids).update(
-                                estado=ItemSerializado.Estado.INSTALADO
+                                estado=ItemSerializado.Estado.INSTALADO,
+                                asignado_a=None
                             )
                         # Si es Herramienta (es_activo=True), sigue conservando su asignación normal.
 
