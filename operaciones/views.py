@@ -370,7 +370,6 @@ def liquidar_tecnico(request, tecnico_id):
     tecnico = get_object_or_404(User, id=tecnico_id)
     mochila = StockTecnico.objects.filter(tecnico=tecnico, cantidad__gt=0).select_related('producto')
     
-    # 🚀 Consultamos los equipos aquí arriba, afuera del POST
     equipos_asignados = ItemSerializado.objects.filter(
         asignado_a=tecnico, 
         estado=ItemSerializado.Estado.ASIGNADO
@@ -382,15 +381,12 @@ def liquidar_tecnico(request, tecnico_id):
                 sede_almacen = request.user.profile.get_sede_operativa()
                 notas_usuario = request.POST.get('observaciones', '')
                 
-                # 🚀 NUEVO: Obtener la primera ubicación física de la sede 
-                # para asignarla automáticamente a los equipos que regresan
                 from inventario.models import Ubicacion
                 ubicacion_retorno = Ubicacion.objects.filter(sede=sede_almacen).first()
                 
-                # 1. Crear Cabecera
                 doc_ing = DocumentoInventario.objects.create(
                     tipo=TipoDocumento.ING,
-                    estado=EstadoDocumento.CONFIRMADO, # Lo creamos ya confirmado
+                    estado=EstadoDocumento.CONFIRMADO,
                     sede=sede_almacen,
                     responsable=request.user,
                     solicitante=tecnico,
@@ -404,7 +400,6 @@ def liquidar_tecnico(request, tecnico_id):
 
                 for item in mochila:
                     if item.producto.es_serializado:
-                        # 1. Recuperar listas de IDs de los checkboxes del HTML
                         devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
                         mermas_ids = request.POST.getlist(f'check_merma_{item.id}')
                         
@@ -416,34 +411,35 @@ def liquidar_tecnico(request, tecnico_id):
                         if total_salida > item.cantidad:
                             raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
-                        # 2. Retornar al almacén los marcados como "Buenos"
+                        # 2. Retornar al almacén
                         if devueltos_ids:
                             ItemSerializado.objects.filter(id__in=devueltos_ids).update(
                                 estado=ItemSerializado.Estado.EN_ALMACEN,
                                 asignado_a=None,
-                                ubicacion=ubicacion_retorno # <-- AHORA SÍ LE COLOCA LA UBICACIÓN FÍSICA
+                                ubicacion=ubicacion_retorno 
                             )
                             
-                        # 3. Mandar a merma los marcados como "Dañados"
+                        # 3. Mandar a merma
                         if mermas_ids:
                             ItemSerializado.objects.filter(id__in=mermas_ids).update(
                                 estado=ItemSerializado.Estado.MERMA,
                                 asignado_a=None,
-                                ubicacion=ubicacion_retorno # <-- TAMBIÉN LE COLOCA UBICACIÓN
+                                ubicacion=ubicacion_retorno 
                             )
                             
-                        # 4. Los que NO marcó el de almacén, asumimos que se instalaron
+                        # ✅ CORRECCIÓN: Los que NO devolvió, solo se instalan si son consumibles
                         todos_ids = devueltos_ids + mermas_ids
-                        ItemSerializado.objects.filter(
-                            asignado_a=tecnico, 
-                            producto=item.producto, 
-                            estado=ItemSerializado.Estado.ASIGNADO
-                        ).exclude(id__in=todos_ids).update(
-                            estado=ItemSerializado.Estado.INSTALADO
-                        )
+                        if not item.producto.es_activo: # Si es ONU/Material, se gastó
+                            ItemSerializado.objects.filter(
+                                asignado_a=tecnico, 
+                                producto=item.producto, 
+                                estado=ItemSerializado.Estado.ASIGNADO
+                            ).exclude(id__in=todos_ids).update(
+                                estado=ItemSerializado.Estado.INSTALADO
+                            )
+                        # Si es Herramienta (es_activo=True), sigue conservando su asignación normal.
 
                     else:
-                        # ====== LÓGICA ORIGINAL PARA CABLES/CONECTORES ======
                         cant_devuelta = int(request.POST.get(f'devuelto_{item.id}', 0))
                         cant_merma = int(request.POST.get(f'merma_{item.id}', 0))
                         
@@ -453,7 +449,6 @@ def liquidar_tecnico(request, tecnico_id):
                         if total_salida > item.cantidad:
                             raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
-                    # 2. GUARDAR EL DETALLE COMPLETO EN EL DOCUMENTO (Para el PDF)
                     DocumentoItem.objects.create(
                         documento=doc_ing,
                         producto=item.producto,
@@ -463,7 +458,6 @@ def liquidar_tecnico(request, tecnico_id):
                         observacion="Liq. Técnico"
                     )
 
-                    # 3. MOVER STOCK FÍSICO DE ALMACÉN
                     if cant_devuelta > 0:
                         MovimientoInventario.objects.create(
                             producto=item.producto,
@@ -475,7 +469,6 @@ def liquidar_tecnico(request, tecnico_id):
                             nota=f"Retorno Liq. {tecnico.username}"
                         ).aplicar()
                     
-                    # 4. ACTUALIZAR STOCK DEL TÉCNICO (Mochila)
                     if item.producto.es_activo:
                         item.cantidad -= total_salida
                         if item.cantidad == 0: item.delete()
@@ -487,7 +480,6 @@ def liquidar_tecnico(request, tecnico_id):
                     if cant_merma > 0:
                         reporte_mermas.append(f"{cant_merma}x {item.producto.nombre}")
 
-                # Actualizar observaciones con mermas
                 if reporte_mermas:
                     doc_ing.observaciones += " | MERMAS: " + ", ".join(reporte_mermas)
                     doc_ing.save()
@@ -501,7 +493,7 @@ def liquidar_tecnico(request, tecnico_id):
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
         'tecnico': tecnico,
         'mochila': mochila,
-        'equipos_asignados': equipos_asignados # <-- Ahora sí viajará siempre al frontend
+        'equipos_asignados': equipos_asignados
     })
 
 
@@ -644,7 +636,7 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
     # 2. Obtener el equipo de trabajo (excluyendo al responsable)
     tecnicos_disponibles = User.objects.exclude(id=request.user.id).filter(is_active=True)
 
-    # 3. Lo que tiene Jilmer en su poder actualmente
+    # 3. Lo que tiene en su poder actualmente
     mi_stock = StockTecnico.objects.filter(tecnico=request.user, cantidad__gt=0).select_related('producto')
     mis_equipos = ItemSerializado.objects.filter(asignado_a=request.user, estado=ItemSerializado.Estado.ASIGNADO)
 
@@ -660,7 +652,6 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
         try:
             with transaction.atomic():
                 for stock in mi_stock:
-                    # Capturar cantidad ingresada en el HTML
                     qty = int(request.POST.get(f'qty_{stock.producto.id}', 0))
                     
                     if qty > 0:
@@ -674,25 +665,28 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                         )
 
                         if stock.producto.es_serializado:
-                            # Capturar los checkboxes marcados
                             macs_seleccionadas = request.POST.getlist(f'macs_{stock.producto.id}')
                             if len(macs_seleccionadas) != qty:
                                 raise ValueError(f"Debes marcar exactamente {qty} equipos/MACs de {stock.producto.nombre}.")
                             
                             for equipo_id in macs_seleccionadas:
                                 equipo = ItemSerializado.objects.get(id=equipo_id, asignado_a=request.user)
-                                # ¡Mágia! Cambiamos de dueño
+                                # Cambiamos de dueño
                                 equipo.asignado_a = receptor
                                 equipo.save()
                                 asignacion.seriales.add(equipo)
+                        
+                        # ✅ CORRECCIÓN CRÍTICA: Restar cantidad numérica SIEMPRE (sea cable u ONU)
+                        stock.cantidad -= qty
+                        if stock.cantidad == 0:
+                            stock.delete()
                         else:
-                            # Si es cable (no serializado), movemos de mochila en mochila
-                            stock.cantidad -= qty
                             stock.save()
-                            
-                            stock_receptor, _ = StockTecnico.objects.get_or_create(tecnico=receptor, producto=stock.producto)
-                            stock_receptor.cantidad += qty
-                            stock_receptor.save()
+                        
+                        # Sumar cantidad numérica al receptor
+                        stock_receptor, _ = StockTecnico.objects.get_or_create(tecnico=receptor, producto=stock.producto)
+                        stock_receptor.cantidad += qty
+                        stock_receptor.save()
                             
                         hubo_transferencia = True
 
