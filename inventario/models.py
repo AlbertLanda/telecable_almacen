@@ -762,9 +762,44 @@ class DocumentoItem(models.Model):
         return f"{self.documento.tipo} {self.producto.codigo_interno} x {self.cantidad}"
 
     def clean(self):
-        total = int(self.cantidad_devuelta or 0) + int(self.cantidad_merma or 0) + int(self.cantidad_usada or 0)
-        if total > int(self.cantidad or 0):
-            raise ValidationError("Devuelto + Merma + Usado no puede superar la cantidad entregada.")
+        super().clean()
+
+        cantidad = int(self.cantidad or 0)
+        devuelto = int(self.cantidad_devuelta or 0)
+        merma = int(self.cantidad_merma or 0)
+        usado = int(self.cantidad_usada or 0)
+
+        if cantidad < 0 or devuelto < 0 or merma < 0 or usado < 0:
+            raise ValidationError("Las cantidades no pueden ser negativas.")
+
+        referencia = ""
+        tipo_documento = None
+
+        if self.documento_id:
+            referencia = (self.documento.referencia or "").upper()
+            tipo_documento = self.documento.tipo
+
+        # Liquidaciones/devoluciones/retornos:
+        # cantidad = lo que vuelve bueno al almacén.
+        # cantidad_usada = lo que se instaló/usó en campo.
+        # cantidad_merma = pérdida/merma.
+        # Por eso NO corresponde validar devuelto + merma + usado <= cantidad.
+        if (
+            tipo_documento == TipoDocumento.ING
+            and (
+                "LIQ" in referencia
+                or "DEVOLUCION" in referencia
+                or "RETORNO" in referencia
+            )
+        ):
+            return
+
+        total_cierre = devuelto + merma + usado
+
+        if total_cierre > cantidad:
+            raise ValidationError(
+                "Devuelto + Merma + Usado no puede superar la cantidad entregada."
+            )
 
     def save(self, *args, **kwargs):
         if self.costo_unitario is None:
