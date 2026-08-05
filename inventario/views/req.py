@@ -1123,11 +1123,18 @@ def req_asignacion_directa(request):
         req.proveedor = None
         req.save()
 
-    tecnicos = User.objects.filter(
-        profile__rol=UserProfile.Rol.SOLICITANTE,
-        profile__sede_principal=sede,
-        is_active=True
-    ).order_by('username')
+    tecnicos = (
+        User.objects.filter(
+            profile__rol=UserProfile.Rol.SOLICITANTE,
+            is_active=True,
+        )
+        .filter(
+            Q(profile__sede_principal=sede)
+            | Q(profile__sedes_permitidas=sede)
+        )
+        .distinct()
+        .order_by("username")
+    )
 
     return render(request, 'inventario/req_asignacion_directa.html', {
         'req': req,
@@ -1147,12 +1154,18 @@ def almacen_devolucion_rapida(request):
     profile = get_profile(request.user)
     sede = profile.get_sede_operativa()
     
-    # Obtener técnicos de la misma sede
-    tecnicos = User.objects.filter(
-        profile__rol=UserProfile.Rol.SOLICITANTE,
-        profile__sede_principal=sede,
-        is_active=True
-    ).order_by('username')
+    tecnicos = (
+        User.objects.filter(
+            profile__rol=UserProfile.Rol.SOLICITANTE,
+            is_active=True,
+        )
+        .filter(
+            Q(profile__sede_principal=sede)
+            | Q(profile__sedes_permitidas=sede)
+        )
+        .distinct()
+        .order_by("username")
+    )
 
     if request.method == 'POST':
         tecnico_id = request.POST.get('tecnico_id')
