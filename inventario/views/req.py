@@ -767,13 +767,15 @@ def req_recepcionar_compra(request, req_id: int):
                                         sn = data.get('sn', '').strip().upper()
                                         mac = data.get('mac', '').strip().upper()
                                         cod44 = data.get('cod44', '').strip().upper()
-                                        
-                                        if sn: 
+                                        dsn = data.get('dsn', '').strip().upper()
+
+                                        if sn:
                                             try:
                                                 ItemSerializado.objects.create(
                                                     producto=item.producto,
                                                     serial=sn,
                                                     mac_address=mac,
+                                                    serial_secundario=dsn,
                                                     codigo_trazabilidad=cod44,
                                                     ubicacion=ubicacion_defecto,
                                                     estado=ItemSerializado.Estado.EN_ALMACEN
