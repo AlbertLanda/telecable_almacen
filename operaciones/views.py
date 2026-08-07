@@ -303,10 +303,14 @@ def liquidacion_tecnico_lista(request):
         messages.error(request, "No tienes una sede asignada para ver liquidaciones.")
         return redirect('dash_almacen')
 
-    tecnicos_base = User.objects.filter(
-        mi_stock__cantidad__gt=0,
-        profile__sede_principal=sede_actual,
-    ).distinct()
+    tecnicos_base = (
+        User.objects.filter(
+            mi_stock__cantidad__gt=0,
+            mi_stock__sede=sede_actual,
+        )
+        .distinct()
+        .order_by("username")
+    )
 
     tecnicos_con_deuda = []
 
@@ -368,17 +372,30 @@ def liquidar_tecnico(request, tecnico_id):
         return redirect('home')
 
     tecnico = get_object_or_404(User, id=tecnico_id)
-    mochila = StockTecnico.objects.filter(tecnico=tecnico, cantidad__gt=0).select_related('producto')
+
+    sede_almacen = request.user.profile.get_sede_operativa()
+
+    mochila = (
+        StockTecnico.objects
+        .filter(
+            tecnico=tecnico,
+            sede=sede_almacen,
+            cantidad__gt=0,
+        )
+        .select_related("producto", "sede")
+    )
+
+    productos_mochila_ids = mochila.values_list("producto_id", flat=True)
     
     equipos_asignados = ItemSerializado.objects.filter(
-        asignado_a=tecnico, 
-        estado=ItemSerializado.Estado.ASIGNADO
+        asignado_a=tecnico,
+        estado=ItemSerializado.Estado.ASIGNADO,
+        producto_id__in=productos_mochila_ids,
     )
 
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                sede_almacen = request.user.profile.get_sede_operativa()
                 notas_usuario = request.POST.get('observaciones', '')
                 
                 from inventario.models import Ubicacion

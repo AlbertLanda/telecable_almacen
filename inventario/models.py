@@ -683,7 +683,9 @@ class DocumentoInventario(models.Model):
                     
                     stock_tech, _ = StockTecnico.objects.get_or_create(
                         tecnico=self.solicitante,
-                        producto=it.producto
+                        producto=it.producto,
+                        sede=self.sede,
+                        defaults={"cantidad": 0},
                     )
                     stock_tech.cantidad += qty_mov
                     stock_tech.save()
@@ -809,19 +811,38 @@ class DocumentoItem(models.Model):
 class StockTecnico(TimeStampedModel):
     """
     La 'Mochila' o Bodega Móvil del Técnico.
-    Aquí se acumula todo lo que pide en la semana (SAL).
+    Aquí se acumula todo lo que pide en la semana (SAL),
+    separado por sede de almacén que entregó el material.
     """
-    tecnico = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mi_stock")
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mi_stock"
+    )
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+
+    sede = models.ForeignKey(
+        Sede,
+        on_delete=models.PROTECT,
+        related_name="stocks_tecnicos",
+        null=True,
+        blank=True,
+        help_text="Sede/almacén que entregó este material al técnico.",
+    )
+
     cantidad = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Stock de Técnico"
-        verbose_name_plural = "Stocks de Técnicos"
-        unique_together = ['tecnico', 'producto'] # Un registro por producto por técnico
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tecnico", "producto", "sede"],
+                name="uq_stock_tecnico_producto_sede",
+            )
+        ]
 
     def __str__(self):
-        return f"{self.tecnico.username} tiene {self.cantidad} de {self.producto.codigo_interno}"
+        sede_nombre = self.sede.nombre if self.sede_id else "SIN-SEDE"
+        return f"{self.tecnico.username} - {self.producto.nombre} @ {sede_nombre}: {self.cantidad}"
 
 class DocumentoItemSerializado(TimeStampedModel):
     documento_item = models.ForeignKey(
