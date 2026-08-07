@@ -9,7 +9,6 @@
 <style>
     :root {
         --almacen-navy: #081326;
-        --almacen-navy-2: #10213a;
         --almacen-blue: #0f6bff;
         --almacen-blue-soft: rgba(15, 107, 255, .10);
         --almacen-green: #16a34a;
@@ -23,10 +22,7 @@
         --almacen-purple: #7c3aed;
         --almacen-purple-soft: rgba(124, 58, 237, .12);
         --almacen-card: #ffffff;
-        --almacen-bg: #f3f6fb;
-        --almacen-soft: #f8fafc;
         --almacen-border: #d9e2ef;
-        --almacen-border-strong: #c4d0df;
         --almacen-text: #0f172a;
         --almacen-muted: #64748b;
         --almacen-shadow: 0 16px 40px rgba(15, 23, 42, .08);
@@ -52,191 +48,259 @@
         }
     }
 
-    .almacen-hero {
-        position: relative;
-        overflow: hidden;
+    /* ==========================
+       ACCESOS PRINCIPALES ARRIBA
+       ========================== */
+
+    .quick-hero {
+        background: #ffffff;
+        border: 1px solid var(--almacen-border);
         border-radius: 24px;
-        background:
-            radial-gradient(circle at top right, rgba(15, 107, 255, .20), transparent 34%),
-            linear-gradient(135deg, #081326 0%, #0f213a 52%, #10294c 100%);
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, .10);
-        box-shadow: var(--almacen-shadow);
-        padding: 28px;
+        box-shadow: var(--almacen-shadow-sm);
+        padding: 24px;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 330px;
-        gap: 24px;
-        align-items: stretch;
+        gap: 20px;
     }
 
-    .almacen-hero::before {
-        content: "";
-        position: absolute;
-        width: 280px;
-        height: 280px;
-        border-radius: 50%;
-        right: -110px;
-        top: -130px;
-        background: rgba(6, 182, 212, .16);
-        pointer-events: none;
+    .quick-hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        flex-wrap: wrap;
     }
 
-    .almacen-hero::after {
-        content: "";
-        position: absolute;
-        width: 220px;
-        height: 220px;
-        border-radius: 50%;
-        left: -90px;
-        bottom: -130px;
-        background: rgba(15, 107, 255, .13);
-        pointer-events: none;
-    }
-
-    .hero-main,
-    .hero-status {
-        position: relative;
-        z-index: 1;
-    }
-
-    .hero-badge {
+    .quick-hero-badge {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
+        padding: 7px 12px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, .10);
-        border: 1px solid rgba(255, 255, 255, .14);
-        color: #c7ddff;
+        background: rgba(15, 107, 255, .08);
+        color: var(--almacen-blue);
+        border: 1px solid rgba(15, 107, 255, .15);
         font-size: 12px;
         font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: .05em;
-        margin-bottom: 14px;
+        letter-spacing: .04em;
     }
 
-    .hero-badge i {
-        font-size: 17px;
-        color: #60a5fa;
-    }
-
-    .hero-title {
-        margin: 0;
-        color: #ffffff;
-        font-size: clamp(28px, 4vw, 42px);
-        line-height: 1.05;
-        letter-spacing: -1.2px;
+    .quick-hero-title {
+        margin: 10px 0 6px;
+        font-size: clamp(25px, 2.5vw, 34px);
         font-weight: 950;
+        color: #081326;
+        letter-spacing: -.8px;
+        line-height: 1.05;
     }
 
-    .hero-title span {
-        color: #93c5fd;
-    }
-
-    .hero-desc {
-        margin: 12px 0 0;
-        color: #cbd5e1;
-        line-height: 1.55;
+    .quick-hero-subtitle {
+        margin: 0;
+        color: var(--almacen-muted);
         font-size: 14px;
         max-width: 780px;
+        line-height: 1.45;
     }
 
-    .hero-meta-row {
+    .quick-hero-meta {
         display: flex;
-        flex-wrap: wrap;
         gap: 10px;
-        margin-top: 20px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .hero-chip {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         padding: 9px 12px;
         border-radius: 999px;
-        color: #e5edf9;
-        background: rgba(255, 255, 255, .09);
-        border: 1px solid rgba(255, 255, 255, .12);
+        background: #f8fafc;
+        border: 1px solid var(--almacen-border);
+        color: #334155;
         font-size: 12px;
         font-weight: 850;
-        backdrop-filter: blur(12px);
     }
 
     .hero-chip i {
-        color: #60a5fa;
+        color: var(--almacen-blue);
         font-size: 17px;
     }
 
-    .hero-status {
-        background: rgba(255, 255, 255, .96);
-        color: var(--almacen-text);
-        border-radius: 20px;
-        padding: 18px;
-        box-shadow: 0 18px 45px rgba(0, 0, 0, .18);
-        align-self: center;
+    .quick-hero-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr 1fr;
+        gap: 18px;
+        align-items: stretch;
     }
 
-    .status-title {
+    .quick-hero-group {
+        background: #fbfdff;
+        border: 1px solid var(--almacen-border);
+        border-radius: 20px;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+    }
+
+    .quick-hero-group-title {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: 8px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        padding-bottom: 4px;
+        border-bottom: 1px dashed var(--almacen-border);
     }
 
-    .status-title i {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-        background: var(--almacen-blue-soft);
+    .quick-hero-group-title i {
         color: var(--almacen-blue);
+        font-size: 16px;
+    }
+
+    .quick-hero-item {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        min-height: 72px;
+        padding: 14px;
+        border-radius: 17px;
+        text-decoration: none;
+        transition: .18s ease;
+        background: #ffffff;
+        border: 1px solid var(--almacen-border);
+        color: var(--almacen-text);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .quick-hero-item.primary-action {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border-color: rgba(15, 107, 255, .24);
+    }
+
+    .quick-hero-item.danger-action {
+        border-color: rgba(220, 38, 38, .18);
+        background: linear-gradient(135deg, #ffffff 0%, #fff7f7 100%);
+    }
+
+    .quick-hero-item:hover {
+        transform: translateY(-2px);
+        border-color: rgba(15, 107, 255, .32);
+        box-shadow: var(--almacen-shadow-sm);
+        background: #f8fbff;
+    }
+
+    .quick-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 15px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 23px;
+        font-size: 24px;
         flex-shrink: 0;
     }
 
-    .status-title strong {
+    .quick-icon.blue {
+        background: var(--almacen-blue-soft);
+        color: var(--almacen-blue);
+    }
+
+    .quick-icon.green {
+        background: var(--almacen-green-soft);
+        color: var(--almacen-green);
+    }
+
+    .quick-icon.amber {
+        background: var(--almacen-amber-soft);
+        color: #b45309;
+    }
+
+    .quick-icon.cyan {
+        background: var(--almacen-cyan-soft);
+        color: #0891b2;
+    }
+
+    .quick-icon.red {
+        background: var(--almacen-red-soft);
+        color: var(--almacen-red);
+    }
+
+    .quick-icon.purple {
+        background: var(--almacen-purple-soft);
+        color: var(--almacen-purple);
+    }
+
+    .quick-icon.gray {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .quick-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .quick-info strong {
         display: block;
-        color: var(--almacen-text);
-        font-size: 14px;
-        font-weight: 950;
-    }
-
-    .status-title span {
-        display: block;
-        color: var(--almacen-muted);
-        font-size: 12px;
-        margin-top: 3px;
-    }
-
-    .status-list {
-        display: grid;
-        gap: 9px;
-    }
-
-    .status-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-    }
-
-    .status-item span {
-        color: var(--almacen-muted);
-        font-size: 12px;
-        font-weight: 850;
-    }
-
-    .status-item strong {
+        margin: 0;
         color: var(--almacen-text);
         font-size: 13px;
+        line-height: 1.25;
         font-weight: 950;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
+
+    .quick-info span {
+        display: block;
+        margin-top: 5px;
+        color: var(--almacen-muted);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .quick-arrow {
+        color: #94a3b8;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .badge-pulse {
+        background: var(--almacen-red);
+        color: white;
+        font-size: 10px;
+        font-weight: 950;
+        padding: 4px 8px;
+        border-radius: 999px;
+        box-shadow: 0 0 8px rgba(220, 38, 38, .45);
+        animation: pulse 2s infinite;
+        flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.08);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    /* ==========================
+       KPIS
+       ========================== */
 
     .kpi-grid {
         display: grid;
@@ -247,7 +311,7 @@
     .kpi-card {
         position: relative;
         overflow: hidden;
-        min-height: 142px;
+        min-height: 132px;
         background: var(--almacen-card);
         border: 1px solid var(--almacen-border);
         border-radius: 22px;
@@ -345,6 +409,10 @@
         line-height: 1.35;
     }
 
+    /* ==========================
+       SEGUIMIENTO OPERATIVO
+       ========================== */
+
     .section-head {
         display: flex;
         align-items: end;
@@ -377,7 +445,7 @@
 
     .layout-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.45fr) minmax(340px, .8fr);
+        grid-template-columns: minmax(0, 1.45fr) minmax(330px, .72fr);
         gap: 18px;
         align-items: start;
     }
@@ -466,10 +534,6 @@
         width: 100%;
         min-width: 720px;
         border-collapse: collapse;
-    }
-
-    .admin-table.compact {
-        min-width: 0;
     }
 
     .admin-table th {
@@ -588,138 +652,6 @@
         transform: translateY(-1px);
     }
 
-    .quick-list {
-        padding: 16px;
-        display: grid;
-        gap: 10px;
-    }
-
-    .quick-row {
-        display: flex;
-        align-items: center;
-        gap: 13px;
-        min-height: 68px;
-        padding: 14px;
-        border-radius: 17px;
-        text-decoration: none;
-        transition: .18s ease;
-        background: #ffffff;
-        border: 1px solid var(--almacen-border);
-        color: var(--almacen-text);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .quick-row:hover {
-        transform: translateY(-2px);
-        border-color: rgba(15, 107, 255, .32);
-        box-shadow: var(--almacen-shadow-sm);
-        background: #f8fbff;
-    }
-
-    .quick-icon {
-        width: 46px;
-        height: 46px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        flex-shrink: 0;
-    }
-
-    .quick-icon.blue {
-        background: var(--almacen-blue-soft);
-        color: var(--almacen-blue);
-    }
-
-    .quick-icon.green {
-        background: var(--almacen-green-soft);
-        color: var(--almacen-green);
-    }
-
-    .quick-icon.amber {
-        background: var(--almacen-amber-soft);
-        color: #b45309;
-    }
-
-    .quick-icon.cyan {
-        background: var(--almacen-cyan-soft);
-        color: #0891b2;
-    }
-
-    .quick-icon.red {
-        background: var(--almacen-red-soft);
-        color: var(--almacen-red);
-    }
-
-    .quick-icon.purple {
-        background: var(--almacen-purple-soft);
-        color: var(--almacen-purple);
-    }
-
-    .quick-icon.gray {
-        background: #f1f5f9;
-        color: #475569;
-    }
-
-    .quick-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .quick-info strong {
-        display: block;
-        margin: 0;
-        color: var(--almacen-text);
-        font-size: 13px;
-        line-height: 1.25;
-        font-weight: 950;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .quick-info span {
-        display: block;
-        margin-top: 5px;
-        color: var(--almacen-muted);
-        font-size: 12px;
-        line-height: 1.35;
-    }
-
-    .quick-arrow {
-        color: #94a3b8;
-        font-size: 20px;
-        flex-shrink: 0;
-    }
-
-    .badge-pulse {
-        background: var(--almacen-red);
-        color: white;
-        font-size: 10px;
-        font-weight: 950;
-        padding: 4px 8px;
-        border-radius: 999px;
-        box-shadow: 0 0 8px rgba(220, 38, 38, .45);
-        animation: pulse 2s infinite;
-        flex-shrink: 0;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.08);
-        }
-
-        100% {
-            transform: scale(1);
-        }
-    }
-
     .charts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -807,7 +739,7 @@
     }
 
     @media (max-width: 1180px) {
-        .almacen-hero {
+        .quick-hero-grid {
             grid-template-columns: 1fr;
         }
 
@@ -816,11 +748,7 @@
         }
 
         .right-stack {
-            order: -1;
-        }
-
-        .quick-list {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            order: 0;
         }
     }
 
@@ -833,6 +761,11 @@
             grid-template-columns: 1fr;
         }
 
+        .quick-hero-meta {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
         .hero-chip {
             width: 100%;
         }
@@ -843,21 +776,21 @@
             gap: 18px;
         }
 
-        .almacen-hero {
-            padding: 22px;
+        .quick-hero {
+            padding: 18px;
             border-radius: 20px;
         }
 
-        .hero-title {
-            font-size: 26px;
+        .quick-hero-title {
+            font-size: 24px;
         }
 
-        .hero-desc {
-            font-size: 13px;
+        .quick-hero-item {
+            min-height: 64px;
         }
 
-        .hero-status {
-            padding: 16px;
+        .quick-info strong {
+            white-space: normal;
         }
 
         .kpi-card {
@@ -890,15 +823,6 @@
             justify-content: center;
         }
 
-        .quick-list {
-            grid-template-columns: 1fr;
-            padding: 12px;
-        }
-
-        .quick-row {
-            min-height: 64px;
-        }
-
         .chart-box {
             height: 265px;
             padding: 14px;
@@ -912,23 +836,21 @@
 
 <div class="almacen-wrap">
 
-    <section class="almacen-hero">
-        <div class="hero-main">
-            <div class="hero-badge">
-                <i class='bx bxs-package'></i>
-                Operaciones de almacén
+    <section class="quick-hero">
+        <div class="quick-hero-top">
+            <div>
+                <span class="quick-hero-badge">
+                    <i class='bx bx-zap'></i>
+                    Operaciones rápidas
+                </span>
+                <h1 class="quick-hero-title">Accesos principales del almacén</h1>
+                <p class="quick-hero-subtitle">
+                    Accede directamente a las operaciones más utilizadas: movimientos, obras, liquidaciones,
+                    consultas de inventario y control de equipos serializados.
+                </p>
             </div>
 
-            <h1 class="hero-title">
-                Panel de <span>Almacén</span>
-            </h1>
-
-            <p class="hero-desc">
-                Gestiona solicitudes pendientes, compras por ingresar, transferencias entrantes, despachos,
-                devoluciones, stock crítico y actividad diaria de la sede.
-            </p>
-
-            <div class="hero-meta-row">
+            <div class="quick-hero-meta">
                 <span class="hero-chip">
                     <i class='bx bx-buildings'></i>
                     Sede: {{ sede.nombre }}
@@ -946,32 +868,144 @@
             </div>
         </div>
 
-        <aside class="hero-status">
-            <div class="status-title">
-                <i class='bx bx-pulse'></i>
-                <div>
-                    <strong>Estado operativo</strong>
-                    <span>Resumen actual de la sede</span>
+        <div class="quick-hero-grid">
+
+            <div class="quick-hero-group">
+                <div class="quick-hero-group-title">
+                    <i class='bx bx-transfer'></i>
+                    Movimientos de almacén
                 </div>
+
+                <a href="{% url 'req_home_almacen' %}" class="quick-hero-item primary-action">
+                    <div class="quick-icon blue">
+                        <i class='bx bx-plus'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Nuevo pedido / compra</strong>
+                        <span>Crear requerimiento para almacén o proveedor.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'carga_inicial_home' %}" class="quick-hero-item">
+                    <div class="quick-icon cyan">
+                        <i class='bx bx-barcode-reader'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Carga inicial</strong>
+                        <span>Registrar productos, stock, etiquetas y seriales.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'req_asignacion_directa' %}" class="quick-hero-item">
+                    <div class="quick-icon green">
+                        <i class='bx bxs-backpack'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Cargar mochila</strong>
+                        <span>Despacho directo de materiales a técnico.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-hero-item">
+                    <div class="quick-icon purple">
+                        <i class='bx bx-reply-all'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Devolución rápida</strong>
+                        <span>Ingreso ágil de retornos al almacén.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
             </div>
 
-            <div class="status-list">
-                <div class="status-item">
-                    <span>Pendientes</span>
-                    <strong>{{ kpi_pendientes|default:0 }}</strong>
+            <div class="quick-hero-group">
+                <div class="quick-hero-group-title">
+                    <i class='bx bx-hard-hat'></i>
+                    Obras y liquidaciones
                 </div>
 
-                <div class="status-item">
-                    <span>Movimientos hoy</span>
-                    <strong>{{ kpi_movimientos|default:0 }}</strong>
-                </div>
+                <a href="{% url 'almacen_proyectos_list' %}" class="quick-hero-item">
+                    <div class="quick-icon amber">
+                        <i class='bx bx-hard-hat'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Atender obras</strong>
+                        <span>Despachar materiales por proyecto PEX.</span>
+                    </div>
+                    {% if notificacion_proyectos > 0 %}
+                        <span class="badge-pulse">{{ notificacion_proyectos }}</span>
+                    {% else %}
+                        <i class='bx bx-chevron-right quick-arrow'></i>
+                    {% endif %}
+                </a>
 
-                <div class="status-item">
-                    <span>Stock crítico</span>
-                    <strong>{{ kpi_stock|default:0 }}</strong>
-                </div>
+                <a href="{% url 'almacen_liquidacion_lista' %}" class="quick-hero-item danger-action">
+                    <div class="quick-icon red">
+                        <i class='bx bx-door-open'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Cierre de obras</strong>
+                        <span>Liquidar retornos, merma y consumo de proyectos.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'liquidacion_tecnico_lista' %}" class="quick-hero-item">
+                    <div class="quick-icon cyan">
+                        <i class='bx bx-user-check'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Liquidación semanal</strong>
+                        <span>Cierre de mochilas técnicas por sede.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
             </div>
-        </aside>
+
+            <div class="quick-hero-group">
+                <div class="quick-hero-group-title">
+                    <i class='bx bx-search-alt'></i>
+                    Consultas y control
+                </div>
+
+                <a href="{% url 'equipos_serializados_list' %}" class="quick-hero-item primary-action">
+                    <div class="quick-icon green">
+                        <i class='bx bx-chip'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>ONUs / MACs / SN</strong>
+                        <span>Consultar equipos serializados y exportar Excel.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'inventory_list' %}" class="quick-hero-item">
+                    <div class="quick-icon gray">
+                        <i class='bx bx-box'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Inventario general</strong>
+                        <span>Consulta de stock total por producto.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
+                <a href="{% url 'almacen_historial_global' %}" class="quick-hero-item">
+                    <div class="quick-icon gray">
+                        <i class='bx bx-history'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Historial y archivo</strong>
+                        <span>Movimientos, actas y reimpresiones.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+            </div>
+
+        </div>
     </section>
 
     <section class="kpi-grid">
@@ -982,7 +1016,7 @@
 
             <div class="kpi-body">
                 <div class="kpi-value">{{ kpi_pendientes|default:0 }}</div>
-                <div class="kpi-label">Tareas pendientes</div>
+                <div class="kpi-label">Pendientes por atender</div>
                 <div class="kpi-help">
                     Solicitudes, compras o recepciones que requieren atención.
                 </div>
@@ -1029,9 +1063,9 @@
             <div>
                 <h2>
                     <i class='bx bx-command'></i>
-                    Centro operativo
+                    Seguimiento operativo
                 </h2>
-                <p>Accesos rápidos y actividades principales del almacén.</p>
+                <p>Estado actual de solicitudes, recepciones, despachos y salud del stock.</p>
             </div>
         </div>
     </section>
@@ -1257,124 +1291,6 @@
         </div>
 
         <aside class="right-stack">
-
-            <article class="panel-card">
-                <div class="panel-head">
-                    <div class="panel-title">
-                        <h3>
-                            <i class='bx bxs-zap'></i>
-                            Accesos rápidos
-                        </h3>
-                        <span>Operaciones frecuentes del almacén.</span>
-                    </div>
-                </div>
-
-                <div class="quick-list">
-                    <a href="{% url 'req_home_almacen' %}" class="quick-row">
-                        <div class="quick-icon blue">
-                            <i class='bx bx-plus'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Nuevo pedido / compra</strong>
-                            <span>Crear REQ para almacén.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'carga_inicial_home' %}" class="quick-row">
-                        <div class="quick-icon cyan">
-                            <i class='bx bx-barcode-reader'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Carga inicial</strong>
-                            <span>Registrar materiales, etiquetas y seriales.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'req_asignacion_directa' %}" class="quick-row">
-                        <div class="quick-icon green">
-                            <i class='bx bxs-backpack'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Cargar mochila</strong>
-                            <span>Despacho directo a técnico.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'almacen_proyectos_list' %}" class="quick-row">
-                        <div class="quick-icon amber">
-                            <i class='bx bx-hard-hat'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Atender obras</strong>
-                            <span>Despachos por proyecto.</span>
-                        </div>
-                        {% if notificacion_proyectos > 0 %}
-                            <span class="badge-pulse">{{ notificacion_proyectos }}</span>
-                        {% else %}
-                            <i class='bx bx-chevron-right quick-arrow'></i>
-                        {% endif %}
-                    </a>
-
-                    <a href="{% url 'almacen_liquidacion_lista' %}" class="quick-row">
-                        <div class="quick-icon red">
-                            <i class='bx bx-door-open'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Cierre de obras</strong>
-                            <span>Liquidar retornos de proyectos.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'liquidacion_tecnico_lista' %}" class="quick-row">
-                        <div class="quick-icon cyan">
-                            <i class='bx bx-user-check'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Liquidación semanal</strong>
-                            <span>Cierre de mochilas técnicas.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-row">
-                        <div class="quick-icon purple">
-                            <i class='bx bx-reply-all'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Devolución rápida</strong>
-                            <span>Ingreso ágil de retornos.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'inventory_list' %}" class="quick-row">
-                        <div class="quick-icon gray">
-                            <i class='bx bx-box'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Inventario general</strong>
-                            <span>Consulta de stock total.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-
-                    <a href="{% url 'almacen_historial_global' %}" class="quick-row">
-                        <div class="quick-icon gray">
-                            <i class='bx bx-history'></i>
-                        </div>
-                        <div class="quick-info">
-                            <strong>Historial y archivo</strong>
-                            <span>Movimientos y reimpresión de actas.</span>
-                        </div>
-                        <i class='bx bx-chevron-right quick-arrow'></i>
-                    </a>
-                </div>
-            </article>
-
             <article class="panel-card critical">
                 <div class="panel-head">
                     <div class="panel-title">
@@ -1416,7 +1332,6 @@
                 </div>
                 {% endif %}
             </article>
-
         </aside>
 
     </section>

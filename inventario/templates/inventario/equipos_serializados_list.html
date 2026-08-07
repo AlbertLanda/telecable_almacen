@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+  .serial-page {
+    padding: 2rem 2.5rem;
+  }
+
+  .serial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .serial-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #061833;
+    margin: 0;
+  }
+
+  .serial-subtitle {
+    color: #64748b;
+    margin-top: .5rem;
+    margin-bottom: 0;
+  }
+
+  .serial-actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .serial-btn {
+    border-radius: 14px;
+    padding: .75rem 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .serial-btn-success {
+    background: #16a34a;
+    color: white;
+  }
+
+  .serial-btn-light {
+    background: white;
+    color: #0f172a;
+    border-color: #dbe3ef;
+  }
+
+  .serial-card {
+    background: white;
+    border: 1px solid #dbe3ef;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+
+  .serial-card-body {
+    padding: 1.25rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.5fr 1.2fr auto auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .filter-field label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 800;
+    color: #334155;
+    margin-bottom: .35rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+
+  .filter-field input,
+  .filter-field select {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    padding: .8rem .9rem;
+    outline: none;
+    background: #fff;
+    color: #0f172a;
+  }
+
+  .filter-field input:focus,
+  .filter-field select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+  }
+
+  .filter-bottom {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .check-clean {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: #334155;
+    font-weight: 600;
+  }
+
+  .check-clean input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .summary-card {
+    background: white;
+    border: 1px solid #dbe3ef;
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, .05);
+  }
+
+  .summary-label {
+    color: #64748b;
+    font-size: .82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .summary-value {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin-top: .25rem;
+  }
+
+  .table-header {
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  .table-subtitle {
+    margin: .2rem 0 0 0;
+    color: #64748b;
+    font-size: .9rem;
+  }
+
+  .serial-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .serial-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: .9rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+  }
+
+  .serial-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: middle;
+    color: #0f172a;
+  }
+
+  .serial-table tr:hover {
+    background: #f8fbff;
+  }
+
+  .code-badge {
+    display: inline-flex;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    background: #eef4ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: .82rem;
+    font-weight: 800;
+  }
+
+  .trace-badge {
+    display: inline-flex;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #c2410c;
+    font-size: .82rem;
+    font-weight: 900;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    padding: .4rem .7rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .st-ok {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+  }
+
+  .st-asignado {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+  }
+
+  .st-instalado {
+    background: #e2e8f0;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+  }
+
+  .st-merma {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #64748b;
+  }
+
+  .empty-state strong {
+    display: block;
+    color: #0f172a;
+    margin-bottom: .3rem;
+  }
+
+  @media (max-width: 1200px) {
+    .filter-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .serial-page {
+      padding: 1.25rem;
+    }
+
+    .serial-header {
+      flex-direction: column;
+    }
+
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="serial-page">
+
+  <div class="serial-header">
+    <div>
+      <h1 class="serial-title">ONUs / Equipos Serializados</h1>
+      <p class="serial-subtitle">
+        Consulta, filtra y exporta MAC, GPON SN, DSN y códigos de trazabilidad registrados.
+      </p>
+    </div>
+
+    <div class="serial-actions">
+      <a
+        href="{% url 'equipos_serializados_export' %}?q={{ q }}&estado={{ estado }}&producto={{ producto_seleccionado }}&sede={{ sede_seleccionada }}&solo_disponibles={{ solo_disponibles }}"
+        class="serial-btn serial-btn-success"
+      >
+        Exportar Excel
+      </a>
+
+      <a href="{% url 'dash_almacen' %}" class="serial-btn serial-btn-light">
+        Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="serial-card">
+    <div class="serial-card-body">
+      <form method="get">
+
+        <div class="filter-grid">
+
+          <div class="filter-field">
+            <label>Buscar</label>
+            <input
+              type="text"
+              name="q"
+              value="{{ q }}"
+              placeholder="MAC, SN, DSN, código pintado, producto o técnico"
+            >
+          </div>
+
+          <div class="filter-field">
+            <label>Estado</label>
+            <select name="estado">
+              <option value="">Todos</option>
+              {% for value, label in estados %}
+                <option value="{{ value }}" {% if estado == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Producto</label>
+            <select name="producto">
+              <option value="">Todos los productos</option>
+              {% for producto in productos %}
+                <option value="{{ producto.id }}" {% if producto_seleccionado == producto.id|stringformat:"s" %}selected{% endif %}>
+                  {{ producto.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Sede</label>
+            <select name="sede">
+              <option value="">Todas</option>
+              {% for sede in sedes %}
+                <option value="{{ sede.id }}" {% if sede_seleccionada == sede.id|stringformat:"s" %}selected{% endif %}>
+                  {{ sede.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="serial-btn" style="background:#2563eb;color:white;border:none;">
+            Buscar
+          </button>
+
+          <a href="{% url 'equipos_serializados_list' %}" class="serial-btn serial-btn-light">
+            Limpiar
+          </a>
+
+        </div>
+
+        <div class="filter-bottom">
+          <label class="check-clean" for="solo_disponibles">
+            <input
+              type="checkbox"
+              name="solo_disponibles"
+              value="1"
+              id="solo_disponibles"
+              {% if solo_disponibles == "1" %}checked{% endif %}
+            >
+            Mostrar solo equipos disponibles en almacén
+          </label>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Total filtrado</div>
+      <div class="summary-value">{{ total }}</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Vista actual</div>
+      <div class="summary-value">1000</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Exportación</div>
+      <div class="summary-value">Excel</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Control</div>
+      <div class="summary-value">SN/MAC</div>
+    </div>
+  </div>
+
+  <div class="serial-card">
+    <div class="table-header">
+      <div>
+        <h2 class="table-title">Equipos registrados</h2>
+        <p class="table-subtitle">Relación filtrada de unidades físicas registradas.</p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="serial-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>SN / GPON</th>
+            <th>MAC</th>
+            <th>DSN</th>
+            <th>Cód. trazabilidad</th>
+            <th>Estado</th>
+            <th>Ubicación</th>
+            <th>Asignado a</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for item in equipos %}
+            <tr>
+              <td>
+                <strong>{{ item.producto.nombre }}</strong>
+              </td>
+
+              <td>
+                <span class="code-badge">{{ item.serial|default:"-" }}</span>
+              </td>
+
+              <td>
+                <span class="code-badge">{{ item.mac_address|default:"-" }}</span>
+              </td>
+
+              <td>
+                <span class="code-badge">{{ item.serial_secundario|default:"-" }}</span>
+              </td>
+
+              <td>
+                <span class="trace-badge">{{ item.codigo_trazabilidad|default:"-" }}</span>
+              </td>
+
+              <td>
+                {% if item.estado == "EN_ALMACEN" %}
+                  <span class="status-badge st-ok">{{ item.get_estado_display }}</span>
+                {% elif item.estado == "ASIGNADO" %}
+                  <span class="status-badge st-asignado">{{ item.get_estado_display }}</span>
+                {% elif item.estado == "INSTALADO" %}
+                  <span class="status-badge st-instalado">{{ item.get_estado_display }}</span>
+                {% elif item.estado == "MERMA" %}
+                  <span class="status-badge st-merma">{{ item.get_estado_display }}</span>
+                {% else %}
+                  <span class="status-badge st-instalado">{{ item.get_estado_display }}</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if item.ubicacion %}
+                  {{ item.ubicacion.sede.nombre }} - {{ item.ubicacion.nombre }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td>
+                {% if item.asignado_a %}
+                  {{ item.asignado_a.get_full_name|default:item.asignado_a.username }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <strong>No se encontraron equipos serializados.</strong>
+                  Prueba quitando filtros o revisando la carga inicial.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

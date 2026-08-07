@@ -68,6 +68,10 @@ from .views.carga_inicial import (
     carga_inicial_serial_editar,
 )
 
+from inventario.views.equipos import (
+    equipos_serializados_list,
+    equipos_serializados_export,
+)
 
 urlpatterns = [
     # ==========================
@@ -212,4 +216,8 @@ urlpatterns = [
         carga_inicial_serial_editar,
         name="carga_inicial_serial_editar",
     ),
+
+    # Filtrado de ONU
+    path("equipos-serializados/", equipos_serializados_list, name="equipos_serializados_list"),
+    path("equipos-serializados/exportar/", equipos_serializados_export, name="equipos_serializados_export"),
 ]

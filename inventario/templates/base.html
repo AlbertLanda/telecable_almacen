@@ -101,7 +101,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
+            gap: 18px;
             padding: 0 28px;
             position: sticky;
             top: 0;
@@ -110,29 +110,34 @@
         }
 
         .navbar-left,
+        .navbar-center,
         .navbar-right {
             display: flex;
             align-items: center;
-            gap: 14px;
             min-width: 0;
         }
 
         .navbar-left {
-            flex: 1 1 auto;
-            overflow: hidden;
+            flex: 1 1 0;
+            justify-content: flex-start;
+        }
+
+        .navbar-center {
+            flex: 1.2 1 0;
+            justify-content: center;
         }
 
         .navbar-right {
-            flex: 0 0 auto;
-            margin-left: auto;
+            flex: 1 1 0;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         .brand {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 12px;
-            flex: 0 0 auto;
-            min-width: 185px;
+            min-width: 0;
         }
 
         .brand-logo {
@@ -155,7 +160,7 @@
         .brand-text strong {
             display: block;
             font-size: 16px;
-            font-weight: 900;
+            font-weight: 950;
             letter-spacing: -.3px;
             line-height: 1.1;
         }
@@ -167,88 +172,46 @@
             margin-top: 3px;
         }
 
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            flex: 1 1 auto;
-            min-width: 0;
-            overflow-x: auto;
-            overflow-y: hidden;
-            white-space: nowrap;
-            scrollbar-width: none;
-        }
-
-        .nav-links::-webkit-scrollbar {
-            display: none;
-        }
-
-        .nav-link {
-            flex: 0 0 auto;
+        .area-context {
+            min-width: 420px;
+            height: 48px;
+            padding: 0 24px;
+            border-radius: 999px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            height: 42px;
-            padding: 0 13px;
+            gap: 12px;
+            background: rgba(255, 255, 255, .075);
+            border: 1px solid rgba(255, 255, 255, .12);
+            color: #dbeafe;
+        }
+
+        .area-context i {
+            width: 34px;
+            height: 34px;
             border-radius: 12px;
+            background: rgba(15, 107, 255, .22);
+            color: #60a5fa;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .area-context span {
             color: #cbd5e1;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 850;
             white-space: nowrap;
-            transition: .18s ease;
-            border: 1px solid transparent;
-            background: transparent;
-            cursor: pointer;
-        }
-
-        .nav-link i {
-            font-size: 18px;
-            color: #93a4bc;
-            transition: .18s ease;
-        }
-
-        .nav-link:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, .08);
-            border-color: rgba(255, 255, 255, .08);
-        }
-
-        .nav-link:hover i {
-            color: #ffffff;
-        }
-
-        .nav-link.active {
-            color: #ffffff;
-            background: rgba(15, 107, 255, .22);
-            border-color: rgba(96, 165, 250, .35);
-        }
-
-        .nav-link.active i {
-            color: #60a5fa;
-        }
-
-        .nav-dropdown-btn {
-            border: 1px solid rgba(96, 165, 250, .22);
-            background: rgba(15, 107, 255, .13);
-        }
-
-        .nav-dropdown-btn .dropdown-arrow {
-            font-size: 18px;
-            margin-left: 2px;
-            transition: transform .18s ease;
-        }
-
-        .nav-dropdown-btn.open .dropdown-arrow {
-            transform: rotate(180deg);
         }
 
         .nav-chip {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            height: 40px;
-            padding: 0 13px;
+            height: 42px;
+            padding: 0 14px;
             border-radius: 999px;
             background: rgba(255, 255, 255, .07);
             border: 1px solid rgba(255, 255, 255, .10);
@@ -264,35 +227,36 @@
         }
 
         .logout-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 15px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            height: 40px;
-            padding: 0 14px;
-            border-radius: 12px;
-            background: rgba(220, 38, 38, .14);
+            background: rgba(220, 38, 38, .12);
             color: #fecaca;
-            border: 1px solid rgba(248, 113, 113, .18);
-            font-size: 13px;
-            font-weight: 900;
+            border: 1px solid rgba(248, 113, 113, .22);
+            font-size: 22px;
             transition: .18s ease;
             white-space: nowrap;
         }
 
         .logout-btn:hover {
-            background: rgba(220, 38, 38, .24);
+            background: #dc2626;
             color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(220, 38, 38, .22);
         }
 
         .mobile-menu-btn {
             display: none;
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             border: 1px solid rgba(255, 255, 255, .12);
             background: rgba(255, 255, 255, .07);
             color: #ffffff;
-            border-radius: 13px;
+            border-radius: 15px;
             align-items: center;
             justify-content: center;
             cursor: pointer;
@@ -301,124 +265,6 @@
 
         .mobile-menu-btn i {
             font-size: 25px;
-        }
-
-        .panel-dropdown {
-            display: none;
-            position: sticky;
-            top: var(--topbar-height);
-            z-index: 998;
-            background: rgba(8, 17, 31, .97);
-            backdrop-filter: blur(18px);
-            border-bottom: 1px solid rgba(255, 255, 255, .10);
-            padding: 16px 28px;
-            box-shadow: 0 18px 42px rgba(2, 6, 23, .30);
-        }
-
-        .panel-dropdown.open {
-            display: block;
-        }
-
-        .panel-dropdown-inner {
-            max-width: 1500px;
-            margin: 0 auto;
-        }
-
-        .panel-dropdown-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-
-        .panel-dropdown-title strong {
-            display: block;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: 950;
-        }
-
-        .panel-dropdown-title span {
-            display: block;
-            color: #94a3b8;
-            font-size: 12px;
-            margin-top: 3px;
-        }
-
-        .panel-dropdown-close {
-            width: 36px;
-            height: 36px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, .12);
-            background: rgba(255, 255, 255, .06);
-            color: #ffffff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .panel-dropdown-close i {
-            font-size: 22px;
-        }
-
-        .panel-dropdown-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .panel-access-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-height: 74px;
-            padding: 14px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, .065);
-            border: 1px solid rgba(255, 255, 255, .10);
-            color: #ffffff;
-            transition: .18s ease;
-        }
-
-        .panel-access-card:hover {
-            background: rgba(15, 107, 255, .20);
-            border-color: rgba(96, 165, 250, .38);
-            transform: translateY(-1px);
-        }
-
-        .panel-access-card.active {
-            background: rgba(15, 107, 255, .20);
-            border-color: rgba(96, 165, 250, .38);
-        }
-
-        .panel-access-card i {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
-            background: rgba(15, 107, 255, .18);
-            color: #60a5fa;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .panel-access-card strong {
-            display: block;
-            font-size: 13px;
-            font-weight: 950;
-            color: #ffffff;
-        }
-
-        .panel-access-card span {
-            display: block;
-            font-size: 11px;
-            color: #aab6c8;
-            margin-top: 3px;
-            line-height: 1.35;
         }
 
         .mobile-nav {
@@ -446,33 +292,49 @@
             gap: 8px;
         }
 
-        .mobile-nav .nav-link {
+        .mobile-nav-section {
+            margin-top: 10px;
+            padding: 10px 4px 4px;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+        }
+
+        .nav-link {
             width: 100%;
             height: 48px;
             padding: 0 14px;
+            display: inline-flex;
+            align-items: center;
             justify-content: flex-start;
+            gap: 10px;
             background: rgba(255, 255, 255, .06);
             border: 1px solid rgba(255, 255, 255, .08);
             border-radius: 14px;
             color: #e5e7eb;
+            transition: .18s ease;
         }
 
-        .mobile-nav .nav-link i {
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(15, 107, 255, .22);
+            border-color: rgba(96, 165, 250, .35);
+            color: #ffffff;
+        }
+
+        .nav-link i {
             width: 24px;
             min-width: 24px;
             font-size: 20px;
             color: #93c5fd;
         }
 
-        .mobile-nav .nav-link span {
+        .nav-link span {
             color: #e5e7eb;
             font-size: 13px;
             font-weight: 850;
-        }
-
-        .mobile-nav .nav-link.active {
-            background: rgba(15, 107, 255, .22);
-            border-color: rgba(96, 165, 250, .35);
         }
 
         .main-content {
@@ -927,140 +789,32 @@
             padding: 20px 18px 34px;
         }
 
-        @media (max-width: 1500px) {
+        @media (max-width: 1200px) {
             .admin-navbar {
-                padding: 0 18px;
+                padding: 0 16px;
                 gap: 10px;
             }
 
-            .brand {
-                min-width: 170px;
-            }
-
-            .brand-logo {
-                width: 40px;
-                height: 40px;
-                border-radius: 13px;
-            }
-
-            .brand-text strong {
-                font-size: 15px;
-            }
-
-            .brand-text span {
-                font-size: 11px;
-            }
-
-            .nav-link {
-                height: 42px;
-                padding: 0 11px;
-            }
-
-            .nav-chip {
-                height: 38px;
-                padding: 0 11px;
-                font-size: 12px;
-            }
-
-            .logout-btn {
-                height: 38px;
-                padding: 0 12px;
-            }
-        }
-
-        @media (max-width: 1350px) {
-            .nav-links > .nav-link:not(.nav-dropdown-btn) span {
+            .navbar-center {
                 display: none;
-            }
-
-            .nav-links > .nav-link:not(.nav-dropdown-btn) {
-                width: 42px;
-                padding: 0;
-            }
-
-            .panel-dropdown-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 1100px) {
-            .admin-navbar {
-                padding: 0 12px;
-                overflow: visible;
             }
 
             .navbar-left {
-                flex: 1;
-                overflow: visible;
-            }
-
-            .brand {
-                min-width: 0;
-            }
-
-            .brand-logo {
-                width: 40px;
-                height: 40px;
-                border-radius: 14px;
-            }
-
-            .brand-text strong {
-                font-size: 14px;
-            }
-
-            .brand-text span {
-                display: none;
-            }
-
-            .nav-links {
-                display: none !important;
-            }
-
-            .mobile-menu-btn {
-                display: inline-flex !important;
+                flex: 1 1 auto;
             }
 
             .navbar-right {
-                gap: 8px;
-            }
-
-            .navbar-right .nav-chip {
-                display: none !important;
-            }
-
-            .logout-btn {
-                width: 42px;
-                min-width: 42px;
-                height: 42px;
-                padding: 0;
-            }
-
-            .logout-btn span {
-                display: none;
-            }
-
-            .panel-dropdown {
-                display: none !important;
-            }
-
-            .main-content {
-                padding: 20px 14px 34px;
-            }
-
-            .stat-grid,
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .page-title {
-                flex-direction: column;
-                align-items: stretch;
+                flex: 0 0 auto;
             }
         }
 
         @media (max-width: 900px) {
-            .panel-dropdown-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .nav-chip.role-chip {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: inline-flex !important;
             }
         }
 
@@ -1088,6 +842,11 @@
                 font-size: 13px;
             }
 
+            .brand-text span,
+            .nav-chip.date-chip {
+                display: none;
+            }
+
             .mobile-menu-btn,
             .logout-btn {
                 width: 38px;
@@ -1099,10 +858,6 @@
             .mobile-nav {
                 top: 62px;
                 max-height: calc(100dvh - 62px);
-            }
-
-            .mobile-nav .nav-link {
-                height: 46px;
             }
 
             .main-content {
@@ -1147,8 +902,7 @@
                 gap: 6px;
             }
         }
-
-   </style>
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -1158,7 +912,7 @@
         <div class="app-layout">
             <header class="admin-navbar">
                 <div class="navbar-left">
-                    <a href="{% url 'home' %}" class="brand">
+                    <a href="{% url 'home' %}" class="brand" aria-label="Ir al inicio">
                         <div class="brand-logo">
                             <i class='bx bxs-cube-alt'></i>
                         </div>
@@ -1168,46 +922,48 @@
                             <span>Gestión administrativa</span>
                         </div>
                     </a>
+                </div>
 
-                    <nav class="nav-links" id="desktopNav">
-                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
-                            <a href="{% url 'dash_admin' %}" class="nav-link">
-                                <i class='bx bx-bar-chart-square'></i>
-                                <span>Gerencia</span>
-                            </a>
-                        {% endif %}
+                <div class="navbar-center">
+                    <div class="area-context">
+                        {% if user.profile.rol == "ALMACEN" %}
+                            <i class='bx bx-store-alt'></i>
+                            <span>Operaciones, inventario y despachos</span>
 
-                        {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
-                            <a href="{% url 'dash_almacen' %}" class="nav-link">
-                                <i class='bx bx-store-alt'></i>
-                                <span>Almacén</span>
-                            </a>
-                        {% endif %}
+                        {% elif user.profile.rol == "JEFA" %}
+                            <i class='bx bx-crown'></i>
+                            <span>Supervisión y control operativo</span>
 
-                        <button type="button" class="nav-link nav-dropdown-btn" id="panelDropdownBtn">
+                        {% elif user.profile.rol == "ADMIN" %}
+                            <i class='bx bx-shield-quarter'></i>
+                            <span>Gestión general del sistema</span>
+
+                        {% elif user.profile.rol == "SOLICITANTE" %}
+                            <i class='bx bx-user-check'></i>
+                            <span>Requerimientos y seguimiento</span>
+
+                        {% else %}
                             <i class='bx bx-grid-alt'></i>
-                            <span>Paneles</span>
-                            <i class='bx bx-chevron-down dropdown-arrow'></i>
-                        </button>
-                    </nav>
+                            <span>Sistema interno Telecable</span>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="navbar-right">
                     {% if user.profile.rol %}
-                        <span class="nav-chip">
+                        <span class="nav-chip role-chip">
                             <i class='bx bx-shield-quarter'></i>
                             {{ user.profile.get_rol_display }}
                         </span>
                     {% endif %}
 
-                    <span class="nav-chip">
+                    <span class="nav-chip date-chip">
                         <i class='bx bx-calendar'></i>
                         {% now "d/m/Y" %}
                     </span>
 
-                    <a href="{% url 'logout' %}" class="logout-btn">
-                        <i class='bx bx-log-out'></i>
-                        <span>Salir</span>
+                    <a href="{% url 'logout' %}" class="logout-btn" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <i class='bx bx-power-off'></i>
                     </a>
 
                     <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menú">
@@ -1216,122 +972,11 @@
                 </div>
             </header>
 
-            <section class="panel-dropdown" id="panelDropdown">
-                <div class="panel-dropdown-inner">
-                    <div class="panel-dropdown-title">
-                        <div>
-                            <strong>Paneles disponibles</strong>
-                            <span>Accesos rápidos del sistema según tu perfil.</span>
-                        </div>
-
-                        <button type="button" class="panel-dropdown-close" id="panelDropdownClose">
-                            <i class='bx bx-x'></i>
-                        </button>
-                    </div>
-
-                    <div class="panel-dropdown-grid">
-                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
-                            <a href="{% url 'dash_admin' %}" class="panel-access-card">
-                                <i class='bx bx-bar-chart-square'></i>
-                                <div>
-                                    <strong>Panel gerencial</strong>
-                                    <span>Indicadores, alertas y toma de decisiones</span>
-                                </div>
-                            </a>
-                        {% endif %}
-
-                        {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
-                            <a href="{% url 'dash_almacen' %}" class="panel-access-card">
-                                <i class='bx bx-store-alt'></i>
-                                <div>
-                                    <strong>Panel almacén</strong>
-                                    <span>Operaciones principales de almacén</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'inventory_list' %}" class="panel-access-card">
-                                <i class='bx bx-package'></i>
-                                <div>
-                                    <strong>Inventario</strong>
-                                    <span>Consulta de productos y existencias</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'carga_inicial_home' %}" class="panel-access-card">
-                                <i class='bx bx-list-plus'></i>
-                                <div>
-                                    <strong>Carga inicial</strong>
-                                    <span>Registrar stock físico inicial</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'req_home_almacen' %}" class="panel-access-card">
-                                <i class='bx bx-clipboard'></i>
-                                <div>
-                                    <strong>Requerimientos</strong>
-                                    <span>Atender solicitudes pendientes</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'req_asignacion_directa' %}" class="panel-access-card">
-                                <i class='bx bx-barcode-reader'></i>
-                                <div>
-                                    <strong>Despacho directo</strong>
-                                    <span>Cargar mochila técnica</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'almacen_devolucion_rapida' %}" class="panel-access-card">
-                                <i class='bx bx-undo'></i>
-                                <div>
-                                    <strong>Devoluciones</strong>
-                                    <span>Retorno de equipos o materiales</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'almacen_historial_global' %}" class="panel-access-card">
-                                <i class='bx bx-history'></i>
-                                <div>
-                                    <strong>Historial</strong>
-                                    <span>Movimientos de inventario</span>
-                                </div>
-                            </a>
-                        {% endif %}
-
-                        {% if user.profile.rol == "SOLICITANTE" %}
-                            <a href="{% url 'req_home' %}" class="panel-access-card">
-                                <i class='bx bx-cart-add'></i>
-                                <div>
-                                    <strong>Mis solicitudes</strong>
-                                    <span>Crear y revisar requerimientos</span>
-                                </div>
-                            </a>
-                        {% endif %}
-
-                        {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
-                            <a href="{% url 'proyecto_list' %}" class="panel-access-card">
-                                <i class='bx bx-hard-hat'></i>
-                                <div>
-                                    <strong>Proyectos</strong>
-                                    <span>Supervisión de obras y avances</span>
-                                </div>
-                            </a>
-
-                            <a href="{% url 'admin_reporte_lista' %}" class="panel-access-card">
-                                <i class='bx bx-line-chart'></i>
-                                <div>
-                                    <strong>Reportes</strong>
-                                    <span>Análisis y control administrativo</span>
-                                </div>
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </section>
-
             <section class="mobile-nav" id="mobileNav">
                 <div class="mobile-nav-grid">
                     {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                        <div class="mobile-nav-section">Gestión</div>
+
                         <a href="{% url 'dash_admin' %}" class="nav-link">
                             <i class='bx bx-bar-chart-square'></i>
                             <span>Panel gerencial</span>
@@ -1339,6 +984,8 @@
                     {% endif %}
 
                     {% if user.profile.rol == "ALMACEN" or user.profile.rol == "JEFA" or user.profile.rol == "ADMIN" %}
+                        <div class="mobile-nav-section">Almacén</div>
+
                         <a href="{% url 'dash_almacen' %}" class="nav-link">
                             <i class='bx bx-store-alt'></i>
                             <span>Panel almacén</span>
@@ -1376,6 +1023,8 @@
                     {% endif %}
 
                     {% if user.profile.rol == "SOLICITANTE" %}
+                        <div class="mobile-nav-section">Solicitudes</div>
+
                         <a href="{% url 'req_home' %}" class="nav-link">
                             <i class='bx bx-cart-add'></i>
                             <span>Mis solicitudes</span>
@@ -1383,6 +1032,8 @@
                     {% endif %}
 
                     {% if user.profile.rol == "ADMIN" or user.profile.rol == "JEFA" %}
+                        <div class="mobile-nav-section">Control</div>
+
                         <a href="{% url 'proyecto_list' %}" class="nav-link">
                             <i class='bx bx-hard-hat'></i>
                             <span>Proyectos</span>
@@ -1453,35 +1104,7 @@
                 });
             }
 
-            const panelDropdownBtn = document.getElementById("panelDropdownBtn");
-            const panelDropdown = document.getElementById("panelDropdown");
-            const panelDropdownClose = document.getElementById("panelDropdownClose");
-
-            if (panelDropdownBtn && panelDropdown) {
-                panelDropdownBtn.addEventListener("click", function () {
-                    panelDropdown.classList.toggle("open");
-                    panelDropdownBtn.classList.toggle("open");
-                });
-            }
-
-            if (panelDropdownClose && panelDropdown && panelDropdownBtn) {
-                panelDropdownClose.addEventListener("click", function () {
-                    panelDropdown.classList.remove("open");
-                    panelDropdownBtn.classList.remove("open");
-                });
-            }
-
             document.addEventListener("click", function (event) {
-                if (panelDropdown && panelDropdownBtn) {
-                    const clickedInsideDropdown = panelDropdown.contains(event.target);
-                    const clickedButton = panelDropdownBtn.contains(event.target);
-
-                    if (!clickedInsideDropdown && !clickedButton) {
-                        panelDropdown.classList.remove("open");
-                        panelDropdownBtn.classList.remove("open");
-                    }
-                }
-
                 if (mobileNav && mobileMenuBtn) {
                     const clickedInsideMobile = mobileNav.contains(event.target);
                     const clickedMobileButton = mobileMenuBtn.contains(event.target);
@@ -1500,7 +1123,7 @@
             });
 
             const currentPath = window.location.pathname;
-            const links = document.querySelectorAll(".nav-link, .panel-access-card");
+            const links = document.querySelectorAll(".nav-link");
 
             links.forEach(link => {
                 const href = link.getAttribute("href");
