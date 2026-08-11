@@ -178,6 +178,65 @@ def _ensure_req_defaults(req: DocumentoInventario, user):
             fields.append("proveedor")
         req.save(update_fields=fields)
 
+def _get_or_create_req_borrador_por_tipo(user, ubicacion, tipo_requerimiento):
+    profile = get_profile(user)
+    if not profile:
+        raise ValidationError("Usuario sin perfil.")
+
+    sede = profile.get_sede_operativa()
+    if not sede:
+        raise ValidationError("No tienes sede operativa asignada.")
+
+    req = (
+        DocumentoInventario.objects
+        .filter(
+            responsable=user,
+            tipo=TipoDocumento.REQ,
+            estado__in=[EstadoDocumento.BORRADOR, EstadoDocumento.REQ_BORRADOR],
+            sede=sede,
+            tipo_requerimiento=tipo_requerimiento,
+        )
+        .order_by("-id")
+        .first()
+    )
+
+    if req:
+        return req
+
+    return DocumentoInventario.objects.create(
+        tipo=TipoDocumento.REQ,
+        estado=EstadoDocumento.REQ_BORRADOR,
+        sede=sede,
+        responsable=user,
+        ubicacion=ubicacion,
+        tipo_requerimiento=tipo_requerimiento,
+    )
+
+
+def _get_req_carrito_segun_origen(request, ubicacion):
+    """
+    Separa carritos:
+    - origen=mochila  -> Cargar mochila / despacho directo
+    - origen=proveedor o vacío -> Nuevo pedido / compra
+    """
+    origen = (
+        request.POST.get("origen")
+        or request.GET.get("origen")
+        or ""
+    ).strip().lower()
+
+    if origen == "mochila":
+        return _get_or_create_req_borrador_por_tipo(
+            request.user,
+            ubicacion,
+            TipoRequerimiento.LOCAL,
+        )
+
+    return _get_or_create_req_borrador_por_tipo(
+        request.user,
+        ubicacion,
+        TipoRequerimiento.PROVEEDOR,
+    )
 
 # --------------------
 # Vistas REQ (Técnico / General)
@@ -269,8 +328,11 @@ def req_home_almacen(request):
         messages.error(request, str(e))
         return redirect("dash_almacen")
 
-    req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    _ensure_req_defaults(req, request.user)
+    req = _get_or_create_req_borrador_por_tipo(
+        request.user,
+        ubicacion,
+        TipoRequerimiento.PROVEEDOR,
+    )
 
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
     
@@ -298,7 +360,7 @@ def req_set_tipo_requerimiento(request):
         messages.error(request, str(e))
         return redirect("/req/")
 
-    req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+    req = _get_req_carrito_segun_origen(request, ubicacion)
     _ensure_req_defaults(req, request.user)
 
     # Asegurar sede
@@ -428,7 +490,7 @@ def req_catalogo(request):
 def req_carrito(request):
     try:
         ubicacion = _get_ubicacion_operativa(request.user)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        req = _get_req_carrito_segun_origen(request, ubicacion)
         return JsonResponse({"ok": True, "req_id": req.id, "items": _serialize_cart(req)})
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
@@ -440,7 +502,7 @@ def req_set_qty(request):
     try:
         _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
         ubicacion = _get_ubicacion_operativa(request.user)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        req = _get_req_carrito_segun_origen(request, ubicacion)
     except Exception as e: return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
     pid = request.POST.get("producto_id")
@@ -459,7 +521,7 @@ def req_remove_producto(request):
     try:
         _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
         ubicacion = _get_ubicacion_operativa(request.user)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        req = _get_req_carrito_segun_origen(request, ubicacion)
     except Exception as e: 
         return JsonResponse({"ok": False, "error": str(e)}, status=403)
 
@@ -475,7 +537,7 @@ def req_add_producto(request):
         _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
         
         ubicacion = _get_ubicacion_operativa(request.user)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        req = _get_req_carrito_segun_origen(request, ubicacion)
 
         pid = request.POST.get("producto_id")
         try: qty = int(request.POST.get("cantidad", 1))
@@ -500,7 +562,7 @@ def req_add_item(request):
     code = request.POST.get("code", "").strip()
     try:
         ubicacion = _get_ubicacion_operativa(request.user)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+        req = _get_req_carrito_segun_origen(request, ubicacion)
         prod = buscar_producto_por_code(code)
         if prod:
             add_item_to_req(user=request.user, req=req, producto=prod, cantidad=1)
@@ -521,7 +583,7 @@ def req_scan_add(request):
     
     try:
         ubi = get_object_or_404(Ubicacion, id=ubi_id)
-        req = get_or_create_req_borrador(user=request.user, ubicacion=ubi)
+        req = _get_req_carrito_segun_origen(request, ubi)
         prod = buscar_producto_por_code(code)
         if prod:
             add_item_to_req(user=request.user, req=req, producto=prod, cantidad=1)
@@ -942,8 +1004,11 @@ def req_atender(request, req_id: int):
                         if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
                             stock_tech, _ = StockTecnico.objects.get_or_create(
                                 tecnico=req.responsable,
-                                producto=item.producto
+                                producto=item.producto,
+                                sede=sede_despachador,
+                                defaults={"cantidad": 0},
                             )
+
                             stock_tech.cantidad += qty_despacho
                             stock_tech.save()
 
@@ -1117,13 +1182,16 @@ def req_asignacion_directa(request):
         return redirect('req_atender', req_id=req.id)
 
     # ... (El resto de la función GET se queda igual) ...
-    req = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
-    
-    if req.tipo_requerimiento != TipoRequerimiento.LOCAL:
-        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+    req = _get_or_create_req_borrador_por_tipo(
+        request.user,
+        ubicacion,
+        TipoRequerimiento.LOCAL,
+    )
+
+    if req.sede_destino_id or req.proveedor_id:
         req.sede_destino = None
         req.proveedor = None
-        req.save()
+        req.save(update_fields=["sede_destino", "proveedor"])
 
     tecnicos = (
         User.objects.filter(

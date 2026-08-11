@@ -930,6 +930,8 @@
 
                     <input type="hidden" name="req_id" value="{{ req.id }}">
 
+                    <input type="hidden" name="origen" value="mochila">
+
                     <div class="form-group">
                         <label class="form-label">
                             <i class='bx bx-user-check'></i>
@@ -1238,6 +1240,7 @@
         const fd = new FormData();
         fd.append("producto_id", prodId);
         fd.append("cantidad", qty);
+        fd.append("origen", "mochila");
         fd.append("csrfmiddlewaretoken", csrftoken);
 
         try {
@@ -1274,6 +1277,7 @@
             const fd = new FormData();
             fd.append("producto_id", prodId);
             fd.append("cantidad", newQty);
+            fd.append("origen", "mochila");
             fd.append("csrfmiddlewaretoken", csrftoken);
 
             try {
@@ -1303,6 +1307,7 @@
     async function removeFromCart(prodId) {
         const fd = new FormData();
         fd.append("producto_id", prodId);
+        fd.append("origen", "mochila");
         fd.append("csrfmiddlewaretoken", csrftoken);
 
         try {
@@ -1329,7 +1334,10 @@
 
     async function refreshCart() {
         try {
-            const res = await fetch(URL_CARRITO, {
+            const url = new URL(URL_CARRITO, window.location.origin);
+            url.searchParams.set("origen", "mochila");
+
+            const res = await fetch(url, {
                 headers: {
                     "X-Requested-With": "XMLHttpRequest"
                 }
@@ -1390,6 +1398,7 @@
         const fd = new FormData();
         fd.append("codigo_escaneado", codigo);
         fd.append("tecnico_id", tecnicoId);
+        fd.append("origen", "mochila");
         fd.append("csrfmiddlewaretoken", csrftoken);
 
         try {
