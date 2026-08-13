@@ -41,7 +41,6 @@ from inventario.permissions import role_required, sede_required, get_profile
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 import json
-from django.db import IntegrityError
 
 User = get_user_model()
 # --------------------
@@ -832,18 +831,38 @@ def req_recepcionar_compra(request, req_id: int):
                                         dsn = data.get('dsn', '').strip().upper()
 
                                         if sn:
-                                            try:
-                                                ItemSerializado.objects.create(
-                                                    producto=item.producto,
-                                                    serial=sn,
-                                                    mac_address=mac,
-                                                    serial_secundario=dsn,
-                                                    codigo_trazabilidad=cod44,
-                                                    ubicacion=ubicacion_defecto,
-                                                    estado=ItemSerializado.Estado.EN_ALMACEN
+                                            filtros_duplicado = Q(serial__iexact=sn)
+
+                                            if mac:
+                                                filtros_duplicado |= Q(mac_address__iexact=mac)
+
+                                            if dsn:
+                                                filtros_duplicado |= Q(serial_secundario__iexact=dsn)
+
+                                            if cod44:
+                                                filtros_duplicado |= Q(codigo_trazabilidad__iexact=cod44)
+
+                                            existente = ItemSerializado.objects.filter(filtros_duplicado).first()
+
+                                            if existente:
+                                                raise ValueError(
+                                                    f"El equipo ya existe en el sistema. "
+                                                    f"Producto: {existente.producto.nombre} | "
+                                                    f"SN: {existente.serial or '-'} | "
+                                                    f"MAC: {existente.mac_address or '-'} | "
+                                                    f"D-SN: {existente.serial_secundario or '-'} | "
+                                                    f"Código: {existente.codigo_trazabilidad or '-'}"
                                                 )
-                                            except IntegrityError:
-                                                pass
+
+                                            ItemSerializado.objects.create(
+                                                producto=item.producto,
+                                                serial=sn,
+                                                mac_address=mac,
+                                                serial_secundario=dsn,
+                                                codigo_trazabilidad=cod44,
+                                                ubicacion=ubicacion_defecto,
+                                                estado=ItemSerializado.Estado.EN_ALMACEN
+                                            )
                                 except json.JSONDecodeError:
                                     pass
 
@@ -958,6 +977,7 @@ def req_atender(request, req_id: int):
                     sede_destino=req.sede,      # <--- Destino es Oroya (quien pidió)
                     responsable=request.user,
                     solicitante=req.responsable,
+                    retirado_por=req.retirado_por,
                     origen=req,
                     referencia=f"Atención de {req.numero}",
                     fecha=timezone.now(),
@@ -1153,6 +1173,7 @@ def req_asignacion_directa(request):
 
     if request.method == 'POST':
         tecnico_id = request.POST.get('tecnico_id')
+        retirado_por_id = request.POST.get('retirado_por_id')
         req_id = request.POST.get('req_id')
         
         if not tecnico_id or not req_id:
@@ -1161,6 +1182,10 @@ def req_asignacion_directa(request):
 
         tecnico = get_object_or_404(User, id=tecnico_id)
         req = get_object_or_404(DocumentoInventario, id=req_id)
+        retirado_por = tecnico
+
+        if retirado_por_id:
+            retirado_por = get_object_or_404(User, id=retirado_por_id)
         
         # Validar que no esté vacía
         if not req.items.exists():
@@ -1168,8 +1193,9 @@ def req_asignacion_directa(request):
             return redirect('req_asignacion_directa')
 
         # Asignamos al técnico como el "Solicitante" real
-        req.responsable = tecnico 
+        req.responsable = tecnico
         req.solicitante = tecnico
+        req.retirado_por = retirado_por
         req.tipo_requerimiento = TipoRequerimiento.LOCAL
         
         # 🚀 CAMBIO CLAVE: CAMBIAR ESTADO A PENDIENTE Y GENERAR NUMERO
@@ -1395,7 +1421,7 @@ def req_scan_directo(request):
             except ValidationError as ve:
                 return JsonResponse({"ok": False, "error": f"Configuración incompleta: {str(ve)}"})
 
-            req_borrador = get_or_create_req_borrador(user=request.user, ubicacion=ubicacion)
+            req_borrador = _get_req_carrito_segun_origen(request, ubicacion)
 
             stock_obj = Stock.objects.filter(
                 producto=producto_obj,

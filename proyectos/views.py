@@ -21,7 +21,7 @@ from inventario.models import UserProfile
 
 from .utils import render_to_pdf
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 # ==========================================
 # 🎨 ZONA DEL DISEÑADOR / PLANIFICADOR
@@ -212,74 +212,115 @@ def editar_cantidad_material(request, item_id):
 @login_required
 def almacen_proyectos_list(request):
     profile = getattr(request.user, 'profile', None)
+
     if not profile or profile.rol != UserProfile.Rol.ALMACEN:
         return redirect('home')
 
     sede_almacen = profile.get_sede_operativa()
 
-    # ✅ CORRECCIÓN: Almacén solo ve lo APROBADO o lo que ya está EN PROCESO
-    proyectos = Proyecto.objects.filter(
-        sede=sede_almacen,
-        estado__in=[EstadoProyecto.APROBADO, EstadoProyecto.EN_PROCESO]
-    ).order_by('-creado_en')
+    # Un almacén puede apoyar despachos de obras de otras sedes.
+    # Por eso mostramos proyectos aprobados/en proceso de todas las sedes.
+    proyectos = (
+        Proyecto.objects
+        .filter(
+            estado__in=[
+                EstadoProyecto.APROBADO,
+                EstadoProyecto.EN_PROCESO,
+            ]
+        )
+        .select_related("sede", "responsable", "creado_por")
+        .order_by("-creado_en")
+    )
 
-    return render(request, 'proyectos/almacen_proyectos_list.html', {'proyectos': proyectos})
+    return render(request, 'proyectos/almacen_proyectos_list.html', {
+        'proyectos': proyectos,
+        'sede_almacen': sede_almacen,
+    })
 
 
 @login_required
 def almacen_proyecto_detalle(request, proyecto_id):
     profile = getattr(request.user, 'profile', None)
+
     if not profile or profile.rol != UserProfile.Rol.ALMACEN:
         return redirect('home')
 
-    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+    sede_almacen = profile.get_sede_operativa()
+
+    proyecto = get_object_or_404(
+        Proyecto.objects.select_related("sede", "responsable", "creado_por"),
+        id=proyecto_id,
+    )
+
     materiales = proyecto.materiales.select_related('producto').all()
 
+    # El stock mostrado debe ser el stock de la sede del almacenero actual,
+    # no necesariamente la sede principal del proyecto.
     for item in materiales:
-        stock_item = Stock.objects.filter(producto=item.producto, sede=proyecto.sede).first()
+        stock_item = Stock.objects.filter(
+            producto=item.producto,
+            sede=sede_almacen,
+        ).first()
+
         item.stock_actual = stock_item.cantidad if stock_item else 0
 
     total_items = materiales.count()
     items_completos = 0
+
     for m in materiales:
         if m.cantidad_entregada >= m.cantidad_planificada:
             items_completos += 1
-    
+
     progreso = (items_completos / total_items * 100) if total_items > 0 else 0
 
     return render(request, 'proyectos/almacen_proyecto_detalle.html', {
         'proyecto': proyecto,
         'materiales': materiales,
-        'progreso': int(progreso)
+        'progreso': int(progreso),
+        'sede_almacen': sede_almacen,
     })
+
 
 @login_required
 def almacen_generar_salida(request, proyecto_id):
     profile = getattr(request.user, 'profile', None)
+
     if not profile or profile.rol != UserProfile.Rol.ALMACEN:
         return redirect('home')
 
-    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
-    
-    # ✅ Validación: Solo si está aprobado o en proceso
+    sede_despacho = profile.get_sede_operativa()
+
+    proyecto = get_object_or_404(
+        Proyecto.objects.select_related("sede", "responsable", "creado_por"),
+        id=proyecto_id,
+    )
+
+    # Solo se puede despachar si la obra ya fue aprobada o ya está en ejecución.
     if proyecto.estado not in [EstadoProyecto.APROBADO, EstadoProyecto.EN_PROCESO]:
         messages.error(request, "El proyecto no está aprobado para despacho.")
         return redirect('almacen_proyectos_list')
 
-    sede = proyecto.sede
     materiales = proyecto.materiales.select_related('producto').all()
     items_pendientes = []
-    
+
+    # Calculamos pendiente general del proyecto,
+    # pero stock disponible de la sede que está despachando.
     for m in materiales:
-        pendiente = m.cantidad_planificada - m.cantidad_entregada
+        pendiente = int(m.cantidad_planificada or 0) - int(m.cantidad_entregada or 0)
+
         if pendiente > 0:
-            stock_obj = Stock.objects.filter(producto=m.producto, sede=sede).first()
-            stock_actual = stock_obj.cantidad if stock_obj else 0
+            stock_obj = Stock.objects.filter(
+                producto=m.producto,
+                sede=sede_despacho,
+            ).first()
+
+            stock_actual = int(stock_obj.cantidad or 0) if stock_obj else 0
             sugerido = min(pendiente, stock_actual)
-            
-            m.stock_temp = stock_actual 
+
+            m.stock_temp = stock_actual
             m.pendiente_temp = pendiente
             m.sugerido = sugerido
+
             items_pendientes.append(m)
 
     if not items_pendientes:
@@ -289,80 +330,186 @@ def almacen_generar_salida(request, proyecto_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                notas_usuario = request.POST.get('notas', '').strip()
+
+                observaciones = f"Salida para obra {proyecto.codigo} | Sede del proyecto: {proyecto.sede.nombre}"
+
+                if notas_usuario:
+                    observaciones += f" | Nota: {notas_usuario}"
+
                 doc = DocumentoInventario.objects.create(
-                    tipo=TipoDocumento.SAL, 
-                    estado=EstadoDocumento.BORRADOR, 
-                    sede=sede,
-                    responsable=request.user, 
-                    solicitante=proyecto.responsable, # Jilmer recibe el stock
+                    tipo=TipoDocumento.SAL,
+                    estado=EstadoDocumento.BORRADOR,
+
+                    # Sede que realmente entrega y de donde se descuenta stock.
+                    sede=sede_despacho,
+
+                    # OJO:
+                    # No usar sede_destino aquí, porque el sistema lo interpreta como transferencia entre sedes.
+                    # Esta salida es para una obra/proyecto, no una transferencia.
+                    responsable=request.user,
+                    solicitante=proyecto.responsable,
                     referencia=proyecto.codigo,
-                    observaciones=request.POST.get('notas', '')
+                    observaciones=observaciones,
                 )
 
                 hubo_movimiento = False
-                
+
                 for m in items_pendientes:
-                    qty = int(request.POST.get(f'input_{m.id}', 0))
-                    if qty > 0:
-                        if qty > m.stock_temp: 
-                            raise ValueError(f"Stock insuficiente: {m.producto.nombre}")
+                    try:
+                        qty = int(request.POST.get(f'input_{m.id}', 0) or 0)
+                    except ValueError:
+                        qty = 0
 
-                        if m.producto.es_serializado:
-                            seriales_ingresados = request.POST.getlist(f'macs_{m.id}')
-                            seriales_ingresados = [s.strip().upper() for s in seriales_ingresados if s.strip()]
+                    if qty <= 0:
+                        continue
 
-                            if len(seriales_ingresados) != qty:
-                                raise ValueError(f"Debes ingresar exactamente {qty} MACs/Series para {m.producto.nombre}")
-
-                            # Validar y actualizar cada equipo en la base de datos
-                            for serial in seriales_ingresados:
-                                # Buscamos el equipo físico por MAC, Serial o Código de caja
-                                item_fisico = ItemSerializado.objects.filter(
-                                    Q(serial=serial) | Q(mac_address=serial) | Q(codigo_trazabilidad=serial),
-                                    producto=m.producto,
-                                    estado=ItemSerializado.Estado.EN_ALMACEN
-                                ).first()
-
-                                if not item_fisico:
-                                    raise ValueError(f"El equipo con serie/MAC '{serial}' no está en el almacén o no existe.")
-
-                                # Si lo encuentra, lo marcamos como ASIGNADO al técnico de la obra
-                                item_fisico.estado = ItemSerializado.Estado.ASIGNADO
-                                item_fisico.asignado_a = proyecto.responsable
-                                item_fisico.save()
-                        # FIN NUEVA LÓGICA ✅
-
-                        DocumentoItem.objects.create(
-                            documento=doc,
-                            producto=m.producto,
-                            cantidad=qty
+                    if qty > m.pendiente_temp:
+                        raise ValueError(
+                            f"No puedes despachar más de lo pendiente en {m.producto.nombre}. "
+                            f"Pendiente: {m.pendiente_temp}."
                         )
-                        m.cantidad_entregada += qty
-                        m.save()
-                        hubo_movimiento = True
 
-                if hubo_movimiento:
-                    doc.confirmar()
-                    
-                    # ✅ CORRECCIÓN: Si era el primer despacho, pasa a EN PROCESO
-                    if proyecto.estado == EstadoProyecto.APROBADO:
-                        proyecto.estado = EstadoProyecto.EN_PROCESO
-                        proyecto.save()
-                        
-                    messages.success(request, f"Despacho {doc.numero} realizado.")
-                    return redirect('almacen_proyecto_detalle', proyecto_id=proyecto.id)
-                else:
+                    if qty > m.stock_temp:
+                        raise ValueError(
+                            f"Stock insuficiente en {sede_despacho.nombre}: {m.producto.nombre}. "
+                            f"Disponible: {m.stock_temp}."
+                        )
+
+                    # SERIALIZADOS: validar que los equipos físicos existan
+                    # y pertenezcan a la sede que está despachando.
+                    if m.producto.es_serializado:
+                        seriales_ingresados = request.POST.getlist(f'macs_{m.id}')
+                        seriales_ingresados = [
+                            s.strip().upper()
+                            for s in seriales_ingresados
+                            if s.strip()
+                        ]
+
+                        if len(seriales_ingresados) != qty:
+                            raise ValueError(
+                                f"Debes ingresar exactamente {qty} MACs/Series para {m.producto.nombre}."
+                            )
+
+                        for serial in seriales_ingresados:
+                            item_fisico = ItemSerializado.objects.filter(
+                                Q(serial__iexact=serial)
+                                | Q(mac_address__iexact=serial)
+                                | Q(serial_secundario__iexact=serial)
+                                | Q(codigo_trazabilidad__iexact=serial),
+                                producto=m.producto,
+                                estado=ItemSerializado.Estado.EN_ALMACEN,
+                                ubicacion__sede=sede_despacho,
+                            ).first()
+
+                            if not item_fisico:
+                                raise ValueError(
+                                    f"El equipo '{serial}' no está disponible en {sede_despacho.nombre} "
+                                    f"o no existe para {m.producto.nombre}."
+                                )
+
+                            item_fisico.estado = ItemSerializado.Estado.ASIGNADO
+                            item_fisico.asignado_a = proyecto.responsable
+                            item_fisico.ubicacion = None
+                            item_fisico.save(update_fields=[
+                                "estado",
+                                "asignado_a",
+                                "ubicacion",
+                            ])
+
+                    DocumentoItem.objects.create(
+                        documento=doc,
+                        producto=m.producto,
+                        cantidad=qty,
+                    )
+
+                    m.cantidad_entregada += qty
+                    m.save(update_fields=["cantidad_entregada", "actualizado_en"])
+
+                    hubo_movimiento = True
+
+                if not hubo_movimiento:
                     messages.warning(request, "No seleccionaste cantidades.")
                     doc.delete()
+                    return redirect('almacen_generar_salida', proyecto_id=proyecto.id)
+
+                # doc.confirmar() descuenta stock de doc.sede.
+                # Como doc.sede = sede_despacho, baja de la sede correcta.
+                doc.confirmar()
+
+                if proyecto.estado == EstadoProyecto.APROBADO:
+                    proyecto.estado = EstadoProyecto.EN_PROCESO
+                    proyecto.save(update_fields=["estado", "actualizado_en"])
+
+                messages.success(
+                    request,
+                    f"Despacho {doc.numero} realizado desde {sede_despacho.nombre}."
+                )
+                return redirect('almacen_proyecto_detalle', proyecto_id=proyecto.id)
 
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
 
     return render(request, 'proyectos/almacen_generar_salida.html', {
         'proyecto': proyecto,
-        'items': items_pendientes
+        'items': items_pendientes,
+        'sede_despacho': sede_despacho,
     })
 
+@login_required
+def ajax_buscar_equipo_proyecto(request):
+    profile = getattr(request.user, "profile", None)
+
+    if not profile or profile.rol != UserProfile.Rol.ALMACEN:
+        return JsonResponse({
+            "ok": False,
+            "error": "No tienes permisos para validar equipos."
+        }, status=403)
+
+    sede_despacho = profile.get_sede_operativa()
+
+    producto_id = request.GET.get("producto_id")
+    codigo = (request.GET.get("codigo") or "").strip().upper()
+
+    if not producto_id or not codigo:
+        return JsonResponse({
+            "ok": False,
+            "error": "Ingresa un código, SN, MAC o D-SN."
+        }, status=400)
+
+    equipo = (
+        ItemSerializado.objects
+        .filter(
+            Q(serial__iexact=codigo)
+            | Q(mac_address__iexact=codigo)
+            | Q(serial_secundario__iexact=codigo)
+            | Q(codigo_trazabilidad__iexact=codigo),
+            producto_id=producto_id,
+            estado=ItemSerializado.Estado.EN_ALMACEN,
+            ubicacion__sede=sede_despacho,
+        )
+        .select_related("producto", "ubicacion", "ubicacion__sede")
+        .first()
+    )
+
+    if not equipo:
+        return JsonResponse({
+            "ok": False,
+            "error": f"El equipo '{codigo}' no está disponible en {sede_despacho.nombre}, ya fue asignado o no existe."
+        }, status=404)
+
+    return JsonResponse({
+        "ok": True,
+        "equipo": {
+            "id": equipo.id,
+            "producto": equipo.producto.nombre,
+            "serial": equipo.serial or "",
+            "mac": equipo.mac_address or "",
+            "dsn": equipo.serial_secundario or "",
+            "codigo": equipo.codigo_trazabilidad or "",
+            "sede": sede_despacho.nombre,
+        }
+    })
 
 @login_required
 def eliminar_proyecto(request, pk):

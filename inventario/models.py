@@ -527,6 +527,17 @@ class DocumentoInventario(models.Model):
         help_text="Técnico o responsable de obra que solicita el material."
     )
 
+    # ✅ CAMPO NUEVO: RETIRADO POR
+    retirado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="documentos_retirados_por",
+        verbose_name="Retirado por",
+        help_text="Técnico o personal que retiró físicamente el material del almacén."
+    )
+
     # ✅ CAMPO NUEVO: REFERENCIA
     referencia = models.CharField(
         max_length=100, 

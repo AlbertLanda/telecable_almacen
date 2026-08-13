@@ -57,4 +57,10 @@ urlpatterns = [
         views.proyecto_asignar_cuadrilla,
         name="proyecto_asignar_cuadrilla",
     ),
+
+    path(
+        "ajax/buscar-equipo-proyecto/",
+        views.ajax_buscar_equipo_proyecto,
+        name="ajax_buscar_equipo_proyecto"
+    ),
 ]

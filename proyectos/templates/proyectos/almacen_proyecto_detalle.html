@@ -109,7 +109,12 @@
     <div class="project-header">
         <div class="ph-info">
             <h2>{{ proyecto.nombre }} <span class="project-badge">{{ proyecto.codigo }}</span></h2>
-            <p>Sede: <strong>{{ proyecto.sede.nombre }}</strong></p>
+            <p>
+                Sede del proyecto: <strong>{{ proyecto.sede.nombre }}</strong>
+                {% if sede_almacen %}
+                    | Stock visualizado: <strong>{{ sede_almacen.nombre }}</strong>
+                {% endif %}
+            </p>
         </div>
         <div class="ph-actions">
             <a href="{% url 'almacen_proyectos_list' %}" class="btn-action btn-ghost">
@@ -159,7 +164,7 @@
                 <thead>
                     <tr>
                         <th>Producto</th>
-                        <th class="th-center">Stock Sede</th>
+                        <th class="th-center">Stock {{ sede_almacen.nombre }}</th>
                         <th class="th-center">Planificado</th>
                         <th class="th-center">Entregado</th>
                         <th class="th-center">Estado</th>

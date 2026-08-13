@@ -160,8 +160,36 @@
             </div>
             <div>
                 <div class="info-row"><span class="label">NÚMERO DE DOCUMENTO</span><span class="value">{{ sal.numero }}</span></div>
-                <div class="info-row"><span class="label">RESPONSABLE</span><span class="value">
-                    {% if sal.responsable.get_full_name %}{{ sal.responsable.get_full_name }}{% else %}{{ sal.responsable.username }}{% endif %}
+                <div class="info-row"><span class="label">RESP. ALMACÉN</span><span class="value">
+                    {% if sal.responsable %}
+                        {% if sal.responsable.get_full_name %}{{ sal.responsable.get_full_name }}{% else %}{{ sal.responsable.username }}{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span></div>
+
+                <div class="info-row"><span class="label">RESP. CUADRILLA</span><span class="value">
+                    {% if sal.solicitante %}
+                        {% if sal.solicitante.get_full_name %}{{ sal.solicitante.get_full_name }}{% else %}{{ sal.solicitante.username }}{% endif %}
+                    {% elif sal.origen and sal.origen.responsable %}
+                        {% if sal.origen.responsable.get_full_name %}{{ sal.origen.responsable.get_full_name }}{% else %}{{ sal.origen.responsable.username }}{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </span></div>
+
+                <div class="info-row"><span class="label">RETIRADO POR</span><span class="value">
+                    {% if sal.retirado_por %}
+                        {% if sal.retirado_por.get_full_name %}{{ sal.retirado_por.get_full_name }}{% else %}{{ sal.retirado_por.username }}{% endif %}
+                    {% elif sal.origen and sal.origen.retirado_por %}
+                        {% if sal.origen.retirado_por.get_full_name %}{{ sal.origen.retirado_por.get_full_name }}{% else %}{{ sal.origen.retirado_por.username }}{% endif %}
+                    {% elif sal.solicitante %}
+                        {% if sal.solicitante.get_full_name %}{{ sal.solicitante.get_full_name }}{% else %}{{ sal.solicitante.username }}{% endif %}
+                    {% elif sal.origen and sal.origen.responsable %}
+                        {% if sal.origen.responsable.get_full_name %}{{ sal.origen.responsable.get_full_name }}{% else %}{{ sal.origen.responsable.username }}{% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
                 </span></div>
                 <div class="info-row"><span class="label">CENTRO DE COSTO</span><span class="value">{{ sal.centro_costo|default:"OPERACIONES" }}</span></div>
                 <div class="info-row"><span class="label">ORIGEN (REQ)</span><span class="value">{{ sal.origen.numero|default:"-" }}</span></div>
@@ -208,7 +236,30 @@
         <div class="obs-section">
             <div class="obs-title">OBSERVACIONES</div>
             <div>
-                Técnico / Solicitante: {% if sal.origen %}{{ sal.origen.responsable.username }}{% else %}{{ sal.responsable.username }}{% endif %}
+                Responsable de cuadrilla:
+                {% if sal.solicitante %}
+                    {{ sal.solicitante.get_full_name|default:sal.solicitante.username }}
+                {% elif sal.origen and sal.origen.responsable %}
+                    {{ sal.origen.responsable.get_full_name|default:sal.origen.responsable.username }}
+                {% else %}
+                    -
+                {% endif %}
+
+                <br>
+
+                Retirado por:
+                {% if sal.retirado_por %}
+                    {{ sal.retirado_por.get_full_name|default:sal.retirado_por.username }}
+                {% elif sal.origen and sal.origen.retirado_por %}
+                    {{ sal.origen.retirado_por.get_full_name|default:sal.origen.retirado_por.username }}
+                {% elif sal.solicitante %}
+                    {{ sal.solicitante.get_full_name|default:sal.solicitante.username }}
+                {% elif sal.origen and sal.origen.responsable %}
+                    {{ sal.origen.responsable.get_full_name|default:sal.origen.responsable.username }}
+                {% else %}
+                    -
+                {% endif %}
+
                 <br>
                 Estado del Documento: {{ sal.get_estado_display }}
                 {% if sal.observaciones %} <br> Nota: {{ sal.observaciones }} {% endif %}
@@ -216,7 +267,7 @@
         </div>
 
         <div class="signatures">
-            <div class="sign-box">FIRMA DEL SOLICITANTE</div>
+            <div class="sign-box">FIRMA DE QUIEN RETIRA</div>
             <div class="sign-box">FIRMA ENCARGADO DE ALMACÉN</div>
         </div>
 

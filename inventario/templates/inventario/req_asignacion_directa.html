@@ -933,29 +933,47 @@
                     <input type="hidden" name="origen" value="mochila">
 
                     <div class="form-group">
-                        <label class="form-label">
+                        <label class="form-label" for="selectTecnico">
                             <i class='bx bx-user-check'></i>
-                            1. Técnico detectado / seleccionado
+                            1. Responsable de cuadrilla / mochila
                         </label>
 
                         <select name="tecnico_id" class="tech-select" id="selectTecnico" required>
-                            <option value="">-- Elegir técnico --</option>
+                            <option value="">-- Elegir responsable --</option>
+
+                            {% for t in tecnicos %}
+                                <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label class="form-label" for="selectRetiradoPor">
+                            <i class='bx bx-user-pin'></i>
+                            2. Técnico que retira material
+                        </label>
+
+                        <select name="retirado_por_id" class="tech-select" id="selectRetiradoPor">
+                            <option value="">Mismo responsable seleccionado</option>
 
                             {% for t in tecnicos %}
                                 <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
                             {% endfor %}
                         </select>
 
-                        <div id="iaStatus" class="ia-status">
-                            <i class='bx bx-bot'></i>
-                            <span>Esperando detección de técnico por cámara...</span>
+                        <div class="dispatch-note" style="margin-top: 10px;">
+                            <i class='bx bx-info-circle'></i>
+                            <span>
+                                Si el responsable retira personalmente, deja este campo sin cambiar.
+                                Si otra persona recoge el material, selecciónala aquí para que figure en la guía.
+                            </span>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">
                             <i class='bx bx-list-check'></i>
-                            2. Productos preparados para despacho
+                            3. Productos preparados para despacho
                         </label>
 
                         <div id="cartList" class="cart-list">

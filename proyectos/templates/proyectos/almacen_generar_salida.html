@@ -6,147 +6,378 @@
     /* =========================================
        GENERAR SALIDA (Enterprise Refinado)
        ========================================= */
-    
+
     .dispatch-container {
-        max-width: 1000px; /* Ancho optimizado para legibilidad */
+        max-width: 1000px;
         margin: 0 auto;
         animation: fadeIn 0.4s ease-out;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Header */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
     .page-header {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 24px; padding-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
         border-bottom: 1px solid var(--border-light);
     }
-    .header-content h2 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
-    .header-content p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 
-    /* Project Info Card */
+    .header-content h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-content p {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
     .info-card {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
-        display: flex; justify-content: space-between; align-items: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
         box-shadow: var(--shadow-card);
+        flex-wrap: wrap;
     }
-    .info-item label { display: block; font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
-    .info-item div { font-size: 14px; font-weight: 600; color: var(--text-main); }
-    .text-highlight { color: var(--primary); font-family: monospace; font-size: 15px !important; }
 
-    /* Tabla Principal */
+    .info-item label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+    }
+
+    .info-item div {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .text-highlight {
+        color: var(--primary);
+        font-family: monospace;
+        font-size: 15px !important;
+    }
+
     .dispatch-table-card {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: var(--radius); overflow: hidden;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        overflow: hidden;
     }
-    
-    table { width: 100%; border-collapse: collapse; }
-    th { 
-        text-align: left; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; 
-        padding: 14px 20px; border-bottom: 1px solid var(--border-light); background: rgba(255,255,255,0.02); letter-spacing: 0.5px;
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
     }
-    td { padding: 16px 20px; border-bottom: 1px solid var(--border-light); vertical-align: middle; color: var(--text-main); font-size: 13px; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background-color: var(--bg-hover); }
 
-    /* Producto */
-    .prod-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 2px; display: block; }
-    .prod-code { font-family: monospace; color: var(--text-secondary); font-size: 11px; }
-
-    /* Badges Stock */
-    .stock-badge { 
-        padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; display: inline-block; min-width: 40px; text-align: center;
+    th {
+        text-align: left;
+        color: var(--text-secondary);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border-light);
+        background: rgba(255,255,255,0.02);
+        letter-spacing: 0.5px;
     }
-    .sb-blue { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.2); color: var(--primary); }
-    .sb-red { background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2); color: var(--danger); }
 
-    /* Inputs Cantidad */
+    td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+        color: var(--text-main);
+        font-size: 13px;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover td {
+        background-color: var(--bg-hover);
+    }
+
+    .prod-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main);
+        margin-bottom: 2px;
+        display: block;
+    }
+
+    .prod-code {
+        font-family: monospace;
+        color: var(--text-secondary);
+        font-size: 11px;
+    }
+
+    .stock-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        display: inline-block;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    .sb-blue {
+        background: rgba(10, 132, 255, 0.1);
+        border: 1px solid rgba(10, 132, 255, 0.2);
+        color: var(--primary);
+    }
+
+    .sb-red {
+        background: rgba(255, 69, 58, 0.1);
+        border: 1px solid rgba(255, 69, 58, 0.2);
+        color: var(--danger);
+    }
+
     .qty-input {
-        background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main);
-        text-align: center; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 8px 4px; width: 70px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-light);
+        color: var(--text-main);
+        text-align: center;
+        font-weight: 700;
+        font-size: 14px;
+        border-radius: 8px;
+        padding: 8px 4px;
+        width: 70px;
         transition: 0.2s;
     }
-    .qty-input:focus { border-color: var(--success); outline: none; background: #2c2c2e; }
-    .qty-input:disabled { opacity: 0.5; border-color: var(--danger); cursor: not-allowed; background: rgba(255, 69, 58, 0.05); }
 
-    /* Ocultar flechas del input number */
+    .qty-input:focus {
+        border-color: var(--success);
+        outline: none;
+        background: #2c2c2e;
+    }
+
+    .qty-input:disabled {
+        opacity: 0.5;
+        border-color: var(--danger);
+        cursor: not-allowed;
+        background: rgba(255, 69, 58, 0.05);
+    }
+
     .qty-input::-webkit-outer-spin-button,
-    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-
-    /* Footer */
-    .notes-section { padding: 24px; border-top: 1px solid var(--border-light); background: rgba(255,255,255,0.01); }
-    .notes-input { 
-        width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); 
-        padding: 12px; border-radius: 10px; font-size: 13px; font-family: inherit; margin-bottom: 20px; transition: 0.2s;
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
-    .notes-input:focus { border-color: var(--primary); outline: none; }
-    
+
+    .notes-section {
+        padding: 24px;
+        border-top: 1px solid var(--border-light);
+        background: rgba(255,255,255,0.01);
+    }
+
+    .notes-input {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-light);
+        color: var(--text-main);
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-family: inherit;
+        margin-bottom: 20px;
+        transition: 0.2s;
+    }
+
+    .notes-input:focus {
+        border-color: var(--primary);
+        outline: none;
+    }
+
     .btn-confirm {
-        width: 100%; background-color: var(--success); color: #000; border: none; padding: 14px;
-        border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
-        display: flex; justify-content: center; align-items: center; gap: 8px;
-        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2); letter-spacing: 0.5px;
+        width: 100%;
+        background-color: var(--success);
+        color: #000;
+        border: none;
+        padding: 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.2);
+        letter-spacing: 0.5px;
     }
-    .btn-confirm:hover { background-color: #2bc063; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(48, 209, 88, 0.4); }
-    .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* =========================================
-       MODAL ENTERPRISE
-       ========================================= */
+    .btn-confirm:hover {
+        background-color: #2bc063;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(48, 209, 88, 0.4);
+    }
+
+    .btn-confirm:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
     .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-        display: none; justify-content: center; align-items: center; z-index: 9999;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(5px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
         animation: fadeIn 0.2s ease-out;
     }
+
     .modal-content {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        width: 90%; max-width: 420px; padding: 30px; border-radius: 20px;
-        text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        transform: scale(0.95); animation: popIn 0.2s ease-out forwards;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        width: 90%;
+        max-width: 420px;
+        padding: 30px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        transform: scale(0.95);
+        animation: popIn 0.2s ease-out forwards;
     }
-    @keyframes popIn { to { transform: scale(1); } }
 
-    .modal-icon { font-size: 54px; color: var(--success); margin-bottom: 15px; }
-    .modal-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
-    .modal-text { font-size: 13px; color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
-    
-    .modal-actions { display: flex; gap: 10px; justify-content: center; }
-    
-    .btn-modal-cancel { 
-        background: transparent; border: 1px solid var(--border-light); color: var(--text-main);
-        padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px;
+    @keyframes popIn {
+        to { transform: scale(1); }
     }
-    .btn-modal-cancel:hover { background: var(--bg-hover); }
-    
+
+    .modal-icon {
+        font-size: 54px;
+        color: var(--success);
+        margin-bottom: 15px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 10px;
+    }
+
+    .modal-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 25px;
+        line-height: 1.5;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .btn-modal-cancel {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        color: var(--text-main);
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 13px;
+    }
+
+    .btn-modal-cancel:hover {
+        background: var(--bg-hover);
+    }
+
     .btn-modal-confirm {
-        background: var(--success); border: none; color: #000;
-        padding: 12px 30px; border-radius: 10px; font-weight: 700; cursor: pointer;
-        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.3); display: flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 13px;
+        background: var(--success);
+        border: none;
+        color: #000;
+        padding: 12px 30px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(48, 209, 88, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.2s;
+        font-size: 13px;
     }
-    .btn-modal-confirm:hover { background: #2bc063; transform: translateY(-2px); }
-    .btn-modal-confirm:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* =========================================
-       MAC / SERIES INPUTS
-       ========================================= */
+    .btn-modal-confirm:hover {
+        background: #2bc063;
+        transform: translateY(-2px);
+    }
+
+    .btn-modal-confirm:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
     .mac-container {
         margin-top: 12px;
         padding: 12px;
         background: rgba(0, 0, 0, 0.15);
-        border-radius: 8px;
+        border-radius: 10px;
         border: 1px dashed var(--border-light);
         text-align: left;
+        min-width: 260px;
     }
-    .mac-input-group { margin-bottom: 8px; }
-    .mac-input-group:last-child { margin-bottom: 0; }
+
+    .scan-title {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        font-weight: bold;
+        line-height: 1.4;
+    }
+
+    .scan-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
     .mac-input {
         width: 100%;
         background: var(--bg-card);
         border: 1px solid var(--border-light);
         color: var(--primary);
         padding: 10px 12px;
-        border-radius: 6px;
+        border-radius: 10px;
         font-size: 14px;
         font-family: monospace;
         text-transform: uppercase;
@@ -154,28 +385,161 @@
         transition: 0.2s;
         box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
     }
-    .mac-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2); }
-    .mac-input::placeholder { color: var(--text-tertiary); font-weight: normal; }
+
+    .mac-input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+    }
+
+    .mac-input::placeholder {
+        color: var(--text-tertiary);
+        font-weight: normal;
+    }
+
+    .btn-add-serial {
+        width: 44px;
+        min-width: 44px;
+        border: none;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-add-serial:hover {
+        filter: brightness(1.08);
+    }
+
+    .serial-counter {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .serial-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px;
+        margin-bottom: 8px;
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        background: rgba(10, 132, 255, 0.06);
+    }
+
+    .serial-card-main {
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .serial-card-main strong {
+        color: var(--primary);
+        font-size: 13px;
+        font-family: monospace;
+    }
+
+    .serial-muted {
+        color: var(--text-secondary);
+        font-family: monospace;
+    }
+
+    .btn-remove-serial {
+        border: none;
+        background: rgba(255, 69, 58, 0.12);
+        color: var(--danger);
+        border-radius: 8px;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-serial-list {
+        font-size: 12px;
+        color: var(--text-secondary);
+        padding: 10px;
+        border: 1px dashed var(--border-light);
+        border-radius: 10px;
+    }
 
     @media (max-width: 992px) {
-        .info-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .text-end { text-align: left !important; }
-        th, td { display: block; width: 100%; box-sizing: border-box; }
-        th { display: none; } 
-        td { padding: 10px 20px; border: none; }
-        tr { border-bottom: 1px solid var(--border-light); display: block; padding: 15px 0; }
-        .text-center { text-align: left !important; display: flex; align-items: center; justify-content: space-between; }
-        .text-center::before { content: attr(data-label); color: var(--text-secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 10px; }
+        .info-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .text-end {
+            text-align: left !important;
+        }
+
+        th, td {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        th {
+            display: none;
+        }
+
+        td {
+            padding: 10px 20px;
+            border: none;
+        }
+
+        tr {
+            border-bottom: 1px solid var(--border-light);
+            display: block;
+            padding: 15px 0;
+        }
+
+        .text-center {
+            text-align: left !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .text-center::before {
+            content: attr(data-label);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 10px;
+        }
+
+        .mac-container {
+            width: 100%;
+        }
     }
 </style>
 
 <div class="dispatch-container">
-    
+
     <div class="page-header">
         <div class="header-content">
-            <h2><i class='bx bx-export' style="color: var(--primary);"></i> Confirmar Despacho</h2>
+            <h2>
+                <i class='bx bx-export' style="color: var(--primary);"></i>
+                Confirmar Despacho
+            </h2>
             <p>Verifica las cantidades antes de generar la salida al técnico.</p>
         </div>
+
         <a href="{% url 'almacen_proyecto_detalle' proyecto.id %}" class="btn btn-ghost" style="padding: 10px 16px; border-radius: 8px; font-size: 14px;">
             <i class='bx bx-x'></i> Cancelar
         </a>
@@ -183,19 +547,32 @@
 
     <form method="POST" id="dispatchForm">
         {% csrf_token %}
-        
+
         <div class="info-card">
             <div class="info-item">
                 <label>Proyecto</label>
                 <div>{{ proyecto.nombre }}</div>
             </div>
+
             <div class="info-item">
                 <label>Código</label>
                 <div class="text-highlight">{{ proyecto.codigo }}</div>
             </div>
+
             <div class="info-item text-end">
-                <label>Técnico Receptor</label>
-                <div><i class='bx bxs-user-pin' style="color: var(--text-tertiary);"></i> {{ proyecto.responsable.username }}</div>
+                <label>Técnico receptor</label>
+                <div>
+                    <i class='bx bxs-user-pin' style="color: var(--text-tertiary);"></i>
+                    {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+                </div>
+            </div>
+
+            <div class="info-item">
+                <label>Sede que despacha</label>
+                <div>
+                    <i class='bx bx-store'></i>
+                    {{ sede_despacho.nombre }}
+                </div>
             </div>
         </div>
 
@@ -204,11 +581,12 @@
                 <thead>
                     <tr>
                         <th style="width: 40%;">Producto</th>
-                        <th class="text-center" style="width: 20%;">Stock Sede</th>
+                        <th class="text-center" style="width: 20%;">Stock {{ sede_despacho.nombre }}</th>
                         <th class="text-center" style="width: 20%;">Pendiente</th>
-                        <th class="text-center" style="width: 20%;">A Despachar</th>
+                        <th class="text-center" style="width: 20%;">A despachar</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {% for item in items %}
                     <tr>
@@ -217,7 +595,7 @@
                             <span class="prod-code">{{ item.producto.codigo_interno }}</span>
                         </td>
 
-                        <td class="text-center" data-label="Stock Sede">
+                        <td class="text-center" data-label="Stock {{ sede_despacho.nombre }}">
                             {% if item.stock_temp == 0 %}
                                 <span class="stock-badge sb-red">0</span>
                             {% else %}
@@ -226,28 +604,38 @@
                         </td>
 
                         <td class="text-center" data-label="Pendiente Obra">
-                            <span style="font-weight: 700; color: var(--warning); font-size: 15px;">{{ item.pendiente_temp }}</span>
+                            <span style="font-weight: 700; color: var(--warning); font-size: 15px;">
+                                {{ item.pendiente_temp }}
+                            </span>
                         </td>
 
                         <td class="text-center" data-label="A Despachar">
                             {% if item.stock_temp > 0 %}
-                                <input type="number" name="input_{{ item.id }}" class="qty-input input-dispatch"
+                                <input type="number"
+                                       name="input_{{ item.id }}"
+                                       class="qty-input input-dispatch"
                                        id="qty_{{ item.id }}"
                                        data-id="{{ item.id }}"
+                                       data-producto-id="{{ item.producto.id }}"
                                        data-serializado="{% if item.producto.es_serializado %}true{% else %}false{% endif %}"
-                                       value="{{ item.sugerido }}" min="0" max="{{ item.sugerido }}" autocomplete="off">
+                                       value="{{ item.sugerido }}"
+                                       min="0"
+                                       max="{{ item.sugerido }}"
+                                       autocomplete="off">
+
                                 <div style="font-size: 10px; color: var(--text-tertiary); margin-top: 6px;">
                                     Max: {{ item.sugerido }}
                                 </div>
-                                
+
                                 {% if item.producto.es_serializado %}
                                     <div id="mac-container-{{ item.id }}" class="mac-container" style="display: none;"></div>
                                 {% endif %}
-                                
+
                             {% else %}
                                 <input type="text" disabled class="qty-input" value="0">
+
                                 <div style="font-size: 10px; color: var(--danger); margin-top: 6px; font-weight: 600;">
-                                    Sin Stock
+                                    Sin stock
                                 </div>
                             {% endif %}
                         </td>
@@ -265,13 +653,18 @@
 
             <div class="notes-section">
                 <label style="color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">
-                    Notas de Despacho (Opcional)
+                    Notas de despacho (opcional)
                 </label>
-                <textarea name="notas" class="notes-input" rows="2" placeholder="Ej: Se entrega cable marca X a cuenta del proyecto..."></textarea>
-                
+
+                <textarea name="notas"
+                          class="notes-input"
+                          rows="2"
+                          placeholder="Ej: Se entrega cable marca X a cuenta del proyecto..."></textarea>
+
                 {% if items %}
                     <button type="button" id="btnPrepararDespacho" class="btn-confirm">
-                        <i class='bx bx-check-double'></i> CONFIRMAR SALIDA Y DESCONTAR STOCK
+                        <i class='bx bx-check-double'></i>
+                        CONFIRMAR SALIDA Y DESCONTAR STOCK
                     </button>
                 {% endif %}
             </div>
@@ -281,17 +674,29 @@
 
 <div class="modal-overlay" id="customConfirmModal">
     <div class="modal-content">
-        <div class="modal-icon"><i class='bx bx-package'></i></div>
-        <h3 class="modal-title">¿Confirmar Despacho?</h3>
+        <div class="modal-icon">
+            <i class='bx bx-package'></i>
+        </div>
+
+        <h3 class="modal-title">¿Confirmar despacho?</h3>
+
         <p class="modal-text">
-            Se generará un vale de salida y el material seleccionado será descontado del stock físico de la sede para ser entregado al técnico.
+            Se generará un vale de salida y el material seleccionado será descontado del stock físico de
+            <strong>{{ sede_despacho.nombre }}</strong> para ser entregado al responsable del proyecto.
             <br><br>
-            <span style="color: var(--warning); font-size: 12px; font-weight: 600;">Esta acción no se puede deshacer.</span>
+            <span style="color: var(--warning); font-size: 12px; font-weight: 600;">
+                Esta acción no se puede deshacer.
+            </span>
         </p>
+
         <div class="modal-actions">
-            <button type="button" class="btn-modal-cancel" id="btnCancelModal">Revisar de nuevo</button>
+            <button type="button" class="btn-modal-cancel" id="btnCancelModal">
+                Revisar de nuevo
+            </button>
+
             <button type="button" class="btn-modal-confirm" id="btnProceedModal">
-                <i class='bx bx-check'></i> Sí, Despachar
+                <i class='bx bx-check'></i>
+                Sí, despachar
             </button>
         </div>
     </div>
@@ -300,95 +705,274 @@
 <script>
     const formDispatch = document.getElementById('dispatchForm');
     const btnPreparar = document.getElementById('btnPrepararDespacho');
-    
-    // Modal Elements
+
     const modalConfirm = document.getElementById('customConfirmModal');
     const btnCancelModal = document.getElementById('btnCancelModal');
     const btnProceedModal = document.getElementById('btnProceedModal');
 
-    // =========================================
-    // LÓGICA DE ESCÁNER DE MACs DINÁMICO
-    // =========================================
-    function updateMacInputs(itemId, qty) {
-        const container = document.getElementById(`mac-container-${itemId}`);
-        if (!container) return;
+    const URL_BUSCAR_EQUIPO = "{% url 'ajax_buscar_equipo_proyecto' %}";
+    const equiposSeleccionados = {};
 
-        qty = parseInt(qty) || 0;
+    async function buscarEquipoProyecto(productoId, codigo) {
+        const url = new URL(URL_BUSCAR_EQUIPO, window.location.origin);
+        url.searchParams.set("producto_id", productoId);
+        url.searchParams.set("codigo", codigo);
 
-        if (qty <= 0) {
-            container.style.display = 'none';
-            container.innerHTML = '';
+        const res = await fetch(url, {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+            throw new Error(data.error || "No se pudo validar el equipo.");
+        }
+
+        return data.equipo;
+    }
+
+    function renderEquiposSeleccionados(itemId) {
+        const list = document.getElementById(`serial-list-${itemId}`);
+        const hiddenBox = document.getElementById(`serial-hidden-${itemId}`);
+        const counter = document.getElementById(`serial-count-${itemId}`);
+
+        if (!list || !hiddenBox) return;
+
+        const equipos = equiposSeleccionados[itemId] || [];
+
+        if (counter) {
+            counter.textContent = equipos.length;
+        }
+
+        if (equipos.length === 0) {
+            list.innerHTML = `
+                <div class="empty-serial-list">
+                    Aún no se agregaron equipos. Escribe o pistolea el código y presiona Enter.
+                </div>
+            `;
+
+            hiddenBox.innerHTML = "";
             return;
         }
 
-        container.style.display = 'block';
-
-        // Guardar valores previos para no borrarlos si el usuario cambia de "3" a "4"
-        const existingInputs = container.querySelectorAll('.mac-input');
-        const savedValues = Array.from(existingInputs).map(inp => inp.value);
-
-        let html = `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">
-                        <i class='bx bx-barcode-reader' style="color: var(--primary);"></i> Escanear MACs / Series (${qty}):
-                    </div>`;
-
-        for (let i = 0; i < qty; i++) {
-            let val = savedValues[i] || '';
-            html += `
-                <div class="mac-input-group">
-                    <input type="text" name="macs_${itemId}" class="mac-input mac-required" 
-                           placeholder="Pistolear Serie ${i+1}..." value="${val}" required autocomplete="off">
+        list.innerHTML = equipos.map(eq => `
+            <div class="serial-card">
+                <div class="serial-card-main">
+                    <strong>${eq.codigo || "-"}</strong>
+                    <span class="serial-muted"> | SN: ${eq.serial || "-"}</span>
+                    <br>
+                    <span class="serial-muted">MAC: ${eq.mac || "-"}</span>
+                    <br>
+                    <span class="serial-muted">D-SN: ${eq.dsn || "-"}</span>
                 </div>
-            `;
-        }
-        container.innerHTML = html;
-        
-        // Auto-enfocar el primer input vacío para agilizar el escaneo
-        const firstEmpty = container.querySelector('.mac-input:not([value]), .mac-input[value=""]');
-        if (firstEmpty) firstEmpty.focus();
+
+                <button type="button"
+                        class="btn-remove-serial"
+                        onclick="removeEquipoSeleccionado('${itemId}', '${eq.id}')"
+                        title="Quitar equipo">
+                    <i class='bx bx-trash'></i>
+                </button>
+            </div>
+        `).join("");
+
+        /*
+            El backend sigue leyendo request.POST.getlist("macs_<item_id>").
+            Enviamos el mejor identificador disponible.
+            Preferimos serial, pero también podría ser código/MAC/D-SN.
+        */
+        hiddenBox.innerHTML = equipos.map(eq => `
+            <input type="hidden" name="macs_${itemId}" value="${eq.serial || eq.mac || eq.dsn || eq.codigo}">
+        `).join("");
     }
 
-    // Inicializar los campos al cargar la página
+    function removeEquipoSeleccionado(itemId, equipoId) {
+        equiposSeleccionados[itemId] = (equiposSeleccionados[itemId] || []).filter(
+            eq => String(eq.id) !== String(equipoId)
+        );
+
+        renderEquiposSeleccionados(itemId);
+    }
+
+    function updateMacInputs(itemId, qty) {
+        const container = document.getElementById(`mac-container-${itemId}`);
+        const qtyInput = document.getElementById(`qty_${itemId}`);
+
+        if (!container || !qtyInput) return;
+
+        qty = parseInt(qty) || 0;
+
+        if (!equiposSeleccionados[itemId]) {
+            equiposSeleccionados[itemId] = [];
+        }
+
+        if (qty <= 0) {
+            container.style.display = "none";
+            container.innerHTML = "";
+            equiposSeleccionados[itemId] = [];
+            return;
+        }
+
+        const seleccionadosActuales = equiposSeleccionados[itemId] || [];
+
+        if (seleccionadosActuales.length > qty) {
+            equiposSeleccionados[itemId] = seleccionadosActuales.slice(0, qty);
+        }
+
+        container.style.display = "block";
+
+        const productoId = qtyInput.dataset.productoId;
+
+        container.innerHTML = `
+            <div class="scan-title">
+                <i class='bx bx-barcode-reader'></i>
+                Ingresa código pintado / SN / MAC / D-SN (${qty})
+            </div>
+
+            <div class="scan-row">
+                <input type="text"
+                       id="serial-scan-${itemId}"
+                       class="mac-input"
+                       placeholder="Ej: 124, GPON SN, MAC o D-SN..."
+                       autocomplete="off">
+
+                <button type="button"
+                        id="btn-add-serial-${itemId}"
+                        class="btn-add-serial"
+                        title="Agregar equipo">
+                    +
+                </button>
+            </div>
+
+            <div class="serial-counter">
+                Seleccionados:
+                <strong id="serial-count-${itemId}">0</strong> / ${qty}
+            </div>
+
+            <div id="serial-list-${itemId}"></div>
+            <div id="serial-hidden-${itemId}"></div>
+        `;
+
+        renderEquiposSeleccionados(itemId);
+
+        const inputScan = document.getElementById(`serial-scan-${itemId}`);
+        const btnAdd = document.getElementById(`btn-add-serial-${itemId}`);
+
+        async function agregarDesdeInput() {
+            const codigo = inputScan.value.trim();
+
+            if (!codigo) return;
+
+            const seleccionados = equiposSeleccionados[itemId] || [];
+
+            if (seleccionados.length >= qty) {
+                alert(`Solo puedes seleccionar ${qty} equipo(s) para este producto.`);
+                inputScan.value = "";
+                inputScan.focus();
+                return;
+            }
+
+            const codigoUpper = codigo.toUpperCase();
+
+            const yaExiste = seleccionados.some(eq =>
+                String(eq.codigo || "").toUpperCase() === codigoUpper ||
+                String(eq.serial || "").toUpperCase() === codigoUpper ||
+                String(eq.mac || "").toUpperCase() === codigoUpper ||
+                String(eq.dsn || "").toUpperCase() === codigoUpper
+            );
+
+            if (yaExiste) {
+                alert("Este equipo ya fue agregado.");
+                inputScan.value = "";
+                inputScan.focus();
+                return;
+            }
+
+            try {
+                const equipo = await buscarEquipoProyecto(productoId, codigo);
+
+                const duplicadoPorId = seleccionados.some(
+                    eq => String(eq.id) === String(equipo.id)
+                );
+
+                if (duplicadoPorId) {
+                    alert("Este equipo ya fue agregado.");
+                    inputScan.value = "";
+                    inputScan.focus();
+                    return;
+                }
+
+                equiposSeleccionados[itemId].push(equipo);
+                inputScan.value = "";
+
+                renderEquiposSeleccionados(itemId);
+                inputScan.focus();
+
+            } catch (err) {
+                alert(err.message);
+                inputScan.select();
+            }
+        }
+
+        btnAdd.addEventListener("click", agregarDesdeInput);
+
+        inputScan.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                agregarDesdeInput();
+            }
+        });
+
+        inputScan.focus();
+    }
+
     document.querySelectorAll('.input-dispatch').forEach(inp => {
         const isSerializado = inp.getAttribute('data-serializado') === 'true';
+
         if (isSerializado) {
             const itemId = inp.getAttribute('data-id');
-            
-            // Escuchar cambios en la cantidad
-            inp.addEventListener('input', (e) => updateMacInputs(itemId, e.target.value));
-            
-            // Renderizar la primera vez con el valor "sugerido" inicial
+
+            inp.addEventListener('input', (e) => {
+                updateMacInputs(itemId, e.target.value);
+            });
+
             updateMacInputs(itemId, inp.value);
         }
     });
 
-    // =========================================
-    // VALIDACIÓN Y MODAL
-    // =========================================
     if (btnPreparar) {
-        btnPreparar.addEventListener('click', function(e) {
+        btnPreparar.addEventListener('click', function() {
             let totalToDispatch = 0;
             const inputs = document.querySelectorAll('.input-dispatch');
-            
-            inputs.forEach(inp => { totalToDispatch += (parseInt(inp.value) || 0); });
+
+            inputs.forEach(inp => {
+                totalToDispatch += (parseInt(inp.value) || 0);
+            });
 
             if (totalToDispatch === 0 && inputs.length > 0) {
                 alert("⚠️ No has ingresado ninguna cantidad válida para despachar.");
                 return;
             }
 
-            // NUEVA VALIDACIÓN: Revisar que no haya campos de MAC vacíos
-            let missingMacs = false;
-            document.querySelectorAll('.mac-required').forEach(macInp => {
-                if (macInp.value.trim() === '') {
-                    missingMacs = true;
-                    macInp.style.borderColor = 'var(--danger)';
-                } else {
-                    macInp.style.borderColor = 'var(--border-light)';
+            let faltanEquiposSerializados = false;
+
+            document.querySelectorAll('.input-dispatch').forEach(inp => {
+                const isSerializado = inp.getAttribute('data-serializado') === 'true';
+                const itemId = inp.getAttribute('data-id');
+                const qty = parseInt(inp.value || "0") || 0;
+
+                if (isSerializado && qty > 0) {
+                    const seleccionados = equiposSeleccionados[itemId] || [];
+
+                    if (seleccionados.length !== qty) {
+                        faltanEquiposSerializados = true;
+                    }
                 }
             });
 
-            if (missingMacs) {
-                alert("⚠️ Falta escanear MACs o Series en algunos equipos. Por favor completa todos los campos requeridos.");
+            if (faltanEquiposSerializados) {
+                alert("⚠️ Debes seleccionar exactamente la cantidad de equipos físicos indicada para cada producto serializado.");
                 return;
             }
 
@@ -397,7 +981,9 @@
     }
 
     if (btnCancelModal) {
-        btnCancelModal.addEventListener('click', () => { modalConfirm.style.display = 'none'; });
+        btnCancelModal.addEventListener('click', () => {
+            modalConfirm.style.display = 'none';
+        });
     }
 
     if (btnProceedModal) {
@@ -410,7 +996,9 @@
     }
 
     window.addEventListener('click', (e) => {
-        if (e.target === modalConfirm) modalConfirm.style.display = 'none';
+        if (e.target === modalConfirm) {
+            modalConfirm.style.display = 'none';
+        }
     });
 </script>
 {% endblock %}
