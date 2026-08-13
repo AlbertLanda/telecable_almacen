@@ -286,6 +286,12 @@
         border-color: rgba(139, 92, 246, 0.22);
     }
 
+    .tb-anulado {
+        background: rgba(220, 38, 38, 0.12);
+        color: #b91c1c;
+        border-color: rgba(220, 38, 38, 0.24);
+    }
+
     .btn-action-table {
         padding: 8px 12px;
         border-radius: 11px;
@@ -522,6 +528,11 @@
                                         <i class='bx bxs-shopping-bag'></i>
                                         Compra
                                     </span>
+                                {% elif item.tipo_movimiento == 'REQ_ANULADO' %}
+                                    <span class="badge tb-anulado">
+                                        <i class='bx bx-x-circle'></i>
+                                        Solicitud anulada
+                                    </span>
                                 {% endif %}
                             </td>
 
@@ -529,6 +540,15 @@
                                 {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
                                     <span class="ref-main">{{ item.codigo }}</span>
                                     <span class="ref-sub">{{ item.nombre }}</span>
+
+                                {% elif item.tipo_movimiento == 'REQ_ANULADO' %}
+                                    <span class="ref-main">{{ item.numero|default:"REQ anulado" }}</span>
+                                    {% if item.observaciones %}
+                                        <span class="ref-sub">{{ item.observaciones|linebreaksbr }}</span>
+                                    {% else %}
+                                        <span class="ref-sub">Solicitud anulada sin movimiento de stock</span>
+                                    {% endif %}
+
                                 {% else %}
                                     <span class="ref-main">{{ item.referencia|default:item.numero }}</span>
                                 {% endif %}
@@ -593,6 +613,12 @@
                                             Ingreso Manual
                                         </span>
                                     {% endif %}
+
+                                {% elif item.tipo_movimiento == 'REQ_ANULADO' %}
+                                    <span style="font-size:11px; color:#b91c1c; font-weight:950;">
+                                        <i class='bx bx-info-circle'></i>
+                                        Sin movimiento de stock
+                                    </span>
                                 {% endif %}
                             </td>
                         </tr>

@@ -726,6 +726,66 @@ def req_eliminar(request, req_id):
     messages.success(request, "Borrador eliminado correctamente.")
     return redirect("tecnico_mis_reqs")
 
+@login_required
+@require_POST
+def req_anular_solicitud(request, req_id):
+    profile = getattr(request.user, "profile", None)
+
+    if not profile or profile.rol not in [
+        UserProfile.Rol.ALMACEN,
+        UserProfile.Rol.ADMIN,
+        UserProfile.Rol.JEFA,
+    ]:
+        messages.error(request, "No tienes permisos para anular solicitudes.")
+        return redirect("home")
+
+    req = get_object_or_404(
+        DocumentoInventario.objects.select_related("responsable", "solicitante", "sede"),
+        id=req_id,
+        tipo=TipoDocumento.REQ,
+    )
+
+    estados_anulables = [
+        EstadoDocumento.REQ_BORRADOR,
+        EstadoDocumento.REQ_PENDIENTE,
+        EstadoDocumento.BORRADOR,
+    ]
+
+    if req.estado not in estados_anulables:
+        messages.error(
+            request,
+            f"No se puede anular {req.numero}. Estado actual: {req.get_estado_display()}."
+        )
+        return redirect("dash_almacen")
+
+    # Si ya generó SAL/ING u otro documento hijo, ya no se debe anular.
+    if DocumentoInventario.objects.filter(origen=req).exists():
+        messages.error(
+            request,
+            f"No se puede anular {req.numero} porque ya tiene documentos generados."
+        )
+        return redirect("dash_almacen")
+
+    motivo = (request.POST.get("motivo") or "").strip()
+    usuario = request.user.get_full_name() or request.user.username
+    fecha = timezone.now().strftime("%d/%m/%Y %H:%M")
+
+    nota_anulacion = f"ANULADO por {usuario} el {fecha}"
+
+    if motivo:
+        nota_anulacion += f". Motivo: {motivo}"
+
+    if req.observaciones:
+        req.observaciones = f"{req.observaciones}\n{nota_anulacion}"
+    else:
+        req.observaciones = nota_anulacion
+
+    req.estado = EstadoDocumento.ANULADO
+    req.save(update_fields=["estado", "observaciones"])
+
+    messages.success(request, f"Solicitud {req.numero} anulada correctamente.")
+    return redirect("dash_almacen")
+
 
 @login_required
 @role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)

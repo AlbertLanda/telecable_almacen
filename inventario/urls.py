@@ -50,6 +50,7 @@ from .views.req import (
     req_scan_directo,
     almacen_devolucion_rapida,
     devolucion_print,
+    req_anular_solicitud,
 )
 
 # 5. Importaciones de SAL (Salidas)
@@ -120,6 +121,7 @@ urlpatterns = [
     path("almacen/recepcionar/<int:sal_id>/", almacen_recepcionar_traspaso, name="almacen_recepcionar_traspaso"),
     path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path("req/<int:req_id>/atender/", req_atender, name="req_atender"),
+    
 
     # ==========================
     # REQ (FLUJO TÉCNICO / GENERAL)
@@ -145,6 +147,11 @@ urlpatterns = [
     path("req/<int:req_id>/clonar/", req_clonar, name="req_clonar"),
     path("req/<int:req_id>/eliminar/", req_eliminar, name="req_eliminar"),
     path("req/<int:req_id>/set-tipo-doc/", req_set_tipo_doc, name="req_set_tipo_doc"),
+    path(
+        "req/<int:req_id>/anular/",
+        req_anular_solicitud,
+        name="req_anular_solicitud",
+    ),
 
     # ==========================
     # REQ (FLUJO ALMACÉN)

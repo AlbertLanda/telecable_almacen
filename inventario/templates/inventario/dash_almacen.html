@@ -652,6 +652,26 @@
         transform: translateY(-1px);
     }
 
+    .btn-action.red {
+        background: var(--almacen-red-soft);
+        color: #b91c1c;
+        border-color: rgba(220, 38, 38, .20);
+    }
+
+    .btn-action.red:hover {
+        background: var(--almacen-red);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .action-group {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
     .charts-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1228,17 +1248,32 @@
                                 </td>
                                 <td class="muted-cell">{{ r.fecha|date:"d/m/Y H:i" }}</td>
                                 <td style="text-align: right;">
-                                    {% if r.tipo_requerimiento == "PROVEEDOR" %}
-                                        <a href="{% url 'req_recepcionar_compra' r.id %}" class="btn-action green">
-                                            <i class='bx bx-plus-circle'></i>
-                                            Ingresar compra
-                                        </a>
-                                    {% else %}
-                                        <a href="{% url 'req_atender' r.id %}" class="btn-action blue">
-                                            <i class='bx bx-send'></i>
-                                            Despachar
-                                        </a>
-                                    {% endif %}
+                                    <div class="action-group">
+                                        {% if r.tipo_requerimiento == "PROVEEDOR" %}
+                                            <a href="{% url 'req_recepcionar_compra' r.id %}" class="btn-action green">
+                                                <i class='bx bx-plus-circle'></i>
+                                                Ingresar compra
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'req_atender' r.id %}" class="btn-action blue">
+                                                <i class='bx bx-send'></i>
+                                                Despachar
+                                            </a>
+                                        {% endif %}
+
+                                        <form method="POST"
+                                            action="{% url 'req_anular_solicitud' r.id %}"
+                                            style="display:inline;"
+                                            onsubmit="return confirmarAnulacionSolicitud(this);">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="motivo" value="">
+
+                                            <button type="submit" class="btn-action red">
+                                                <i class='bx bx-x-circle'></i>
+                                                Anular
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -1473,6 +1508,41 @@
             }
         });
     }
+</script>
+
+<script>
+function confirmarAnulacionSolicitud(form) {
+    const motivo = prompt(
+        "Motivo de anulación:\n\nEjemplo: solicitud duplicada, técnico ya no requiere material, error de registro."
+    );
+
+    if (motivo === null) {
+        return false;
+    }
+
+    const motivoLimpio = motivo.trim();
+
+    if (!motivoLimpio) {
+        const continuar = confirm(
+            "No ingresaste motivo. ¿Deseas anular la solicitud de todas formas?"
+        );
+
+        if (!continuar) {
+            return false;
+        }
+    }
+
+    const confirmar = confirm(
+        "¿Seguro que deseas anular esta solicitud?\n\nNo se moverá stock, solo dejará de aparecer en pendientes."
+    );
+
+    if (!confirmar) {
+        return false;
+    }
+
+    form.querySelector('input[name="motivo"]').value = motivoLimpio;
+    return true;
+}
 </script>
 
 {% endblock %}

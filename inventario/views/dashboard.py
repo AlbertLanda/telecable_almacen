@@ -550,7 +550,7 @@ def almacen_historial_global(request):
         )
         .exclude(referencia__icontains="LIQ-SEMANAL")
         .exclude(sede_origen__isnull=False)
-        .select_related("responsable", "proveedor", "entregado_por")
+        .select_related("responsable", "proveedor", "entregado_por", "solicitante")
     )
 
     for c in compras:
@@ -597,6 +597,7 @@ def almacen_historial_global(request):
     for p in proyectos:
         p.tipo_movimiento = "CIERRE_OBRA"
         p.fecha = p.fin or p.actualizado_en
+
         if p.responsable:
             p.tecnico_nombre = p.responsable.get_full_name() or p.responsable.username
         else:
@@ -618,34 +619,72 @@ def almacen_historial_global(request):
         else:
             s.tecnico_nombre = "Responsable PEX"
 
-    # 🚀 4.5. Salidas Directas a Técnicos
-    salidas_tecnicos = DocumentoInventario.objects.filter(
-        sede=sede,
-        tipo=TipoDocumento.SAL,
-        estado=EstadoDocumento.CONFIRMADO,
-        solicitante__isnull=False, # <--- LA REGLA DE ORO: SI HAY SOLICITANTE, ES TÉCNICO
-    ).exclude(referencia__startswith="OBRA-").select_related("responsable", "solicitante")
+    # 4.5. Salidas Directas a Técnicos
+    salidas_tecnicos = (
+        DocumentoInventario.objects.filter(
+            sede=sede,
+            tipo=TipoDocumento.SAL,
+            estado=EstadoDocumento.CONFIRMADO,
+            solicitante__isnull=False,
+        )
+        .exclude(referencia__startswith="OBRA-")
+        .select_related("responsable", "solicitante")
+    )
 
     for s in salidas_tecnicos:
         s.tipo_movimiento = "SALIDA_TECNICO"
         s.tecnico_nombre = s.solicitante.get_full_name() or s.solicitante.username
 
-    # 5. Transferencias Reales (Entre Sedes)
-    transferencias = DocumentoInventario.objects.filter(
-        sede=sede,
-        tipo=TipoDocumento.SAL,
-        sede_destino__isnull=False,
-        solicitante__isnull=True, # <--- CLAVE: Las transferencias reales no tienen un técnico solicitante directo
-        estado=EstadoDocumento.CONFIRMADO,
-    ).exclude(referencia__startswith="OBRA-").select_related("responsable", "sede_destino")
+    # 5. Transferencias Reales Entre Sedes
+    transferencias = (
+        DocumentoInventario.objects.filter(
+            sede=sede,
+            tipo=TipoDocumento.SAL,
+            sede_destino__isnull=False,
+            solicitante__isnull=True,
+            estado=EstadoDocumento.CONFIRMADO,
+        )
+        .exclude(referencia__startswith="OBRA-")
+        .select_related("responsable", "sede_destino")
+    )
 
     for t in transferencias:
         t.tipo_movimiento = "TRANSFERENCIA"
         t.tecnico_nombre = f"Destino: {t.sede_destino.nombre}"
 
-    # 6. Unificar todo
+    # 6. Solicitudes anuladas
+    reqs_anulados = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.REQ,
+            estado=EstadoDocumento.ANULADO,
+        )
+        .filter(
+            Q(sede=sede) | Q(sede_destino=sede)
+        )
+        .select_related("responsable", "solicitante", "sede", "sede_destino")
+    )
+
+    for r in reqs_anulados:
+        r.tipo_movimiento = "REQ_ANULADO"
+
+        if r.responsable:
+            r.tecnico_nombre = r.responsable.get_full_name() or r.responsable.username
+        elif r.solicitante:
+            r.tecnico_nombre = r.solicitante.get_full_name() or r.solicitante.username
+        else:
+            r.tecnico_nombre = "Sin responsable"
+
+    # 7. Unificar todo
     historial = sorted(
-        chain(liquidaciones, compras, proyectos, salidas_obras, salidas_tecnicos, transferencias),
+        chain(
+            liquidaciones,
+            compras,
+            proyectos,
+            salidas_obras,
+            salidas_tecnicos,
+            transferencias,
+            reqs_anulados,
+        ),
         key=attrgetter("fecha"),
         reverse=True,
     )
