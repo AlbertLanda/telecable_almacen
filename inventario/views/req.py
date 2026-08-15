@@ -899,8 +899,10 @@ def req_recepcionar_compra(request, req_id: int):
                                             if dsn:
                                                 filtros_duplicado |= Q(serial_secundario__iexact=dsn)
 
-                                            if cod44:
-                                                filtros_duplicado |= Q(codigo_trazabilidad__iexact=cod44)
+                                            # IMPORTANTE:
+                                            # No validamos duplicado por codigo_trazabilidad.
+                                            # Ese código puede repetirse entre tipos/lotes/modelos diferentes de ONU.
+                                            # Para ONUs, la identidad real del equipo será SN, MAC y D-SN.
 
                                             existente = ItemSerializado.objects.filter(filtros_duplicado).first()
 
