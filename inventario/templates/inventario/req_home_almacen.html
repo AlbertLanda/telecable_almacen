@@ -778,17 +778,21 @@
                                 autocomplete="off"
                             >
                         {% else %}
-                            <label class="form-label">Sede destino (almacén central)</label>
+                            <label class="form-label">Almacén que atenderá</label>
 
-                            <select id="selDestino" class="input-clean">
-                                <option value="">-- Seleccionar Central --</option>
+                            <div class="input-clean" style="display:flex; align-items:center; gap:10px; background:#f8fafc !important;">
+                                <i class='bx bxs-building-house' style="color:var(--req-primary); font-size:20px;"></i>
 
-                                {% for s in sedes_central %}
-                                    <option value="{{ s.id }}" {% if req.sede_destino_id == s.id %}selected{% endif %}>
-                                        {{ s.nombre }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                                <span>
+                                    {% if req.sede_destino %}
+                                        {{ req.sede_destino.nombre }}
+                                    {% elif sede_central %}
+                                        {{ sede_central.nombre }}
+                                    {% else %}
+                                        Sede central no configurada
+                                    {% endif %}
+                                </span>
+                            </div>
                         {% endif %}
                     </div>
 
@@ -800,7 +804,11 @@
 
                 <p class="config-note">
                     <i class='bx bx-info-circle'></i>
-                    <span>Asegúrate de guardar la configuración antes de generar la orden final.</span>
+                    {% if sede.tipo == "CENTRAL" %}
+                        <span>Asegúrate de guardar el proveedor antes de generar la orden final.</span>
+                    {% else %}
+                        <span>Esta solicitud será enviada automáticamente al almacén central para atención.</span>
+                    {% endif %}
                 </p>
             </div>
 
@@ -958,17 +966,10 @@
                 fd.append("tipo_requerimiento", "PROVEEDOR");
                 fd.append("proveedor_manual", provNombre);
             } else {
-                const dest = selectDestino ? selectDestino.value : "";
-
-                if (!dest) {
-                    alert("⚠️ Selecciona sede destino.");
-                    btnGuardarCfg.disabled = false;
-                    btnGuardarCfg.innerHTML = originalText;
-                    return;
-                }
-
                 fd.append("tipo_requerimiento", "ENTRE_SEDES");
-                fd.append("sede_destino_id", dest);
+
+                // Para sedes secundarias, el backend asigna automáticamente
+                // la sede central como destino. No se requiere selector.
             }
 
             await fetchJSON("/req/set-tipo/", {

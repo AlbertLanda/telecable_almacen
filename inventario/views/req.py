@@ -215,8 +215,9 @@ def _get_or_create_req_borrador_por_tipo(user, ubicacion, tipo_requerimiento):
 def _get_req_carrito_segun_origen(request, ubicacion):
     """
     Separa carritos:
-    - origen=mochila  -> Cargar mochila / despacho directo
-    - origen=proveedor o vacío -> Nuevo pedido / compra
+    - origen=mochila -> Cargar mochila / despacho directo
+    - almacén central -> Pedido a proveedor
+    - almacén secundario -> Solicitud entre sedes hacia central
     """
     origen = (
         request.POST.get("origen")
@@ -230,6 +231,35 @@ def _get_req_carrito_segun_origen(request, ubicacion):
             ubicacion,
             TipoRequerimiento.LOCAL,
         )
+
+    profile = get_profile(request.user)
+    sede = profile.get_sede_operativa() if profile else None
+
+    if (
+        profile
+        and profile.rol == UserProfile.Rol.ALMACEN
+        and sede
+        and sede.tipo != Sede.CENTRAL
+    ):
+        req = _get_or_create_req_borrador_por_tipo(
+            request.user,
+            ubicacion,
+            TipoRequerimiento.ENTRE_SEDES,
+        )
+
+        central = _get_sede_central()
+
+        if central and req.sede_destino_id != central.id:
+            req.sede_destino = central
+            req.proveedor = None
+            req.proveedor_manual = None
+            req.save(update_fields=[
+                "sede_destino",
+                "proveedor",
+                "proveedor_manual",
+            ])
+
+        return req
 
     return _get_or_create_req_borrador_por_tipo(
         request.user,
@@ -327,11 +357,35 @@ def req_home_almacen(request):
         messages.error(request, str(e))
         return redirect("dash_almacen")
 
+    central = _get_sede_central()
+
+    if sede.tipo == Sede.CENTRAL:
+        tipo_req = TipoRequerimiento.PROVEEDOR
+    else:
+        tipo_req = TipoRequerimiento.ENTRE_SEDES
+
     req = _get_or_create_req_borrador_por_tipo(
         request.user,
         ubicacion,
-        TipoRequerimiento.PROVEEDOR,
+        tipo_req,
     )
+
+    if sede.tipo != Sede.CENTRAL:
+        if not central:
+            messages.error(request, "No existe una sede central configurada.")
+            return redirect("dash_almacen")
+
+        if req.sede_destino_id != central.id or req.tipo_requerimiento != TipoRequerimiento.ENTRE_SEDES:
+            req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+            req.sede_destino = central
+            req.proveedor = None
+            req.proveedor_manual = None
+            req.save(update_fields=[
+                "tipo_requerimiento",
+                "sede_destino",
+                "proveedor",
+                "proveedor_manual",
+            ])
 
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
     
@@ -344,6 +398,8 @@ def req_home_almacen(request):
             "sede": sede,
             "items": req.items.select_related("producto").order_by("producto__nombre"),
             "proveedores": proveedores,
+            "sede_central": central,
+            "sedes_central": Sede.objects.filter(tipo=Sede.CENTRAL, activo=True),
         },
     )
 
@@ -979,14 +1035,56 @@ def req_set_tipo(request):
             req_borrador.save()
 
         elif tipo == "ENTRE_SEDES":
-            destino_id = request.POST.get("sede_destino_id")
-            if not destino_id:
-                return JsonResponse({"ok": False, "error": "Falta seleccionar la sede destino."})
-            
-            req_borrador.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
-            req_borrador.sede_destino_id = destino_id
-            req_borrador.proveedor_manual = None
-            req_borrador.save()
+            profile = get_profile(request.user)
+            sede_user = profile.get_sede_operativa() if profile else None
+
+            if not sede_user:
+                return JsonResponse({
+                    "ok": False,
+                    "error": "No tienes sede operativa asignada."
+                })
+
+            central = _get_sede_central()
+
+            if not central:
+                return JsonResponse({
+                    "ok": False,
+                    "error": "No existe una sede central configurada."
+                })
+
+            # Para sedes secundarias, el destino siempre será la sede central.
+            # Ejemplo: Huancayo solicita a Jauja.
+            if sede_user.tipo != Sede.CENTRAL:
+                req_borrador.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+                req_borrador.sede_destino = central
+                req_borrador.proveedor_manual = None
+                req_borrador.proveedor = None
+                req_borrador.save(update_fields=[
+                    "tipo_requerimiento",
+                    "sede_destino",
+                    "proveedor_manual",
+                    "proveedor",
+                ])
+
+            else:
+                destino_id = request.POST.get("sede_destino_id")
+
+                if not destino_id:
+                    return JsonResponse({
+                        "ok": False,
+                        "error": "Falta seleccionar la sede destino."
+                    })
+
+                req_borrador.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+                req_borrador.sede_destino_id = destino_id
+                req_borrador.proveedor_manual = None
+                req_borrador.proveedor = None
+                req_borrador.save(update_fields=[
+                    "tipo_requerimiento",
+                    "sede_destino",
+                    "proveedor_manual",
+                    "proveedor",
+                ])
 
         return JsonResponse({"ok": True})
 
@@ -1270,11 +1368,38 @@ def req_asignacion_directa(request):
         return redirect('req_atender', req_id=req.id)
 
     # ... (El resto de la función GET se queda igual) ...
+    central = _get_sede_central()
+
+    if sede.tipo == Sede.CENTRAL:
+        tipo_req = TipoRequerimiento.PROVEEDOR
+    else:
+        tipo_req = TipoRequerimiento.ENTRE_SEDES
+
     req = _get_or_create_req_borrador_por_tipo(
         request.user,
         ubicacion,
-        TipoRequerimiento.LOCAL,
+        tipo_req,
     )
+
+    # Si la sede es secundaria, el requerimiento siempre debe ir a la central.
+    if sede.tipo != Sede.CENTRAL:
+        if not central:
+            messages.error(request, "No existe una sede central configurada.")
+            return redirect("dash_almacen")
+
+        if req.sede_destino_id != central.id or req.tipo_requerimiento != TipoRequerimiento.ENTRE_SEDES:
+            req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
+            req.sede_destino = central
+            req.proveedor = None
+            req.proveedor_manual = None
+            req.save(update_fields=[
+                "tipo_requerimiento",
+                "sede_destino",
+                "proveedor",
+                "proveedor_manual",
+            ])
+
+    proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
 
     if req.sede_destino_id or req.proveedor_id:
         req.sede_destino = None
