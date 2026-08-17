@@ -1341,7 +1341,14 @@ def req_asignacion_directa(request):
             return redirect('req_asignacion_directa')
 
         tecnico = get_object_or_404(User, id=tecnico_id)
-        req = get_object_or_404(DocumentoInventario, id=req_id)
+        req = get_object_or_404(
+            DocumentoInventario,
+            id=req_id,
+            responsable=request.user,
+            tipo=TipoDocumento.REQ,
+            estado__in=[EstadoDocumento.BORRADOR, EstadoDocumento.REQ_BORRADOR],
+            tipo_requerimiento=TipoRequerimiento.LOCAL,
+        )
         retirado_por = tecnico
 
         if retirado_por_id:
@@ -1367,44 +1374,36 @@ def req_asignacion_directa(request):
         # Lo mandamos directo a ATENDER (Despacho)
         return redirect('req_atender', req_id=req.id)
 
-    # ... (El resto de la función GET se queda igual) ...
-    central = _get_sede_central()
-
-    if sede.tipo == Sede.CENTRAL:
-        tipo_req = TipoRequerimiento.PROVEEDOR
-    else:
-        tipo_req = TipoRequerimiento.ENTRE_SEDES
-
+    # Cargar mochila / despacho directo SIEMPRE usa carrito LOCAL.
+    # No debe usar PROVEEDOR ni ENTRE_SEDES, porque no es una solicitud a central
+    # ni una orden de compra. Es un despacho directo al técnico.
     req = _get_or_create_req_borrador_por_tipo(
         request.user,
         ubicacion,
-        tipo_req,
+        TipoRequerimiento.LOCAL,
     )
 
-    # Si la sede es secundaria, el requerimiento siempre debe ir a la central.
-    if sede.tipo != Sede.CENTRAL:
-        if not central:
-            messages.error(request, "No existe una sede central configurada.")
-            return redirect("dash_almacen")
+    # Limpiar datos que no aplican para mochila.
+    campos_update = []
 
-        if req.sede_destino_id != central.id or req.tipo_requerimiento != TipoRequerimiento.ENTRE_SEDES:
-            req.tipo_requerimiento = TipoRequerimiento.ENTRE_SEDES
-            req.sede_destino = central
-            req.proveedor = None
-            req.proveedor_manual = None
-            req.save(update_fields=[
-                "tipo_requerimiento",
-                "sede_destino",
-                "proveedor",
-                "proveedor_manual",
-            ])
+    if req.tipo_requerimiento != TipoRequerimiento.LOCAL:
+        req.tipo_requerimiento = TipoRequerimiento.LOCAL
+        campos_update.append("tipo_requerimiento")
 
-    proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
-
-    if req.sede_destino_id or req.proveedor_id:
+    if req.sede_destino_id:
         req.sede_destino = None
+        campos_update.append("sede_destino")
+
+    if req.proveedor_id:
         req.proveedor = None
-        req.save(update_fields=["sede_destino", "proveedor"])
+        campos_update.append("proveedor")
+
+    if req.proveedor_manual:
+        req.proveedor_manual = None
+        campos_update.append("proveedor_manual")
+
+    if campos_update:
+        req.save(update_fields=campos_update)
 
     tecnicos = (
         User.objects.filter(
