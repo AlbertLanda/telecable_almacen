@@ -89,11 +89,21 @@
                 <div class="info-row"><label>DOCUMENTO:</label> <span>{{ doc.numero }}</span></div>
                 <div class="info-row"><label>FECHA:</label> <span>{{ doc.fecha|date:"d/m/Y H:i" }}</span></div>
                 <div class="info-row"><label>ALMACÉN:</label> <span>{{ doc.sede.nombre }}</span></div>
+                <div class="info-row"><label>ESTADO:</label> <span>CONFIRMADO</span></div>
             </div>
             <div class="col">
-                <div class="info-row"><label>TÉCNICO:</label> <span>{{ doc.solicitante.get_full_name|default:doc.solicitante.username|upper }}</span></div>
+                <div class="info-row"><label>TÉCNICO RESPONSABLE:</label> <span>{{ doc.solicitante.get_full_name|default:doc.solicitante.username|upper }}</span></div>
+                <div class="info-row">
+                    <label>TÉCNICO:</label>
+                    <span>
+                        {% if tecnico_retiro %}
+                            {{ tecnico_retiro.get_full_name|default:tecnico_retiro.username|upper }}
+                        {% else %}
+                            {{ doc.solicitante.get_full_name|default:doc.solicitante.username|upper }}
+                        {% endif %}
+                    </span>
+                </div>
                 <div class="info-row"><label>RESPONSABLE:</label> <span>{{ doc.responsable.username|upper }}</span></div>
-                <div class="info-row"><label>ESTADO:</label> <span>CONFIRMADO</span></div>
             </div>
         </div>
 

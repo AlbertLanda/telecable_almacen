@@ -314,6 +314,165 @@
         transform: translateY(-1px);
     }
 
+    .btn-detail {
+        margin-top: 6px;
+        padding: 5px 10px;
+        font-size: 11px;
+        color: #0f6bff;
+        border-color: rgba(15, 107, 255, 0.3);
+        background: rgba(15, 107, 255, 0.06);
+    }
+
+    .btn-detail:hover {
+        color: #084bcc;
+        border-color: rgba(15, 107, 255, 0.5);
+        background: rgba(15, 107, 255, 0.12);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, .58);
+        backdrop-filter: blur(6px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        padding: 18px;
+    }
+
+    .modal-overlay.open {
+        display: flex;
+        animation: fadeIn .18s ease-out;
+    }
+
+    .modal-card {
+        width: min(520px, 100%);
+        background: #ffffff;
+        border: 1px solid #d9e2ef;
+        border-radius: 22px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, .26);
+        overflow: hidden;
+    }
+
+    .modal-head {
+        padding: 18px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid #d9e2ef;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #0f172a;
+        font-size: 16px;
+        font-weight: 950;
+        margin: 0;
+    }
+
+    .modal-title i {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        background: rgba(15, 107, 255, 0.12);
+        color: #0f6bff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 21px;
+        flex-shrink: 0;
+    }
+
+    .modal-close {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #475569;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        transition: .18s ease;
+    }
+
+    .modal-close:hover {
+        background: #e2e8f0;
+        transform: scale(1.03);
+    }
+
+    .modal-body {
+        padding: 20px;
+        font-size: 13px;
+        color: #334155;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+
+    .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 18px 20px;
+        border-top: 1px solid #edf2f7;
+        flex-wrap: wrap;
+    }
+
+    .page-numbers {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .page-btn,
+    .page-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: 11px;
+        border: 1px solid #d9e2ef;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 12px;
+        font-weight: 850;
+        text-decoration: none;
+        transition: .18s ease;
+    }
+
+    .page-num {
+        padding: 0;
+        width: 36px;
+    }
+
+    .page-btn:hover,
+    .page-num:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .page-num.active {
+        background: #0f6bff;
+        border-color: #0f6bff;
+        color: #ffffff;
+    }
+
+    .page-btn.disabled {
+        opacity: .45;
+        pointer-events: none;
+    }
+
     .empty-state {
         padding: 70px 20px;
         text-align: center;
@@ -544,7 +703,16 @@
                                 {% elif item.tipo_movimiento == 'REQ_ANULADO' %}
                                     <span class="ref-main">{{ item.numero|default:"REQ anulado" }}</span>
                                     {% if item.observaciones %}
-                                        <span class="ref-sub">{{ item.observaciones|linebreaksbr }}</span>
+                                        <button
+                                            type="button"
+                                            class="btn-action-table btn-detail"
+                                            onclick="openDetalleModal(this)"
+                                            data-numero="{{ item.numero|default:'REQ anulado' }}"
+                                            data-detalle="{{ item.observaciones }}"
+                                        >
+                                            <i class='bx bx-show'></i>
+                                            Ver detalles
+                                        </button>
                                     {% else %}
                                         <span class="ref-sub">Solicitud anulada sin movimiento de stock</span>
                                     {% endif %}
@@ -636,10 +804,80 @@
                 </tbody>
             </table>
         </div>
+
+        {% if historial.paginator.num_pages > 1 %}
+            <div class="pagination-bar">
+                <a
+                    href="{% if historial.has_previous %}?page={{ historial.previous_page_number }}{% else %}#{% endif %}"
+                    class="page-btn {% if not historial.has_previous %}disabled{% endif %}"
+                >
+                    <i class='bx bx-chevron-left'></i>
+                    Anterior
+                </a>
+
+                <div class="page-numbers">
+                    {% for num in historial.paginator.page_range %}
+                        <a
+                            href="?page={{ num }}"
+                            class="page-num {% if num == historial.number %}active{% endif %}"
+                        >
+                            {{ num }}
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <a
+                    href="{% if historial.has_next %}?page={{ historial.next_page_number }}{% else %}#{% endif %}"
+                    class="page-btn {% if not historial.has_next %}disabled{% endif %}"
+                >
+                    Siguiente
+                    <i class='bx bx-chevron-right'></i>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal-overlay" id="detalleModal">
+    <div class="modal-card">
+        <div class="modal-head">
+            <h3 class="modal-title">
+                <i class='bx bx-show'></i>
+                <span id="detalleModalNumero">Detalle</span>
+            </h3>
+
+            <button type="button" class="modal-close" onclick="closeDetalleModal()">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+
+        <div class="modal-body" id="detalleModalTexto"></div>
     </div>
 </div>
 
 <script>
+    function openDetalleModal(btn) {
+        document.getElementById('detalleModalNumero').textContent = btn.dataset.numero || 'Detalle';
+        document.getElementById('detalleModalTexto').textContent = btn.dataset.detalle || '';
+        document.getElementById('detalleModal').classList.add('open');
+    }
+
+    function closeDetalleModal() {
+        document.getElementById('detalleModal').classList.remove('open');
+    }
+
+    document.getElementById('detalleModal').addEventListener('click', function (event) {
+        if (event.target === this) {
+            closeDetalleModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeDetalleModal();
+        }
+    });
+
     document.getElementById('historySearch').addEventListener('input', function(e) {
         const searchTerm = e.target.value.toLowerCase();
         const rows = document.querySelectorAll('.history-row');

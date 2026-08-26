@@ -7,6 +7,7 @@ from operator import attrgetter
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db.models import (
     F,
     Q,
@@ -689,11 +690,14 @@ def almacen_historial_global(request):
         reverse=True,
     )
 
+    paginator = Paginator(historial, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     return render(
         request,
         "inventario/almacen_historial_global.html",
         {
-            "historial": historial,
+            "historial": page_obj,
             "sede": sede,
         },
     )

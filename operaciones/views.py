@@ -555,16 +555,36 @@ def liquidacion_tecnico_print(request, doc_id):
     """
     # Buscamos el documento por ID
     doc = get_object_or_404(DocumentoInventario, id=doc_id)
-    
+
     # Seguridad básica: verificar que sea un documento de la sede o usuario adecuado
     # (Opcional, pero recomendado si quieres restringir)
-    
+
     # Obtenemos los items devueltos (los que están en DocumentoItem)
     items = doc.items.select_related('producto').order_by('producto__nombre')
-    
+
+    # Jalamos el técnico que retiró el material del último despacho (Preparación
+    # de materiales) que armó la mochila que ahora se está liquidando.
+    ultimo_despacho = None
+    if doc.solicitante:
+        ultimo_despacho = (
+            DocumentoInventario.objects.filter(
+                tipo=TipoDocumento.SAL,
+                estado=EstadoDocumento.CONFIRMADO,
+                solicitante=doc.solicitante,
+                sede=doc.sede,
+                fecha__lte=doc.fecha,
+            )
+            .select_related('retirado_por')
+            .order_by('-fecha')
+            .first()
+        )
+
+    tecnico_retiro = ultimo_despacho.retirado_por if ultimo_despacho else None
+
     return render(request, 'operaciones/pdf_liquidacion_tecnico.html', {
         'doc': doc,
         'items': items,
+        'tecnico_retiro': tecnico_retiro,
     })
 
 @login_required
