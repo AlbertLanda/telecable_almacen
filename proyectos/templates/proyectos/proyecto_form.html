@@ -114,14 +114,19 @@
             {% csrf_token %}
             
             <div class="form-grid">
-                <div class="full-width">
-                    <label class="form-label">Nombre del Proyecto</label>
-                    {{ form.nombre }}
+                <div>
+                    <label class="form-label">Tipo</label>
+                    {{ form.tipo }}
                 </div>
 
                 <div>
                     <label class="form-label">Sede</label>
                     {{ form.sede }}
+                </div>
+
+                <div class="full-width">
+                    <label class="form-label">Nombre del Proyecto / Avería</label>
+                    {{ form.nombre }}
                 </div>
                 
                 <div>

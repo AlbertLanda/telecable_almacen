@@ -1088,13 +1088,28 @@
     <section class="pex-hero">
         <div class="pex-hero-main">
             <div class="pex-badge">
-                <i class='bx bx-git-branch'></i>
-                Proyecto PEX
+                {% if proyecto.tipo == 'AVERIA' %}
+                    <i class='bx bxs-error'></i>
+                    Avería
+                {% else %}
+                    <i class='bx bx-git-branch'></i>
+                    Proyecto PEX
+                {% endif %}
             </div>
 
             <h1 class="pex-title">{{ proyecto.nombre }}</h1>
 
             <span class="pex-code">{{ proyecto.codigo }}</span>
+
+            {% if request.user == proyecto.creado_por or request.user.is_superuser %}
+                <form action="{% url 'proyecto_cambiar_tipo' proyecto.id %}" method="POST" style="display:inline-flex; align-items:center; gap:8px; margin-left:10px;">
+                    {% csrf_token %}
+                    <select name="tipo" onchange="this.form.submit()" style="background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); color:#fff; border-radius:9px; padding:6px 8px; font-size:12px; font-weight:800;">
+                        <option value="PROYECTO" {% if proyecto.tipo == 'PROYECTO' %}selected{% endif %}>Proyecto</option>
+                        <option value="AVERIA" {% if proyecto.tipo == 'AVERIA' %}selected{% endif %}>Avería</option>
+                    </select>
+                </form>
+            {% endif %}
 
             <p class="pex-desc">
                 Flujo de revisión técnica entre Diseño y PEX. El diseñador prepara plano y materiales,
@@ -1448,6 +1463,100 @@
                     </table>
                 </div>
             </section>
+
+            {% if pendientes %}
+                <section class="pex-panel" style="margin-top:16px;">
+                    <div class="panel-head">
+                        <div class="panel-title">
+                            <h3>
+                                <i class='bx bx-time-five'></i>
+                                Materiales pendientes de catálogo
+                            </h3>
+                            <span>Diseño los pidió pero aún no existen como producto en el sistema.</span>
+                        </div>
+
+                        <span class="panel-chip-light" style="background:#fff7ed; color:#9a3412; border-color:#fde3c8;">
+                            <i class='bx bx-error'></i>
+                            {{ pendientes|length }} pendiente(s)
+                        </span>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="pex-table">
+                            <thead>
+                                <tr>
+                                    <th>Material solicitado</th>
+                                    <th>Cant. estimada</th>
+                                    <th>Nota</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in pendientes %}
+                                    <tr>
+                                        <td data-label="Material"><strong class="product-name">{{ p.nombre_solicitado }}</strong></td>
+                                        <td data-label="Cantidad"><span class="qty-pill">{{ p.cantidad_estimada }}</span></td>
+                                        <td data-label="Nota">{{ p.nota|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            {% endif %}
+
+            {% if despachos %}
+                <section class="pex-panel" style="margin-top:16px;">
+                    <div class="panel-head">
+                        <div class="panel-title">
+                            <h3>
+                                <i class='bx bxs-truck'></i>
+                                Despachos realizados
+                            </h3>
+                            <span>Puede haber materiales de más de una sede (ej. una avería atendida desde dos almacenes).</span>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="pex-table">
+                            <thead>
+                                <tr>
+                                    <th>Vale</th>
+                                    <th>Sede que despachó</th>
+                                    <th>Ítems</th>
+                                    <th>Técnico que retiró</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in despachos %}
+                                    <tr>
+                                        <td data-label="Vale"><span class="product-code">{{ doc.numero|default:"BORRADOR" }}</span></td>
+                                        <td data-label="Sede">
+                                            <span class="panel-chip-light">
+                                                <i class='bx bxs-building'></i>
+                                                {{ doc.sede.nombre }}
+                                            </span>
+                                        </td>
+                                        <td data-label="Ítems">
+                                            {% for it in doc.items.all %}
+                                                <div class="note-text" style="margin-top:0;">{{ it.cantidad }} x {{ it.producto.nombre }}</div>
+                                            {% endfor %}
+                                        </td>
+                                        <td data-label="Retirado por">
+                                            {% if doc.retirado_por %}
+                                                {{ doc.retirado_por.get_full_name|default:doc.retirado_por.username }}
+                                            {% else %}
+                                                {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+                                            {% endif %}
+                                        </td>
+                                        <td data-label="Fecha">{{ doc.fecha|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            {% endif %}
 
             <div style="margin-top:16px;">
                 {% if request.user.profile.rol == 'SOLICITANTE' %}

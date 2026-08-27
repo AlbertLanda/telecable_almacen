@@ -12,6 +12,11 @@ from inventario.models import (
 )
 
 
+class TipoProyecto(models.TextChoices):
+    PROYECTO = "PROYECTO", "Proyecto"
+    AVERIA = "AVERIA", "Avería"
+
+
 class EstadoProyecto(models.TextChoices):
     # FASE 1: NEGOCIACIÓN JOHN ↔ JILMER
     DISENO = "DISENO", "En Diseño"
@@ -44,6 +49,12 @@ class Proyecto(TimeStampedModel):
         verbose_name="Código de Obra",
     )
     nombre = models.CharField(max_length=255)
+    tipo = models.CharField(
+        max_length=10,
+        choices=TipoProyecto.choices,
+        default=TipoProyecto.PROYECTO,
+        help_text="Proyecto planificado o avería reportada.",
+    )
     descripcion = models.TextField(blank=True, default="")
     sede = models.ForeignKey(
         Sede,
@@ -319,4 +330,52 @@ class AsignacionCuadrilla(TimeStampedModel):
     @property
     def esta_abierta(self):
         return self.estado == EstadoTransferenciaCuadrilla.ENTREGADO
-    
+
+
+class ProyectoMaterialPendiente(TimeStampedModel):
+    """
+    Material que Diseño necesita pero todavía no existe en el catálogo.
+    Se registra como texto libre y se vincula a un Producto real una vez
+    que Almacén lo da de alta en el sistema.
+    """
+
+    proyecto = models.ForeignKey(
+        Proyecto,
+        on_delete=models.CASCADE,
+        related_name="materiales_pendientes",
+    )
+
+    nombre_solicitado = models.CharField(max_length=255)
+    cantidad_estimada = models.PositiveIntegerField(default=1)
+    nota = models.CharField(max_length=255, blank=True, default="")
+
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="materiales_pendientes_creados",
+    )
+
+    resuelto = models.BooleanField(default=False)
+    producto_vinculado = models.ForeignKey(
+        Producto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    material_resultante = models.ForeignKey(
+        ProyectoMaterial,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    resuelto_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Material pendiente de catálogo"
+        verbose_name_plural = "Materiales pendientes de catálogo"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"{self.proyecto.codigo} - {self.nombre_solicitado} (pendiente)"

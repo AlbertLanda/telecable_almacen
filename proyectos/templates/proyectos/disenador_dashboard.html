@@ -55,6 +55,13 @@
     .st-process { background: rgba(48, 209, 88, 0.15); color: var(--success); border: 1px solid rgba(48, 209, 88, 0.2); }
     .st-closed { background: rgba(142, 142, 147, 0.15); color: #8e8e93; border: 1px solid rgba(142, 142, 147, 0.2); }
 
+    .badge-tipo {
+        padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; display: inline-block;
+    }
+    .tipo-proyecto { background: rgba(10, 132, 255, 0.15); color: var(--primary); border: 1px solid rgba(10, 132, 255, 0.2); }
+    .tipo-averia { background: rgba(255, 69, 58, 0.15); color: var(--danger); border: 1px solid rgba(255, 69, 58, 0.2); }
+
     .project-title { font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0; line-height: 1.3; }
     .project-loc { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
 
@@ -118,8 +125,15 @@
             
             <div class="card-top">
                 <div class="card-header-row">
-                    <span class="project-code">{{ p.codigo }}</span>
-                    
+                    <div>
+                        {% if p.tipo == 'AVERIA' %}
+                            <span class="badge-tipo tipo-averia"><i class='bx bxs-error'></i> Avería</span>
+                        {% else %}
+                            <span class="badge-tipo tipo-proyecto"><i class='bx bx-git-branch'></i> Proyecto</span>
+                        {% endif %}
+                        <span class="project-code">{{ p.codigo }}</span>
+                    </div>
+
                     {% if p.estado == 'PENDIENTE' %}
                         <span class="badge-status st-design">Diseño</span>
                     {% elif p.estado == 'EN_PROCESO' %}

@@ -18,6 +18,9 @@ urlpatterns = [
     # 2. Paso 1: Crear la "Carpeta" del Proyecto (Datos + Plano)
     path('nuevo/', views.proyecto_create, name='proyecto_create'),
 
+    # Acción: corregir la clasificación Proyecto <-> Avería
+    path('<int:proyecto_id>/cambiar-tipo/', views.proyecto_cambiar_tipo, name='proyecto_cambiar_tipo'),
+
     # 3. Paso 2: Gestionar la "Receta" de Materiales (Agregar/Listar)
     path('<int:proyecto_id>/materiales/', views.proyecto_materiales, name='proyecto_materiales'),
 
@@ -25,6 +28,18 @@ urlpatterns = [
     path('material/eliminar/<int:item_id>/', views.eliminar_material_proyecto, name='eliminar_material_proyecto'),
 
     path('material/editar/<int:item_id>/', views.editar_cantidad_material, name='editar_cantidad_material'),
+
+    # Materiales pendientes de catálogo (no existen aún como Producto)
+    path(
+        'material-pendiente/<int:pendiente_id>/vincular/',
+        views.proyecto_material_pendiente_vincular,
+        name='proyecto_material_pendiente_vincular',
+    ),
+    path(
+        'material-pendiente/<int:pendiente_id>/eliminar/',
+        views.proyecto_material_pendiente_eliminar,
+        name='proyecto_material_pendiente_eliminar',
+    ),
 
     path('almacen/lista/', views.almacen_proyectos_list, name='almacen_proyectos_list'),
 

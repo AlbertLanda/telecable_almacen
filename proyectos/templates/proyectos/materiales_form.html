@@ -101,6 +101,33 @@
     .sb-num { font-size: 28px; font-weight: 700; color: var(--text-main); line-height: 1; }
     .sb-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-top: 5px; }
 
+    /* Dejar pendiente */
+    .pendiente-toggle {
+        width: 100%; background: transparent; border: 1px dashed var(--border-light); color: var(--text-secondary);
+        padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 14px;
+        display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
+    }
+    .pendiente-toggle:hover { border-color: var(--warning); color: var(--warning); }
+    .pendiente-box { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-light); }
+    .pendiente-box.open { display: block; }
+    .pendiente-hint { font-size: 11px; color: var(--text-tertiary); margin: 6px 0 12px; line-height: 1.4; }
+    .btn-pendiente { width: 100%; background: transparent; border: 1px solid var(--warning); color: var(--warning); padding: 11px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-pendiente:hover { background: rgba(255, 159, 10, 0.1); }
+
+    /* Panel de pendientes */
+    .pendientes-panel { background-color: var(--bg-card); border: 1px solid rgba(255, 159, 10, 0.3); border-radius: var(--radius); overflow: hidden; margin-top: 24px; }
+    .pendientes-header { padding: 16px 24px; border-bottom: 1px solid var(--border-light); background: rgba(255, 159, 10, 0.06); display:flex; align-items:center; gap:8px; }
+    .pendientes-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--warning); }
+    .pendiente-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--border-light); flex-wrap: wrap; }
+    .pendiente-row:last-child { border-bottom: none; }
+    .pendiente-info strong { display: block; color: var(--text-main); font-size: 13px; }
+    .pendiente-info span { font-size: 11px; color: var(--text-secondary); }
+    .pendiente-actions { display: flex; align-items: center; gap: 8px; }
+    .pendiente-actions select { background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); padding: 8px 10px; border-radius: 6px; font-size: 12px; min-width: 180px; }
+    .btn-vincular { background: var(--success); color: #000; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
+    .btn-quitar-pendiente { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 6px; }
+    .btn-quitar-pendiente:hover { color: var(--danger); }
+
     @media (max-width: 992px) {
         .panel-container { grid-template-columns: 1fr; }
         .side-panel { position: static; order: -1; }
@@ -162,6 +189,42 @@
                     Agregar a la Lista
                 </button>
             </form>
+
+            <button type="button" class="pendiente-toggle" onclick="document.getElementById('pendienteBox').classList.toggle('open')">
+                <i class='bx bx-time-five'></i>
+                ¿No lo encuentras? Dejar pendiente
+            </button>
+
+            <div class="pendiente-box" id="pendienteBox">
+                <p class="pendiente-hint">
+                    Úsalo si el material que necesitas todavía no existe en el catálogo.
+                    Avisa a almacén para que lo registre; cuando esté creado, podrás
+                    vincularlo desde la lista de pendientes abajo.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="dejar_pendiente">
+
+                    <div style="margin-bottom: 12px;">
+                        <label class="form-label">{{ pendiente_form.nombre_solicitado.label }}</label>
+                        {{ pendiente_form.nombre_solicitado }}
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label class="form-label">{{ pendiente_form.cantidad_estimada.label }}</label>
+                        {{ pendiente_form.cantidad_estimada }}
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label class="form-label">{{ pendiente_form.nota.label }}</label>
+                        {{ pendiente_form.nota }}
+                    </div>
+
+                    <button type="submit" class="btn-pendiente">
+                        <i class='bx bx-time-five'></i>
+                        Dejar pendiente
+                    </button>
+                </form>
+            </div>
         {% else %}
             <div style="text-align: center; padding: 30px; opacity: 0.6;">
                 <i class='bx bx-lock-alt' style="font-size: 32px; color: var(--text-secondary);"></i>
@@ -240,6 +303,52 @@
             </table>
         </div>
     </div>
+
+    {% if pendientes %}
+        <div class="pendientes-panel" style="grid-column: 1 / -1;">
+            <div class="pendientes-header">
+                <i class='bx bx-time-five'></i>
+                <h3>Materiales pendientes de catálogo ({{ pendientes|length }})</h3>
+            </div>
+
+            {% for p in pendientes %}
+                <div class="pendiente-row">
+                    <div class="pendiente-info">
+                        <strong>{{ p.nombre_solicitado }}</strong>
+                        <span>
+                            Cantidad: {{ p.cantidad_estimada }}
+                            {% if p.nota %} · {{ p.nota }}{% endif %}
+                            · Pedido por {{ p.creado_por.get_full_name|default:p.creado_por.username }}
+                        </span>
+                    </div>
+
+                    <div class="pendiente-actions">
+                        {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                            <form method="POST" action="{% url 'proyecto_material_pendiente_vincular' p.id %}" style="display:flex; align-items:center; gap:8px;">
+                                {% csrf_token %}
+                                <select name="producto_id" required>
+                                    <option value="">Ya existe en catálogo como...</option>
+                                    {% for prod in productos_catalogo %}
+                                        <option value="{{ prod.id }}">{{ prod.nombre }} ({{ prod.codigo_interno }})</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn-vincular" title="Vincular a producto real">
+                                    <i class='bx bx-link'></i> Vincular
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{% url 'proyecto_material_pendiente_eliminar' p.id %}" onsubmit="return confirm('¿Quitar este pendiente?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-quitar-pendiente" title="Quitar">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 
 </div>
 {% endblock %}
