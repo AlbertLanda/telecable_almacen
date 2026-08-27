@@ -87,6 +87,12 @@
     .input-qty { width: 70px; text-align: center; background: var(--bg-input); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 6px; padding: 6px; font-weight: 600; }
     .input-qty:focus { border-color: var(--primary); }
 
+    .unidad-pill {
+        display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary);
+        background: rgba(255,255,255,0.05); border: 1px solid var(--border-light);
+    }
+
     .btn-icon { 
         width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; 
         border: 1px solid transparent; cursor: pointer; transition: 0.2s; background: transparent; 
@@ -252,10 +258,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 45%;">Material</th>
-                        <th style="width: 25%;">Código</th>
-                        <th style="width: 15%; text-align: center;">Cantidad</th>
-                        <th style="width: 15%; text-align: center;">Acción</th>
+                        <th style="width: 38%;">Material</th>
+                        <th style="width: 20%;">Código</th>
+                        <th style="width: 10%; text-align: center;">U.M.</th>
+                        <th style="width: 16%; text-align: center;">Cantidad</th>
+                        <th style="width: 16%; text-align: center;">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -267,6 +274,9 @@
                         </td>
                         <td style="font-family: monospace; color: var(--text-secondary);">
                             {{ item.producto.codigo_interno|default:"-" }}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="unidad-pill">{{ item.producto.unidad|default:"UND" }}</span>
                         </td>
                         <td style="text-align: center;">
                             {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
@@ -293,7 +303,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
+                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-tertiary);">
                             <i class='bx bx-list-plus' style="font-size: 32px; margin-bottom: 10px;"></i>
                             <p>La lista está vacía. Agrega materiales desde el panel.</p>
                         </td>
@@ -329,7 +339,7 @@
                                 <select name="producto_id" required>
                                     <option value="">Ya existe en catálogo como...</option>
                                     {% for prod in productos_catalogo %}
-                                        <option value="{{ prod.id }}">{{ prod.nombre }} ({{ prod.codigo_interno }})</option>
+                                        <option value="{{ prod.id }}">{{ prod.nombre }} ({{ prod.codigo_interno }}) - {{ prod.unidad|default:"UND" }}</option>
                                     {% endfor %}
                                 </select>
                                 <button type="submit" class="btn-vincular" title="Vincular a producto real">

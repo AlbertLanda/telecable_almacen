@@ -592,7 +592,7 @@
                     <tr>
                         <td>
                             <span class="prod-name">{{ item.producto.nombre }}</span>
-                            <span class="prod-code">{{ item.producto.codigo_interno }}</span>
+                            <span class="prod-code">{{ item.producto.codigo_interno }} · {{ item.producto.unidad|default:"UND" }}</span>
                         </td>
 
                         <td class="text-center" data-label="Stock {{ sede_despacho.nombre }}">

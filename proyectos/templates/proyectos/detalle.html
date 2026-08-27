@@ -1383,6 +1383,7 @@
                         <thead>
                             <tr>
                                 <th>Producto</th>
+                                <th>U.M.</th>
                                 <th>Cant. planificada</th>
                                 <th>Cant. entregada</th>
                                 <th>Pendiente</th>
@@ -1417,6 +1418,10 @@
                                         {% endif %}
                                     </td>
 
+                                    <td data-label="U.M.">
+                                        <span class="product-code">{{ m.producto.unidad|default:"UND" }}</span>
+                                    </td>
+
                                     <td data-label="Planificado">
                                         <span class="qty-pill">{{ m.cantidad_planificada }}</span>
                                     </td>
@@ -1437,7 +1442,7 @@
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="{% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}5{% else %}4{% endif %}">
+                                    <td colspan="{% if request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}6{% else %}5{% endif %}">
                                         <div class="empty-state">
                                             <i class='bx bx-box'></i>
                                             <strong>Sin materiales registrados</strong>
