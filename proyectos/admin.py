@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Proyecto, ProyectoAsignacion, ProyectoMaterial
+from .models import Proyecto, ProyectoAsignacion, ProyectoMaterial, ProyectoMaterialPendiente
 
 class ProyectoMaterialInline(admin.TabularInline):
     model = ProyectoMaterial
@@ -14,14 +14,14 @@ class ProyectoAsignacionInline(admin.TabularInline):
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nombre', 'estado', 'responsable', 'creado_por')
-    list_filter = ('estado', 'sede')
+    list_display = ('codigo', 'tipo', 'nombre', 'estado', 'responsable', 'creado_por')
+    list_filter = ('tipo', 'estado', 'sede')
     search_fields = ('codigo', 'nombre', 'centro_costo')
     inlines = [ProyectoAsignacionInline, ProyectoMaterialInline]
-    
+
     fieldsets = (
         ('Datos Generales', {
-            'fields': ('sede', 'codigo', 'nombre', 'descripcion', 'estado', 'centro_costo')
+            'fields': ('sede', 'tipo', 'codigo', 'nombre', 'descripcion', 'estado', 'centro_costo')
         }),
         ('Fechas', {
             'fields': ('inicio', 'fin')
@@ -35,3 +35,10 @@ class ProyectoAdmin(admin.ModelAdmin):
         if not obj.pk:
             obj.creado_por = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(ProyectoMaterialPendiente)
+class ProyectoMaterialPendienteAdmin(admin.ModelAdmin):
+    list_display = ('proyecto', 'nombre_solicitado', 'cantidad_estimada', 'resuelto', 'creado_por')
+    list_filter = ('resuelto',)
+    search_fields = ('nombre_solicitado', 'proyecto__codigo', 'proyecto__nombre')

@@ -9,12 +9,17 @@ from inventario.models import Stock
 from django.db import transaction
 from inventario.models import (
     UserProfile, DocumentoInventario, DocumentoItem, Stock,
-    TipoDocumento, EstadoDocumento, ItemSerializado, StockTecnico, MovimientoInventario
+    TipoDocumento, EstadoDocumento, ItemSerializado, StockTecnico, MovimientoInventario,
+    Producto,
 )
 # Importamos modelos locales
-from .models import Proyecto, ProyectoMaterial, ProyectoAsignacion, EstadoProyecto, AsignacionCuadrilla, EstadoTransferenciaCuadrilla
+from .models import (
+    Proyecto, ProyectoMaterial, ProyectoAsignacion, EstadoProyecto,
+    AsignacionCuadrilla, EstadoTransferenciaCuadrilla, TipoProyecto,
+    ProyectoMaterialPendiente,
+)
 # ✅ IMPORTANTE: Agregamos ProyectoMaterialForm aquí abajo 👇
-from .forms import ProyectoForm, ProyectoMaterialForm 
+from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendienteForm
 
 # Importamos modelos del core
 from inventario.models import UserProfile
@@ -22,6 +27,22 @@ from inventario.models import UserProfile
 from .utils import render_to_pdf
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
+
+
+def _despachos_del_proyecto(proyecto):
+    """
+    Reconstruye, a partir de los documentos SAL reales, qué sede despachó
+    qué cantidad y quién retiró físicamente el material. Un proyecto/avería
+    puede recibir despachos de más de una sede (ej. Jauja + Huancayo).
+    """
+    return (
+        DocumentoInventario.objects
+        .filter(tipo=TipoDocumento.SAL, referencia=proyecto.codigo)
+        .select_related("sede", "retirado_por", "responsable")
+        .prefetch_related("items__producto")
+        .order_by("fecha")
+    )
+
 
 # ==========================================
 # 🎨 ZONA DEL DISEÑADOR / PLANIFICADOR
@@ -54,11 +75,12 @@ def proyecto_create(request):
             proyecto.creado_por = request.user
             # ✅ CORRECCIÓN: Nace en estado DISEÑO (Antes PENDIENTE)
             proyecto.estado = EstadoProyecto.DISENO
-            
-            # Generación de Código
+
+            # Generación de Código (prefijo distinto según tipo: OBRA / AVE)
+            prefijo = "AVE" if proyecto.tipo == TipoProyecto.AVERIA else "OBRA"
             year = datetime.date.today().year
-            ultimo_proyecto = Proyecto.objects.filter(codigo__startswith=f"OBRA-{year}").order_by('id').last()
-            
+            ultimo_proyecto = Proyecto.objects.filter(codigo__startswith=f"{prefijo}-{year}").order_by('id').last()
+
             if ultimo_proyecto:
                 try:
                     correlativo = int(ultimo_proyecto.codigo.split('-')[-1]) + 1
@@ -66,8 +88,8 @@ def proyecto_create(request):
                     correlativo = 1
             else:
                 correlativo = 1
-            
-            proyecto.codigo = f"OBRA-{year}-{correlativo:04d}"
+
+            proyecto.codigo = f"{prefijo}-{year}-{correlativo:04d}"
             proyecto.save()
             
             messages.success(request, f'Proyecto "{proyecto.nombre}" creado. Agrega los materiales.')
@@ -81,6 +103,34 @@ def proyecto_create(request):
 
 
 @login_required
+def proyecto_cambiar_tipo(request, proyecto_id):
+    """
+    Permite corregir la clasificación de un proyecto ya creado
+    (ej. se creó como "Proyecto" pero en realidad es una Avería).
+    """
+    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para cambiar el tipo de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if request.method != "POST":
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    nuevo_tipo = (request.POST.get("tipo") or "").strip().upper()
+
+    if nuevo_tipo not in TipoProyecto.values:
+        messages.error(request, "Tipo inválido.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    proyecto.tipo = nuevo_tipo
+    proyecto.save(update_fields=["tipo", "actualizado_en"])
+
+    messages.success(request, f"Clasificación actualizada a: {proyecto.get_tipo_display()}.")
+    return redirect("proyecto_detail", pk=proyecto.id)
+
+
+@login_required
 def proyecto_materiales(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
@@ -91,6 +141,24 @@ def proyecto_materiales(request, proyecto_id):
     if request.method == "POST":
         if not proyecto.puede_editar_materiales:
             messages.error(request, "No puedes editar materiales en este estado.")
+            return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+        if request.POST.get("accion") == "dejar_pendiente":
+            pendiente_form = ProyectoMaterialPendienteForm(request.POST)
+
+            if pendiente_form.is_valid():
+                pendiente = pendiente_form.save(commit=False)
+                pendiente.proyecto = proyecto
+                pendiente.creado_por = request.user
+                pendiente.save()
+                messages.success(
+                    request,
+                    f"Dejado pendiente: {pendiente.nombre_solicitado}. "
+                    f"Cuando almacén lo registre en el catálogo podrás vincularlo."
+                )
+            else:
+                messages.error(request, "Revisa el material pendiente: falta el nombre o la cantidad.")
+
             return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
         form = ProyectoMaterialForm(request.POST)
@@ -124,11 +192,17 @@ def proyecto_materiales(request, proyecto_id):
         form = ProyectoMaterialForm()
 
     materiales = proyecto.materiales.select_related("producto").all()
+    pendientes = proyecto.materiales_pendientes.filter(resuelto=False).select_related("creado_por")
+    pendiente_form = ProyectoMaterialPendienteForm()
+    productos_catalogo = Producto.objects.filter(activo=True).order_by("nombre")
 
     return render(request, "proyectos/materiales_form.html", {
         "proyecto": proyecto,
         "form": form,
         "materiales": materiales,
+        "pendientes": pendientes,
+        "pendiente_form": pendiente_form,
+        "productos_catalogo": productos_catalogo,
         "url_finalizar": "disenador_dashboard",
     })
 
@@ -146,6 +220,80 @@ def eliminar_material_proyecto(request, item_id):
     item.delete()
     messages.success(request, "Material eliminado.")
     return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+
+
+@login_required
+@transaction.atomic
+def proyecto_material_pendiente_vincular(request, pendiente_id):
+    """
+    Convierte un material 'dejado pendiente' en un ProyectoMaterial real,
+    una vez que Almacén ya registró el producto en el catálogo.
+    """
+    pendiente = get_object_or_404(
+        ProyectoMaterialPendiente.objects.select_related("proyecto"),
+        id=pendiente_id,
+    )
+    proyecto = pendiente.proyecto
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para vincular este material.")
+        return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+    if pendiente.resuelto:
+        messages.warning(request, "Este material pendiente ya fue vinculado.")
+        return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+    if not proyecto.puede_editar_materiales:
+        messages.error(request, "No puedes editar materiales en este estado.")
+        return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+    if request.method != "POST":
+        return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+    producto_id = request.POST.get("producto_id")
+    producto = get_object_or_404(Producto, id=producto_id, activo=True)
+
+    material, creado = ProyectoMaterial.objects.get_or_create(
+        proyecto=proyecto,
+        producto=producto,
+        defaults={
+            "cantidad_planificada": pendiente.cantidad_estimada,
+            "observacion_diseno": pendiente.nota,
+        },
+    )
+
+    if not creado:
+        material.cantidad_planificada += pendiente.cantidad_estimada
+        material.save(update_fields=["cantidad_planificada", "actualizado_en"])
+
+    pendiente.resuelto = True
+    pendiente.producto_vinculado = producto
+    pendiente.material_resultante = material
+    pendiente.resuelto_en = timezone.now()
+    pendiente.save(update_fields=[
+        "resuelto", "producto_vinculado", "material_resultante", "resuelto_en", "actualizado_en",
+    ])
+
+    messages.success(
+        request,
+        f"'{pendiente.nombre_solicitado}' vinculado a {producto.nombre}. "
+        f"Cantidad agregada a la lista de materiales."
+    )
+    return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+
+@login_required
+def proyecto_material_pendiente_eliminar(request, pendiente_id):
+    pendiente = get_object_or_404(ProyectoMaterialPendiente.objects.select_related("proyecto"), id=pendiente_id)
+    proyecto = pendiente.proyecto
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para eliminar este pendiente.")
+        return redirect("proyecto_materiales", proyecto_id=proyecto.id)
+
+    pendiente.delete()
+    messages.success(request, "Material pendiente eliminado.")
+    return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
 # ==========================================
 # 🌍 VISTAS GENERALES (Listado y Detalle)
@@ -173,14 +321,19 @@ def proyecto_detail(request, pk):
     proyecto = get_object_or_404(Proyecto, pk=pk)
     materiales = proyecto.materiales.select_related('producto').order_by('producto__nombre')
     tecnicos = proyecto.asignaciones_extra.filter(activo=True).select_related('tecnico')
+    pendientes = proyecto.materiales_pendientes.filter(resuelto=False)
 
     costo_total = sum(m.costo_total_real for m in materiales)
+
+    despachos = _despachos_del_proyecto(proyecto)
 
     return render(request, 'proyectos/detalle.html', {
         'proyecto': proyecto,
         'materiales': materiales,
         'tecnicos': tecnicos,
-        'costo_total': costo_total
+        'costo_total': costo_total,
+        'pendientes': pendientes,
+        'despachos': despachos,
     })
 
 
@@ -327,10 +480,26 @@ def almacen_generar_salida(request, proyecto_id):
         messages.success(request, "Todo entregado.")
         return redirect('almacen_proyecto_detalle', proyecto_id=proyecto.id)
 
+    tecnicos = (
+        User.objects
+        .filter(is_active=True, profile__rol=UserProfile.Rol.SOLICITANTE)
+        .select_related("profile")
+        .order_by("first_name", "last_name", "username")
+    )
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
                 notas_usuario = request.POST.get('notas', '').strip()
+                retirado_por_id = (request.POST.get('retirado_por_id') or '').strip()
+
+                # Por defecto, quien retira es el responsable del proyecto.
+                # Si otro técnico está sacando el material a su nombre
+                # (frecuente al cargar mochila), se elige aquí para que
+                # quede reflejado en el vale y en los reportes.
+                retirado_por = proyecto.responsable
+                if retirado_por_id:
+                    retirado_por = get_object_or_404(User, id=retirado_por_id, is_active=True)
 
                 observaciones = f"Salida para obra {proyecto.codigo} | Sede del proyecto: {proyecto.sede.nombre}"
 
@@ -349,6 +518,7 @@ def almacen_generar_salida(request, proyecto_id):
                     # Esta salida es para una obra/proyecto, no una transferencia.
                     responsable=request.user,
                     solicitante=proyecto.responsable,
+                    retirado_por=retirado_por,
                     referencia=proyecto.codigo,
                     observaciones=observaciones,
                 )
@@ -454,6 +624,7 @@ def almacen_generar_salida(request, proyecto_id):
         'proyecto': proyecto,
         'items': items_pendientes,
         'sede_despacho': sede_despacho,
+        'tecnicos': tecnicos,
     })
 
 @login_required
@@ -527,10 +698,11 @@ def eliminar_proyecto(request, pk):
 def proyecto_pdf_salida(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     materiales_entregados = [m for m in proyecto.materiales.all() if m.cantidad_entregada > 0]
-    
+
     return render(request, 'proyectos/pdf_vale_salida.html', {
         'proyecto': proyecto,
         'materiales': materiales_entregados,
+        'despachos': _despachos_del_proyecto(proyecto),
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
     })
@@ -687,6 +859,7 @@ def proyecto_pdf_liquidacion(request, proyecto_id):
         'proyecto': proyecto,
         'materiales': materiales,
         'total_consumido': total_consumido,
+        'despachos': _despachos_del_proyecto(proyecto),
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
     }

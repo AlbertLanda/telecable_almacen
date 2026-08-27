@@ -1,5 +1,5 @@
 from django import forms
-from .models import Proyecto, ProyectoMaterial
+from .models import Proyecto, ProyectoMaterial, ProyectoMaterialPendiente
 from inventario.models import UserProfile
 from django.contrib.auth.models import User
 
@@ -7,9 +7,10 @@ class ProyectoForm(forms.ModelForm):
     class Meta:
         model = Proyecto
         # ✅ CAMBIO: Quitamos 'codigo' y 'centro_costo' de aquí
-        fields = ['nombre', 'sede', 'responsable', 'plano', 'inicio', 'fin', 'descripcion']
-        
+        fields = ['tipo', 'nombre', 'sede', 'responsable', 'plano', 'inicio', 'fin', 'descripcion']
+
         widgets = {
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
             'inicio': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'fin': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Detalles técnicos...'}),
@@ -36,4 +37,25 @@ class ProyectoMaterialForm(forms.ModelForm):
         }
         labels = {
             'cantidad_planificada': 'Cantidad a Usar'
+        }
+
+class ProyectoMaterialPendienteForm(forms.ModelForm):
+    class Meta:
+        model = ProyectoMaterialPendiente
+        fields = ['nombre_solicitado', 'cantidad_estimada', 'nota']
+        widgets = {
+            'nombre_solicitado': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Cable drop 200m (no está en catálogo aún)',
+            }),
+            'cantidad_estimada': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'nota': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nota para almacén (opcional)',
+            }),
+        }
+        labels = {
+            'nombre_solicitado': 'Material que necesitas',
+            'cantidad_estimada': 'Cantidad estimada',
+            'nota': 'Nota para almacén',
         }

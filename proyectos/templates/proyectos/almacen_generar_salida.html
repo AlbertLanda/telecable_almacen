@@ -560,7 +560,7 @@
             </div>
 
             <div class="info-item text-end">
-                <label>Técnico receptor</label>
+                <label>Responsable del proyecto</label>
                 <div>
                     <i class='bx bxs-user-pin' style="color: var(--text-tertiary);"></i>
                     {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
@@ -592,7 +592,7 @@
                     <tr>
                         <td>
                             <span class="prod-name">{{ item.producto.nombre }}</span>
-                            <span class="prod-code">{{ item.producto.codigo_interno }}</span>
+                            <span class="prod-code">{{ item.producto.codigo_interno }} · {{ item.producto.unidad|default:"UND" }}</span>
                         </td>
 
                         <td class="text-center" data-label="Stock {{ sede_despacho.nombre }}">
@@ -652,6 +652,23 @@
             </table>
 
             <div class="notes-section">
+                <label style="color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">
+                    Técnico que retira el material
+                </label>
+
+                <select name="retirado_por_id" class="notes-input" style="margin-bottom: 8px;">
+                    <option value="">Mismo responsable del proyecto ({{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }})</option>
+                    {% for t in tecnicos %}
+                        <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                    {% endfor %}
+                </select>
+
+                <p style="font-size: 11px; color: var(--text-tertiary); margin: 0 0 16px;">
+                    <i class='bx bx-info-circle'></i>
+                    Si el responsable retira personalmente, deja la opción de arriba.
+                    Si otro técnico está sacando el material a su nombre (frecuente al cargar mochila), selecciónalo aquí.
+                </p>
+
                 <label style="color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">
                     Notas de despacho (opcional)
                 </label>

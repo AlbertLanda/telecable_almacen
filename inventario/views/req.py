@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
@@ -25,6 +27,7 @@ from inventario.models import (
     ItemSerializado,
     DocumentoItem,
     DocumentoItemSerializado,
+    Categoria,
 )
 
 from inventario.services.req_service import (
@@ -388,7 +391,8 @@ def req_home_almacen(request):
             ])
 
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
-    
+    categorias = Categoria.objects.all().order_by("nombre") if sede.tipo == Sede.CENTRAL else Categoria.objects.none()
+
     return render(
         request,
         "inventario/req_home_almacen.html",
@@ -400,6 +404,7 @@ def req_home_almacen(request):
             "proveedores": proveedores,
             "sede_central": central,
             "sedes_central": Sede.objects.filter(tipo=Sede.CENTRAL, activo=True),
+            "categorias": categorias,
         },
     )
 
@@ -608,6 +613,92 @@ def req_add_producto(request):
 
     except Exception as e:
         if _is_ajax(request): return JsonResponse({"ok": False, "error": str(e)}, status=403)
+        return redirect("/req/")
+
+
+@require_POST
+@login_required
+def req_crear_producto_proveedor(request):
+    """
+    Registra un producto que todavía no existe en el catálogo y lo agrega
+    de una vez al carrito del pedido a proveedor. Solo lo puede usar la sede
+    CENTRAL (Jauja): es la única que compra directo a proveedores.
+
+    A diferencia de "carga inicial", este producto se crea SIN stock: el
+    stock real entra recién cuando se recepcione la compra, con su
+    trazabilidad normal (número de compra, costo, fecha, seriales si aplica).
+    """
+    try:
+        _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+        sede = _get_sede_operativa(request.user)
+        ubicacion = _get_ubicacion_operativa(request.user)
+
+        if sede.tipo != Sede.CENTRAL:
+            raise PermissionDenied("Solo la sede CENTRAL puede registrar productos nuevos para compra a proveedor.")
+
+        nombre = (request.POST.get("nombre") or "").strip()
+        if not nombre:
+            raise ValidationError("El nombre del producto es obligatorio.")
+
+        categoria_id = request.POST.get("categoria_id") or None
+        categoria = Categoria.objects.filter(id=categoria_id).first() if categoria_id else None
+
+        barcode = normalizar_codigo_barras(request.POST.get("barcode") or "") or None
+        unidad = (request.POST.get("unidad") or "UND").strip().upper()
+        es_serializado = bool(request.POST.get("es_serializado"))
+        es_activo = bool(request.POST.get("es_activo"))
+
+        try:
+            costo_unitario = Decimal(request.POST.get("costo_unitario") or "0.00")
+        except InvalidOperation:
+            raise ValidationError("Costo unitario inválido.")
+
+        try:
+            stock_minimo = int(request.POST.get("stock_minimo") or 0)
+        except ValueError:
+            raise ValidationError("Stock mínimo inválido.")
+
+        try:
+            cantidad = int(request.POST.get("cantidad") or 1)
+        except ValueError:
+            cantidad = 1
+        if cantidad <= 0:
+            cantidad = 1
+
+        with transaction.atomic():
+            producto = Producto(
+                nombre=nombre,
+                categoria=categoria,
+                barcode=barcode,
+                unidad=unidad,
+                costo_unitario=costo_unitario,
+                stock_minimo=stock_minimo,
+                es_serializado=es_serializado,
+                es_activo=es_activo,
+                activo=True,
+            )
+            producto.full_clean()
+            producto.save()
+
+            req = _get_req_carrito_segun_origen(request, ubicacion)
+            add_item_to_req(user=request.user, req=req, producto=producto, cantidad=cantidad)
+
+        if _is_ajax(request):
+            return JsonResponse({
+                "ok": True,
+                "message": f"Producto {producto.nombre} registrado y agregado al pedido.",
+                "items": _serialize_cart(req),
+            })
+        return redirect("/req/")
+
+    except (ValidationError, PermissionDenied) as e:
+        error = "; ".join(e.messages) if hasattr(e, "messages") else str(e)
+        if _is_ajax(request): return JsonResponse({"ok": False, "error": error}, status=400)
+        messages.error(request, error)
+        return redirect("/req/")
+    except Exception as e:
+        if _is_ajax(request): return JsonResponse({"ok": False, "error": str(e)}, status=400)
+        messages.error(request, str(e))
         return redirect("/req/")
 
 

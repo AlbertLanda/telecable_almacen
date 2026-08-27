@@ -117,7 +117,7 @@
 
         <div class="info-grid">
             <div class="col">
-                <div class="info-row"><label>CÓDIGO OBRA:</label> <span>{{ proyecto.codigo }}</span></div>
+                <div class="info-row"><label>CÓDIGO {% if proyecto.tipo == 'AVERIA' %}AVERÍA{% else %}OBRA{% endif %}:</label> <span>{{ proyecto.codigo }}</span></div>
                 <div class="info-row"><label>PROYECTO:</label> <span>{{ proyecto.nombre }}</span></div>
                 <div class="info-row"><label>SEDE:</label> <span>{{ proyecto.sede.nombre }}</span></div>
             </div>
@@ -127,6 +127,35 @@
                 <div class="info-row"><label>ESTADO:</label> <span>{{ proyecto.get_estado_display }}</span></div>
             </div>
         </div>
+
+        {% if despachos %}
+            <table style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th>VALE</th>
+                        <th>SEDE QUE DESPACHÓ</th>
+                        <th>TÉCNICO QUE RETIRÓ</th>
+                        <th>FECHA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in despachos %}
+                        <tr>
+                            <td class="text-center">{{ doc.numero|default:"BORRADOR" }}</td>
+                            <td class="text-center">{{ doc.sede.nombre }}</td>
+                            <td class="text-center">
+                                {% if doc.retirado_por %}
+                                    {{ doc.retirado_por.get_full_name|default:doc.retirado_por.username|upper }}
+                                {% else %}
+                                    {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ doc.fecha|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
 
         <table>
             <thead>

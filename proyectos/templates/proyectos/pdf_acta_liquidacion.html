@@ -173,6 +173,35 @@
             </div>
         </div>
 
+        {% if despachos %}
+            <table style="margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th class="left">VALE</th>
+                        <th>SEDE QUE DESPACHÓ</th>
+                        <th>TÉCNICO QUE RETIRÓ</th>
+                        <th>FECHA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in despachos %}
+                        <tr>
+                            <td class="left">{{ doc.numero|default:"BORRADOR" }}</td>
+                            <td>{{ doc.sede.nombre }}</td>
+                            <td>
+                                {% if doc.retirado_por %}
+                                    {{ doc.retirado_por.get_full_name|default:doc.retirado_por.username|upper }}
+                                {% else %}
+                                    {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username|upper }}
+                                {% endif %}
+                            </td>
+                            <td>{{ doc.fecha|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
         <table>
             <thead>
                 <tr>
