@@ -34,6 +34,7 @@ from .views.req import (
     req_convert_to_sal,
     req_catalogo,
     req_add_producto,
+    req_crear_producto_proveedor,
     req_carrito,
     req_set_qty,
     req_remove_producto,
@@ -135,6 +136,7 @@ urlpatterns = [
     path("req/catalogo/", req_catalogo, name="req_catalogo"),
     path("req/carrito/", req_carrito, name="req_carrito"),
     path("req/add-producto/", req_add_producto, name="req_add_producto"),
+    path("req/crear-producto/", req_crear_producto_proveedor, name="req_crear_producto_proveedor"),
     path("req/set-qty/", req_set_qty, name="req_set_qty"),
     path("req/remove-producto/", req_remove_producto, name="req_remove_producto"),
 
@@ -160,6 +162,7 @@ urlpatterns = [
     path("dashboard/almacen/req/catalogo/", req_catalogo, name="req_catalogo_almacen"),
     path("dashboard/almacen/req/carrito/", req_carrito, name="req_carrito_almacen"),
     path("dashboard/almacen/req/add-producto/", req_add_producto, name="req_add_producto_almacen"),
+    path("dashboard/almacen/req/crear-producto/", req_crear_producto_proveedor, name="req_crear_producto_proveedor_almacen"),
     path("dashboard/almacen/req/set-qty/", req_set_qty, name="req_set_qty_almacen"),
     path("dashboard/almacen/req/remove-producto/", req_remove_producto, name="req_remove_producto_almacen"),
     path("dashboard/almacen/req/<int:req_id>/enviar/", req_enviar, name="req_enviar_almacen"),
