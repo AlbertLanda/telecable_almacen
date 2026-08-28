@@ -1113,7 +1113,9 @@ def req_set_tipo(request):
             return JsonResponse({"ok": False, "error": "No se encontró ningún borrador activo para guardar."})
 
         tipo = request.POST.get("tipo_requerimiento")
-        
+        observaciones = request.POST.get("observaciones", "").strip()
+        req_borrador.observaciones = observaciones
+
         if tipo == "PROVEEDOR":
             nombre_prov = request.POST.get("proveedor_manual", "").strip()
             if not nombre_prov:
@@ -1155,6 +1157,7 @@ def req_set_tipo(request):
                     "sede_destino",
                     "proveedor_manual",
                     "proveedor",
+                    "observaciones",
                 ])
 
             else:
@@ -1175,6 +1178,7 @@ def req_set_tipo(request):
                     "sede_destino",
                     "proveedor_manual",
                     "proveedor",
+                    "observaciones",
                 ])
 
         return JsonResponse({"ok": True})

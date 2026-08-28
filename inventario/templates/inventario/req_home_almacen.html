@@ -1033,6 +1033,16 @@
                         <span>Esta solicitud será enviada automáticamente al almacén central para atención.</span>
                     {% endif %}
                 </p>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label" for="txtObservaciones">Observaciones generales (opcional)</label>
+                    <textarea
+                        id="txtObservaciones"
+                        class="input-clean"
+                        style="min-height: 80px; padding-top: 12px !important; resize: vertical;"
+                        placeholder="Ej: Factura Electrónica N° FA01-0003752..."
+                    >{{ req.observaciones|default:'' }}</textarea>
+                </div>
             </div>
 
             <section class="materials-panel">
@@ -1276,6 +1286,9 @@
 
             const inputProveedor = document.getElementById("txtProveedor");
             const selectDestino = document.getElementById("selDestino");
+            const inputObservaciones = document.getElementById("txtObservaciones");
+
+            fd.append("observaciones", inputObservaciones ? inputObservaciones.value.trim() : "");
 
             if (sedeTipo === "CENTRAL" || inputProveedor) {
                 const provNombre = inputProveedor ? inputProveedor.value.trim() : "";
