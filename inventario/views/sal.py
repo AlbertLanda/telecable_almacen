@@ -56,8 +56,8 @@ def sal_detail(request, sal_id: int):
                 producto=it.producto,
                 asignado_a=sal.solicitante,
                 estado=ItemSerializado.Estado.ASIGNADO
-            ).values_list('serial', flat=True)
-            
+            ).values('serial', 'codigo_trazabilidad')
+
             if seriales:
                 it.lista_series = list(seriales)
 

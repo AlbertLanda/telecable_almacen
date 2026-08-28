@@ -67,11 +67,17 @@
         margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;
     }
     .serial-badge {
-        background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.2); 
-        color: var(--primary); font-family: monospace; font-size: 12px; 
+        background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.2);
+        color: var(--primary); font-family: monospace; font-size: 12px;
         padding: 4px 10px; border-radius: 8px; font-weight: 600;
-        display: inline-flex; align-items: center; gap: 4px;
+        display: inline-flex; align-items: center; gap: 6px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .trace-badge {
+        background: #fff7ed; border: 1px solid #fed7aa;
+        color: #c2410c; font-size: 12px; font-weight: 900;
+        padding: 1px 7px; border-radius: 6px;
     }
 
     /* Caja de Recepción (Call to Action) */
@@ -195,7 +201,10 @@
                                 <div class="serial-container">
                                     {% for sn in it.lista_series %}
                                         <span class="serial-badge">
-                                            <i class='bx bx-barcode'></i> {{ sn }}
+                                            {% if sn.codigo_trazabilidad %}
+                                                <span class="trace-badge">{{ sn.codigo_trazabilidad }}</span>
+                                            {% endif %}
+                                            <i class='bx bx-barcode'></i> {{ sn.serial }}
                                         </span>
                                     {% endfor %}
                                 </div>
