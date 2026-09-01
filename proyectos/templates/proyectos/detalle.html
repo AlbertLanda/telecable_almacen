@@ -1321,7 +1321,7 @@
             {% endif %}
 
             {% if proyecto.estado == 'APROBADO' or proyecto.estado == 'EN_PROCESO' %}
-                {% if request.user == proyecto.responsable or request.user.is_superuser or request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
+                {% if request.user == proyecto.responsable or request.user.profile.rol == 'ADMIN' or request.user.profile.rol == 'JEFA' %}
                     <a href="{% url 'proyecto_asignar_cuadrilla' proyecto.id %}" class="btn-pex primary">
                         <i class='bx bx-transfer-alt'></i>
                         Asignar a técnico

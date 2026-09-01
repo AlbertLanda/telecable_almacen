@@ -1037,8 +1037,7 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
     )
 
     puede_asignar = (
-        request.user.is_superuser
-        or request.user == proyecto.responsable
+        request.user == proyecto.responsable
         or getattr(getattr(request.user, "profile", None), "rol", None) in ["ADMIN", "JEFA"]
     )
 
