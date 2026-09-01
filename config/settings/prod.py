@@ -1,4 +1,5 @@
 from .base import *
+from pathlib import Path
 import dj_database_url
 import os
 
@@ -50,6 +51,14 @@ if os.getenv("AZURE_ACCOUNT_NAME"):
     AZURE_URL_EXPIRATION_SECS = None  # Para que los links no caduquen (públicos)
     AZURE_CUSTOM_DOMAIN = f"{AZURE_ACCOUNT_NAME}.blob.core.windows.net"
     MEDIA_URL = f"https://{AZURE_CUSTOM_DOMAIN}/{AZURE_CONTAINER}/"
+else:
+    # Sin Blob Storage configurado: usamos el disco persistente de Azure
+    # App Service (/home) en vez de la carpeta del proyecto. Todo lo que
+    # está dentro de /home/site/wwwroot se reemplaza en cada deploy, pero
+    # /home en sí es un disco compartido (Azure Files) que sobrevive a
+    # despliegues y reinicios. Requiere WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
+    # en las Application Settings del App Service.
+    MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT_PATH", "/home/media"))
 
 # 6. CSRF
 # Importante: Agrega tu dominio de Azure aquí cuando lo tengas
