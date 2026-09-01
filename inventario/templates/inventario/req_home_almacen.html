@@ -1125,6 +1125,78 @@
         </div>
 
     </div>
+
+    <section class="materials-panel">
+        <div class="materials-header">
+            <div class="materials-title">
+                <i class='bx bx-history'></i>
+
+                <div>
+                    <h2>Mis solicitudes enviadas</h2>
+                    <span>
+                        {% if sede.tipo == "CENTRAL" %}
+                            Historial de órdenes de compra generadas por esta sede.
+                        {% else %}
+                            Historial de requerimientos enviados al almacén central. Aquí puedes verificar si se enviaron correctamente.
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% if historial_enviados %}
+            <div class="item-list" style="border-top: 1px solid var(--req-border);">
+                {% for h in historial_enviados %}
+                    <div class="item-row">
+                        <div style="min-width:0;">
+                            <div class="item-name">
+                                {{ h.numero|default:"(Sin número)" }}
+
+                                {% if h.estado == "REQ_PENDIENTE" %}
+                                    <span class="pill pill-orange" style="margin-left:8px;">Pendiente</span>
+                                {% elif h.estado == "REQ_ATENDIDO" %}
+                                    <span class="pill pill-green" style="margin-left:8px;">Atendido</span>
+                                {% elif h.estado == "REQ_RECHAZADO" or h.estado == "ANULADO" %}
+                                    <span class="pill" style="margin-left:8px; background:var(--req-danger-soft); color:var(--req-danger); border-color:rgba(220,38,38,.20);">
+                                        {{ h.get_estado_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="pill" style="margin-left:8px; background:var(--req-soft); color:var(--req-text); border:1px solid var(--req-border);">
+                                        {{ h.get_estado_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="item-meta">
+                                <i class='bx bx-calendar'></i>
+                                <span>{{ h.fecha|date:"d/m/Y H:i" }}</span>
+                                <span style="opacity:.35;">|</span>
+                                <span>{{ h.total_items }} ítem{{ h.total_items|pluralize }}</span>
+                                {% if h.observaciones %}
+                                    <span style="opacity:.35;">|</span>
+                                    <span title="{{ h.observaciones }}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px; display:inline-block; vertical-align:bottom;">
+                                        <i class='bx bx-note'></i> {{ h.observaciones }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="item-actions">
+                            <a href="{% url 'req_print' h.id %}" target="_blank" class="btn-back">
+                                <i class='bx bx-printer'></i>
+                                Ver / Imprimir
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-box">
+                <i class='bx bx-inbox'></i>
+                <p>Todavía no has enviado ninguna solicitud.</p>
+            </div>
+        {% endif %}
+    </section>
 </div>
 
 {% if sede.tipo == "CENTRAL" %}
