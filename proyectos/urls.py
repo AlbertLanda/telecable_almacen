@@ -21,6 +21,9 @@ urlpatterns = [
     # Acción: corregir la clasificación Proyecto <-> Avería
     path('<int:proyecto_id>/cambiar-tipo/', views.proyecto_cambiar_tipo, name='proyecto_cambiar_tipo'),
 
+    # Acción: subir o reemplazar el plano PDF de un proyecto ya creado
+    path('<int:proyecto_id>/plano/', views.proyecto_reemplazar_plano, name='proyecto_reemplazar_plano'),
+
     # 3. Paso 2: Gestionar la "Receta" de Materiales (Agregar/Listar)
     path('<int:proyecto_id>/materiales/', views.proyecto_materiales, name='proyecto_materiales'),
 

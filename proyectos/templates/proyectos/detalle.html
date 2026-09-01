@@ -1609,6 +1609,38 @@
                             Ver plano completo
                         </a>
                     </div>
+
+                    {% if proyecto.puede_editar_materiales and request.user == proyecto.creado_por or proyecto.puede_editar_materiales and request.user.is_superuser %}
+                        <form action="{% url 'proyecto_reemplazar_plano' proyecto.id %}" method="POST" enctype="multipart/form-data" style="margin-top:12px;">
+                            {% csrf_token %}
+                            <input type="file" name="plano" accept="application/pdf" required style="width:100%; margin-bottom:8px;">
+                            <button type="submit" class="btn-pex ghost" style="width:100%;">
+                                <i class='bx bx-upload'></i>
+                                Reemplazar plano
+                            </button>
+                        </form>
+                    {% endif %}
+                </section>
+            {% elif proyecto.puede_editar_materiales and request.user == proyecto.creado_por or proyecto.puede_editar_materiales and request.user.is_superuser %}
+                <section class="pex-panel" style="margin-bottom:18px;">
+                    <div class="panel-head">
+                        <div class="panel-title">
+                            <h3>
+                                <i class='bx bxs-map-alt'></i>
+                                Plano de obra
+                            </h3>
+                            <span>Todavía no se ha subido un plano para este proyecto.</span>
+                        </div>
+                    </div>
+
+                    <form action="{% url 'proyecto_reemplazar_plano' proyecto.id %}" method="POST" enctype="multipart/form-data" style="padding:0 20px 20px;">
+                        {% csrf_token %}
+                        <input type="file" name="plano" accept="application/pdf" required style="width:100%; margin-bottom:8px;">
+                        <button type="submit" class="btn-pex primary" style="width:100%;">
+                            <i class='bx bx-upload'></i>
+                            Subir plano
+                        </button>
+                    </form>
                 </section>
             {% endif %}
 

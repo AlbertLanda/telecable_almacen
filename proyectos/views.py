@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -127,6 +128,40 @@ def proyecto_cambiar_tipo(request, proyecto_id):
     proyecto.save(update_fields=["tipo", "actualizado_en"])
 
     messages.success(request, f"Clasificación actualizada a: {proyecto.get_tipo_display()}.")
+    return redirect("proyecto_detail", pk=proyecto.id)
+
+
+@login_required
+@require_POST
+def proyecto_reemplazar_plano(request, proyecto_id):
+    """
+    Permite al diseñador subir o reemplazar el plano PDF de un proyecto
+    ya creado, mientras el proyecto siga abierto.
+    """
+    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para modificar el plano de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.puede_editar_materiales:
+        messages.error(request, "No puedes modificar el plano de un proyecto finalizado o anulado.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    nuevo_plano = request.FILES.get("plano")
+
+    if not nuevo_plano:
+        messages.error(request, "Selecciona un archivo PDF para subir.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not nuevo_plano.name.lower().endswith(".pdf"):
+        messages.error(request, "El plano debe ser un archivo PDF.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    proyecto.plano = nuevo_plano
+    proyecto.save(update_fields=["plano", "actualizado_en"])
+
+    messages.success(request, "Plano actualizado correctamente.")
     return redirect("proyecto_detail", pk=proyecto.id)
 
 
