@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from inventario.models import Stock
 
@@ -393,6 +393,15 @@ def req_home_almacen(request):
     proveedores = Proveedor.objects.filter(activo=True).order_by("razon_social")
     categorias = Categoria.objects.all().order_by("nombre") if sede.tipo == Sede.CENTRAL else Categoria.objects.none()
 
+    historial_enviados = (
+        DocumentoInventario.objects
+        .filter(sede=sede, tipo=TipoDocumento.REQ, tipo_requerimiento=tipo_req)
+        .exclude(id=req.id)
+        .exclude(estado=EstadoDocumento.REQ_BORRADOR)
+        .annotate(total_items=Count("items"))
+        .order_by("-fecha")[:20]
+    )
+
     return render(
         request,
         "inventario/req_home_almacen.html",
@@ -405,6 +414,7 @@ def req_home_almacen(request):
             "sede_central": central,
             "sedes_central": Sede.objects.filter(tipo=Sede.CENTRAL, activo=True),
             "categorias": categorias,
+            "historial_enviados": historial_enviados,
         },
     )
 

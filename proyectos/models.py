@@ -71,7 +71,7 @@ class Proyecto(TimeStampedModel):
         help_text="Plano enviado por el diseñador.",
     )
 
-    # Roles del flujo PEX
+    # Roles del proyecto
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -83,8 +83,8 @@ class Proyecto(TimeStampedModel):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="proyectos_asignados",
-        verbose_name="Responsable PEX",
-        help_text="Encargado PEX que revisa, aprueba y recibe materiales.",
+        verbose_name="Técnico Responsable",
+        help_text="Técnico responsable de recibir y usar los materiales del proyecto, como su mochila semanal.",
         null=True,
         blank=True,
     )
@@ -98,7 +98,8 @@ class Proyecto(TimeStampedModel):
     inicio = models.DateTimeField(default=timezone.now)
     fin = models.DateTimeField(null=True, blank=True)
 
-    # Trazabilidad del ping-pong John ↔ Jilmer
+    # Trazabilidad histórica (se conserva por proyectos antiguos que sí
+    # pasaron por el flujo de revisión/aprobación manual).
     fecha_envio_revision = models.DateTimeField(null=True, blank=True)
     fecha_aprobacion = models.DateTimeField(null=True, blank=True)
     fecha_observacion = models.DateTimeField(null=True, blank=True)
@@ -106,7 +107,7 @@ class Proyecto(TimeStampedModel):
     observacion_rechazo = models.TextField(
         blank=True,
         default="",
-        help_text="Feedback del responsable PEX al observar el proyecto.",
+        help_text="Feedback del responsable al observar el proyecto.",
     )
 
     class Meta:
@@ -148,9 +149,9 @@ class Proyecto(TimeStampedModel):
 
     @property
     def puede_editar_materiales(self):
-        return self.estado in [
-            EstadoProyecto.DISENO,
-            EstadoProyecto.OBSERVADO,
+        return self.estado not in [
+            EstadoProyecto.FINALIZADO,
+            EstadoProyecto.ANULADO,
         ]
 
     @property
@@ -232,7 +233,7 @@ class ProyectoMaterial(TimeStampedModel):
         max_length=255,
         blank=True,
         default="",
-        help_text="Nota del responsable PEX sobre este material.",
+        help_text="Nota del responsable sobre este material.",
     )
 
     class Meta:

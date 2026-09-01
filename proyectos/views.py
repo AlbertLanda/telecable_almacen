@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -127,6 +128,40 @@ def proyecto_cambiar_tipo(request, proyecto_id):
     proyecto.save(update_fields=["tipo", "actualizado_en"])
 
     messages.success(request, f"Clasificación actualizada a: {proyecto.get_tipo_display()}.")
+    return redirect("proyecto_detail", pk=proyecto.id)
+
+
+@login_required
+@require_POST
+def proyecto_reemplazar_plano(request, proyecto_id):
+    """
+    Permite al diseñador subir o reemplazar el plano PDF de un proyecto
+    ya creado, mientras el proyecto siga abierto.
+    """
+    proyecto = get_object_or_404(Proyecto, id=proyecto_id)
+
+    if request.user != proyecto.creado_por and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para modificar el plano de este proyecto.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not proyecto.puede_editar_materiales:
+        messages.error(request, "No puedes modificar el plano de un proyecto finalizado o anulado.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    nuevo_plano = request.FILES.get("plano")
+
+    if not nuevo_plano:
+        messages.error(request, "Selecciona un archivo PDF para subir.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    if not nuevo_plano.name.lower().endswith(".pdf"):
+        messages.error(request, "El plano debe ser un archivo PDF.")
+        return redirect("proyecto_detail", pk=proyecto.id)
+
+    proyecto.plano = nuevo_plano
+    proyecto.save(update_fields=["plano", "actualizado_en"])
+
+    messages.success(request, "Plano actualizado correctamente.")
     return redirect("proyecto_detail", pk=proyecto.id)
 
 
@@ -787,12 +822,12 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                             documento=doc_ing,
                             producto=m.producto,
                             cantidad=good,
-                            observacion="Retorno de obra PEX",
+                            observacion="Retorno de obra",
                         )
 
                         hubo_buenos = True
 
-                    # ✅ CLAVE: limpiar mochila del responsable PEX
+                    # ✅ CLAVE: limpiar mochila del responsable
                     # Todo lo entregado para la obra queda cerrado por acta:
                     # bueno devuelto + merma + consumido.
                     stock_tecnico = StockTecnico.objects.filter(
@@ -897,31 +932,36 @@ def proyecto_enviar_a_revision(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.creado_por and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso para enviar este proyecto a revisión.")
+        messages.error(request, "No tienes permiso para aprobar este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.responsable:
-        messages.error(request, "Debes asignar un responsable PEX antes de enviar a revisión.")
+        messages.error(request, "Debes asignar un técnico responsable antes de enviar a despacho.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.puede_enviar_a_revision:
-        messages.error(request, "El proyecto no está listo para enviarse a revisión.")
+        messages.error(request, "El proyecto no está listo para enviarse a despacho.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
-    proyecto.estado = EstadoProyecto.REVISION_TECNICA
-    proyecto.fecha_envio_revision = timezone.now()
+    # Ya no existe el paso de aprobación manual por parte del responsable:
+    # al enviarlo, el proyecto queda aprobado y disponible para que almacén despache.
+    ahora = timezone.now()
+    proyecto.estado = EstadoProyecto.APROBADO
+    proyecto.fecha_envio_revision = ahora
+    proyecto.fecha_aprobacion = ahora
     proyecto.fecha_observacion = None
     proyecto.observacion_rechazo = ""
     proyecto.save(update_fields=[
         "estado",
         "fecha_envio_revision",
+        "fecha_aprobacion",
         "fecha_observacion",
         "observacion_rechazo",
     ])
 
     messages.success(
         request,
-        f"Proyecto enviado a revisión técnica de {proyecto.responsable.get_full_name() or proyecto.responsable.username}.",
+        f"✅ Proyecto {proyecto.codigo} aprobado. Almacén ya puede despachar materiales.",
     )
     return redirect("disenador_dashboard")
 
@@ -931,7 +971,7 @@ def proyecto_aprobar_tecnico(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "Solo el responsable PEX puede aprobar este proyecto.")
+        messages.error(request, "Solo el responsable puede aprobar este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.puede_aprobar_pex:
@@ -997,8 +1037,7 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
     )
 
     puede_asignar = (
-        request.user.is_superuser
-        or request.user == proyecto.responsable
+        request.user == proyecto.responsable
         or getattr(getattr(request.user, "profile", None), "rol", None) in ["ADMIN", "JEFA"]
     )
 

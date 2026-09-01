@@ -155,6 +155,8 @@
                     <span style="color: var(--primary); font-weight: 600;">En Diseño</span>
                 {% elif proyecto.estado == 'OBSERVADO' %}
                     <span style="color: var(--danger); font-weight: 600;">Observado (Corregir)</span>
+                {% elif proyecto.puede_editar_materiales %}
+                    <span style="color: var(--success); font-weight: 600;"><i class='bx bx-check-circle'></i> Aprobado — puedes seguir agregando materiales</span>
                 {% else %}
                     <span style="color: var(--text-secondary);"><i class='bx bx-lock'></i> Lectura</span>
                 {% endif %}
@@ -180,7 +182,7 @@
     <div class="side-panel">
         <div class="sp-title"><i class='bx bx-plus-circle'></i> Agregar Material</div>
         
-        {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+        {% if proyecto.puede_editar_materiales %}
             <form method="post">
                 {% csrf_token %}
                 <div style="margin-bottom: 15px;">
@@ -235,7 +237,7 @@
             <div style="text-align: center; padding: 30px; opacity: 0.6;">
                 <i class='bx bx-lock-alt' style="font-size: 32px; color: var(--text-secondary);"></i>
                 <p style="margin-top: 10px; font-size: 13px; color: var(--text-secondary);">
-                    Proyecto en revisión o ejecución.<br>No se pueden agregar ítems.
+                    Proyecto finalizado o anulado.<br>No se pueden agregar más ítems.
                 </p>
             </div>
         {% endif %}
@@ -333,7 +335,7 @@
                     </div>
 
                     <div class="pendiente-actions">
-                        {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
+                        {% if proyecto.puede_editar_materiales %}
                             <form method="POST" action="{% url 'proyecto_material_pendiente_vincular' p.id %}" style="display:flex; align-items:center; gap:8px;">
                                 {% csrf_token %}
                                 <select name="producto_id" required>
