@@ -905,23 +905,28 @@ def proyecto_enviar_a_revision(request, proyecto_id):
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.puede_enviar_a_revision:
-        messages.error(request, "El proyecto no está listo para enviarse a revisión.")
+        messages.error(request, "El proyecto no está listo para enviarse a despacho.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
-    proyecto.estado = EstadoProyecto.REVISION_TECNICA
-    proyecto.fecha_envio_revision = timezone.now()
+    # Ya no existe el paso de aprobación manual por parte del responsable PEX:
+    # al enviarlo, el proyecto queda aprobado y disponible para que almacén despache.
+    ahora = timezone.now()
+    proyecto.estado = EstadoProyecto.APROBADO
+    proyecto.fecha_envio_revision = ahora
+    proyecto.fecha_aprobacion = ahora
     proyecto.fecha_observacion = None
     proyecto.observacion_rechazo = ""
     proyecto.save(update_fields=[
         "estado",
         "fecha_envio_revision",
+        "fecha_aprobacion",
         "fecha_observacion",
         "observacion_rechazo",
     ])
 
     messages.success(
         request,
-        f"Proyecto enviado a revisión técnica de {proyecto.responsable.get_full_name() or proyecto.responsable.username}.",
+        f"✅ Proyecto {proyecto.codigo} aprobado. Almacén ya puede despachar materiales.",
     )
     return redirect("disenador_dashboard")
 

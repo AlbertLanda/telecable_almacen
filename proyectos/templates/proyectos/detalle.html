@@ -1291,7 +1291,7 @@
             <span class="action-title">Acciones disponibles</span>
 
             {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
-                <span class="action-subtitle">El diseñador puede editar materiales y enviar a revisión.</span>
+                <span class="action-subtitle">El diseñador puede editar materiales y aprobar el proyecto para despacho.</span>
             {% elif proyecto.estado == 'REVISION_TECNICA' %}
                 <span class="action-subtitle">El responsable PEX debe aprobar u observar el proyecto.</span>
             {% elif proyecto.estado == 'APROBADO' %}
@@ -1312,8 +1312,8 @@
                     </a>
 
                     <a href="{% url 'proyecto_enviar_revision' proyecto.id %}" class="btn-pex primary">
-                        <i class='bx bx-send'></i>
-                        Enviar a revisión
+                        <i class='bx bx-check-double'></i>
+                        Aprobar y enviar a despacho
                     </a>
                 {% endif %}
             {% endif %}

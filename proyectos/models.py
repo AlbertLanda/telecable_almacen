@@ -148,9 +148,9 @@ class Proyecto(TimeStampedModel):
 
     @property
     def puede_editar_materiales(self):
-        return self.estado in [
-            EstadoProyecto.DISENO,
-            EstadoProyecto.OBSERVADO,
+        return self.estado not in [
+            EstadoProyecto.FINALIZADO,
+            EstadoProyecto.ANULADO,
         ]
 
     @property
