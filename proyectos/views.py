@@ -822,12 +822,12 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                             documento=doc_ing,
                             producto=m.producto,
                             cantidad=good,
-                            observacion="Retorno de obra PEX",
+                            observacion="Retorno de obra",
                         )
 
                         hubo_buenos = True
 
-                    # ✅ CLAVE: limpiar mochila del responsable PEX
+                    # ✅ CLAVE: limpiar mochila del responsable
                     # Todo lo entregado para la obra queda cerrado por acta:
                     # bueno devuelto + merma + consumido.
                     stock_tecnico = StockTecnico.objects.filter(
@@ -932,18 +932,18 @@ def proyecto_enviar_a_revision(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.creado_por and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso para enviar este proyecto a revisión.")
+        messages.error(request, "No tienes permiso para aprobar este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.responsable:
-        messages.error(request, "Debes asignar un responsable PEX antes de enviar a revisión.")
+        messages.error(request, "Debes asignar un técnico responsable antes de enviar a despacho.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.puede_enviar_a_revision:
         messages.error(request, "El proyecto no está listo para enviarse a despacho.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
-    # Ya no existe el paso de aprobación manual por parte del responsable PEX:
+    # Ya no existe el paso de aprobación manual por parte del responsable:
     # al enviarlo, el proyecto queda aprobado y disponible para que almacén despache.
     ahora = timezone.now()
     proyecto.estado = EstadoProyecto.APROBADO
@@ -971,7 +971,7 @@ def proyecto_aprobar_tecnico(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
     if request.user != proyecto.responsable and not request.user.is_superuser:
-        messages.error(request, "Solo el responsable PEX puede aprobar este proyecto.")
+        messages.error(request, "Solo el responsable puede aprobar este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
     if not proyecto.puede_aprobar_pex:

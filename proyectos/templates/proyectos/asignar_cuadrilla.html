@@ -518,7 +518,7 @@
         <div>
             <div class="pex-badge">
                 <i class='bx bx-transfer-alt'></i>
-                Entrega PEX a técnicos
+                Entrega a técnicos
             </div>
 
             <h1 class="pex-title">{{ proyecto.nombre }}</h1>
@@ -526,7 +526,7 @@
             <span class="pex-code">{{ proyecto.codigo }}</span>
 
             <p class="pex-desc">
-                Registra la entrega de materiales desde el responsable PEX hacia técnicos o cuadrillas.
+                Registra la entrega de materiales desde el responsable del proyecto hacia técnicos o cuadrillas.
                 Cada movimiento queda asociado al proyecto para mantener trazabilidad.
             </p>
 
@@ -538,7 +538,7 @@
 
                 <span class="pex-chip">
                     <i class='bx bx-hard-hat'></i>
-                    Responsable PEX: {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+                    Responsable: {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
                 </span>
 
                 <span class="pex-chip">

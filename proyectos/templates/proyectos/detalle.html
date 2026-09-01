@@ -1093,7 +1093,7 @@
                     Avería
                 {% else %}
                     <i class='bx bx-git-branch'></i>
-                    Proyecto PEX
+                    Proyecto
                 {% endif %}
             </div>
 
@@ -1112,8 +1112,9 @@
             {% endif %}
 
             <p class="pex-desc">
-                Flujo de revisión técnica entre Diseño y PEX. El diseñador prepara plano y materiales,
-                el responsable PEX valida, observa o aprueba para que almacén pueda despachar.
+                El diseñador prepara el plano y los materiales, y los aprueba directamente para
+                que almacén despache. El técnico responsable puede seguir necesitando más
+                materiales según avance la obra, igual que su mochila semanal, hasta la liquidación final.
             </p>
 
             <div class="pex-meta-row">
@@ -1129,7 +1130,7 @@
 
                 <span class="pex-chip">
                     <i class='bx bx-hard-hat'></i>
-                    PEX: {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
+                    Responsable: {{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}
                 </span>
             </div>
         </div>
@@ -1199,7 +1200,7 @@
             <i class='bx bxs-message-square-error'></i>
 
             <div>
-                <h4>Proyecto observado por el responsable PEX</h4>
+                <h4>Proyecto observado por el responsable</h4>
                 <p>{{ proyecto.observacion_rechazo|default:"Sin detalle de observación." }}</p>
             </div>
         </div>
@@ -1208,7 +1209,7 @@
     <section class="workflow-panel">
         <div class="workflow-title">
             <i class='bx bx-transfer-alt'></i>
-            Flujo operativo Diseño → PEX → Almacén
+            Flujo operativo Diseño → Aprobado → Ejecución
         </div>
 
         <div class="pex-flow-line">
@@ -1221,47 +1222,29 @@
                     <strong>Diseño</strong>
 
                     {% if proyecto.estado == 'OBSERVADO' %}
-                        <span>Corrigiendo observación de PEX</span>
+                        <span>Corrigiendo observación</span>
                     {% else %}
                         <span>Plano y materiales registrados</span>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="pex-step {% if proyecto.estado == 'REVISION_TECNICA' %}current{% elif proyecto.estado == 'APROBADO' or proyecto.estado == 'EN_PROCESO' or proyecto.estado == 'FINALIZADO' %}done{% else %}pending{% endif %}">
+            <div class="pex-step {% if proyecto.estado == 'APROBADO' or proyecto.estado == 'EN_PROCESO' or proyecto.estado == 'FINALIZADO' %}done{% elif proyecto.estado == 'REVISION_TECNICA' %}current{% else %}pending{% endif %}">
                 <div class="pex-step-icon">
-                    <i class='bx bx-search-alt'></i>
+                    <i class='bx bx-check-double'></i>
                 </div>
 
                 <div>
-                    <strong>Revisión PEX</strong>
-
-                    {% if proyecto.estado == 'REVISION_TECNICA' %}
-                        <span>Responsable PEX validando materiales</span>
-                    {% elif proyecto.estado == 'OBSERVADO' %}
-                        <span>Observación enviada a Diseño</span>
-                    {% elif proyecto.estado == 'APROBADO' or proyecto.estado == 'EN_PROCESO' or proyecto.estado == 'FINALIZADO' %}
-                        <span>Materiales validados por responsable</span>
-                    {% else %}
-                        <span>Pendiente de envío a revisión</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="pex-step {% if proyecto.estado == 'APROBADO' %}current{% elif proyecto.estado == 'EN_PROCESO' or proyecto.estado == 'FINALIZADO' %}done{% else %}pending{% endif %}">
-                <div class="pex-step-icon">
-                    <i class='bx bx-shield-quarter'></i>
-                </div>
-
-                <div>
-                    <strong>Aprobación</strong>
+                    <strong>Aprobado</strong>
 
                     {% if proyecto.estado == 'APROBADO' %}
-                        <span>Proyecto aprobado para despacho</span>
+                        <span>Listo para que almacén despache</span>
                     {% elif proyecto.estado == 'EN_PROCESO' or proyecto.estado == 'FINALIZADO' %}
-                        <span>Aprobación completada</span>
+                        <span>Despacho iniciado</span>
+                    {% elif proyecto.estado == 'REVISION_TECNICA' %}
+                        <span>Pendiente de aprobación del responsable</span>
                     {% else %}
-                        <span>Pendiente de aprobación PEX</span>
+                        <span>Pendiente de aprobar en Diseño</span>
                     {% endif %}
                 </div>
             </div>
@@ -1293,7 +1276,7 @@
             {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
                 <span class="action-subtitle">El diseñador puede editar materiales y aprobar el proyecto para despacho.</span>
             {% elif proyecto.estado == 'REVISION_TECNICA' %}
-                <span class="action-subtitle">El responsable PEX debe aprobar u observar el proyecto.</span>
+                <span class="action-subtitle">El responsable debe aprobar u observar el proyecto.</span>
             {% elif proyecto.estado == 'APROBADO' %}
                 <span class="action-subtitle">Proyecto listo para que almacén inicie despacho.</span>
             {% elif proyecto.estado == 'EN_PROCESO' %}
@@ -1369,7 +1352,7 @@
                             <i class='bx bx-package'></i>
                             Lista de materiales
                         </h3>
-                        <span>Cantidades planificadas por Diseño y revisadas por PEX.</span>
+                        <span>Cantidades planificadas por Diseño. Se pueden seguir agregando hasta la liquidación.</span>
                     </div>
 
                     <span class="panel-chip-light">
@@ -1667,7 +1650,7 @@
                     <div class="info-item">
                         <span>
                             <i class='bx bx-hard-hat'></i>
-                            Responsable PEX
+                            Responsable
                         </span>
                         <strong>{{ proyecto.responsable.get_full_name|default:proyecto.responsable.username }}</strong>
                     </div>
@@ -1771,7 +1754,7 @@
 
         <p class="modal-text">
             Al confirmar, el proyecto pasará a <strong>APROBADO</strong>.
-            Almacén podrá despachar los materiales al responsable PEX.
+            Almacén podrá despachar los materiales al responsable.
         </p>
 
         <div class="modal-actions">
