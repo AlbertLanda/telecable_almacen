@@ -1,9 +1,10 @@
 from django.urls import path
 from .views import (
     # Técnico
-    tecnico_dashboard, 
-    tecnico_mis_reqs, 
+    tecnico_dashboard,
+    tecnico_mis_reqs,
     tecnico_mis_entregas,
+    tecnico_obras_asignadas,
     
     # Liquidación Sede/Central
     liquidacion_dashboard,
@@ -27,6 +28,7 @@ urlpatterns = [
     path("tecnico/", tecnico_dashboard, name="tecnico_dashboard"),
     path("tecnico/mis-reqs/", tecnico_mis_reqs, name="tecnico_mis_reqs"),
     path("tecnico/mis-entregas/", tecnico_mis_entregas, name="tecnico_mis_entregas"),
+    path("tecnico/obras-asignadas/", tecnico_obras_asignadas, name="tecnico_obras_asignadas"),
     path('tecnico/mi-stock/', tecnico_mi_stock, name='tecnico_mi_stock'),
 
     # LIQUIDACIÓN (Rutas base: /operaciones/liquidacion/...)
