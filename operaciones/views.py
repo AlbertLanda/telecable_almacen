@@ -654,13 +654,32 @@ def tecnico_dashboard(request):
             materiales.append(item_data)
 
     return render(request, "operaciones/tecnico_dashboard.html", {
-        "sede": sede, 
-        "kpis": kpis, 
+        "sede": sede,
+        "kpis": kpis,
         "proyectos": proyectos_asignados,
         "liquidaciones_historial": liquidaciones_historial,
         "herramientas": herramientas,
         "materiales": materiales
     })
+
+
+@login_required
+def tecnico_obras_asignadas(request):
+    """
+    Lista completa de obras/averías asignadas al técnico, con acceso al
+    detalle de cada una (materiales planificados, entregados y despachos
+    ya realizados desde almacén).
+    """
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+
+    proyectos = Proyecto.objects.filter(
+        responsable=request.user
+    ).exclude(
+        estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO]
+    ).order_by('estado', '-creado_en')
+
+    return render(request, "operaciones/tecnico_obras_asignadas.html", {"proyectos": proyectos})
+
 
 @login_required
 def proyecto_asignar_cuadrilla(request, proyecto_id):

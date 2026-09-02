@@ -69,21 +69,6 @@
     .ic-green { background: rgba(48, 209, 88, 0.15); color: var(--success); }
 
     .section-title { font-size: 18px; color: var(--text-main); font-weight: 600; margin: 10px 0 15px 0; display: flex; align-items: center; gap: 8px; }
-    
-    /* Proyectos Asignados */
-    .project-card {
-        background: var(--bg-input); border: 1px solid var(--border-light);
-        border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 15px; transition: 0.2s;
-    }
-    .project-card:hover { border-color: var(--primary); }
-    .proj-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--primary); }
-    
-    .btn-proj { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; transition: 0.2s; display: inline-block; }
-    .bp-warn { background: var(--warning); color: #000; box-shadow: 0 4px 10px rgba(255, 159, 10, 0.3); }
-    .bp-warn:hover { background: #ffaa00; transform: translateY(-1px); }
-    .bp-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-main); }
-    .bp-outline:hover { background: var(--bg-hover); border-color: var(--text-secondary); }
 
     .search-bar { position: relative; margin-bottom: 0; width: 100%; max-width: 400px; }
     .search-bar input { width: 100%; padding: 10px 10px 10px 40px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light); color: var(--text-main); }
@@ -91,9 +76,6 @@
 
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .project-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-        .project-card > div:last-child { width: 100%; text-align: right; }
-        .btn-proj { width: 100%; text-align: center; }
     }
 </style>
 
@@ -127,45 +109,16 @@
             </div>
         </a>
 
-        {% if proyectos %}
-        <div class="kpi-card" style="cursor: default;">
-            <div class="kpi-info">
-                <h4>Obras Asignadas</h4>
-                <p>Proyectos activos en ejecución</p>
-            </div>
-            <div class="kpi-icon ic-green"><i class='bx bx-hard-hat'></i></div>
-        </div>
-        {% endif %}
-    </div>
-
-    {% if proyectos %}
-    <div>
-        <h3 class="section-title"><i class='bx bx-hard-hat' style="color: var(--primary);"></i> Proyectos Asignados</h3>
-        {% for p in proyectos %}
-        <div class="project-card">
-            <div>
-                <div style="font-weight: 700; color: var(--text-main); font-size: 16px; margin-bottom: 6px;">{{ p.nombre }}</div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="proj-code">{{ p.codigo }}</span>
-                    <span style="font-size: 13px; color: var(--text-secondary);"><i class='bx bx-calendar'></i> Creado: {{ p.creado_en|date:"d M Y" }}</span>
+        <a href="{% url 'tecnico_obras_asignadas' %}" style="text-decoration: none;">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Obras Asignadas</h4>
+                    <p>{{ proyectos.count }} proyecto{{ proyectos.count|pluralize }} activo{{ proyectos.count|pluralize }}</p>
                 </div>
+                <div class="kpi-icon ic-green"><i class='bx bx-hard-hat'></i></div>
             </div>
-            
-            <div>
-                {% if p.estado == 'REVISION_TECNICA' %}
-                    <span style="display:block; font-size:10px; font-weight:700; color:var(--warning); text-transform:uppercase; margin-bottom:6px; text-align: right;">Requiere Visto Bueno</span>
-                    <a href="{% url 'proyecto_detail' p.id %}" class="btn-proj bp-warn">Revisar Ahora</a>
-                {% elif p.estado == 'EN_PROCESO' %}
-                    <span style="display:block; font-size:10px; font-weight:700; color:var(--success); text-transform:uppercase; margin-bottom:6px; text-align: right;">En Ejecución</span>
-                    <a href="{% url 'proyecto_detail' p.id %}" class="btn-proj bp-outline">Ver Detalles</a>
-                {% else %}
-                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600; background: var(--bg-card); padding: 6px 12px; border-radius: 8px;">{{ p.get_estado_display }}</span>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
+        </a>
     </div>
-    {% endif %}
 
     <div>
         <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila (Stock en tu poder)</h3>
