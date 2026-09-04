@@ -294,10 +294,19 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
-                                <a href="{% url 'eliminar_material_proyecto' item.id %}" class="btn-icon btn-del-row" title="Eliminar ítem">
-                                    <i class='bx bx-trash'></i>
-                                </a>
+                            {% if proyecto.puede_editar_materiales %}
+                                {% if item.cantidad_entregada == 0 %}
+                                    <a
+                                        href="{% url 'eliminar_material_proyecto' item.id %}"
+                                        class="btn-icon btn-del-row"
+                                        title="Eliminar ítem"
+                                        onclick="return confirm('¿Eliminar {{ item.producto.nombre|escapejs }} de la lista?');"
+                                    >
+                                        <i class='bx bx-trash'></i>
+                                    </a>
+                                {% else %}
+                                    <span style="opacity: 0.3;" title="Almacén ya despachó parte de este material, no se puede eliminar">-</span>
+                                {% endif %}
                             {% else %}
                                 <span style="opacity: 0.3;">-</span>
                             {% endif %}
