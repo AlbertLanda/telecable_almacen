@@ -246,10 +246,16 @@ def proyecto_materiales(request, proyecto_id):
 def eliminar_material_proyecto(request, item_id):
     item = get_object_or_404(ProyectoMaterial, id=item_id)
     proyecto = item.proyecto
-    
-    # ✅ Validación de estado
-    if proyecto.estado not in [EstadoProyecto.DISENO, EstadoProyecto.OBSERVADO]:
+
+    if not proyecto.puede_editar_materiales:
         messages.error(request, "No puedes eliminar ítems en este estado.")
+        return redirect('proyecto_materiales', proyecto_id=proyecto.id)
+
+    if item.cantidad_entregada > 0:
+        messages.error(
+            request,
+            f"No puedes eliminar {item.producto.nombre}: almacén ya despachó parte de este material."
+        )
         return redirect('proyecto_materiales', proyecto_id=proyecto.id)
 
     item.delete()
