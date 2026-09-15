@@ -1101,7 +1101,7 @@
 
             <span class="pex-code">{{ proyecto.codigo }}</span>
 
-            {% if request.user == proyecto.creado_por or request.user.is_superuser %}
+            {% if puede_gestionar_proyecto %}
                 <form action="{% url 'proyecto_cambiar_tipo' proyecto.id %}" method="POST" style="display:inline-flex; align-items:center; gap:8px; margin-left:10px;">
                     {% csrf_token %}
                     <select name="tipo" onchange="this.form.submit()" style="background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); color:#fff; border-radius:9px; padding:6px 8px; font-size:12px; font-weight:800;">
@@ -1288,7 +1288,7 @@
 
         <div class="action-buttons">
             {% if proyecto.estado == 'DISENO' or proyecto.estado == 'OBSERVADO' %}
-                {% if request.user == proyecto.creado_por or request.user.is_superuser %}
+                {% if puede_gestionar_proyecto %}
                     <a href="{% url 'proyecto_materiales' proyecto.id %}" class="btn-pex ghost">
                         <i class='bx bx-pencil'></i>
                         Editar materiales
@@ -1593,7 +1593,7 @@
                         </a>
                     </div>
 
-                    {% if proyecto.puede_editar_materiales and request.user == proyecto.creado_por or proyecto.puede_editar_materiales and request.user.is_superuser %}
+                    {% if proyecto.puede_editar_materiales and puede_gestionar_proyecto %}
                         <form action="{% url 'proyecto_reemplazar_plano' proyecto.id %}" method="POST" enctype="multipart/form-data" style="margin-top:12px;">
                             {% csrf_token %}
                             <input type="file" name="plano" accept="application/pdf" required style="width:100%; margin-bottom:8px;">
@@ -1604,7 +1604,7 @@
                         </form>
                     {% endif %}
                 </section>
-            {% elif proyecto.puede_editar_materiales and request.user == proyecto.creado_por or proyecto.puede_editar_materiales and request.user.is_superuser %}
+            {% elif proyecto.puede_editar_materiales and puede_gestionar_proyecto %}
                 <section class="pex-panel" style="margin-bottom:18px;">
                     <div class="panel-head">
                         <div class="panel-title">
