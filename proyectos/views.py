@@ -11,7 +11,7 @@ from django.db import transaction
 from inventario.models import (
     UserProfile, DocumentoInventario, DocumentoItem, Stock,
     TipoDocumento, EstadoDocumento, ItemSerializado, StockTecnico, MovimientoInventario,
-    Producto,
+    Producto, Ubicacion,
 )
 # Importamos modelos locales
 from .models import (
@@ -622,10 +622,12 @@ def almacen_generar_salida(request, proyecto_id):
                             item_fisico.estado = ItemSerializado.Estado.ASIGNADO
                             item_fisico.asignado_a = proyecto.responsable
                             item_fisico.ubicacion = None
+                            item_fisico.proyecto = proyecto
                             item_fisico.save(update_fields=[
                                 "estado",
                                 "asignado_a",
                                 "ubicacion",
+                                "proyecto",
                             ])
 
                     DocumentoItem.objects.create(
@@ -646,7 +648,9 @@ def almacen_generar_salida(request, proyecto_id):
 
                 # doc.confirmar() descuenta stock de doc.sede.
                 # Como doc.sede = sede_despacho, baja de la sede correcta.
-                doc.confirmar()
+                # actualizar_mochila_tecnico=False: esta salida es para la obra,
+                # no debe sumarse a la mochila semanal personal del responsable.
+                doc.confirmar(actualizar_mochila_tecnico=False)
 
                 if proyecto.estado == EstadoProyecto.APROBADO:
                     proyecto.estado = EstadoProyecto.EN_PROCESO
@@ -788,6 +792,7 @@ def almacen_liquidar_proyecto(request, proyecto_id):
             with transaction.atomic():
                 doc_ing = None
                 hubo_buenos = False
+                ubicacion_retorno = Ubicacion.objects.filter(sede=proyecto.sede).first()
 
                 for m in materiales:
                     good = int(request.POST.get(f"input_good_{m.id}", 0) or 0)
@@ -809,6 +814,48 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                         m.costo_unitario = m.producto.costo_unitario
 
                     m.save()
+
+                    # Cerrar los equipos serializados (ONUs, etc.) despachados para
+                    # esta obra: sin esto, quedaban ASIGNADO al responsable para
+                    # siempre, sin importar que la obra ya se hubiera liquidado.
+                    if m.producto.es_serializado:
+                        equipos_obra = list(
+                            ItemSerializado.objects.filter(
+                                proyecto=proyecto,
+                                producto=m.producto,
+                                estado=ItemSerializado.Estado.ASIGNADO,
+                            ).order_by("id")
+                        )
+
+                        devueltos = equipos_obra[:good]
+                        mermados = equipos_obra[good:good + bad]
+                        instalados = equipos_obra[good + bad:]
+
+                        if devueltos:
+                            ItemSerializado.objects.filter(
+                                id__in=[e.id for e in devueltos]
+                            ).update(
+                                estado=ItemSerializado.Estado.EN_ALMACEN,
+                                asignado_a=None,
+                                ubicacion=ubicacion_retorno,
+                            )
+
+                        if mermados:
+                            ItemSerializado.objects.filter(
+                                id__in=[e.id for e in mermados]
+                            ).update(
+                                estado=ItemSerializado.Estado.MERMA,
+                                asignado_a=None,
+                                ubicacion=ubicacion_retorno,
+                            )
+
+                        if instalados:
+                            ItemSerializado.objects.filter(
+                                id__in=[e.id for e in instalados]
+                            ).update(
+                                estado=ItemSerializado.Estado.INSTALADO,
+                                asignado_a=None,
+                            )
 
                     # Si vuelve material bueno al almacén, creamos documento ING
                     if good > 0:
