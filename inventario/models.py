@@ -409,6 +409,17 @@ class ItemSerializado(TimeStampedModel):
     # Quién lo tiene actualmente (si está ASIGNADO)
     asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="items_asignados")
 
+    # Obra/avería para la que se despachó este equipo, si aplica. Permite
+    # cerrarlo correctamente (Instalado/Devuelto/Merma) cuando se liquida
+    # la obra, en vez de quedar ASIGNADO al técnico para siempre.
+    proyecto = models.ForeignKey(
+        "proyectos.Proyecto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="equipos_despachados",
+    )
+
     class Meta:
         indexes = [
             models.Index(fields=["serial"]),              # Búsqueda por SN
@@ -641,7 +652,7 @@ class DocumentoInventario(models.Model):
         return perfil.user if perfil else None
 
     @transaction.atomic
-    def confirmar(self, *, entregado_por=None):
+    def confirmar(self, *, entregado_por=None, actualizar_mochila_tecnico=True):
         if self.tipo == TipoDocumento.REQ:
             raise ValidationError("Un REQ no se confirma; se envía y luego se atiende.")
         if self.estado != EstadoDocumento.BORRADOR:
@@ -686,8 +697,12 @@ class DocumentoInventario(models.Model):
             mov.aplicar()
 
             # ✅ 2. LÓGICA DE MOCHILA TÉCNICA (NUEVO)
-            # Si es una SALIDA y el solicitante es un TÉCNICO (SOLICITANTE)
-            if self.tipo == TipoDocumento.SAL and self.solicitante and hasattr(self.solicitante, 'profile'):
+            # Si es una SALIDA y el solicitante es un TÉCNICO (SOLICITANTE).
+            # actualizar_mochila_tecnico=False cuando la salida es para una
+            # obra/proyecto (almacen_generar_salida): ese material se controla
+            # aparte por ProyectoMaterial/ItemSerializado.proyecto y se cierra
+            # en almacen_liquidar_proyecto, no en la mochila semanal personal.
+            if actualizar_mochila_tecnico and self.tipo == TipoDocumento.SAL and self.solicitante and hasattr(self.solicitante, 'profile'):
                 if self.solicitante.profile.rol == UserProfile.Rol.SOLICITANTE:
                     # Importación local para evitar ciclos
                     from .models import StockTecnico 
