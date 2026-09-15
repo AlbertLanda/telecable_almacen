@@ -45,6 +45,22 @@ def _despachos_del_proyecto(proyecto):
     )
 
 
+def _puede_gestionar_proyectos(user):
+    """
+    Todo el personal de Diseño comparte el mismo rol: cualquiera de ellos
+    puede ver y gestionar los proyectos creados por sus compañeros, no solo
+    los suyos propios (igual que ADMIN/JEFA, que ya tienen visión total).
+    """
+    if user.is_superuser:
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(profile and profile.rol in [
+        UserProfile.Rol.DISENADOR,
+        UserProfile.Rol.ADMIN,
+        UserProfile.Rol.JEFA,
+    ])
+
+
 # ==========================================
 # 🎨 ZONA DEL DISEÑADOR / PLANIFICADOR
 # ==========================================
@@ -55,10 +71,9 @@ def disenador_dashboard(request):
     if profile.rol not in [UserProfile.Rol.DISENADOR, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA]:
         return redirect('home')
 
-    if profile.rol == UserProfile.Rol.DISENADOR:
-        proyectos = Proyecto.objects.filter(creado_por=request.user).order_by('-creado_en')
-    else:
-        proyectos = Proyecto.objects.all().order_by('-creado_en')
+    # Todo el personal de Diseño ve y gestiona los proyectos de sus
+    # compañeros, no solo los que él mismo creó.
+    proyectos = Proyecto.objects.all().order_by('-creado_en')
 
     context = {
         'proyectos': proyectos,
@@ -111,7 +126,7 @@ def proyecto_cambiar_tipo(request, proyecto_id):
     """
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para cambiar el tipo de este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
@@ -140,7 +155,7 @@ def proyecto_reemplazar_plano(request, proyecto_id):
     """
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para modificar el plano de este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
@@ -169,7 +184,7 @@ def proyecto_reemplazar_plano(request, proyecto_id):
 def proyecto_materiales(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para editar los materiales de este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
@@ -276,7 +291,7 @@ def proyecto_material_pendiente_vincular(request, pendiente_id):
     )
     proyecto = pendiente.proyecto
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para vincular este material.")
         return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
@@ -328,7 +343,7 @@ def proyecto_material_pendiente_eliminar(request, pendiente_id):
     pendiente = get_object_or_404(ProyectoMaterialPendiente.objects.select_related("proyecto"), id=pendiente_id)
     proyecto = pendiente.proyecto
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para eliminar este pendiente.")
         return redirect("proyecto_materiales", proyecto_id=proyecto.id)
 
@@ -375,6 +390,7 @@ def proyecto_detail(request, pk):
         'costo_total': costo_total,
         'pendientes': pendientes,
         'despachos': despachos,
+        'puede_gestionar_proyecto': _puede_gestionar_proyectos(request.user),
     })
 
 
@@ -730,7 +746,7 @@ def ajax_buscar_equipo_proyecto(request):
 @login_required
 def eliminar_proyecto(request, pk):
     proyecto = get_object_or_404(Proyecto, pk=pk)
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso.")
         return redirect('disenador_dashboard')
 
@@ -984,7 +1000,7 @@ def admin_detalle_financiero(request, proyecto_id):
 def proyecto_enviar_a_revision(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
 
-    if request.user != proyecto.creado_por and not request.user.is_superuser:
+    if not _puede_gestionar_proyectos(request.user):
         messages.error(request, "No tienes permiso para aprobar este proyecto.")
         return redirect("proyecto_detail", pk=proyecto.id)
 
