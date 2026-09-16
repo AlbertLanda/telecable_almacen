@@ -21,11 +21,23 @@
     .stock-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
     .sc-material { border-left: 4px solid var(--primary); }
     .sc-herramienta { border-left: 4px solid #FF9F0A; }
-    
+    .sc-obra { border-left: 4px solid var(--success); }
+
     .sc-icon { color: var(--text-secondary); font-size: 24px; }
     .sc-info { flex: 1; overflow: hidden; }
     .sc-info h4 { margin: 0 0 2px 0; font-size: 14px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-info p { margin: 0; font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+
+    .obra-badge {
+        display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+        background: rgba(48, 209, 88, 0.12); color: var(--success);
+        border: 1px solid rgba(48, 209, 88, 0.25); border-radius: 6px;
+        padding: 2px 8px; font-size: 11px; font-weight: 700; font-family: monospace;
+        text-decoration: none;
+    }
+    .obra-badge:hover { background: rgba(48, 209, 88, 0.22); }
+
+    .section-subtitle { color: var(--text-secondary); font-size: 13px; margin: -8px 0 15px; }
     
     .sc-qty { text-align: right; }
     .sc-qty h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-main); line-height: 1; }
@@ -121,8 +133,47 @@
     </div>
 
     <div>
-        <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila (Stock en tu poder)</h3>
-        
+        <h3 class="section-title"><i class='bx bx-hard-hat' style="color: var(--success);"></i> Material de Obra en tu poder</h3>
+        <p class="section-subtitle">Lo que almacén ya te despachó para tus obras/averías asignadas, todavía sin liquidar.</p>
+
+        <div class="stock-grid" style="margin-bottom: 30px;">
+            {% for item in material_obras %}
+            <div class="stock-card sc-obra">
+                <div class="sc-icon"><i class='bx bx-package'></i></div>
+                <div class="sc-info">
+                    <h4>{{ item.producto.nombre }}</h4>
+                    <p>{{ item.producto.codigo_interno }}</p>
+                    <a href="{% url 'proyecto_detail' item.proyecto.id %}" class="obra-badge">
+                        <i class='bx bx-hard-hat'></i> {{ item.proyecto.codigo }}
+                    </a>
+
+                    {% if item.equipos %}
+                    <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
+                        {% for equipo in item.equipos %}
+                            <span style="background: rgba(255, 159, 10, 0.15); color: #FF9F0A; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: 600;">
+                                #{{ equipo.codigo_trazabilidad|default:equipo.serial }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="sc-qty">
+                    <h2>{{ item.cantidad }}</h2>
+                    <span>{{ item.producto.unidad }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-light);">
+                <i class='bx bx-hard-hat' style="font-size: 30px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p style="margin:0;">No tienes material de obra pendiente de liquidar.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
+        <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila Personal (pedidos propios)</h3>
+
         <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; gap: 10px;">
                 <button id="btn-materiales" class="btn-tab active" onclick="switchMochilaTab('materiales')">
