@@ -22,7 +22,7 @@ from operaciones.models import LiquidacionSemanal, LiquidacionLog
 # Importamos servicios
 from operaciones.services import LiquidacionService
 
-from proyectos.models import Proyecto, EstadoProyecto, AsignacionCuadrilla
+from proyectos.models import Proyecto, ProyectoMaterial, EstadoProyecto, AsignacionCuadrilla
 
 User = get_user_model()
 
@@ -653,13 +653,50 @@ def tecnico_dashboard(request):
         else:
             materiales.append(item_data)
 
+    # =========================================================
+    # Material de OBRA que el técnico tiene en mano, sin liquidar
+    # todavía (separado de su mochila personal).
+    # =========================================================
+    materiales_obra_qs = (
+        ProyectoMaterial.objects
+        .filter(proyecto__responsable=request.user)
+        .exclude(proyecto__estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO])
+        .select_related("proyecto", "producto")
+        .order_by("proyecto__codigo", "producto__nombre")
+    )
+
+    equipos_obra_fisicos = ItemSerializado.objects.filter(
+        asignado_a=request.user,
+        estado=ItemSerializado.Estado.ASIGNADO,
+        proyecto__isnull=False,
+    ).select_related("producto", "proyecto")
+
+    material_obras = []
+    for m in materiales_obra_qs:
+        en_mano = m.cantidad_por_liquidar
+        if en_mano <= 0:
+            continue
+
+        sus_equipos = [
+            e for e in equipos_obra_fisicos
+            if e.producto_id == m.producto_id and e.proyecto_id == m.proyecto_id
+        ]
+
+        material_obras.append({
+            "proyecto": m.proyecto,
+            "producto": m.producto,
+            "cantidad": en_mano,
+            "equipos": sus_equipos,
+        })
+
     return render(request, "operaciones/tecnico_dashboard.html", {
         "sede": sede,
         "kpis": kpis,
         "proyectos": proyectos_asignados,
         "liquidaciones_historial": liquidaciones_historial,
         "herramientas": herramientas,
-        "materiales": materiales
+        "materiales": materiales,
+        "material_obras": material_obras,
     })
 
 
