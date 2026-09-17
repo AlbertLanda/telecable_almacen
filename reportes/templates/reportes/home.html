@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes | Telecable{% endblock %}
+
+{% block content %}
+<style>
+    .rep-wrap { max-width: 1000px; margin: 0 auto; padding: 10px 0 40px; }
+
+    .rep-topbar {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap; margin-bottom: 6px;
+    }
+
+    .btn-back {
+        background: #ffffff; border: 1px solid var(--border-light, #cbd5e1);
+        color: var(--text-main, #0f172a); padding: 0 18px; min-height: 42px;
+        border-radius: 13px; font-size: 13px; font-weight: 950; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; transition: .2s; white-space: nowrap;
+    }
+    .btn-back:hover { background: #f8fafc; transform: translateY(-1px); border-color: #94a3b8; }
+
+    .rep-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .rep-head i { font-size: 30px; color: var(--primary); }
+    .rep-head h1 { margin: 0; font-size: 24px; font-weight: 800; color: var(--text-main); }
+    .rep-sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px 44px; }
+
+    .rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
+
+    .rep-card {
+        display: block; background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 16px; padding: 24px; text-decoration: none;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    a.rep-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); border-color: #94a3b8; }
+
+    /* Tarjeta informativa: no navega a ningún lado, así que no se comporta
+       como un enlace (sin cursor de mano, sin levantarse al pasar por encima). */
+    .rep-card.pendiente { cursor: default; background: var(--bg-soft, #f8fafc); }
+    .rep-card.pendiente h3,
+    .rep-card.pendiente p.desc,
+    .rep-card.pendiente .rep-list li { opacity: .72; }
+
+    .rep-card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .rep-icon {
+        width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: 26px;
+    }
+    .rep-icon.sicv { background: rgba(15, 107, 255, 0.10); color: var(--primary); }
+    .rep-icon.kardex { background: rgba(48, 209, 88, 0.12); color: #1c7a35; }
+
+    .rep-card h3 { margin: 0 0 3px; font-size: 17px; font-weight: 800; color: var(--text-main); }
+    .rep-card .origen { margin: 0; font-size: 11px; font-weight: 700; font-family: monospace;
+                        text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); }
+    .rep-card p.desc { margin: 0 0 16px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
+
+    .rep-list { list-style: none; margin: 0 0 18px; padding: 0; }
+    .rep-list li {
+        font-size: 12.5px; color: var(--text-secondary); padding: 4px 0 4px 20px;
+        position: relative; line-height: 1.45;
+    }
+    .rep-list li::before {
+        content: '\2022'; position: absolute; left: 6px; color: var(--primary); font-weight: 900;
+    }
+
+    .rep-estado {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 11px; border-radius: 8px; font-size: 11.5px; font-weight: 800;
+    }
+    .rep-estado.ok { background: rgba(48, 209, 88, 0.12); color: #1c7a35; }
+    .rep-estado.off { background: rgba(255, 159, 10, 0.12); color: #8a5a00; }
+    .rep-estado.pendiente {
+        background: rgba(100, 116, 139, 0.12); color: #475569;
+        border: 1px dashed rgba(100, 116, 139, 0.35);
+    }
+
+    @media (max-width: 620px) {
+        .rep-grid { grid-template-columns: 1fr; }
+        .rep-sub { margin-left: 0; }
+        .rep-topbar { flex-direction: column; align-items: stretch; }
+        .btn-back { justify-content: center; }
+    }
+</style>
+
+<div class="rep-wrap">
+
+    <div class="rep-topbar">
+        <div class="rep-head">
+            <i class='bx bx-bar-chart-alt-2'></i>
+            <h1>Reportes</h1>
+        </div>
+
+        <a href="{% url 'dashboard' %}" class="btn-back">
+            <i class='bx bx-arrow-back'></i>
+            Volver al Panel
+        </a>
+    </div>
+    <p class="rep-sub">Dos fuentes distintas: lo que el técnico declara en campo y lo que registra el almacén.</p>
+
+    <div class="rep-grid">
+
+        <div class="rep-card pendiente">
+            <div class="rep-card-top">
+                <div class="rep-icon sicv"><i class='bx bx-broadcast'></i></div>
+                <div>
+                    <h3>Órdenes liquidadas (SICV)</h3>
+                    <p class="origen">Origen: API REST de SICV</p>
+                </div>
+            </div>
+
+            <p class="desc">
+                Material que los técnicos declararon en las órdenes ya liquidadas,
+                traído del sistema de campo.
+            </p>
+
+            <ul class="rep-list">
+                <li>Instalado y retirado, por técnico y por orden</li>
+                <li>Detalle por orden y abonado, auditable</li>
+                <li>Base para cuadrar contra la mochila semanal</li>
+            </ul>
+
+            <span class="rep-estado pendiente">
+                <i class='bx bx-time-five'></i> Módulo aún por implementarse
+            </span>
+        </div>
+
+        <a href="{% url 'reportes_kardex' %}" class="rep-card">
+            <div class="rep-card-top">
+                <div class="rep-icon kardex"><i class='bx bx-book-content'></i></div>
+                <div>
+                    <h3>Kardex de almacén</h3>
+                    <p class="origen">Origen: movimientos propios</p>
+                </div>
+            </div>
+
+            <p class="desc">
+                Todos los movimientos de cada material con el saldo que dejaron.
+                Pensado para la auditoría mensual.
+            </p>
+
+            <ul class="rep-list">
+                <li>Ingresos, salidas y ajustes por producto</li>
+                <li>Saldo resultante tras cada movimiento</li>
+                <li>Filtro por mes, sede, material y tipo</li>
+            </ul>
+
+            <span class="rep-estado ok"><i class='bx bx-check-circle'></i> Disponible</span>
+        </a>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "inventario.apps.InventarioConfig",
     "operaciones",
     "proyectos",
+    "reportes",
 ]
 
 MIDDLEWARE = [
@@ -125,3 +126,18 @@ ALERTAS_STOCK_EMAILS = [
     for email in os.getenv("ALERTAS_STOCK_EMAILS", "aalrpers24k@gmail.com").split(",")
     if email.strip()
 ]
+
+
+# ==========================================================
+# INTEGRACIÓN SICV (movimientos de material en campo)
+# ==========================================================
+# Canal de solo lectura, sistema a sistema.
+# Contrato: docs/contrato_sicv_materiales.md
+#
+# SICV_SYNC_ENABLED se despliega en False (§9.2): el modelo, el cliente y
+# las pantallas van a producción apagados, y el flag se prende recién
+# cuando una semana cuadre a mano contra el Excel del sistema anterior.
+SICV_URL = os.getenv("SICV_URL", "").rstrip("/")
+SICV_TOKEN = os.getenv("SICV_TOKEN", "")
+SICV_SYNC_ENABLED = os.getenv("SICV_SYNC_ENABLED", "False").lower() in ("1", "true", "yes", "y")
+SICV_TIMEOUT = int(os.getenv("SICV_TIMEOUT", "30"))

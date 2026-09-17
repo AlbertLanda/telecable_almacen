@@ -28,6 +28,9 @@ urlpatterns = [
     # 3. Proyectos (Expansión)
     path("proyectos/", include("proyectos.urls")),
 
+    # 4. Reportes (consultas y cruce con SICV)
+    path("reportes/", include("reportes.urls")),
+
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

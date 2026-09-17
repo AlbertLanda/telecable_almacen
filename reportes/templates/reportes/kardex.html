@@ -1,0 +1,527 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Kardex de almacén | Telecable{% endblock %}
+
+{% block content %}
+<style>
+    .rep-wrap { max-width: 1200px; margin: 0 auto; padding: 10px 0 40px; }
+    .rep-topbar {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .btn-back {
+        background: #ffffff; border: 1px solid var(--border-light, #cbd5e1);
+        color: var(--text-main, #0f172a); padding: 0 18px; min-height: 42px;
+        border-radius: 13px; font-size: 13px; font-weight: 950; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; transition: .2s; white-space: nowrap;
+    }
+    .btn-back:hover { background: #f8fafc; transform: translateY(-1px); border-color: #94a3b8; }
+
+    .rep-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .rep-head i { font-size: 30px; color: #1c7a35; }
+    .rep-head h1 { margin: 0; font-size: 23px; font-weight: 800; color: var(--text-main); }
+    .rep-sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 22px 44px; }
+
+    /* Tarjetas del mes: fondo oscuro, número grande y variación contra el
+       mes anterior. */
+    .kpi-mes { margin-bottom: 1.25rem; }
+    .kpi-titulo {
+        display: flex; align-items: baseline; gap: .55rem;
+        margin: 0 0 .7rem; font-size: .82rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .03em; color: #334155;
+    }
+    .kpi-titulo .mes { color: #0f172a; }
+    .kpi-titulo .nota { text-transform: none; letter-spacing: 0; font-weight: 600; color: #94a3b8; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+
+    .kpi-card {
+        position: relative; overflow: hidden;
+        background: #ffffff; border: 1px solid #d9e2ef;
+        border-radius: 22px; padding: 20px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    /* Mancha de color en la esquina, como las tarjetas del panel. */
+    .kpi-card::after {
+        content: ""; position: absolute; right: -50px; top: -50px;
+        width: 150px; height: 150px; border-radius: 999px;
+        opacity: .75; pointer-events: none;
+    }
+    .kpi-card.verde::after { background: rgba(22, 163, 74, .12); }
+    .kpi-card.rojo::after  { background: rgba(220, 38, 38, .12); }
+    .kpi-card.azul::after  { background: rgba(15, 107, 255, .10); }
+    .kpi-card.ambar::after { background: rgba(245, 158, 11, .14); }
+
+    /* Mismo levantamiento que los accesos del panel de almacén. */
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(15, 107, 255, .32);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        background: #f8fbff;
+    }
+
+    .kpi-top {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: .75rem; position: relative; z-index: 1;
+    }
+    .kpi-label {
+        font-size: 11px; font-weight: 950; color: #64748b;
+        text-transform: uppercase; letter-spacing: .05em;
+    }
+    .kpi-icono {
+        width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: 23px;
+    }
+    .kpi-icono.verde { background: rgba(22, 163, 74, .12); color: #16a34a; }
+    .kpi-icono.rojo  { background: rgba(220, 38, 38, .12); color: #dc2626; }
+    .kpi-icono.azul  { background: rgba(15, 107, 255, .10); color: #0f6bff; }
+    .kpi-icono.ambar { background: rgba(245, 158, 11, .14); color: #b45309; }
+
+    .kpi-valor {
+        position: relative; z-index: 1; margin: .5rem 0 .4rem;
+        font-size: 1.9rem; font-weight: 800; color: #0f172a;
+        line-height: 1.1; letter-spacing: -.02em;
+    }
+    .kpi-delta {
+        position: relative; z-index: 1;
+        display: flex; align-items: center; gap: .3rem; font-size: .8rem; font-weight: 800;
+    }
+    .kpi-delta.bueno { color: #16a34a; }
+    .kpi-delta.malo  { color: #dc2626; }
+    .kpi-delta.plano, .kpi-delta.sindato { color: #94a3b8; font-weight: 600; }
+
+    @media (max-width: 980px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+    /* Mismas medidas que el buscador de equipos serializados
+       (equipos_serializados_list.html): tarjeta, campos y botones. */
+    .filtros {
+        background: #fff; border: 1px solid #dbe3ef;
+        border-radius: 20px; box-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+        padding: 1.25rem; margin-bottom: 1.25rem;
+        display: flex; flex-wrap: wrap; gap: 1rem;
+        align-items: end; justify-content: space-between;
+    }
+    .filtros-campos { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
+    .filtros-acciones { display: flex; gap: .75rem; align-items: end; }
+
+    .campo label {
+        display: block; font-size: .82rem; font-weight: 800; color: #334155;
+        margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .campo input, .campo select {
+        width: 100%; border: 1px solid #cbd5e1; border-radius: 14px;
+        padding: .8rem .9rem; outline: none; background: #fff; color: #0f172a;
+    }
+    .campo select { min-width: 200px; cursor: pointer; }
+    .campo input:focus, .campo select:focus {
+        border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+    }
+
+    /* Desde y Hasta son un solo dato -el periodo-, así que se leen juntos. */
+    .rango { display: flex; align-items: center; gap: .6rem; }
+    .rango input { width: 170px; }
+    .rango span { color: #64748b; font-weight: 800; }
+
+    .btn-filtrar, .btn-limpiar {
+        border-radius: 14px; padding: .8rem 1.1rem; font-weight: 700;
+        text-decoration: none; border: 1px solid transparent;
+        display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+        font-size: 1rem; line-height: 1.2;
+    }
+    .btn-filtrar { background: #2563eb; color: #fff; border: none; }
+    .btn-filtrar:hover { filter: brightness(1.08); }
+    .btn-limpiar { background: #fff; color: #0f172a; border-color: #dbe3ef; }
+    .btn-limpiar:hover { background: #f8fafc; border-color: #94a3b8; }
+
+    .tabla-wrap {
+        background: #ffffff; border: 1px solid var(--border-light);
+        border-radius: 14px; overflow: hidden;
+    }
+    .tabla-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    table.kardex {
+        width: 100%; border-collapse: collapse;
+        white-space: nowrap; background: #ffffff;
+    }
+
+    table.kardex th {
+        text-align: left; color: #64748b;
+        font-size: 11px; font-weight: 950;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        padding: 16px 20px;
+        border-bottom: 1px solid #d9e2ef; background: #f8fafc;
+    }
+
+    table.kardex td {
+        padding: 16px 20px; border-bottom: 1px solid #edf2f7;
+        vertical-align: middle; color: #0f172a; font-size: 13px;
+    }
+
+    table.kardex tbody tr:last-child td { border-bottom: none; }
+    table.kardex tbody tr:hover td { background-color: #fbfdff; }
+
+    /* Banda de mes: agrupa los movimientos y se puede plegar. */
+    tr.mes td {
+        background: #f4f6fa;
+        border-top: 1px solid #d9e2ef;
+        border-bottom: 1px solid #d9e2ef;
+        padding: 0;
+    }
+    tr.mes:first-child td { border-top: none; }
+
+    .mes-btn {
+        width: 100%; background: none; border: none; cursor: pointer;
+        display: flex; align-items: center; gap: .6rem;
+        padding: 14px 20px; font-family: inherit; text-align: left;
+    }
+    .mes-btn:hover { background: #eaeff7; }
+    .mes-btn .titulo {
+        flex: 1; font-size: 1rem; font-weight: 800;
+        color: #081326; letter-spacing: .01em;
+    }
+    .mes-btn .cuenta {
+        font-size: 11px; font-weight: 800; color: #081326;
+        background: rgba(8, 19, 38, .08); border-radius: 999px;
+        padding: 3px 10px; white-space: nowrap;
+    }
+    .mes-btn .chevron { color: #64748b; font-size: 20px; transition: transform .2s ease; }
+    .mes-btn[aria-expanded="false"] .chevron { transform: rotate(180deg); }
+
+    /* Encabezado de producto, con el mismo tratamiento que el separador de
+       fechas del historial. */
+    tr.grupo td {
+        background: rgba(15, 107, 255, 0.06);
+        color: #0f6bff; font-weight: 950; font-size: 12px;
+        padding: 12px 20px; letter-spacing: .04em;
+        border-bottom: 1px solid rgba(15, 107, 255, 0.12);
+        border-top: 1px solid rgba(15, 107, 255, 0.12);
+    }
+    tr.grupo:hover td { background: rgba(15, 107, 255, 0.06); }
+    tr.grupo .cod {
+        font-family: monospace; font-weight: 700; font-size: 11px;
+        color: #64748b; margin-left: 10px; letter-spacing: 0;
+    }
+
+    /* Las columnas numéricas se alinean a la derecha, ENCABEZADO INCLUIDO:
+       un th alineado a la izquierda sobre cifras alineadas a la derecha se
+       lee como si fueran columnas distintas. Lleva el mismo peso de selector
+       que la regla general de th/td para poder ganarle. */
+    table.kardex th.num, table.kardex td.num,
+    table.kardex th.saldo, table.kardex td.saldo { text-align: right; }
+
+    table.kardex td.num { font-family: monospace; font-weight: 700; }
+    table.kardex td.saldo { font-family: monospace; font-weight: 850; }
+    table.kardex td.saldo { color: #0f172a; }
+
+    .pill {
+        display: inline-block; padding: 2px 9px; border-radius: 6px;
+        font-size: 11px; font-weight: 800; white-space: nowrap;
+    }
+    .pill.IN  { background: rgba(48, 209, 88, .14); color: #1c7a35; }
+    .pill.OUT { background: rgba(255, 69, 58, .12); color: #c0392b; }
+    .pill.ADJ { background: rgba(255, 159, 10, .15); color: #8a5a00; }
+
+    .ref { font-family: monospace; font-size: 12px; color: var(--text-secondary); }
+
+    .paginacion {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 14px; padding: 14px 18px;
+        border-top: 1px solid var(--border-light);
+        background: var(--bg-soft, #f8fafc);
+    }
+    .pag-info { font-size: 13px; color: var(--text-secondary); }
+    .pag-info strong { color: var(--text-main); font-weight: 800; }
+
+    .pag-controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .pag-filas { display: flex; align-items: center; gap: 8px; }
+    .pag-filas label {
+        font-size: 12px; font-weight: 800; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: .4px;
+    }
+    .pag-filas select {
+        min-height: 36px; padding: 0 8px; border-radius: 9px; min-width: 72px;
+        border: 1px solid var(--border-light); background: #fff;
+        font-size: 13px; font-weight: 700; color: var(--text-main); cursor: pointer;
+    }
+
+    .pag-btn,
+    .pag-num {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        min-width: 36px; height: 36px; padding: 0 12px; border-radius: 11px;
+        border: 1px solid #d9e2ef; background: #ffffff; color: #0f172a;
+        font-size: 12px; font-weight: 800; text-decoration: none; transition: .15s;
+    }
+    .pag-num { padding: 0; width: 36px; }
+
+    .pag-btn:hover,
+    .pag-num:hover { background: #f8fafc; border-color: #94a3b8; }
+
+    .pag-num.activo { background: #0f6bff; border-color: #0f6bff; color: #ffffff; }
+    .pag-btn.inactivo { opacity: .45; pointer-events: none; }
+
+    .pag-nums { display: flex; align-items: center; gap: 6px; }
+    .pag-puntos { display: inline-flex; align-items: center; padding: 0 4px; color: var(--text-secondary); font-weight: 800; }
+
+    .vacio { text-align: center; padding: 50px 24px; color: var(--text-secondary); }
+    .vacio i { font-size: 34px; opacity: .45; display: block; margin-bottom: 10px; }
+    .vacio p { margin: 0; font-size: 14px; }
+
+    @media (max-width: 720px) {
+        .rep-sub { margin-left: 0; }
+        .rep-topbar { flex-direction: column; align-items: stretch; }
+        .btn-back { justify-content: center; }
+        .filtros { flex-direction: column; align-items: stretch; }
+        .filtros-campos { flex-direction: column; align-items: stretch; }
+        .filtros-acciones { justify-content: flex-end; }
+        .campo select, .campo input { width: 100%; }
+        .rango input { width: auto; flex: 1; min-width: 0; }
+
+        .paginacion { flex-direction: column; align-items: stretch; }
+        .pag-controles { justify-content: space-between; }
+    }
+</style>
+
+<div class="rep-wrap">
+
+    <div class="rep-topbar">
+        <div class="rep-head">
+            <i class='bx bx-book-content'></i>
+            <h1>Kardex de almacén</h1>
+        </div>
+        <a href="{% url 'reportes_home' %}" class="btn-back">
+            <i class='bx bx-arrow-back'></i>
+            Volver a Reportes
+        </a>
+    </div>
+    <p class="rep-sub">
+        Cada movimiento con el saldo que dejó, para la auditoría mensual.
+    </p>
+
+    {% if kpis %}
+    <div class="kpi-mes">
+        <p class="kpi-titulo">
+            Resumen de <span class="mes">{{ mes_ref|date:"F Y"|capfirst }}</span>
+            <span class="nota">· comparado con {{ mes_comparado|date:"F Y"|lower }}</span>
+        </p>
+
+        <div class="kpi-grid">
+            {% for k in kpis %}
+            <div class="kpi-card {{ k.color }}">
+                <div class="kpi-top">
+                    <span class="kpi-label">{{ k.titulo }}</span>
+                    <span class="kpi-icono {{ k.color }}"><i class='bx {{ k.icono }}'></i></span>
+                </div>
+
+                <div class="kpi-valor">{{ k.signo }}{{ k.valor|intcomma }}</div>
+
+                {% if k.delta is None %}
+                    <div class="kpi-delta sindato">Sin mes anterior para comparar</div>
+                {% elif k.delta.plano %}
+                    <div class="kpi-delta plano"><i class='bx bx-minus'></i> Sin cambio</div>
+                {% else %}
+                    <div class="kpi-delta {% if k.delta.bueno %}bueno{% else %}malo{% endif %}">
+                        <i class='bx bx-trending-{% if k.delta.sube %}up{% else %}down{% endif %}'></i>
+                        {% if k.delta.sube %}+{% else %}-{% endif %}{{ k.delta.pct }}%
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="get" class="filtros">
+        <div class="filtros-campos">
+            <div class="campo">
+                <label for="f-desde">Periodo</label>
+                <div class="rango">
+                    <input type="date" name="desde" id="f-desde" value="{{ desde|date:'Y-m-d' }}"
+                           aria-label="Fecha inicial">
+                    <span>–</span>
+                    <input type="date" name="hasta" id="f-hasta" value="{{ hasta|date:'Y-m-d' }}"
+                           aria-label="Fecha final">
+                </div>
+            </div>
+
+            <div class="campo">
+                <label for="f-producto">Material</label>
+                <select name="producto" id="f-producto">
+                    <option value="">Todos</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" {% if producto_sel and p.id == producto_sel.id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="campo">
+                <label for="f-tipo">Tipo</label>
+                <select name="tipo" id="f-tipo">
+                    <option value="">Todos</option>
+                    {% for val, etiqueta in tipos %}
+                    <option value="{{ val }}" {% if tipo_sel == val %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="filtros-acciones">
+            <input type="hidden" name="filas" value="{{ filas }}">
+            <button type="submit" class="btn-filtrar"><i class='bx bx-filter-alt'></i> Filtrar</button>
+            {% if producto_sel or tipo_sel %}
+            <a href="{% url 'reportes_kardex' %}" class="btn-limpiar">Limpiar</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <div class="tabla-wrap">
+        {% if movimientos %}
+        <div class="tabla-scroll">
+        <table class="kardex">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Ubicación</th>
+                    <th>Referencia</th>
+                    <th>Usuario</th>
+                    <th class="num">Cantidad</th>
+                    <th class="saldo">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% regroup movimientos by mes as meses %}
+                {% for mes in meses %}
+                <tr class="mes">
+                    <td colspan="7">
+                        <button type="button" class="mes-btn" aria-expanded="true"
+                                onclick="plegarMes(this, '{{ forloop.counter }}')">
+                            <i class='bx bx-calendar'></i>
+                            <span class="titulo">{{ mes.grouper|date:"F Y"|capfirst }}</span>
+                            <span class="cuenta">{{ mes.list|length }}</span>
+                            <i class='bx bx-chevron-up chevron'></i>
+                        </button>
+                    </td>
+                </tr>
+
+                {% regroup mes.list by producto as grupos %}
+                {% for grupo in grupos %}
+                    <tr class="grupo mes-{{ forloop.parentloop.counter }}">
+                        <td colspan="7">
+                            {{ grupo.grouper.nombre }}
+                            <span class="cod">{{ grupo.grouper.codigo_interno }}</span>
+                            <span class="cod">{{ grupo.grouper.unidad }}</span>
+                        </td>
+                    </tr>
+                    {% for m in grupo.list %}
+                    <tr class="mes-{{ forloop.parentloop.parentloop.counter }}">
+                        <td>{{ m.creado_en|date:"d/m/Y H:i" }}</td>
+                        <td><span class="pill {{ m.tipo }}">{{ m.get_tipo_display }}</span></td>
+                        <td>{{ m.ubicacion.nombre|default:"—" }}</td>
+                        <td class="ref">{{ m.referencia|default:"—" }}</td>
+                        <td>{% if m.usuario %}{{ m.usuario.get_full_name|default:m.usuario.username }}{% else %}—{% endif %}</td>
+                        <td class="num">
+                            {% if m.tipo == 'IN' %}+{{ m.qty }}{% elif m.tipo == 'OUT' %}-{{ m.qty }}{% else %}{{ m.qty }}{% endif %}
+                        </td>
+                        <td class="saldo">{{ m.saldo_resultante }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <div class="paginacion">
+            <div class="pag-info">
+                Mostrando <strong>{{ pagina.start_index }}-{{ pagina.end_index }}</strong>
+                de <strong>{{ total_movimientos|intcomma }}</strong>
+                {% if total_movimientos == 1 %}resultado{% else %}resultados{% endif %}
+            </div>
+
+            <div class="pag-controles">
+                <div class="pag-filas">
+                    <label for="f-filas">Filas</label>
+                    <select id="f-filas" onchange="cambiarFilas(this.value)">
+                        {% for op in filas_opciones %}
+                        <option value="{{ op }}" {% if op == filas %}selected{% endif %}>{{ op }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if pagina.has_previous %}
+                <a href="?{{ filtros }}&page={{ pagina.previous_page_number }}" class="pag-btn">
+                    <i class='bx bx-chevron-left'></i> Anterior
+                </a>
+                {% else %}
+                <span class="pag-btn inactivo"><i class='bx bx-chevron-left'></i> Anterior</span>
+                {% endif %}
+
+                <div class="pag-nums">
+                    {% for num in pagina.paginator.page_range %}
+                        {% if num == pagina.number %}
+                            <span class="pag-num activo">{{ num }}</span>
+                        {% elif num == 1 or num == pagina.paginator.num_pages or num >= pagina.number|add:-2 and num <= pagina.number|add:2 %}
+                            <a href="?{{ filtros }}&page={{ num }}" class="pag-num">{{ num }}</a>
+                        {% elif num == pagina.number|add:-3 or num == pagina.number|add:3 %}
+                            <span class="pag-puntos">…</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if pagina.has_next %}
+                <a href="?{{ filtros }}&page={{ pagina.next_page_number }}" class="pag-btn">
+                    Siguiente <i class='bx bx-chevron-right'></i>
+                </a>
+                {% else %}
+                <span class="pag-btn inactivo">Siguiente <i class='bx bx-chevron-right'></i></span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% elif not sede_sel %}
+        <div class="vacio">
+            <i class='bx bx-buildings'></i>
+            <p>No tienes ninguna sede asignada, así que no hay kardex que mostrar.</p>
+        </div>
+
+        {% else %}
+        <div class="vacio">
+            <i class='bx bx-search-alt'></i>
+            <p>
+                No hay movimientos en <strong>{{ sede_sel.nombre }}</strong>
+                entre el {{ desde|date:"d/m/Y" }} y el {{ hasta|date:"d/m/Y" }}{% if producto_sel %}
+                para {{ producto_sel.nombre }}{% endif %}.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    // Cambiar el tamaño de página vuelve a la primera: quedarse en la
+    // página 7 con 50 filas cuando antes había 12 páginas de 10 dejaría
+    // la tabla vacía sin explicación.
+    // Plegar un mes oculta sus filas y las de sus productos.
+    function plegarMes(boton, id) {
+        const abierto = boton.getAttribute('aria-expanded') === 'true';
+        boton.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+        document.querySelectorAll('tr.mes-' + id).forEach(function (fila) {
+            fila.style.display = abierto ? 'none' : '';
+        });
+    }
+
+    function cambiarFilas(valor) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('filas', valor);
+        url.searchParams.delete('page');
+        window.location.assign(url.toString());
+    }
+</script>
+
+{% endblock %}

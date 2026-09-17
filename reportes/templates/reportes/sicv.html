@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Órdenes liquidadas (SICV) | Telecable{% endblock %}
+
+{% block content %}
+<style>
+    .rep-wrap { max-width: 1000px; margin: 0 auto; padding: 10px 0 40px; }
+    .rep-topbar {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .btn-back {
+        background: #ffffff; border: 1px solid var(--border-light, #cbd5e1);
+        color: var(--text-main, #0f172a); padding: 0 18px; min-height: 42px;
+        border-radius: 13px; font-size: 13px; font-weight: 950; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 8px; transition: .2s; white-space: nowrap;
+    }
+    .btn-back:hover { background: #f8fafc; transform: translateY(-1px); border-color: #94a3b8; }
+
+    .rep-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .rep-head i { font-size: 30px; color: var(--primary); }
+    .rep-head h1 { margin: 0; font-size: 23px; font-weight: 800; color: var(--text-main); }
+    .rep-sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 26px 44px; }
+
+    .estado-box {
+        background: var(--bg-card); border: 1px solid var(--border-light);
+        border-radius: 16px; padding: 40px 30px; text-align: center;
+    }
+    .estado-box .ico {
+        width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 30px;
+        background: rgba(255, 159, 10, 0.12); color: #c47f00;
+    }
+    .estado-box h2 { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: var(--text-main); }
+    .estado-box p { margin: 0 auto 6px; font-size: 14px; color: var(--text-secondary); max-width: 560px; line-height: 1.6; }
+
+    .pasos {
+        text-align: left; max-width: 560px; margin: 24px auto 0;
+        background: var(--bg-soft, #f8fafc); border: 1px solid var(--border-light);
+        border-radius: 12px; padding: 18px 20px;
+    }
+    .pasos h4 { margin: 0 0 12px; font-size: 12px; font-weight: 800; text-transform: uppercase;
+                letter-spacing: .5px; color: var(--text-secondary); }
+    .pasos ol { margin: 0; padding-left: 20px; }
+    .pasos li { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 7px; }
+    .pasos code {
+        background: #e2e8f0; padding: 1px 6px; border-radius: 4px;
+        font-size: 12px; font-family: monospace; color: #0f172a;
+    }
+    .pasos li.hecho { color: #1c7a35; }
+    .pasos li.hecho code { background: rgba(48, 209, 88, 0.15); color: #1c7a35; }
+
+    @media (max-width: 620px) {
+        .rep-sub { margin-left: 0; }
+        .rep-topbar { flex-direction: column; align-items: stretch; }
+        .btn-back { justify-content: center; }
+    }
+</style>
+
+<div class="rep-wrap">
+
+    <div class="rep-topbar">
+        <div class="rep-head">
+            <i class='bx bx-broadcast'></i>
+            <h1>Órdenes liquidadas (SICV)</h1>
+        </div>
+        <a href="{% url 'reportes_home' %}" class="btn-back">
+            <i class='bx bx-arrow-back'></i>
+            Volver a Reportes
+        </a>
+    </div>
+    <p class="rep-sub">Material declarado por los técnicos en las órdenes que ya liquidaron en campo.</p>
+
+    {% if not sicv_habilitado %}
+    <div class="estado-box">
+        <div class="ico"><i class='bx bx-plug'></i></div>
+        <h2>La conexión con SICV aún no está habilitada.</h2>
+        <p>
+            Esta pantalla ya está desplegada, pero todavía no consulta nada.
+            No confundir con «no hay movimientos»: cuando la conexión esté activa
+            y el periodo salga vacío, el mensaje será otro.
+        </p>
+
+        <div class="pasos">
+            <h4>Para activarla</h4>
+            <ol>
+                {% if sicv_configurado %}
+                <li class="hecho"><code>SICV_URL</code> y <code>SICV_TOKEN</code> cargados ✓</li>
+                {% else %}
+                <li>Pedir a SICV el host y el token del entorno de desarrollo, y cargarlos en <code>.env</code> como <code>SICV_URL</code> y <code>SICV_TOKEN</code>.</li>
+                {% endif %}
+                <li>Sincronizar una semana de un técnico y cuadrarla a mano contra el Excel del sistema anterior.</li>
+                <li>Si los dos números coinciden, prender <code>SICV_SYNC_ENABLED=True</code>.</li>
+            </ol>
+        </div>
+    </div>
+    {% else %}
+    <div class="estado-box">
+        <div class="ico" style="background: rgba(48,209,88,.12); color:#1c7a35;">
+            <i class='bx bx-check-shield'></i>
+        </div>
+        <h2>Conexión habilitada</h2>
+        <p>Falta construir la sincronización y la tabla de movimientos.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
