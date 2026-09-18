@@ -1,108 +1,451 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}Órdenes liquidadas (SICV) | Telecable{% endblock %}
 
 {% block content %}
+
 <style>
-    .rep-wrap { max-width: 1000px; margin: 0 auto; padding: 10px 0 40px; }
-    .rep-topbar {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        gap: 16px; flex-wrap: wrap; margin-bottom: 6px;
-    }
-    .btn-back {
-        background: #ffffff; border: 1px solid var(--border-light, #cbd5e1);
-        color: var(--text-main, #0f172a); padding: 0 18px; min-height: 42px;
-        border-radius: 13px; font-size: 13px; font-weight: 950; text-decoration: none;
-        display: inline-flex; align-items: center; gap: 8px; transition: .2s; white-space: nowrap;
-    }
-    .btn-back:hover { background: #f8fafc; transform: translateY(-1px); border-color: #94a3b8; }
+  /* Mismo lenguaje visual que el reporte general y que ONUs / Equipos
+     Serializados: tarjetas blancas de borde suave, filtros en rejilla e
+     insignias redondeadas para códigos y estados. */
+  .rep-page { padding: 2rem 2.5rem; }
 
-    .rep-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
-    .rep-head i { font-size: 30px; color: var(--primary); }
-    .rep-head h1 { margin: 0; font-size: 23px; font-weight: 800; color: var(--text-main); }
-    .rep-sub { color: var(--text-secondary); font-size: 14px; margin: 0 0 26px 44px; }
+  .rep-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .rep-title { font-size: 2rem; font-weight: 800; color: #061833; margin: 0; }
+  .rep-subtitle { color: #64748b; margin-top: .5rem; margin-bottom: 0; }
 
-    .estado-box {
-        background: var(--bg-card); border: 1px solid var(--border-light);
-        border-radius: 16px; padding: 40px 30px; text-align: center;
-    }
-    .estado-box .ico {
-        width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; font-size: 30px;
-        background: rgba(255, 159, 10, 0.12); color: #c47f00;
-    }
-    .estado-box h2 { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: var(--text-main); }
-    .estado-box p { margin: 0 auto 6px; font-size: 14px; color: var(--text-secondary); max-width: 560px; line-height: 1.6; }
+  .rep-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+  .rep-btn {
+    border-radius: 14px; padding: .75rem 1rem; font-weight: 700;
+    text-decoration: none; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .92rem; cursor: pointer;
+  }
+  .rep-btn-primary { background: #2563eb; color: #fff; border: none; }
+  .rep-btn-light { background: #fff; color: #0f172a; border-color: #dbe3ef; }
+  .rep-btn-light:hover { background: #f8fafc; }
 
-    .pasos {
-        text-align: left; max-width: 560px; margin: 24px auto 0;
-        background: var(--bg-soft, #f8fafc); border: 1px solid var(--border-light);
-        border-radius: 12px; padding: 18px 20px;
-    }
-    .pasos h4 { margin: 0 0 12px; font-size: 12px; font-weight: 800; text-transform: uppercase;
-                letter-spacing: .5px; color: var(--text-secondary); }
-    .pasos ol { margin: 0; padding-left: 20px; }
-    .pasos li { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 7px; }
-    .pasos code {
-        background: #e2e8f0; padding: 1px 6px; border-radius: 4px;
-        font-size: 12px; font-family: monospace; color: #0f172a;
-    }
-    .pasos li.hecho { color: #1c7a35; }
-    .pasos li.hecho code { background: rgba(48, 209, 88, 0.15); color: #1c7a35; }
+  .rep-card {
+    background: #fff; border: 1px solid #dbe3ef; border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+    margin-bottom: 1.25rem; overflow: hidden;
+  }
+  .rep-card-body { padding: 1.25rem; }
 
-    @media (max-width: 620px) {
-        .rep-sub { margin-left: 0; }
-        .rep-topbar { flex-direction: column; align-items: stretch; }
-        .btn-back { justify-content: center; }
-    }
+  .filter-grid {
+    display: grid; grid-template-columns: 2fr 1.2fr 1.2fr 1.4fr auto auto;
+    gap: 1rem; align-items: end;
+  }
+  .filter-field label {
+    display: block; font-size: .82rem; font-weight: 800; color: #334155;
+    margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .03em;
+  }
+  .filter-field input, .filter-field select {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 14px;
+    padding: .8rem .9rem; outline: none; background: #fff; color: #0f172a;
+  }
+  .filter-field input:focus, .filter-field select:focus {
+    border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+  }
+  /* Atajos y rango, todo en una fila. */
+  .periodo-fila {
+    display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #edf2f7;
+  }
+  /* Separador visual entre los atajos y las fechas. */
+  .periodo-sep {
+    width: 1px; height: 24px; background: #dbe3ef; margin: 0 .5rem;
+  }
+  .periodo-guion { color: #94a3b8; font-weight: 800; padding: 0 .1rem; }
+
+  .periodo-chip {
+    font-family: inherit; font-size: .85rem; font-weight: 700;
+    padding: .55rem .95rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid #dbe3ef; background: #fff; color: #475569;
+    transition: .15s; white-space: nowrap;
+  }
+  .periodo-chip:hover { background: #f1f5f9; border-color: #94a3b8; color: #0f172a; }
+  .periodo-chip.activa { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+  /* base.html declara `input { width: 100% }` para todo el sitio, y eso
+     empujaba cada campo de fecha a su propia línea. Acá se vuelve al ancho
+     del contenido para que entren al lado de los atajos. */
+  .periodo-fila input[type="date"] {
+    width: auto; flex: 0 0 auto;
+    border: 1px solid #cbd5e1; border-radius: 12px; padding: .5rem .7rem;
+    background: #fff; color: #0f172a; font-family: inherit; font-size: .88rem;
+  }
+  .periodo-fila input[type="date"]:focus {
+    outline: none; border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+  }
+
+  .table-responsive { overflow-x: auto; }
+
+  .rep-table { width: 100%; border-collapse: collapse; }
+  .rep-table th {
+    background: #f8fafc; color: #475569; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .05em;
+    padding: .9rem 1rem; border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap; text-align: left;
+  }
+  .rep-table td {
+    padding: .9rem 1rem; border-bottom: 1px solid #edf2f7;
+    vertical-align: top; color: #0f172a; font-size: .9rem;
+  }
+  .rep-table tr:hover td { background: #f8fbff; }
+  .rep-table th.num, .rep-table td.num { text-align: right; white-space: nowrap; }
+
+  .rep-table .principal { font-weight: 800; }
+  .rep-table .sub { display: block; color: #94a3b8; font-size: .78rem; font-weight: 600; margin-top: .15rem; }
+  .rep-table .ancho { max-width: 260px; }
+
+  .code-badge {
+    display: inline-flex; padding: .35rem .6rem; border-radius: 999px;
+    background: #eef4ff; border: 1px solid #bfdbfe; color: #1d4ed8;
+    font-size: .82rem; font-weight: 800; white-space: nowrap;
+  }
+  .trace-badge {
+    display: inline-flex; padding: .35rem .6rem; border-radius: 999px;
+    background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c;
+    font-size: .82rem; font-weight: 900; white-space: nowrap;
+  }
+  .status-badge {
+    display: inline-flex; padding: .4rem .7rem; border-radius: 999px;
+    font-size: .78rem; font-weight: 900; white-space: nowrap;
+  }
+  .st-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .st-aviso { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+  .st-neutro { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
+
+  .sin-dato { color: #cbd5e1; }
+
+  /* Encabezado de técnico. Agrupa las filas de abajo, así que pesa más que
+     una fila común y no se levanta al pasar el mouse: no es un dato, es un
+     rótulo. */
+  tr.fila-tecnico td {
+    background: #eef4ff;
+    border-top: 1px solid #bfdbfe;
+    border-bottom: 1px solid #bfdbfe;
+    padding: .75rem 1rem;
+  }
+  tr.fila-tecnico:hover td { background: #eef4ff; }
+  .nombre-tecnico {
+    font-size: .95rem; font-weight: 900; color: #1d4ed8;
+    letter-spacing: .01em;
+  }
+  .cuenta-tecnico {
+    display: inline-block; margin-left: .6rem;
+    font-size: .74rem; font-weight: 800; color: #1d4ed8;
+    background: rgba(29, 78, 216, .12); border-radius: 999px; padding: .15rem .55rem;
+  }
+
+  .empty-state { text-align: center; padding: 3rem 1.25rem; color: #64748b; }
+  .empty-state strong { display: block; color: #0f172a; margin-bottom: .4rem; font-size: 1.05rem; }
+  .empty-state .pasos {
+    text-align: left; max-width: 640px; margin: 1.5rem auto 0;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.1rem 1.25rem;
+  }
+  .empty-state .pasos h4 {
+    margin: 0 0 .7rem; font-size: .76rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; color: #64748b;
+  }
+  .empty-state .pasos ol { margin: 0; padding-left: 1.2rem; }
+  .empty-state .pasos li { font-size: .88rem; line-height: 1.7; margin-bottom: .45rem; color: #334155; }
+  .empty-state .pasos code {
+    background: #e2e8f0; padding: .12rem .45rem; border-radius: 6px;
+    font-size: .8rem; color: #0f172a; word-break: break-all;
+  }
+  .empty-state .pasos li.hecho { color: #166534; }
+  .empty-state .pasos li.hecho code { background: #dcfce7; color: #166534; }
+
+  /* Paginación */
+  .rep-pag {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; padding: 1rem 1.25rem;
+    border-top: 1px solid #e2e8f0; background: #f8fafc;
+  }
+  .rep-pag-info { font-size: .88rem; color: #64748b; }
+  .rep-pag-info strong { color: #0f172a; font-weight: 800; }
+  .rep-pag-controles { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .rep-pag-filas { display: flex; align-items: center; gap: .5rem; }
+  .rep-pag-filas label {
+    font-size: .78rem; font-weight: 800; color: #64748b;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .rep-pag-filas select {
+    border: 1px solid #cbd5e1; border-radius: 12px; padding: .5rem .6rem;
+    background: #fff; color: #0f172a; font-weight: 700; cursor: pointer;
+  }
+  .rep-pag-btn, .rep-pag-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; height: 38px; padding: 0 .9rem; border-radius: 12px;
+    border: 1px solid #dbe3ef; background: #fff; color: #0f172a;
+    font-size: .82rem; font-weight: 800; text-decoration: none; transition: .15s;
+  }
+  .rep-pag-num { padding: 0; width: 38px; }
+  .rep-pag-btn:hover, .rep-pag-num:hover { background: #f1f5f9; border-color: #94a3b8; }
+  .rep-pag-num.activo { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .rep-pag-btn.inactivo { opacity: .45; pointer-events: none; }
+  .rep-pag-nums { display: flex; align-items: center; gap: .35rem; }
+  .rep-pag-puntos { display: inline-flex; align-items: center; padding: 0 .25rem; color: #94a3b8; font-weight: 800; }
+
+  @media (max-width: 1200px) {
+    .filter-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .rep-page { padding: 1.25rem; }
+    .rep-header { flex-direction: column; }
+    .filter-grid { grid-template-columns: 1fr; }
+  }
 </style>
 
-<div class="rep-wrap">
+<div class="rep-page">
 
-    <div class="rep-topbar">
-        <div class="rep-head">
-            <i class='bx bx-broadcast'></i>
-            <h1>Órdenes liquidadas (SICV)</h1>
-        </div>
-        <a href="{% url 'reportes_home' %}" class="btn-back">
-            <i class='bx bx-arrow-back'></i>
-            Volver a Reportes
-        </a>
+  <div class="rep-header">
+    <div>
+      <h1 class="rep-title">Órdenes liquidadas (SICV)</h1>
+      <p class="rep-subtitle">
+        Material que los técnicos declararon en campo, tal como llegó del
+        sistema de órdenes.
+      </p>
     </div>
-    <p class="rep-sub">Material declarado por los técnicos en las órdenes que ya liquidaron en campo.</p>
 
-    {% if not sicv_habilitado %}
-    <div class="estado-box">
-        <div class="ico"><i class='bx bx-plug'></i></div>
-        <h2>La conexión con SICV aún no está habilitada.</h2>
-        <p>
-            Esta pantalla ya está desplegada, pero todavía no consulta nada.
-            No confundir con «no hay movimientos»: cuando la conexión esté activa
-            y el periodo salga vacío, el mensaje será otro.
-        </p>
-
-        <div class="pasos">
-            <h4>Para activarla</h4>
-            <ol>
-                {% if sicv_configurado %}
-                <li class="hecho"><code>SICV_URL</code> y <code>SICV_TOKEN</code> cargados ✓</li>
-                {% else %}
-                <li>Pedir a SICV el host y el token del entorno de desarrollo, y cargarlos en <code>.env</code> como <code>SICV_URL</code> y <code>SICV_TOKEN</code>.</li>
-                {% endif %}
-                <li>Sincronizar una semana de un técnico y cuadrarla a mano contra el Excel del sistema anterior.</li>
-                <li>Si los dos números coinciden, prender <code>SICV_SYNC_ENABLED=True</code>.</li>
-            </ol>
-        </div>
+    <div class="rep-actions">
+      <a href="{% url 'reportes_home' %}" class="rep-btn rep-btn-light">Volver</a>
     </div>
+  </div>
+
+  {% if total_filas %}
+
+  <div class="rep-card">
+    <div class="rep-card-body">
+      <form method="get">
+        <input type="hidden" name="filas" value="{{ filas }}">
+
+        <div class="filter-grid">
+          <div class="filter-field">
+            <label>Buscar</label>
+            <input type="text" name="q" value="{{ busqueda }}"
+                   placeholder="Orden, abonado, material, técnico o MAC">
+          </div>
+
+          <div class="filter-field">
+            <label>Técnico</label>
+            <select name="tecnico">
+              <option value="">Todos</option>
+              {% for t in tecnicos %}
+              <option value="{{ t }}" {% if tecnico_sel == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Material</label>
+            <select name="material">
+              <option value="">Todos</option>
+              {% for m in materiales %}
+              <option value="{{ m }}" {% if material_sel == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Sede</label>
+            <select name="sede_id">
+              {% for s in sedes_disponibles %}
+              <option value="{{ s.pk }}" {% if sede and s.pk == sede.pk %}selected{% endif %}>{{ s.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="rep-btn rep-btn-primary">Buscar</button>
+          <a href="{% url 'reportes_sicv' %}" class="rep-btn rep-btn-light">Limpiar</a>
+        </div>
+
+        <input type="hidden" name="periodo" id="f-periodo" value="{{ periodo_sel }}">
+
+        <div class="periodo-fila">
+          {% for clave, etiqueta in periodos %}
+          <button type="button"
+                  class="periodo-chip {% if periodo_sel == clave %}activa{% endif %}"
+                  data-periodo="{{ clave }}"
+                  onclick="elegirPeriodo('{{ clave }}')">{{ etiqueta }}</button>
+          {% endfor %}
+
+          <span class="periodo-sep"></span>
+
+          <input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}"
+                 aria-label="Fecha inicial" onchange="fechaEditada()">
+          <span class="periodo-guion">–</span>
+          <input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}"
+                 aria-label="Fecha final" onchange="fechaEditada()">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="rep-card">
+    {% if detalles %}
+    <div class="table-responsive">
+      <table class="rep-table">
+        <thead>
+          <tr>
+            <th>Orden</th>
+            <th>Emisión</th>
+            <th>Abonado</th>
+            <th>Dirección</th>
+            <th>Material</th>
+            <th class="num">Cantidad</th>
+            <th>Acción</th>
+            <th>MAC</th>
+            <th>Atención</th>
+            <th>Situación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% regroup detalles by tecnico as por_tecnico %}
+          {% for grupo in por_tecnico %}
+          <tr class="fila-tecnico">
+            <td colspan="10">
+              <span class="nombre-tecnico">
+                {% if grupo.grouper %}{{ grupo.grouper }}{% else %}Sin técnico declarado{% endif %}
+              </span>
+              <span class="cuenta-tecnico">{{ grupo.list|length }} fila{{ grupo.list|length|pluralize }}</span>
+            </td>
+          </tr>
+
+          {% for d in grupo.list %}
+          <tr>
+            <td>
+              <span class="code-badge">{{ d.orden }}</span>
+              {% if d.tipo_orden %}<span class="sub">{{ d.tipo_orden }}</span>{% endif %}
+            </td>
+            <td>
+              {% if d.emision %}{{ d.emision|date:"d/m/Y" }}<span class="sub">{{ d.emision|date:"H:i" }}</span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+            <td class="ancho">
+              {% if d.abonado and d.abonado != "-" %}
+              <span class="principal">{{ d.abonado }}</span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+              {% if d.codigo_abonado %}<span class="sub">{{ d.codigo_abonado }}</span>{% endif %}
+            </td>
+            <td class="ancho">
+              {% if d.direccion and d.direccion != "-" %}{{ d.direccion }}
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+            <td class="ancho"><span class="principal">{{ d.material }}</span></td>
+            <td class="num"><span class="principal">{{ d.cantidad|floatformat:2 }}</span></td>
+            <td>
+              {% if d.accion %}<span class="status-badge st-neutro">{{ d.accion }}</span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+            <td>
+              {% if d.mac %}<span class="trace-badge">{{ d.mac }}</span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+            <td>
+              {% if d.atencion %}{{ d.atencion|date:"d/m/Y" }}<span class="sub">{{ d.atencion|date:"H:i" }}</span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+            <td>
+              {% if d.situacion %}
+              <span class="status-badge {% if d.situacion|upper == 'APROBADO' %}st-ok{% else %}st-aviso{% endif %}">
+                {{ d.situacion }}
+              </span>
+              {% else %}<span class="sin-dato">-</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% include "reportes/_paginacion.html" %}
+
     {% else %}
-    <div class="estado-box">
-        <div class="ico" style="background: rgba(48,209,88,.12); color:#1c7a35;">
-            <i class='bx bx-check-shield'></i>
-        </div>
-        <h2>Conexión habilitada</h2>
-        <p>Falta construir la sincronización y la tabla de movimientos.</p>
+    <div class="empty-state">
+      <strong>Ninguna fila coincide con los filtros.</strong>
+      Hay {{ total_filas|intcomma }} fila{{ total_filas|pluralize }} recibida{{ total_filas|pluralize }}
+      en esta sede; probá limpiando la búsqueda o cambiando el material.
     </div>
     {% endif %}
+  </div>
+
+  {% elif not sicv_habilitado %}
+  <div class="rep-card">
+    <div class="empty-state">
+      <strong>Todavía no se cargó ninguna fila.</strong>
+      La estructura de recepción está lista y probada; lo que falta es el
+      cliente que consulte la API de SICV. Mientras tanto se puede cargar un
+      archivo exportado.
+
+      <div class="pasos">
+        <h4>Cargar un archivo hoy</h4>
+        <ol>
+          <li>Exportar de SICV el reporte «Registro de materiales» a CSV.</li>
+          <li>Correr <code>manage.py importar_sicv archivo.csv --sede {{ sede.nombre|default:"SEDE" }} --desde 2026-09-01 --hasta 2026-09-30</code></li>
+          <li>Revisar la tabla: se puede filtrar por técnico, material o periodo.</li>
+        </ol>
+      </div>
+
+      <div class="pasos">
+        <h4>Para prender la conexión automática</h4>
+        <ol>
+          {% if sicv_configurado %}
+          <li class="hecho"><code>SICV_URL</code> y <code>SICV_TOKEN</code> cargados ✓</li>
+          {% else %}
+          <li>Pedir a SICV el host y el token, y cargarlos en <code>.env</code> como <code>SICV_URL</code> y <code>SICV_TOKEN</code>.</li>
+          {% endif %}
+          <li>Cuadrar a mano una semana contra el archivo exportado.</li>
+          <li>Si los dos números coinciden, prender <code>SICV_SYNC_ENABLED=True</code>.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="rep-card">
+    <div class="empty-state">
+      <strong>Conexión activa, sin datos todavía.</strong>
+      La integración está prendida pero no entró ninguna fila para
+      {{ sede.nombre|default:"tu sede" }}. No es lo mismo que «no hubo consumo»:
+      todavía no se ejecutó ninguna sincronización.
+    </div>
+  </div>
+  {% endif %}
 
 </div>
+
+<script>
+  // Un atajo envía de una: sus fechas las resuelve el servidor y no hay
+  // nada más que completar.
+  function elegirPeriodo(clave) {
+    document.getElementById('f-periodo').value = clave;
+    document.querySelector('form').submit();
+  }
+
+  // Tocar una fecha manda: deja de regir el atajo y pasa a valer el rango
+  // escrito. No se envía todavía, porque casi siempre hay que cambiar la
+  // otra fecha también.
+  function fechaEditada() {
+    document.getElementById('f-periodo').value = 'personalizado';
+    document.querySelectorAll('.periodo-chip').forEach(function (chip) {
+      chip.classList.remove('activa');
+    });
+  }
+
+  function cambiarFilas(valor) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('filas', valor);
+    url.searchParams.delete('page');
+    window.location.assign(url.toString());
+  }
+</script>
+
 {% endblock %}

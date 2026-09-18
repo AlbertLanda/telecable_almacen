@@ -1,0 +1,50 @@
+{% load humanize %}
+{% comment %}
+Paginación de la pantalla de SICV.
+
+Opera sobre `pagina_actual`. Vive aparte porque SICV sí pagina -acumula una
+fila por material y por orden, así que son miles- mientras que el reporte
+general muestra el catálogo entero de una.
+{% endcomment %}
+<div class="rep-pag">
+  <div class="rep-pag-info">
+    Mostrando <strong>{{ pagina_actual.start_index }}-{{ pagina_actual.end_index }}</strong>
+    de <strong>{{ pagina_actual.paginator.count|intcomma }}</strong>
+    {% if pagina_actual.paginator.count == 1 %}resultado{% else %}resultados{% endif %}
+  </div>
+
+  <div class="rep-pag-controles">
+    <div class="rep-pag-filas">
+      <label for="f-filas">Filas</label>
+      <select id="f-filas" onchange="cambiarFilas(this.value)">
+        {% for op in filas_opciones %}
+        <option value="{{ op }}" {% if op == filas %}selected{% endif %}>{{ op }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if pagina_actual.has_previous %}
+    <a href="?{{ filtros }}&page={{ pagina_actual.previous_page_number }}" class="rep-pag-btn">Anterior</a>
+    {% else %}
+    <span class="rep-pag-btn inactivo">Anterior</span>
+    {% endif %}
+
+    <div class="rep-pag-nums">
+      {% for num in pagina_actual.paginator.page_range %}
+        {% if num == pagina_actual.number %}
+          <span class="rep-pag-num activo">{{ num }}</span>
+        {% elif num == 1 or num == pagina_actual.paginator.num_pages or num >= pagina_actual.number|add:-2 and num <= pagina_actual.number|add:2 %}
+          <a href="?{{ filtros }}&page={{ num }}" class="rep-pag-num">{{ num }}</a>
+        {% elif num == pagina_actual.number|add:-3 or num == pagina_actual.number|add:3 %}
+          <span class="rep-pag-puntos">…</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if pagina_actual.has_next %}
+    <a href="?{{ filtros }}&page={{ pagina_actual.next_page_number }}" class="rep-pag-btn">Siguiente</a>
+    {% else %}
+    <span class="rep-pag-btn inactivo">Siguiente</span>
+    {% endif %}
+  </div>
+</div>

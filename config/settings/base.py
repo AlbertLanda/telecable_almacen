@@ -141,3 +141,8 @@ SICV_URL = os.getenv("SICV_URL", "").rstrip("/")
 SICV_TOKEN = os.getenv("SICV_TOKEN", "")
 SICV_SYNC_ENABLED = os.getenv("SICV_SYNC_ENABLED", "False").lower() in ("1", "true", "yes", "y")
 SICV_TIMEOUT = int(os.getenv("SICV_TIMEOUT", "30"))
+
+# Ruta del reporte de materiales dentro de SICV_URL. Va como variable y no
+# fija en el código porque todavía no está confirmada: el día que SICV la
+# defina se cambia en el .env, sin tocar ni desplegar código.
+SICV_ENDPOINT = os.getenv("SICV_ENDPOINT", "/api/materiales")

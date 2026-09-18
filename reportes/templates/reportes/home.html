@@ -33,34 +33,15 @@
     }
     a.rep-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card); border-color: #94a3b8; }
 
-    /* Tarjeta informativa: no navega a ningún lado, así que no se comporta
-       como un enlace (sin cursor de mano, sin levantarse al pasar por encima). */
-    .rep-card.pendiente { cursor: default; background: var(--bg-soft, #f8fafc); }
-    .rep-card.pendiente h3,
-    .rep-card.pendiente p.desc,
-    .rep-card.pendiente .rep-list li { opacity: .72; }
-
-    .rep-card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
     .rep-icon {
-        width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center; font-size: 26px;
+        width: 64px; height: 64px; border-radius: 18px; margin-bottom: 18px;
+        display: flex; align-items: center; justify-content: center; font-size: 34px;
     }
     .rep-icon.sicv { background: rgba(15, 107, 255, 0.10); color: var(--primary); }
     .rep-icon.kardex { background: rgba(48, 209, 88, 0.12); color: #1c7a35; }
 
-    .rep-card h3 { margin: 0 0 3px; font-size: 17px; font-weight: 800; color: var(--text-main); }
-    .rep-card .origen { margin: 0; font-size: 11px; font-weight: 700; font-family: monospace;
-                        text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); }
-    .rep-card p.desc { margin: 0 0 16px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
-
-    .rep-list { list-style: none; margin: 0 0 18px; padding: 0; }
-    .rep-list li {
-        font-size: 12.5px; color: var(--text-secondary); padding: 4px 0 4px 20px;
-        position: relative; line-height: 1.45;
-    }
-    .rep-list li::before {
-        content: '\2022'; position: absolute; left: 6px; color: var(--primary); font-weight: 900;
-    }
+    .rep-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 800; color: var(--text-main); }
+    .rep-card p.desc { margin: 0 0 18px; font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
 
     .rep-estado {
         display: inline-flex; align-items: center; gap: 6px;
@@ -68,10 +49,6 @@
     }
     .rep-estado.ok { background: rgba(48, 209, 88, 0.12); color: #1c7a35; }
     .rep-estado.off { background: rgba(255, 159, 10, 0.12); color: #8a5a00; }
-    .rep-estado.pendiente {
-        background: rgba(100, 116, 139, 0.12); color: #475569;
-        border: 1px dashed rgba(100, 116, 139, 0.35);
-    }
 
     @media (max-width: 620px) {
         .rep-grid { grid-template-columns: 1fr; }
@@ -98,50 +75,24 @@
 
     <div class="rep-grid">
 
-        <div class="rep-card pendiente">
-            <div class="rep-card-top">
-                <div class="rep-icon sicv"><i class='bx bx-broadcast'></i></div>
-                <div>
-                    <h3>Órdenes liquidadas (SICV)</h3>
-                    <p class="origen">Origen: API REST de SICV</p>
-                </div>
-            </div>
+        <a href="{% url 'reportes_sicv' %}" class="rep-card">
+            <div class="rep-icon sicv"><i class='bx bxs-cloud-download'></i></div>
 
-            <p class="desc">
-                Material que los técnicos declararon en las órdenes ya liquidadas,
-                traído del sistema de campo.
-            </p>
+            <h3>Órdenes liquidadas (SICV)</h3>
+            <p class="desc">Material declarado en campo, por técnico y por orden.</p>
 
-            <ul class="rep-list">
-                <li>Instalado y retirado, por técnico y por orden</li>
-                <li>Detalle por orden y abonado, auditable</li>
-                <li>Base para cuadrar contra la mochila semanal</li>
-            </ul>
-
-            <span class="rep-estado pendiente">
-                <i class='bx bx-time-five'></i> Módulo aún por implementarse
-            </span>
-        </div>
+            {% if sicv_habilitado %}
+            <span class="rep-estado ok"><i class='bx bx-check-circle'></i> Conexión activa</span>
+            {% else %}
+            <span class="rep-estado off"><i class='bx bx-time-five'></i> Conexión pendiente</span>
+            {% endif %}
+        </a>
 
         <a href="{% url 'reportes_kardex' %}" class="rep-card">
-            <div class="rep-card-top">
-                <div class="rep-icon kardex"><i class='bx bx-book-content'></i></div>
-                <div>
-                    <h3>Kardex de almacén</h3>
-                    <p class="origen">Origen: movimientos propios</p>
-                </div>
-            </div>
+            <div class="rep-icon kardex"><i class='bx bxs-package'></i></div>
 
-            <p class="desc">
-                Todos los movimientos de cada material con el saldo que dejaron.
-                Pensado para la auditoría mensual.
-            </p>
-
-            <ul class="rep-list">
-                <li>Ingresos, salidas y ajustes por producto</li>
-                <li>Saldo resultante tras cada movimiento</li>
-                <li>Filtro por mes, sede, material y tipo</li>
-            </ul>
+            <h3>Reporte general</h3>
+            <p class="desc">Materiales, existencias y movimientos de almacén.</p>
 
             <span class="rep-estado ok"><i class='bx bx-check-circle'></i> Disponible</span>
         </a>
