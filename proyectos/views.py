@@ -774,10 +774,12 @@ def almacen_liquidacion_lista(request):
     profile = request.user.profile
     if profile.rol != UserProfile.Rol.ALMACEN: return redirect('home')
 
+    # Igual que en almacen_proyectos_list: un almacén puede haber apoyado el
+    # despacho de una obra de otra sede, así que la liquidación también debe
+    # mostrar obras de todas las sedes, no solo la propia.
     proyectos = Proyecto.objects.filter(
-        sede=profile.get_sede_operativa(),
         estado=EstadoProyecto.EN_PROCESO
-    ).select_related('responsable').order_by('-creado_en')
+    ).select_related('sede', 'responsable').order_by('-creado_en')
 
     return render(request, 'proyectos/almacen_liquidacion_lista.html', {'proyectos': proyectos})
 

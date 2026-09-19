@@ -90,6 +90,7 @@
                     <tr>
                         <th>Código</th>
                         <th>Proyecto</th>
+                        <th>Sede</th>
                         <th>Responsable</th>
                         <th>Inicio</th>
                         <th class="th-right">Acción</th>
@@ -104,14 +105,15 @@
                         <td>
                             <span class="project-name">{{ p.nombre }}</span>
                         </td>
+                        <td style="color: var(--text-secondary);">{{ p.sede.nombre }}</td>
                         <td>
                             <div class="tech-info">
-                                <i class='bx bxs-hard-hat'></i> 
+                                <i class='bx bxs-hard-hat'></i>
                                 {{ p.responsable.username }}
                             </div>
                         </td>
                         <td style="color: var(--text-secondary);">{{ p.actualizado_en|date:"d M Y" }}</td>
-                        
+
                         <td class="col-right">
                             <a href="{% url 'almacen_liquidar_proyecto' p.id %}" class="btn-liquidate">
                                 <i class='bx bx-revision'></i> Liquidar Obra
@@ -120,7 +122,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="empty-state">
                                 <i class='bx bx-check-double'></i>
                                 <h3>Todo Cerrado</h3>
