@@ -412,10 +412,28 @@ def liquidar_tecnico(request, tecnico_id):
                     fecha=timezone.now()
                 )
                 doc_ing.asignar_numero_si_falta()
-                
-                reporte_mermas = [] 
+
+                reporte_mermas = []
+
+                # 🔒 Bloqueamos y releemos la mochila dentro de la transacción:
+                # sin esto, un doble clic en "Liquidar" (o dos solicitudes casi
+                # simultáneas, más probable con internet inestable en algunas
+                # sedes) generaba dos documentos ING duplicados con el mismo
+                # retorno/merma antes de que la primera transacción alcanzara
+                # a dejar la mochila en 0.
+                mochila_bloqueada = {
+                    m.id: m
+                    for m in StockTecnico.objects.select_for_update().filter(
+                        tecnico=tecnico, sede=sede_almacen, cantidad__gt=0
+                    )
+                }
 
                 for item in mochila:
+                    item = mochila_bloqueada.get(item.id)
+                    if item is None:
+                        # Ya fue liquidado por otra solicitud concurrente.
+                        continue
+
                     if item.producto.es_serializado:
                         devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
                         mermas_ids = request.POST.getlist(f'check_merma_{item.id}')
@@ -467,12 +485,21 @@ def liquidar_tecnico(request, tecnico_id):
                         if total_salida > item.cantidad:
                             raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
+                    # ✅ CORRECCIÓN: una Herramienta (es_activo=True) nunca se "usa/instala";
+                    # si no se marcó como Bueno ni Dañado, sigue tal cual en poder del
+                    # técnico (no se tocó su StockTecnico ni su ItemSerializado más abajo).
+                    # Registrar consumo_calculado como "Usado" aquí hacía ver en el acta
+                    # impresa que esas unidades ya habían sido liquidadas/instaladas,
+                    # cuando en realidad seguían asignadas al técnico y por eso volvían
+                    # a aparecer pendientes en la siguiente liquidación.
+                    cantidad_usada_doc = 0 if item.producto.es_activo else consumo_calculado
+
                     DocumentoItem.objects.create(
                         documento=doc_ing,
                         producto=item.producto,
-                        cantidad=cant_devuelta,        
-                        cantidad_usada=consumo_calculado, 
-                        cantidad_merma=cant_merma,     
+                        cantidad=cant_devuelta,
+                        cantidad_usada=cantidad_usada_doc,
+                        cantidad_merma=cant_merma,
                         observacion="Liq. Técnico"
                     )
 
@@ -778,7 +805,14 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                             stock.save()
                         
                         # Sumar cantidad numérica al receptor
-                        stock_receptor, _ = StockTecnico.objects.get_or_create(tecnico=receptor, producto=stock.producto)
+                        # ✅ CORRECCIÓN: sin sede, esto creaba una fila nueva con
+                        # sede=NULL en vez de sumarse a la mochila existente del
+                        # receptor, duplicando el producto en su "Mi Mochila" y
+                        # dejando ese stock fuera de la liquidación semanal (que
+                        # filtra por sede del almacén).
+                        stock_receptor, _ = StockTecnico.objects.get_or_create(
+                            tecnico=receptor, producto=stock.producto, sede=stock.sede
+                        )
                         stock_receptor.cantidad += qty
                         stock_receptor.save()
                             
