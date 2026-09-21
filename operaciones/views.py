@@ -778,7 +778,14 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                             stock.save()
                         
                         # Sumar cantidad numérica al receptor
-                        stock_receptor, _ = StockTecnico.objects.get_or_create(tecnico=receptor, producto=stock.producto)
+                        # ✅ CORRECCIÓN: sin sede, esto creaba una fila nueva con
+                        # sede=NULL en vez de sumarse a la mochila existente del
+                        # receptor, duplicando el producto en su "Mi Mochila" y
+                        # dejando ese stock fuera de la liquidación semanal (que
+                        # filtra por sede del almacén).
+                        stock_receptor, _ = StockTecnico.objects.get_or_create(
+                            tecnico=receptor, producto=stock.producto, sede=stock.sede
+                        )
                         stock_receptor.cantidad += qty
                         stock_receptor.save()
                             
