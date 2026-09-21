@@ -1230,7 +1230,16 @@ def req_atender(request, req_id: int):
     if request.method == "POST":
         try:
             with transaction.atomic():
-                
+                # 🔒 Bloqueamos la fila del REQ y volvemos a validar su estado
+                # dentro de la transacción: sin esto, un doble clic o dos
+                # personas de almacén atendiendo el mismo REQ casi al mismo
+                # tiempo pasaban ambas la validación de arriba (hecha antes
+                # del atomic, sin lock) y generaban dos SAL/mochila duplicadas.
+                req = DocumentoInventario.objects.select_for_update().get(id=req.id)
+                if req.estado != EstadoDocumento.REQ_PENDIENTE:
+                    messages.error(request, "Este requerimiento ya fue atendido.")
+                    return redirect("dash_almacen")
+
                 if not req.numero:
                     req.asignar_numero_si_falta()
 

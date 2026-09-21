@@ -412,10 +412,28 @@ def liquidar_tecnico(request, tecnico_id):
                     fecha=timezone.now()
                 )
                 doc_ing.asignar_numero_si_falta()
-                
-                reporte_mermas = [] 
+
+                reporte_mermas = []
+
+                # 🔒 Bloqueamos y releemos la mochila dentro de la transacción:
+                # sin esto, un doble clic en "Liquidar" (o dos solicitudes casi
+                # simultáneas, más probable con internet inestable en algunas
+                # sedes) generaba dos documentos ING duplicados con el mismo
+                # retorno/merma antes de que la primera transacción alcanzara
+                # a dejar la mochila en 0.
+                mochila_bloqueada = {
+                    m.id: m
+                    for m in StockTecnico.objects.select_for_update().filter(
+                        tecnico=tecnico, sede=sede_almacen, cantidad__gt=0
+                    )
+                }
 
                 for item in mochila:
+                    item = mochila_bloqueada.get(item.id)
+                    if item is None:
+                        # Ya fue liquidado por otra solicitud concurrente.
+                        continue
+
                     if item.producto.es_serializado:
                         devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
                         mermas_ids = request.POST.getlist(f'check_merma_{item.id}')
