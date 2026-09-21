@@ -485,12 +485,21 @@ def liquidar_tecnico(request, tecnico_id):
                         if total_salida > item.cantidad:
                             raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
 
+                    # ✅ CORRECCIÓN: una Herramienta (es_activo=True) nunca se "usa/instala";
+                    # si no se marcó como Bueno ni Dañado, sigue tal cual en poder del
+                    # técnico (no se tocó su StockTecnico ni su ItemSerializado más abajo).
+                    # Registrar consumo_calculado como "Usado" aquí hacía ver en el acta
+                    # impresa que esas unidades ya habían sido liquidadas/instaladas,
+                    # cuando en realidad seguían asignadas al técnico y por eso volvían
+                    # a aparecer pendientes en la siguiente liquidación.
+                    cantidad_usada_doc = 0 if item.producto.es_activo else consumo_calculado
+
                     DocumentoItem.objects.create(
                         documento=doc_ing,
                         producto=item.producto,
-                        cantidad=cant_devuelta,        
-                        cantidad_usada=consumo_calculado, 
-                        cantidad_merma=cant_merma,     
+                        cantidad=cant_devuelta,
+                        cantidad_usada=cantidad_usada_doc,
+                        cantidad_merma=cant_merma,
                         observacion="Liq. Técnico"
                     )
 
