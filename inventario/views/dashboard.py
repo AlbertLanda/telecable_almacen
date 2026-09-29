@@ -870,5 +870,9 @@ def kardex_producto(request):
             })
 
         context["resumen"] = resumen
+        context["total_productos"] = len(resumen)
+        context["productos_con_movimiento"] = sum(1 for f in resumen if f["num_movimientos"])
+        context["total_entradas_mes"] = sum(f["entradas"] for f in resumen)
+        context["total_salidas_mes"] = sum(f["salidas"] for f in resumen)
 
     return render(request, "inventario/kardex_producto.html", context)
