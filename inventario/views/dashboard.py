@@ -704,32 +704,8 @@ def almacen_historial_global(request):
     )
 
 
-# --------------------
-# KARDEX DE PRODUCTO (ALMACEN/ADMIN/JEFA)
-# --------------------
-@login_required
-def kardex_producto(request):
-    """
-    Informe mensual de movimientos de un producto: saldo inicial del mes,
-    cada entrada/salida con su destino, y saldo final. Responde a lo que
-    pide almacén: "tenías 30 clavos, le diste 5 a Juan, hoy tienes 25",
-    sin tener que revisar documento por documento.
-    """
-    profile = _require_roles(
-        request.user,
-        UserProfile.Rol.ADMIN,
-        UserProfile.Rol.JEFA,
-        UserProfile.Rol.ALMACEN,
-    )
-    sede = _require_sede(profile)
-
-    productos = Producto.objects.order_by("nombre")
-
-    producto = None
-    producto_id = request.GET.get("producto_id")
-    if producto_id:
-        producto = Producto.objects.filter(id=producto_id).first()
-
+def _mes_desde_request(request):
+    """Resuelve (anio, mes, inicio_mes, fin_mes, 'YYYY-MM') a partir de ?mes=."""
     hoy = timezone.localdate()
     anio, mes = hoy.year, hoy.month
 
@@ -748,15 +724,47 @@ def kardex_producto(request):
     else:
         fin_mes = timezone.make_aware(datetime(anio, mes + 1, 1))
 
+    return anio, mes, inicio_mes, fin_mes, f"{anio:04d}-{mes:02d}"
+
+
+# --------------------
+# KARDEX DE PRODUCTO (ALMACEN/ADMIN/JEFA)
+# --------------------
+@login_required
+def kardex_producto(request):
+    """
+    Informe mensual de movimientos de inventario. Por defecto muestra una
+    tabla con TODOS los productos de la sede en el mes elegido (saldo
+    inicial, entradas, salidas, saldo actual), para que almacén vea de un
+    vistazo qué se movió sin tener que ir producto por producto. Si se
+    pasa ?producto_id=, muestra el detalle movimiento por movimiento de
+    ese producto ("tenías 30 clavos, le diste 5 a Juan, hoy tienes 25").
+    """
+    profile = _require_roles(
+        request.user,
+        UserProfile.Rol.ADMIN,
+        UserProfile.Rol.JEFA,
+        UserProfile.Rol.ALMACEN,
+    )
+    sede = _require_sede(profile)
+
+    anio, mes, inicio_mes, fin_mes, mes_actual = _mes_desde_request(request)
+
+    producto = None
+    producto_id = request.GET.get("producto_id")
+    if producto_id:
+        producto = Producto.objects.filter(id=producto_id).first()
+
     context = {
         "profile": profile,
         "sede": sede,
-        "productos": productos,
         "producto": producto,
-        "mes_actual": f"{anio:04d}-{mes:02d}",
+        "productos": Producto.objects.order_by("nombre"),
+        "mes_actual": mes_actual,
     }
 
     if producto:
+        # ---- Vista detalle: un producto, movimiento por movimiento ----
         movimiento_previo = (
             MovimientoInventario.objects
             .filter(producto=producto, sede=sede, creado_en__lt=inicio_mes)
@@ -793,5 +801,74 @@ def kardex_producto(request):
             "total_entradas": total_entradas,
             "total_salidas": total_salidas,
         })
+    else:
+        # ---- Vista resumen: todos los productos de la sede en el mes ----
+        stocks_sede = (
+            Stock.objects.filter(sede=sede)
+            .select_related("producto")
+            .order_by("producto__nombre")
+        )
+        producto_ids = [s.producto_id for s in stocks_sede]
+
+        movs_mes = (
+            MovimientoInventario.objects
+            .filter(sede=sede, producto_id__in=producto_ids, creado_en__gte=inicio_mes, creado_en__lt=fin_mes)
+            .values("producto_id")
+            .annotate(
+                entradas=Sum(Case(
+                    When(tipo=MovimientoInventario.TIPO_IN, then=F("qty")),
+                    default=0, output_field=IntegerField(),
+                )),
+                salidas=Sum(Case(
+                    When(tipo=MovimientoInventario.TIPO_OUT, then=F("qty")),
+                    default=0, output_field=IntegerField(),
+                )),
+                ajustes=Sum(Case(
+                    When(tipo=MovimientoInventario.TIPO_ADJ, then=F("qty")),
+                    default=0, output_field=IntegerField(),
+                )),
+                num_movimientos=Count("id"),
+            )
+        )
+        movs_por_producto = {m["producto_id"]: m for m in movs_mes}
+
+        # Saldo inicial = saldo_resultante del último movimiento ANTES del mes.
+        saldos_iniciales = {}
+        vistos = set()
+        previos = (
+            MovimientoInventario.objects
+            .filter(sede=sede, producto_id__in=producto_ids, creado_en__lt=inicio_mes)
+            .order_by("producto_id", "-creado_en")
+            .values("producto_id", "saldo_resultante")
+        )
+        for m in previos:
+            pid = m["producto_id"]
+            if pid not in vistos:
+                saldos_iniciales[pid] = m["saldo_resultante"]
+                vistos.add(pid)
+
+        resumen = []
+        for s in stocks_sede:
+            pid = s.producto_id
+            agg = movs_por_producto.get(pid, {})
+            entradas = agg.get("entradas") or 0
+            salidas = agg.get("salidas") or 0
+            ajustes = agg.get("ajustes") or 0
+            num_movimientos = agg.get("num_movimientos") or 0
+            saldo_inicial = saldos_iniciales.get(pid, 0)
+            saldo_final_periodo = saldo_inicial + entradas - salidas + ajustes
+
+            resumen.append({
+                "producto": s.producto,
+                "saldo_inicial": saldo_inicial,
+                "entradas": entradas,
+                "salidas": salidas,
+                "ajustes": ajustes,
+                "saldo_final_periodo": saldo_final_periodo,
+                "stock_actual": s.cantidad,
+                "num_movimientos": num_movimientos,
+            })
+
+        context["resumen"] = resumen
 
     return render(request, "inventario/kardex_producto.html", context)

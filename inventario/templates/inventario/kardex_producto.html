@@ -29,7 +29,7 @@
     }
 
     .kx-page {
-        max-width: 1200px;
+        max-width: 1280px;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -79,7 +79,7 @@
         margin: 10px 0 0;
         color: #cbd5e1;
         font-size: 14px;
-        max-width: 700px;
+        max-width: 720px;
         line-height: 1.5;
     }
 
@@ -93,7 +93,7 @@
 
     .kx-filter-form {
         display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 52px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 52px;
         gap: 12px;
         align-items: end;
     }
@@ -188,6 +188,11 @@
         padding: 16px 20px;
         background: linear-gradient(180deg, #ffffff, #f8fafc);
         border-bottom: 1px solid var(--kx-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
     }
 
     .kx-panel-head h3 {
@@ -200,9 +205,60 @@
         gap: 9px;
     }
 
+    .kx-panel-head p {
+        margin: 4px 0 0;
+        color: var(--kx-muted);
+        font-size: 12px;
+    }
+
+    .kx-search-box {
+        position: relative;
+        min-width: 240px;
+    }
+
+    .kx-search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--kx-muted);
+    }
+
+    .kx-search-box input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--kx-border-strong);
+        border-radius: 12px;
+        padding: 0 14px 0 38px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .kx-search-box input:focus {
+        border-color: var(--kx-primary);
+        box-shadow: 0 0 0 4px var(--kx-primary-soft);
+    }
+
+    .btn-kx-ghost {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px;
+        min-height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--kx-border-strong);
+        background: #fff;
+        color: var(--kx-text);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 850;
+    }
+
+    .btn-kx-ghost:hover { background: #f8fafc; }
+
     .table-wrap { width: 100%; overflow-x: auto; }
 
-    .kx-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    .kx-table { width: 100%; border-collapse: collapse; min-width: 780px; }
 
     .kx-table th {
         text-align: left;
@@ -226,6 +282,7 @@
 
     .kx-table tr:last-child td { border-bottom: none; }
     .kx-table tbody tr:hover td { background: #fbfdff; }
+    .kx-table tbody tr.kx-row-link { cursor: pointer; }
 
     .mov-badge {
         display: inline-flex;
@@ -244,6 +301,21 @@
     .mov-adj { background: var(--kx-warning-soft); color: #92400e; }
 
     .td-right { text-align: right; }
+    .txt-entrada { color: #15803d; font-weight: 950; }
+    .txt-salida { color: #b91c1c; font-weight: 950; }
+    .txt-muted { color: var(--kx-muted); }
+
+    .kx-product-name {
+        font-weight: 850;
+        color: var(--kx-text);
+        display: block;
+    }
+
+    .kx-product-code {
+        font-size: 11px;
+        color: var(--kx-muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
 
     .kx-empty {
         padding: 60px 22px;
@@ -272,30 +344,37 @@
             <i class='bx bx-line-chart'></i>
             Informe de movimientos
         </div>
-        <h1>Kardex de producto</h1>
+        <h1>Kardex de {{ sede.nombre }}</h1>
         <p>
-            Elige un producto y un mes para ver cuánto tenías al inicio, qué salió/entró (y a dónde),
-            y cuánto tienes ahora. Sede: <strong>{{ sede.nombre }}</strong>.
+            {% if producto %}
+                Detalle de <strong>{{ producto.nombre }}</strong>: cada movimiento del mes, a dónde fue, y el saldo después de cada uno.
+            {% else %}
+                Vista de todos los productos del mes: cuánto tenías al empezar, qué entró y salió, y cuánto tienes ahora.
+            {% endif %}
         </p>
     </section>
 
     <section class="kx-filter-card">
         <form class="kx-filter-form" method="GET">
+            {% if producto %}
+                <input type="hidden" name="producto_id" value="{{ producto.id }}">
+            {% endif %}
+
             <div>
-                <label class="kx-label">Producto</label>
-                <select name="producto_id" class="kx-select" required>
-                    <option value="">Selecciona un producto...</option>
+                <label class="kx-label">Mes</label>
+                <input type="month" name="mes" class="kx-input" value="{{ mes_actual }}">
+            </div>
+
+            <div>
+                <label class="kx-label">Ir directo a un producto (opcional)</label>
+                <select name="producto_id" class="kx-select" onchange="this.form.submit()">
+                    <option value="">Ver todos los productos del mes</option>
                     {% for p in productos %}
                         <option value="{{ p.id }}" {% if producto and p.id == producto.id %}selected{% endif %}>
                             {{ p.nombre }} ({{ p.codigo_interno|default:"S/C" }})
                         </option>
                     {% endfor %}
                 </select>
-            </div>
-
-            <div>
-                <label class="kx-label">Mes</label>
-                <input type="month" name="mes" class="kx-input" value="{{ mes_actual }}">
             </div>
 
             <button type="submit" class="btn-kx-search" title="Consultar">
@@ -305,6 +384,7 @@
     </section>
 
     {% if producto %}
+        {# ================= VISTA DETALLE DE UN PRODUCTO ================= #}
         <div class="kx-summary">
             <div class="kx-stat">
                 <span>Saldo inicial del mes</span>
@@ -326,10 +406,16 @@
 
         <section class="kx-panel">
             <div class="kx-panel-head">
-                <h3>
-                    <i class='bx bx-history'></i>
-                    {{ producto.nombre }} — movimientos de {{ mes_actual }}
-                </h3>
+                <div>
+                    <h3>
+                        <i class='bx bx-history'></i>
+                        {{ producto.nombre }} — movimientos de {{ mes_actual }}
+                    </h3>
+                </div>
+                <a href="?mes={{ mes_actual }}" class="btn-kx-ghost">
+                    <i class='bx bx-arrow-back'></i>
+                    Volver al resumen de todos los productos
+                </a>
             </div>
 
             <div class="table-wrap">
@@ -381,14 +467,80 @@
             </div>
         </section>
     {% else %}
+        {# ================= VISTA RESUMEN: TODOS LOS PRODUCTOS ================= #}
         <section class="kx-panel">
-            <div class="kx-empty">
-                <i class='bx bx-search-alt'></i>
-                <p style="margin:0;">Selecciona un producto arriba para ver su informe de movimientos.</p>
+            <div class="kx-panel-head">
+                <div>
+                    <h3>
+                        <i class='bx bx-table'></i>
+                        Todos los productos — {{ mes_actual }}
+                    </h3>
+                    <p>Clic en un producto para ver el detalle movimiento por movimiento.</p>
+                </div>
+
+                <div class="kx-search-box">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="buscador-kardex" onkeyup="filtrarKardex()" placeholder="Filtrar por producto o código...">
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="kx-table" id="tabla-kardex">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th class="td-right">Saldo Inicial</th>
+                            <th class="td-right">Entradas</th>
+                            <th class="td-right">Salidas</th>
+                            <th class="td-right">Saldo Final del Mes</th>
+                            <th class="td-right">Stock Actual (Hoy)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in resumen %}
+                        <tr class="kx-row-link" data-nombre="{{ fila.producto.nombre|lower }} {{ fila.producto.codigo_interno|lower }}"
+                            onclick="window.location='?producto_id={{ fila.producto.id }}&mes={{ mes_actual }}'">
+                            <td>
+                                <span class="kx-product-name">{{ fila.producto.nombre }}</span>
+                                <span class="kx-product-code">{{ fila.producto.codigo_interno|default:"S/C" }}</span>
+                            </td>
+                            <td class="td-right">{{ fila.saldo_inicial }}</td>
+                            <td class="td-right">
+                                {% if fila.entradas %}<span class="txt-entrada">+{{ fila.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                            </td>
+                            <td class="td-right">
+                                {% if fila.salidas %}<span class="txt-salida">-{{ fila.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                            </td>
+                            <td class="td-right"><strong>{{ fila.saldo_final_periodo }}</strong></td>
+                            <td class="td-right">{{ fila.stock_actual }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="kx-empty">
+                                    <i class='bx bx-inbox'></i>
+                                    <p style="margin:0;">No hay productos con stock registrado en esta sede.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </section>
     {% endif %}
 
 </div>
+
+<script>
+    function filtrarKardex() {
+        const texto = document.getElementById('buscador-kardex').value.toLowerCase();
+        const filas = document.querySelectorAll('#tabla-kardex tbody tr.kx-row-link');
+        filas.forEach(function (fila) {
+            const nombre = fila.getAttribute('data-nombre') || '';
+            fila.style.display = nombre.includes(texto) ? '' : 'none';
+        });
+    }
+</script>
 
 {% endblock %}
