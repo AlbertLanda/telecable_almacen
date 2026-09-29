@@ -22,7 +22,7 @@ from operaciones.models import LiquidacionSemanal, LiquidacionLog
 # Importamos servicios
 from operaciones.services import LiquidacionService
 
-from proyectos.models import Proyecto, ProyectoMaterial, EstadoProyecto, AsignacionCuadrilla
+from proyectos.models import Proyecto, ProyectoMaterial, EstadoProyecto, AsignacionCuadrilla, EstadoTransferenciaCuadrilla
 
 User = get_user_model()
 
@@ -716,6 +716,21 @@ def tecnico_dashboard(request):
             "equipos": sus_equipos,
         })
 
+    # =========================================================
+    # Material que otro técnico (el responsable de la obra) le
+    # entregó a este técnico dentro de una cuadrilla. Antes esto
+    # solo lo podía ver el responsable que lo repartió; el técnico
+    # que en verdad lo tiene en mano no tenía ningún registro propio.
+    # =========================================================
+    material_cuadrilla = (
+        AsignacionCuadrilla.objects
+        .filter(recibido_por=request.user, estado=EstadoTransferenciaCuadrilla.ENTREGADO)
+        .exclude(proyecto__estado__in=[EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO])
+        .select_related("proyecto", "producto", "entregado_por")
+        .prefetch_related("seriales")
+        .order_by("-fecha_entrega")
+    )
+
     return render(request, "operaciones/tecnico_dashboard.html", {
         "sede": sede,
         "kpis": kpis,
@@ -724,6 +739,7 @@ def tecnico_dashboard(request):
         "herramientas": herramientas,
         "materiales": materiales,
         "material_obras": material_obras,
+        "material_cuadrilla": material_cuadrilla,
     })
 
 

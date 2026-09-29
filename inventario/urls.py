@@ -10,6 +10,7 @@ from .views.dashboard import (
     inventory_list,
     almacen_historial_global,
     api_alertas_stock_voz,  # ✅ NUEVO: API para alertas de voz de stock crítico
+    kardex_producto,
 )
 
 # 2. Importaciones de API
@@ -92,6 +93,7 @@ urlpatterns = [
     # Paneles específicos
     path("dashboard/almacen/", dash_almacen, name="dash_almacen"),
     path("dashboard/almacen/historial/", almacen_historial_global, name="almacen_historial_global"),
+    path("dashboard/almacen/kardex/", kardex_producto, name="kardex_producto"),
     path("dashboard/admin/", dash_admin, name="dash_admin"),
 
     # ✅ NUEVO: API para que el panel de la jefa/admin hable cuando haya stock crítico

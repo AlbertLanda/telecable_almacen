@@ -172,6 +172,49 @@
     </div>
 
     <div>
+        <h3 class="section-title"><i class='bx bx-transfer-alt' style="color: var(--success);"></i> Material recibido de tu responsable</h3>
+        <p class="section-subtitle">Lo que el responsable de la obra te repartió a ti directamente (cuadrilla).</p>
+
+        <div class="stock-grid" style="margin-bottom: 30px;">
+            {% for a in material_cuadrilla %}
+            <div class="stock-card sc-obra">
+                <div class="sc-icon"><i class='bx bx-package'></i></div>
+                <div class="sc-info">
+                    <h4>{{ a.producto.nombre }}</h4>
+                    <p>{{ a.producto.codigo_interno }}</p>
+                    <a href="{% url 'proyecto_detail' a.proyecto.id %}" class="obra-badge">
+                        <i class='bx bx-hard-hat'></i> {{ a.proyecto.codigo }}
+                    </a>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-secondary);">
+                        Entregado por {{ a.entregado_por.get_full_name|default:a.entregado_por.username }}
+                        el {{ a.fecha_entrega|date:"d/m/Y H:i" }}
+                    </p>
+
+                    {% if a.seriales.all %}
+                    <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
+                        {% for equipo in a.seriales.all %}
+                            <span style="background: rgba(255, 159, 10, 0.15); color: #FF9F0A; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: 600;">
+                                #{{ equipo.codigo_trazabilidad|default:equipo.serial }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="sc-qty">
+                    <h2>{{ a.cantidad }}</h2>
+                    <span>{{ a.producto.unidad }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-light);">
+                <i class='bx bx-transfer-alt' style="font-size: 30px; margin-bottom: 10px; opacity: 0.5;"></i>
+                <p style="margin:0;">Ningún responsable te ha repartido material de cuadrilla por ahora.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
         <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila Personal (pedidos propios)</h3>
 
         <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-bottom: 20px;">
