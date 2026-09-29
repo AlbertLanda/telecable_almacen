@@ -269,7 +269,6 @@
     .table-wrap { width: 100%; overflow-x: auto; }
 
     .kx-table { width: 100%; border-collapse: collapse; min-width: 780px; }
-    .kx-table.kx-table-fixed { table-layout: fixed; }
 
     .kx-table th {
         text-align: left;
@@ -317,7 +316,54 @@
     .kx-table-scroll {
         max-height: 640px;
         overflow-y: auto;
+        overflow-x: auto;
     }
+
+    .kx-grid {
+        width: 100%;
+        min-width: 760px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kx-grid-row {
+        display: grid;
+        grid-template-columns: 2.2fr 1fr 1fr 1fr 1.2fr 1fr;
+        align-items: center;
+        column-gap: 10px;
+        border-bottom: 1px solid var(--kx-border);
+    }
+
+    .kx-grid-row:last-child { border-bottom: none; }
+
+    .kx-grid-row.kx-row-link { cursor: pointer; transition: background .12s ease; }
+    .kx-grid-row.kx-row-link:nth-child(even) { background: #fafbfd; }
+    .kx-grid-row.kx-row-link:hover { background: var(--kx-primary-soft); }
+
+    .kx-grid-head {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8fafc;
+    }
+
+    .kx-grid-head .kx-grid-cell {
+        color: var(--kx-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .kx-grid-cell {
+        padding: 15px 20px;
+        color: var(--kx-text);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+    }
+
+    .kx-cell-left { text-align: left; }
 
     .mov-badge {
         display: inline-flex;
@@ -538,48 +584,43 @@
                 </div>
             </div>
 
-            <div class="table-wrap kx-table-scroll">
-                <table class="kx-table kx-table-fixed" id="tabla-kardex">
-                    <thead>
-                        <tr>
-                            <th style="width: 30%;">Producto</th>
-                            <th class="td-right" style="width: 14%;">Saldo Inicial</th>
-                            <th class="td-right" style="width: 14%;">Entradas</th>
-                            <th class="td-right" style="width: 14%;">Salidas</th>
-                            <th class="td-right" style="width: 14%;">Saldo Final del Mes</th>
-                            <th class="td-right" style="width: 14%;">Stock Actual (Hoy)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fila in resumen %}
-                        <tr class="kx-row-link" data-nombre="{{ fila.producto.nombre|lower }} {{ fila.producto.codigo_interno|lower }}"
-                            onclick="window.location='?producto_id={{ fila.producto.id }}&mes={{ mes_actual }}'">
-                            <td>
-                                <span class="kx-product-name">{{ fila.producto.nombre }}</span>
-                                <span class="kx-product-code">{{ fila.producto.codigo_interno|default:"S/C" }}</span>
-                            </td>
-                            <td class="td-right">{{ fila.saldo_inicial }}</td>
-                            <td class="td-right">
-                                {% if fila.entradas %}<span class="txt-entrada">+{{ fila.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
-                            </td>
-                            <td class="td-right">
-                                {% if fila.salidas %}<span class="txt-salida">-{{ fila.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
-                            </td>
-                            <td class="td-right"><span class="saldo-final-pill">{{ fila.saldo_final_periodo }}</span></td>
-                            <td class="td-right">{{ fila.stock_actual }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6">
-                                <div class="kx-empty">
-                                    <i class='bx bx-inbox'></i>
-                                    <p style="margin:0;">No hay productos con stock registrado en esta sede.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="kx-table-scroll">
+                <div class="kx-grid" id="tabla-kardex">
+                    <div class="kx-grid-row kx-grid-head">
+                        <div class="kx-grid-cell kx-cell-left">Producto</div>
+                        <div class="kx-grid-cell">Saldo Inicial</div>
+                        <div class="kx-grid-cell">Entradas</div>
+                        <div class="kx-grid-cell">Salidas</div>
+                        <div class="kx-grid-cell">Saldo Final del Mes</div>
+                        <div class="kx-grid-cell">Stock Actual (Hoy)</div>
+                    </div>
+
+                    {% for fila in resumen %}
+                    <div class="kx-grid-row kx-row-link" data-nombre="{{ fila.producto.nombre|lower }} {{ fila.producto.codigo_interno|lower }}"
+                        onclick="window.location='?producto_id={{ fila.producto.id }}&mes={{ mes_actual }}'">
+                        <div class="kx-grid-cell kx-cell-left">
+                            <span class="kx-product-name">{{ fila.producto.nombre }}</span>
+                            <span class="kx-product-code">{{ fila.producto.codigo_interno|default:"S/C" }}</span>
+                        </div>
+                        <div class="kx-grid-cell">{{ fila.saldo_inicial }}</div>
+                        <div class="kx-grid-cell">
+                            {% if fila.entradas %}<span class="txt-entrada">+{{ fila.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell">
+                            {% if fila.salidas %}<span class="txt-salida">-{{ fila.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell"><span class="saldo-final-pill">{{ fila.saldo_final_periodo }}</span></div>
+                        <div class="kx-grid-cell">{{ fila.stock_actual }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="kx-grid-row">
+                        <div class="kx-empty" style="grid-column: 1 / -1;">
+                            <i class='bx bx-inbox'></i>
+                            <p style="margin:0;">No hay productos con stock registrado en esta sede.</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </section>
     {% endif %}
@@ -589,7 +630,7 @@
 <script>
     function filtrarKardex() {
         const texto = document.getElementById('buscador-kardex').value.toLowerCase();
-        const filas = document.querySelectorAll('#tabla-kardex tbody tr.kx-row-link');
+        const filas = document.querySelectorAll('#tabla-kardex .kx-row-link');
         filas.forEach(function (fila) {
             const nombre = fila.getAttribute('data-nombre') || '';
             fila.style.display = nombre.includes(texto) ? '' : 'none';
