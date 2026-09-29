@@ -1215,6 +1215,25 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                         fecha_entrega=timezone.now(),
                     )
 
+                    # ✅ Si es equipo serializado, pasamos la asignación física
+                    # (asignado_a) del responsable al técnico que realmente lo
+                    # recibe. Sin esto, el sistema seguía creyendo que el
+                    # responsable tenía el equipo aunque ya se lo hubiera
+                    # entregado a otro técnico de la cuadrilla.
+                    if material.producto.es_serializado:
+                        equipos_a_transferir = list(
+                            ItemSerializado.objects.filter(
+                                asignado_a=request.user,
+                                producto=material.producto,
+                                estado=ItemSerializado.Estado.ASIGNADO,
+                                proyecto=proyecto,
+                            ).order_by("id")[:qty]
+                        )
+                        ItemSerializado.objects.filter(
+                            id__in=[e.id for e in equipos_a_transferir]
+                        ).update(asignado_a=tecnico)
+                        asignacion.seriales.set(equipos_a_transferir)
+
                     creadas += 1
 
                 if creadas == 0:

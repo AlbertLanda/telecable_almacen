@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 from operator import attrgetter
 
@@ -32,6 +32,7 @@ from inventario.models import (
     Sede,
     Proveedor,
     TipoRequerimiento,
+    Producto,
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
@@ -701,3 +702,96 @@ def almacen_historial_global(request):
             "sede": sede,
         },
     )
+
+
+# --------------------
+# KARDEX DE PRODUCTO (ALMACEN/ADMIN/JEFA)
+# --------------------
+@login_required
+def kardex_producto(request):
+    """
+    Informe mensual de movimientos de un producto: saldo inicial del mes,
+    cada entrada/salida con su destino, y saldo final. Responde a lo que
+    pide almacén: "tenías 30 clavos, le diste 5 a Juan, hoy tienes 25",
+    sin tener que revisar documento por documento.
+    """
+    profile = _require_roles(
+        request.user,
+        UserProfile.Rol.ADMIN,
+        UserProfile.Rol.JEFA,
+        UserProfile.Rol.ALMACEN,
+    )
+    sede = _require_sede(profile)
+
+    productos = Producto.objects.order_by("nombre")
+
+    producto = None
+    producto_id = request.GET.get("producto_id")
+    if producto_id:
+        producto = Producto.objects.filter(id=producto_id).first()
+
+    hoy = timezone.localdate()
+    anio, mes = hoy.year, hoy.month
+
+    mes_param = request.GET.get("mes")  # formato YYYY-MM
+    if mes_param:
+        try:
+            anio_param, mes_param_num = (int(x) for x in mes_param.split("-"))
+            if 1 <= mes_param_num <= 12:
+                anio, mes = anio_param, mes_param_num
+        except (ValueError, TypeError):
+            pass
+
+    inicio_mes = timezone.make_aware(datetime(anio, mes, 1))
+    if mes == 12:
+        fin_mes = timezone.make_aware(datetime(anio + 1, 1, 1))
+    else:
+        fin_mes = timezone.make_aware(datetime(anio, mes + 1, 1))
+
+    context = {
+        "profile": profile,
+        "sede": sede,
+        "productos": productos,
+        "producto": producto,
+        "mes_actual": f"{anio:04d}-{mes:02d}",
+    }
+
+    if producto:
+        movimiento_previo = (
+            MovimientoInventario.objects
+            .filter(producto=producto, sede=sede, creado_en__lt=inicio_mes)
+            .order_by("-creado_en")
+            .first()
+        )
+        saldo_inicial = movimiento_previo.saldo_resultante if movimiento_previo else 0
+
+        movimientos = list(
+            MovimientoInventario.objects
+            .filter(
+                producto=producto,
+                sede=sede,
+                creado_en__gte=inicio_mes,
+                creado_en__lt=fin_mes,
+            )
+            .select_related("usuario")
+            .order_by("creado_en")
+        )
+
+        saldo_final_periodo = movimientos[-1].saldo_resultante if movimientos else saldo_inicial
+
+        stock_actual_obj = Stock.objects.filter(producto=producto, sede=sede).first()
+        stock_actual = stock_actual_obj.cantidad if stock_actual_obj else 0
+
+        total_entradas = sum(m.qty for m in movimientos if m.tipo == MovimientoInventario.TIPO_IN)
+        total_salidas = sum(m.qty for m in movimientos if m.tipo == MovimientoInventario.TIPO_OUT)
+
+        context.update({
+            "saldo_inicial": saldo_inicial,
+            "movimientos": movimientos,
+            "saldo_final_periodo": saldo_final_periodo,
+            "stock_actual": stock_actual,
+            "total_entradas": total_entradas,
+            "total_salidas": total_salidas,
+        })
+
+    return render(request, "inventario/kardex_producto.html", context)

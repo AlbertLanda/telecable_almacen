@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Informe de Movimientos | Telecable{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --kx-primary: #0f6bff;
+        --kx-primary-dark: #0b4fc4;
+        --kx-primary-soft: rgba(15, 107, 255, .10);
+        --kx-navy: #071225;
+        --kx-navy-2: #0b1b34;
+        --kx-navy-3: #10294c;
+        --kx-success: #16a34a;
+        --kx-success-soft: rgba(22, 163, 74, .12);
+        --kx-danger: #dc2626;
+        --kx-danger-soft: rgba(220, 38, 38, .12);
+        --kx-warning: #f59e0b;
+        --kx-warning-soft: rgba(245, 158, 11, .14);
+        --kx-card: #ffffff;
+        --kx-border: #d9e2ef;
+        --kx-border-strong: #c4d0df;
+        --kx-text: #0f172a;
+        --kx-muted: #64748b;
+        --kx-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+        --kx-shadow-sm: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .kx-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        animation: kxFade .25s ease-out;
+    }
+
+    @keyframes kxFade {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .kx-hero {
+        border-radius: 24px;
+        padding: 26px 28px;
+        background:
+            radial-gradient(circle at top right, rgba(15, 107, 255, .22), transparent 34%),
+            linear-gradient(135deg, var(--kx-navy) 0%, var(--kx-navy-2) 52%, var(--kx-navy-3) 100%);
+        color: #fff;
+        box-shadow: var(--kx-shadow);
+    }
+
+    .kx-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .10);
+        border: 1px solid rgba(255, 255, 255, .14);
+        color: #c7ddff;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 14px;
+    }
+
+    .kx-hero h1 {
+        margin: 0;
+        font-size: clamp(24px, 3.6vw, 34px);
+        font-weight: 950;
+        letter-spacing: -1px;
+    }
+
+    .kx-hero p {
+        margin: 10px 0 0;
+        color: #cbd5e1;
+        font-size: 14px;
+        max-width: 700px;
+        line-height: 1.5;
+    }
+
+    .kx-filter-card {
+        background: var(--kx-card);
+        border: 1px solid var(--kx-border);
+        border-radius: 22px;
+        box-shadow: var(--kx-shadow-sm);
+        padding: 18px;
+    }
+
+    .kx-filter-form {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 52px;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .kx-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--kx-text);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    .kx-input, .kx-select {
+        width: 100%;
+        min-height: 48px;
+        background: #fff;
+        color: var(--kx-text);
+        border: 1px solid var(--kx-border-strong);
+        border-radius: 14px;
+        padding: 0 14px;
+        font-size: 14px;
+        font-weight: 750;
+        outline: none;
+    }
+
+    .kx-input:focus, .kx-select:focus {
+        border-color: var(--kx-primary);
+        box-shadow: 0 0 0 4px var(--kx-primary-soft);
+    }
+
+    .btn-kx-search {
+        width: 52px;
+        height: 48px;
+        border: none;
+        border-radius: 14px;
+        background: var(--kx-primary);
+        color: #fff;
+        cursor: pointer;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-kx-search:hover { background: var(--kx-primary-dark); }
+
+    .kx-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .kx-stat {
+        background: var(--kx-card);
+        border: 1px solid var(--kx-border);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: var(--kx-shadow-sm);
+    }
+
+    .kx-stat span {
+        display: block;
+        color: var(--kx-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 6px;
+    }
+
+    .kx-stat strong {
+        display: block;
+        color: var(--kx-text);
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .kx-stat.entrada strong { color: var(--kx-success); }
+    .kx-stat.salida strong { color: var(--kx-danger); }
+
+    .kx-panel {
+        background: var(--kx-card);
+        border: 1px solid var(--kx-border);
+        border-radius: 22px;
+        box-shadow: var(--kx-shadow-sm);
+        overflow: hidden;
+    }
+
+    .kx-panel-head {
+        padding: 16px 20px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        border-bottom: 1px solid var(--kx-border);
+    }
+
+    .kx-panel-head h3 {
+        margin: 0;
+        color: var(--kx-text);
+        font-size: 15px;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .table-wrap { width: 100%; overflow-x: auto; }
+
+    .kx-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+
+    .kx-table th {
+        text-align: left;
+        color: var(--kx-muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--kx-border);
+        background: #f8fafc;
+        white-space: nowrap;
+    }
+
+    .kx-table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--kx-border);
+        color: var(--kx-text);
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .kx-table tr:last-child td { border-bottom: none; }
+    .kx-table tbody tr:hover td { background: #fbfdff; }
+
+    .mov-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .mov-in { background: var(--kx-success-soft); color: #15803d; }
+    .mov-out { background: var(--kx-danger-soft); color: #b91c1c; }
+    .mov-adj { background: var(--kx-warning-soft); color: #92400e; }
+
+    .td-right { text-align: right; }
+
+    .kx-empty {
+        padding: 60px 22px;
+        text-align: center;
+        color: var(--kx-muted);
+    }
+
+    .kx-empty i {
+        display: block;
+        font-size: 40px;
+        margin-bottom: 12px;
+        opacity: .4;
+    }
+
+    @media (max-width: 900px) {
+        .kx-summary { grid-template-columns: repeat(2, 1fr); }
+        .kx-filter-form { grid-template-columns: 1fr; }
+        .btn-kx-search { width: 100%; }
+    }
+</style>
+
+<div class="kx-page">
+
+    <section class="kx-hero">
+        <div class="kx-badge">
+            <i class='bx bx-line-chart'></i>
+            Informe de movimientos
+        </div>
+        <h1>Kardex de producto</h1>
+        <p>
+            Elige un producto y un mes para ver cuánto tenías al inicio, qué salió/entró (y a dónde),
+            y cuánto tienes ahora. Sede: <strong>{{ sede.nombre }}</strong>.
+        </p>
+    </section>
+
+    <section class="kx-filter-card">
+        <form class="kx-filter-form" method="GET">
+            <div>
+                <label class="kx-label">Producto</label>
+                <select name="producto_id" class="kx-select" required>
+                    <option value="">Selecciona un producto...</option>
+                    {% for p in productos %}
+                        <option value="{{ p.id }}" {% if producto and p.id == producto.id %}selected{% endif %}>
+                            {{ p.nombre }} ({{ p.codigo_interno|default:"S/C" }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="kx-label">Mes</label>
+                <input type="month" name="mes" class="kx-input" value="{{ mes_actual }}">
+            </div>
+
+            <button type="submit" class="btn-kx-search" title="Consultar">
+                <i class='bx bx-search'></i>
+            </button>
+        </form>
+    </section>
+
+    {% if producto %}
+        <div class="kx-summary">
+            <div class="kx-stat">
+                <span>Saldo inicial del mes</span>
+                <strong>{{ saldo_inicial }}</strong>
+            </div>
+            <div class="kx-stat entrada">
+                <span>Total entradas</span>
+                <strong>+{{ total_entradas }}</strong>
+            </div>
+            <div class="kx-stat salida">
+                <span>Total salidas</span>
+                <strong>-{{ total_salidas }}</strong>
+            </div>
+            <div class="kx-stat">
+                <span>Stock actual (hoy)</span>
+                <strong>{{ stock_actual }}</strong>
+            </div>
+        </div>
+
+        <section class="kx-panel">
+            <div class="kx-panel-head">
+                <h3>
+                    <i class='bx bx-history'></i>
+                    {{ producto.nombre }} — movimientos de {{ mes_actual }}
+                </h3>
+            </div>
+
+            <div class="table-wrap">
+                <table class="kx-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th class="td-right">Cantidad</th>
+                            <th>Referencia</th>
+                            <th>Destino / Nota</th>
+                            <th>Usuario</th>
+                            <th class="td-right">Saldo después</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in movimientos %}
+                        <tr>
+                            <td>{{ m.creado_en|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if m.tipo == 'IN' %}
+                                    <span class="mov-badge mov-in"><i class='bx bx-down-arrow-alt'></i> Entrada</span>
+                                {% elif m.tipo == 'OUT' %}
+                                    <span class="mov-badge mov-out"><i class='bx bx-up-arrow-alt'></i> Salida</span>
+                                {% else %}
+                                    <span class="mov-badge mov-adj"><i class='bx bx-adjust'></i> Ajuste</span>
+                                {% endif %}
+                            </td>
+                            <td class="td-right">
+                                {% if m.tipo == 'OUT' %}-{% elif m.tipo == 'IN' %}+{% endif %}{{ m.qty }}
+                            </td>
+                            <td>{{ m.referencia|default:"—" }}</td>
+                            <td>{{ m.nota|default:"—" }}</td>
+                            <td>{{ m.usuario.get_full_name|default:m.usuario.username|default:"—" }}</td>
+                            <td class="td-right"><strong>{{ m.saldo_resultante }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="kx-empty">
+                                    <i class='bx bx-inbox'></i>
+                                    <p style="margin:0;">Sin movimientos registrados de este producto en {{ mes_actual }}.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% else %}
+        <section class="kx-panel">
+            <div class="kx-empty">
+                <i class='bx bx-search-alt'></i>
+                <p style="margin:0;">Selecciona un producto arriba para ver su informe de movimientos.</p>
+            </div>
+        </section>
+    {% endif %}
+
+</div>
+
+{% endblock %}
