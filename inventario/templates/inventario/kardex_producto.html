@@ -269,6 +269,7 @@
     .table-wrap { width: 100%; overflow-x: auto; }
 
     .kx-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+    .kx-table.kx-table-fixed { table-layout: fixed; }
 
     .kx-table th {
         text-align: left;
@@ -538,15 +539,15 @@
             </div>
 
             <div class="table-wrap kx-table-scroll">
-                <table class="kx-table" id="tabla-kardex">
+                <table class="kx-table kx-table-fixed" id="tabla-kardex">
                     <thead>
                         <tr>
-                            <th>Producto</th>
-                            <th class="td-right">Saldo Inicial</th>
-                            <th class="td-right">Entradas</th>
-                            <th class="td-right">Salidas</th>
-                            <th class="td-right">Saldo Final del Mes</th>
-                            <th class="td-right">Stock Actual (Hoy)</th>
+                            <th style="width: 30%;">Producto</th>
+                            <th class="td-right" style="width: 14%;">Saldo Inicial</th>
+                            <th class="td-right" style="width: 14%;">Entradas</th>
+                            <th class="td-right" style="width: 14%;">Salidas</th>
+                            <th class="td-right" style="width: 14%;">Saldo Final del Mes</th>
+                            <th class="td-right" style="width: 14%;">Stock Actual (Hoy)</th>
                         </tr>
                     </thead>
                     <tbody>
