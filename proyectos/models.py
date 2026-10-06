@@ -276,6 +276,9 @@ class AsignacionCuadrilla(TimeStampedModel):
         Proyecto,
         on_delete=models.CASCADE,
         related_name="transferencias_cuadrilla",
+        null=True,
+        blank=True,
+        help_text="Vacío si es un préstamo directo entre técnicos, sin relación a una obra.",
     )
 
     # Responsable que reparte. Ej: Jilmer

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; background: var(--bg-card); padding: 30px; border-radius: 12px;">
+
+    <h2 style="margin-bottom: 5px;"><i class='bx bx-transfer-alt'></i> Prestar material a un técnico</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        Para cuando le prestas algo a un compañero en campo (ej: "le pasé una ONU a Brayan porque se le acabaron").
+        Esto queda registrado al instante, así no aparece luego como "consumido" en tu liquidación cuando en
+        realidad lo tiene otro técnico.
+    </p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 30px;">
+            <label style="font-weight: bold; font-size: 14px; color: var(--text-main);">¿A quién le estás prestando?</label>
+            <select name="receptor_id" required style="width: 100%; padding: 12px; border-radius: 8px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-light); margin-top: 8px;">
+                <option value="">-- Selecciona un técnico --</option>
+                {% for tec in tecnicos %}
+                    <option value="{{ tec.id }}">{{ tec.get_full_name|default:tec.username }} ({{ tec.username }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <hr style="border-color: var(--border-light); margin-bottom: 20px;">
+
+        <h4 style="margin-bottom: 15px;">Tu mochila actual:</h4>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-light); text-align: left;">
+                    <th style="padding: 10px;">Producto</th>
+                    <th style="padding: 10px; text-align: center;">Tienes</th>
+                    <th style="padding: 10px; width: 120px;">A prestar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in mi_stock %}
+                <tr style="border-bottom: 1px solid var(--border-light);">
+                    <td style="padding: 15px 10px;">
+                        <b>{{ stock.producto.nombre }}</b>
+
+                        {% if stock.producto.es_serializado %}
+                        <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                            <span style="font-size: 11px; color: var(--primary); text-transform: uppercase;">
+                                Serial o código pintado (uno por línea):
+                            </span>
+                            <textarea name="codigos_{{ stock.producto.id }}" rows="2" placeholder="Ej: 291"
+                                style="width: 100%; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-main); font-family: monospace;"></textarea>
+                        </div>
+                        {% endif %}
+
+                    </td>
+                    <td style="padding: 15px 10px; text-align: center; font-weight: bold; color: var(--primary);">
+                        {{ stock.cantidad }}
+                    </td>
+                    <td style="padding: 15px 10px;">
+                        <input type="number" name="qty_{{ stock.producto.id }}" value="0" min="0" max="{{ stock.cantidad }}"
+                               style="width: 100%; padding: 8px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-main);">
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                        No tienes materiales en tu mochila en este momento.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if mi_stock %}
+        <div style="margin-top: 30px; text-align: right;">
+            <button type="submit" style="background: var(--success); color: black; padding: 14px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                <i class='bx bx-check'></i> Confirmar Préstamo
+            </button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
