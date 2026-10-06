@@ -1640,7 +1640,19 @@ def almacen_devolucion_rapida(request):
                                         # Buscar el ítem (debería estar ASIGNADO al técnico o en estado ASIGNADO)
                                         # Buscamos por SN globalmente
                                         item_serial = ItemSerializado.objects.filter(serial=sn).first()
-                                        
+
+                                        # ✅ Si no hay match por serial completo, probamos por el
+                                        # código de trazabilidad (el número pintado en la caja),
+                                        # que es lo único que almacén suele tener a mano cuando la
+                                        # devolución ocurre después de un préstamo informal en
+                                        # campo entre técnicos (ej: Kevin le prestó una ONU a
+                                        # Brayan y luego la recupera). Se restringe al mismo
+                                        # producto para no cruzar equipos distintos.
+                                        if not item_serial:
+                                            item_serial = ItemSerializado.objects.filter(
+                                                codigo_trazabilidad=sn, producto=producto,
+                                            ).first()
+
                                         if item_serial:
                                             # Lo devolvemos al almacén
                                             item_serial.estado = ItemSerializado.Estado.EN_ALMACEN
