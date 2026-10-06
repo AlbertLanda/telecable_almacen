@@ -21,6 +21,7 @@ from .views import (
     liquidacion_tecnico_print,
     proyecto_asignar_cuadrilla,
     tecnico_mis_liquidaciones,
+    prestar_a_tecnico,
 )
 
 urlpatterns = [
@@ -49,6 +50,7 @@ urlpatterns = [
     path('liquidacion/print/<int:doc_id>/', liquidacion_tecnico_print, name='liquidacion_tecnico_print'),
 
     path('proyecto/<int:proyecto_id>/repartir/', proyecto_asignar_cuadrilla, name='proyecto_asignar_cuadrilla'),
+    path('tecnico/prestar/', prestar_a_tecnico, name='prestar_a_tecnico'),
 
 
     path('tecnico/mis-liquidaciones/', tecnico_mis_liquidaciones, name='tecnico_mis_liquidaciones'),

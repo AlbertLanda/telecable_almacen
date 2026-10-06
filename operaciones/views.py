@@ -865,3 +865,122 @@ def tecnico_mis_liquidaciones(request):
     ).order_by("-fecha")
 
     return render(request, "operaciones/tecnico_mis_liquidaciones.html", {"liquidaciones": liquidaciones})
+
+
+@login_required
+def prestar_a_tecnico(request):
+    """
+    Préstamo directo de material entre técnicos en campo, SIN relación a
+    ninguna obra (ej: Kevin le presta una ONU a Brayan porque a Brayan se
+    le acabó). Antes la única forma de "transferir a cuadrilla" estaba
+    ligada a una obra específica (proyecto_asignar_cuadrilla), así que
+    estos préstamos sueltos se hacían de palabra y terminaban apareciendo
+    como "consumo" fantasma en la liquidación semanal del que recibió.
+    """
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE, UserProfile.Rol.JEFA)
+
+    tecnicos_disponibles = (
+        User.objects.filter(is_active=True, profile__rol=UserProfile.Rol.SOLICITANTE)
+        .exclude(id=request.user.id)
+        .order_by("first_name", "last_name", "username")
+    )
+
+    mi_stock = StockTecnico.objects.filter(tecnico=request.user, cantidad__gt=0).select_related('producto')
+
+    if request.method == 'POST':
+        receptor_id = request.POST.get('receptor_id')
+        if not receptor_id:
+            messages.error(request, "Debes seleccionar a un técnico.")
+            return redirect('prestar_a_tecnico')
+
+        receptor = get_object_or_404(User, id=receptor_id)
+
+        if receptor == request.user:
+            messages.error(request, "No puedes prestarte material a ti mismo.")
+            return redirect('prestar_a_tecnico')
+
+        hubo_transferencia = False
+
+        try:
+            with transaction.atomic():
+                for stock in mi_stock:
+                    qty = int(request.POST.get(f'qty_{stock.producto.id}', 0))
+                    if qty <= 0:
+                        continue
+
+                    if qty > stock.cantidad:
+                        raise ValueError(f"No tienes suficiente {stock.producto.nombre} para prestar.")
+
+                    asignacion = AsignacionCuadrilla.objects.create(
+                        proyecto=None, entregado_por=request.user,
+                        recibido_por=receptor, producto=stock.producto, cantidad=qty,
+                    )
+
+                    if stock.producto.es_serializado:
+                        codigos_raw = request.POST.get(f'codigos_{stock.producto.id}', '')
+                        codigos = [c.strip().upper() for c in codigos_raw.splitlines() if c.strip()]
+
+                        if len(codigos) != qty:
+                            raise ValueError(
+                                f"Debes indicar exactamente {qty} serial(es) o código(s) de "
+                                f"trazabilidad de {stock.producto.nombre}."
+                            )
+
+                        equipos = []
+                        faltantes = []
+                        for codigo in codigos:
+                            # Acepta el serial completo (GPON SN) o el código
+                            # pintado/trazabilidad, lo que tenga a mano en
+                            # campo.
+                            equipo = ItemSerializado.objects.filter(
+                                asignado_a=request.user, producto=stock.producto, serial=codigo,
+                            ).first()
+                            if not equipo:
+                                equipo = ItemSerializado.objects.filter(
+                                    asignado_a=request.user, producto=stock.producto,
+                                    codigo_trazabilidad=codigo,
+                                ).first()
+
+                            if equipo:
+                                equipos.append(equipo)
+                            else:
+                                faltantes.append(codigo)
+
+                        if faltantes:
+                            raise ValueError(
+                                f"No encontré en tu mochila el serial/código {', '.join(faltantes)} "
+                                f"de {stock.producto.nombre}."
+                            )
+
+                        for equipo in equipos:
+                            equipo.asignado_a = receptor
+                            equipo.save()
+                            asignacion.seriales.add(equipo)
+
+                    stock.cantidad -= qty
+                    if stock.cantidad == 0:
+                        stock.delete()
+                    else:
+                        stock.save()
+
+                    stock_receptor, _ = StockTecnico.objects.get_or_create(
+                        tecnico=receptor, producto=stock.producto, sede=stock.sede
+                    )
+                    stock_receptor.cantidad += qty
+                    stock_receptor.save()
+
+                    hubo_transferencia = True
+
+                if hubo_transferencia:
+                    messages.success(request, f"Material prestado correctamente a {receptor.username}.")
+                    return redirect('tecnico_dashboard')
+                else:
+                    messages.warning(request, "No ingresaste ninguna cantidad para prestar.")
+
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    return render(request, 'operaciones/prestar_tecnico.html', {
+        'tecnicos': tecnicos_disponibles,
+        'mi_stock': mi_stock,
+    })

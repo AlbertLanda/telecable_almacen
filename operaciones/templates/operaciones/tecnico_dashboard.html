@@ -172,8 +172,8 @@
     </div>
 
     <div>
-        <h3 class="section-title"><i class='bx bx-transfer-alt' style="color: var(--success);"></i> Material recibido de tu responsable</h3>
-        <p class="section-subtitle">Lo que el responsable de la obra te repartió a ti directamente (cuadrilla).</p>
+        <h3 class="section-title"><i class='bx bx-transfer-alt' style="color: var(--success);"></i> Material recibido de otro técnico</h3>
+        <p class="section-subtitle">Lo que un compañero te repartió directamente, para una obra o como préstamo suelto.</p>
 
         <div class="stock-grid" style="margin-bottom: 30px;">
             {% for a in material_cuadrilla %}
@@ -182,9 +182,15 @@
                 <div class="sc-info">
                     <h4>{{ a.producto.nombre }}</h4>
                     <p>{{ a.producto.codigo_interno }}</p>
+                    {% if a.proyecto %}
                     <a href="{% url 'proyecto_detail' a.proyecto.id %}" class="obra-badge">
                         <i class='bx bx-hard-hat'></i> {{ a.proyecto.codigo }}
                     </a>
+                    {% else %}
+                    <span class="obra-badge" style="background: rgba(148,163,184,0.15); color: var(--text-secondary);">
+                        <i class='bx bx-transfer-alt'></i> Préstamo directo
+                    </span>
+                    {% endif %}
                     <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-secondary);">
                         Entregado por {{ a.entregado_por.get_full_name|default:a.entregado_por.username }}
                         el {{ a.fecha_entrega|date:"d/m/Y H:i" }}
@@ -216,6 +222,12 @@
 
     <div>
         <h3 class="section-title"><i class='bx bx-briefcase' style="color: #FF9F0A;"></i> Mi Mochila Personal (pedidos propios)</h3>
+
+        <div style="margin-bottom: 15px;">
+            <a href="{% url 'prestar_a_tecnico' %}" class="btn-tab" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <i class='bx bx-transfer-alt'></i> Prestar material a un técnico
+            </a>
+        </div>
 
         <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; gap: 10px;">
