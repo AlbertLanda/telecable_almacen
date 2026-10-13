@@ -144,27 +144,28 @@
     <div class="page-header">
         <div class="header-title">
             <h3>⚖️ Liquidar: <span>{{ tecnico.username }}</span></h3>
-            <p>Calcula el consumo y retorna materiales de {{ sede_liquidacion.nombre }}.</p>
+            <p>Recepción en <strong>{{ sede_liquidacion.nombre }}</strong>. Selecciona las filas que vas a liquidar, revisando su sede de origen. Lo no seleccionado seguirá pendiente.</p>
         </div>
         <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
     {% if inconsistencias %}
     <div role="alert" style="padding:16px;margin-bottom:16px;border:1px solid var(--danger);border-radius:10px;">
-        <strong>No se puede liquidar hasta conciliar los equipos de esta sede.</strong>
+        <strong>Estas filas requieren revisión. Puedes liquidar las demás filas.</strong>
         {% for error in inconsistencias %}<p>{{ error }}</p>{% endfor %}
         <p>Los equipos sin sede de asignación o pertenecientes a proyectos no se liquidan aquí.</p>
     </div>
     {% endif %}
     <form method="POST" id="formLiquidacionTecnico">
         {% csrf_token %}
+        <input type="hidden" name="mochila_version" value="{{ mochila_version }}">
         
         <div class="table-card">
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th class="th-left col-material">Material</th>
+                            <th class="th-left col-material">Material / sede de origen</th>
                             <th class="col-mochila">Mochila</th>
                             <th class="col-input" style="color:var(--success);">
                                 <i class='bx bx-archive-in'></i> Buenos<br><span style="font-weight: 500; text-transform: none;">(Retorno)</span>
@@ -179,8 +180,11 @@
                     </thead>
                     <tbody>
                         {% for item in mochila %}
-                        <tr>
+                        <tr class="fila-mochila">
                             <td class="td-left">
+                                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="checkbox" style="width:auto;margin:0;" class="seleccionar-fila" name="filas" value="{{ item.id }}" {% if item.requiere_revision %}disabled{% endif %}> Liquidar esta fila</label>
+                                <strong style="display:block;color:var(--primary);margin-bottom:6px;">Origen: {{ item.sede.nombre|default:"Sin identificar" }}</strong>
+                                {% if item.requiere_revision %}<span role="status">Pendiente de conciliación</span>{% endif %}
                                 <strong style="display:block; font-size:14px; margin-bottom: 2px;">{{ item.producto.nombre }}</strong>
                                 <span style="color:var(--text-secondary); font-family:monospace; font-size: 11px;">{{ item.producto.codigo_interno }}</span>
                                 
@@ -205,7 +209,7 @@
                                         <div style="font-size: 10px; font-weight: bold; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Selecciona los equipos físicos devueltos:</div>
                                         
                                         <div style="max-height: 180px; overflow-y: auto;">
-                                        {% for equipo in equipos_asignados %}
+                                        {% for equipo in item.equipos %}
                                             {% if equipo.producto.id == item.producto.id %}
                                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                                     <span style="font-family: monospace; font-size: 12px; color: var(--text-main);">
@@ -269,8 +273,8 @@
                 </label>
                 <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos, herramientas completas..."></textarea>
                 
-                <button type="submit" class="btn-confirm" id="btnPrepararCierre" {% if inconsistencias %}disabled{% endif %}>
-                    <i class='bx bx-check-double'></i> PROCESAR CIERRE DE SEMANA
+                <button type="submit" class="btn-confirm" id="btnPrepararCierre" disabled>
+                    <i class='bx bx-check-double'></i> LIQUIDAR FILAS SELECCIONADAS
                 </button>
             </div>
         </div>
@@ -282,10 +286,10 @@
         <div class="modal-icon"><i class='bx bx-check-shield'></i></div>
         <h3 class="modal-title">¿Confirmar Liquidación?</h3>
         <p class="modal-text">
-            Se registrará el consumo calculado y se actualizará el stock en poder del técnico.
+            Se liquidarán <strong id="totalFilasSeleccionadas"></strong> filas. Los equipos buenos ingresarán a {{ sede_liquidacion.nombre }} y se cerrará su saldo en la sede de origen, también para las demás sedes.
             <br><br>
             <span style="font-size: 12px; color: var(--text-tertiary); background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; display: block;">
-                <strong>Nota:</strong> Las herramientas se mantienen en custodia, los consumibles se reinician a cero.
+                <strong>Nota:</strong> En las filas seleccionadas, las ONU sin marcar como buenas o dañadas se registran como instaladas. Las herramientas no devueltas siguen en custodia. Las filas sin seleccionar conservan su saldo.
             </span>
         </p>
         <div class="modal-actions">
@@ -298,117 +302,55 @@
 </div>
 
 <script>
-    // 1. CÁLCULO EN TIEMPO REAL
-    document.querySelectorAll('.input-calc').forEach(input => {
-        input.addEventListener('input', function() {
-            let row = this.closest('tr');
-            
-            // Leemos si es herramienta (True/False)
-            let esActivo = this.dataset.activo === 'true';
-            
-            let total = parseInt(row.querySelector('.badge-total').dataset.val);
-            let devueltoInput = row.querySelector(`input[name^="devuelto_"]`);
-            let mermaInput = row.querySelector(`input[name^="merma_"]`);
-            
-            let dev = parseInt(devueltoInput.value) || 0;
-            let mer = parseInt(mermaInput.value) || 0;
-            let suma = dev + mer;
-
-            let span = row.querySelector('.span-consumo');
-
-            if (suma > total) {
-                span.innerText = "Error";
-                span.classList.add('error-text');
-                devueltoInput.classList.add('is-invalid');
-                mermaInput.classList.add('is-invalid');
-            } else {
-                devueltoInput.classList.remove('is-invalid');
-                mermaInput.classList.remove('is-invalid');
-                span.classList.remove('error-text');
-
-                // Lógica visual: Herramientas vs Consumibles
-                if (esActivo) {
-                    let queda = total - suma;
-                    span.innerHTML = `<span style='color:var(--text-main); font-size:12px;'>Quedan: <strong style="font-size:15px; color:var(--primary);">${queda}</strong></span>`;
-                } else {
-                    let consumo = total - suma;
-                    span.innerText = consumo;
-                }
-            }
-        });
-    });
-
-    // 2. LÓGICA DEL MODAL CUSTOMIZADO Y PREVENCIÓN DE DOBLE CLIC
     const formLiquidacion = document.getElementById('formLiquidacionTecnico');
     const modalConfirm = document.getElementById('customConfirmModal');
-    const btnCancelModal = document.getElementById('btnCancelModal');
     const btnProceedModal = document.getElementById('btnProceedModal');
-
-    // Interceptamos el envío
-    formLiquidacion.addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        
-        // Verificamos si hay errores de matemáticas
-        if (document.querySelector('.error-text')) {
-            alert('⚠️ Por favor corrige las cantidades marcadas en rojo antes de continuar. La suma de retorno y merma no puede superar la mochila.');
-            return;
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const filas = [...document.querySelectorAll('.fila-mochila')];
+    function actualizarFila(row) {
+        const seleccionada = row.querySelector('.seleccionar-fila').checked;
+        row.querySelectorAll('input:not(.seleccionar-fila)').forEach(el => el.disabled = !seleccionada);
+        const span = row.querySelector('.span-consumo');
+        span.classList.remove('error-text');
+        if (!seleccionada) { span.textContent = 'Pendiente'; return; }
+        const dev = row.querySelector('input[name^="devuelto_"]');
+        const mer = row.querySelector('input[name^="merma_"]');
+        if (row.querySelector('.check-serial')) {
+            dev.value = row.querySelectorAll('.check-serial[data-type="devuelto"]:checked').length;
+            mer.value = row.querySelectorAll('.check-serial[data-type="merma"]:checked').length;
         }
-
-        // Mostramos el modal elegante
+        const d = Number(dev.value), m = Number(mer.value);
+        const total = Number(row.querySelector('.badge-total').dataset.val);
+        const invalido = !Number.isInteger(d) || !Number.isInteger(m) || d < 0 || m < 0 || d + m > total;
+        span.classList.toggle('error-text', invalido);
+        span.textContent = invalido ? 'Error' : (dev.dataset.activo === 'true' ? 'Quedan: ' : '') + (total - d - m);
+    }
+    function actualizar() {
+        filas.forEach(actualizarFila);
+        document.getElementById('btnPrepararCierre').disabled = !document.querySelector('.seleccionar-fila:checked') || !!document.querySelector('.error-text');
+    }
+    formLiquidacion.addEventListener('change', event => {
+        const chk = event.target;
+        if (chk.matches('.check-serial') && chk.checked) {
+            const opuesto = chk.dataset.type === 'devuelto' ? 'merma' : 'devuelto';
+            chk.closest('tr').querySelector(`.check-serial[data-type="${opuesto}"][value="${chk.value}"]`).checked = false;
+        }
+        actualizar();
+    });
+    formLiquidacion.addEventListener('input', actualizar);
+    formLiquidacion.addEventListener('submit', event => {
+        event.preventDefault();
+        actualizar();
+        if (document.getElementById('btnPrepararCierre').disabled) return;
+        document.getElementById('totalFilasSeleccionadas').textContent = document.querySelectorAll('.seleccionar-fila:checked').length;
         modalConfirm.style.display = 'flex';
     });
-
-    // Botón cancelar del modal
-    btnCancelModal.addEventListener('click', () => {
-        modalConfirm.style.display = 'none';
-    });
-
-    // Botón confirmar del modal (Bloqueo y Envío)
+    btnCancelModal.addEventListener('click', () => modalConfirm.style.display = 'none');
     btnProceedModal.addEventListener('click', () => {
-        // Bloqueamos el botón y evitamos doble clic
         btnProceedModal.disabled = true;
-        btnProceedModal.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> PROCESANDO...";
-        btnCancelModal.style.display = 'none'; 
-        
-        // Enviamos el form
+        btnProceedModal.textContent = 'PROCESANDO...';
         formLiquidacion.submit();
     });
-
-    // Cerrar modal si hacen click afuera
-    window.addEventListener('click', (e) => {
-        if (e.target === modalConfirm) {
-            modalConfirm.style.display = 'none';
-        }
-    });
-
-    // === NUEVA LÓGICA PARA CHECKBOXES DE ONUs ===
-    document.querySelectorAll('.check-serial').forEach(chk => {
-        chk.addEventListener('change', function() {
-            let itemId = this.dataset.itemid;
-            let type = this.dataset.type;
-            
-            // Si marco uno, desmarco el opuesto (No puede ser Bueno y Merma a la vez)
-            if (this.checked) {
-                let oppositeType = type === 'devuelto' ? 'merma' : 'devuelto';
-                let oppositeBox = this.closest('div').querySelector(`.check-serial[data-type="${oppositeType}"]`);
-                if (oppositeBox && oppositeBox.checked) {
-                    oppositeBox.checked = false;
-                }
-            }
-
-            // Sumar los checks marcados
-            let countDevueltos = document.querySelectorAll(`.check-serial[data-type="devuelto"][data-itemid="${itemId}"]:checked`).length;
-            let countMermas = document.querySelectorAll(`.check-serial[data-type="merma"][data-itemid="${itemId}"]:checked`).length;
-
-            // Actualizar los inputs ocultos
-            let hiddenDev = document.getElementById(`hidden_devuelto_${itemId}`);
-            let hiddenMer = document.getElementById(`hidden_merma_${itemId}`);
-            hiddenDev.value = countDevueltos;
-            hiddenMer.value = countMermas;
-
-            // Disparar el evento para que tu JS original calcule el consumo
-            hiddenDev.dispatchEvent(new Event('input'));
-        });
-    });
+    actualizar();
 </script>
 {% endblock %}

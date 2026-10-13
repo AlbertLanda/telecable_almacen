@@ -109,14 +109,21 @@ class MochilaSedesTests(SedesBase):
 
 
 class LiquidacionSedesTests(SedesBase):
-    def test_pantalla_muestra_solo_los_dos_de_jauja(self):
+    def liquidar(self, data=None):
+        token = self.client.get(self.url).context['mochila_version']
+        return self.client.post(self.url, {'mochila_version': token, 'filas': [self.mj.id], **(data or {})})
+
+    def test_pantalla_muestra_ambos_origenes_sin_repetir_seriales(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual({e.id for e in response.context['equipos_asignados']}, {self.j1.id, self.j2.id})
+        self.assertEqual({e.id for e in response.context['equipos_asignados']}, {self.j1.id, self.j2.id, self.h1.id, self.h2.id, self.h3.id})
         self.assertFalse(response.context['inconsistencias'])
+        filas = {i.sede_id: i for i in response.context['mochila']}
+        self.assertEqual([e.id for e in filas[self.j.id].equipos], [self.j1.id, self.j2.id])
+        self.assertEqual([e.id for e in filas[self.h.id].equipos], [self.h1.id, self.h2.id, self.h3.id])
 
     def test_consumo_no_toca_sede_b(self):
-        response = self.client.post(self.url)
+        response = self.liquidar()
         self.assertEqual(response.status_code, 302)
         self.sede_b_intacto()
         self.mj.refresh_from_db(); self.sj.refresh_from_db()
@@ -127,7 +134,7 @@ class LiquidacionSedesTests(SedesBase):
         self.assertEqual(DocumentoItemSerializado.objects.filter(estado_resultante="INSTALADO").count(), 2)
 
     def test_retorno_y_merma_solo_en_sede_actual(self):
-        self.client.post(self.url, {f'check_devuelto_{self.mj.id}': [self.j1.id], f'check_merma_{self.mj.id}': [self.j2.id]})
+        self.liquidar({f'check_devuelto_{self.mj.id}': [self.j1.id], f'check_merma_{self.mj.id}': [self.j2.id]})
         self.sede_b_intacto()
         self.j1.refresh_from_db(); self.j2.refresh_from_db(); self.sj.refresh_from_db()
         self.assertEqual((self.j1.estado, self.j1.ubicacion_id, self.j1.sede_asignacion_id), ('EN_ALMACEN', self.uj.id, None))
@@ -135,7 +142,7 @@ class LiquidacionSedesTests(SedesBase):
         self.assertEqual(self.sj.cantidad, 21)
 
     def test_seleccion_otra_sede_rechazada_y_rollback(self):
-        response = self.client.post(self.url, {f'check_devuelto_{self.mj.id}': [self.h1.id]})
+        response = self.liquidar({f'check_devuelto_{self.mj.id}': [self.h1.id]})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(DocumentoInventario.objects.exists())
         self.assertFalse(MovimientoInventario.objects.exists())
@@ -148,14 +155,14 @@ class LiquidacionSedesTests(SedesBase):
             {f'check_devuelto_{self.mj.id}': [self.j1.id], f'check_merma_{self.mj.id}': [self.j1.id]},
         ):
             with self.subTest(data=data):
-                self.client.post(self.url, data)
+                self.liquidar(data)
                 self.assertFalse(DocumentoInventario.objects.exists())
 
     def test_sin_sede_y_desfase_bloquean_sin_adivinar(self):
         self.j1.sede_asignacion = None; self.j1.save()
         response = self.client.get(self.url)
         self.assertTrue(response.context['inconsistencias'])
-        self.client.post(self.url)
+        self.liquidar()
         self.assertFalse(DocumentoInventario.objects.exists())
         self.j1.refresh_from_db(); self.assertEqual(self.j1.estado, 'ASIGNADO')
 
@@ -165,19 +172,19 @@ class LiquidacionSedesTests(SedesBase):
         self.j1.proyecto = proyecto; self.j1.save()
         response = self.client.get(self.url)
         self.assertNotIn(self.j1, response.context['equipos_asignados'])
-        self.client.post(self.url)
+        self.liquidar()
         self.assertFalse(DocumentoInventario.objects.exists())
 
     def test_segundo_envio_no_duplica_ingreso(self):
         data = {f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}
-        self.client.post(self.url, data); self.client.post(self.url, data)
+        self.liquidar(data); self.liquidar(data)
         self.assertEqual(DocumentoInventario.objects.count(), 1)
         self.assertEqual(MovimientoInventario.objects.count(), 1)
         self.sj.refresh_from_db(); self.assertEqual(self.sj.cantidad, 22)
 
     def test_herramienta_no_devuelta_conserva_custodia(self):
         self.p.es_activo = True; self.p.save()
-        self.client.post(self.url, {f'check_devuelto_{self.mj.id}': [self.j1.id]})
+        self.liquidar({f'check_devuelto_{self.mj.id}': [self.j1.id]})
         self.mj.refresh_from_db(); self.j2.refresh_from_db()
         self.assertEqual(self.mj.cantidad, 1)
         self.assertEqual(self.j2.estado, 'ASIGNADO')
@@ -185,7 +192,7 @@ class LiquidacionSedesTests(SedesBase):
 
     def test_cantidad_negativa_no_crea_stock(self):
         self.p.es_serializado = False; self.p.save()
-        self.client.post(self.url, {f'devuelto_{self.mj.id}': -1})
+        self.liquidar({f'devuelto_{self.mj.id}': -1})
         self.assertFalse(DocumentoInventario.objects.exists())
         self.sj.refresh_from_db(); self.assertEqual(self.sj.cantidad, 20)
 
@@ -424,22 +431,26 @@ from django.test import Client, TransactionTestCase
 
 @skipUnless(connection.vendor == 'postgresql', 'Bloqueo de filas: requiere PostgreSQL')
 class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
-    def test_dos_solicitudes_crean_un_solo_retorno(self):
+    def test_dos_sedes_crean_un_solo_retorno(self):
+        receptor = self.usuario('receptor_concurrente', self.h, UserProfile.Rol.ALMACEN)
         barrera = Barrier(2)
-        def enviar():
+        def enviar(usuario_id):
             close_old_connections()
             try:
                 cliente = Client()
-                cliente.force_login(get_user_model().objects.get(pk=self.almacen.pk))
+                cliente.force_login(get_user_model().objects.get(pk=usuario_id))
+                token = cliente.get(self.url).context['mochila_version']
                 barrera.wait(timeout=10)
-                return cliente.post(self.url, {f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}).status_code
+                return cliente.post(self.url, {'mochila_version': token, 'filas': [self.mj.id], f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}).status_code
             finally:
                 connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as executor:
-            resultados = list(executor.map(lambda _: enviar(), range(2)))
+            resultados = list(executor.map(enviar, [self.almacen.pk, receptor.pk]))
         self.assertIn(302, resultados)
         self.assertTrue(all(r in (200, 302) for r in resultados))
         self.assertEqual(DocumentoInventario.objects.filter(tipo='ING').count(), 1)
         self.assertEqual(MovimientoInventario.objects.count(), 1)
-        self.sj.refresh_from_db(); self.assertEqual(self.sj.cantidad, 22)
-        self.sede_b_intacto()
+        self.sj.refresh_from_db(); self.sh.refresh_from_db()
+        self.assertEqual(self.sj.cantidad + self.sh.cantidad, 32)
+        self.mj.refresh_from_db(); self.mh.refresh_from_db()
+        self.assertEqual((self.mj.cantidad, self.mh.cantidad), (0, 3))

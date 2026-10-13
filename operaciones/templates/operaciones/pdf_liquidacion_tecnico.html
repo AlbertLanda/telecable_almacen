@@ -98,7 +98,8 @@
             <div class="col">
                 <div class="info-row"><label>DOCUMENTO:</label> <span>{{ doc.numero }}</span></div>
                 <div class="info-row"><label>FECHA:</label> <span>{{ doc.fecha|date:"d/m/Y H:i" }}</span></div>
-                <div class="info-row"><label>ALMACÉN:</label> <span>{{ doc.sede.nombre }}</span></div>
+                <div class="info-row"><label>RECEPCIÓN:</label> <span>{{ doc.sede.nombre }}</span></div>
+                {% if doc.sede_origen %}<div class="info-row"><label>ORIGEN:</label> <span>{{ doc.sede_origen.nombre }}</span></div>{% endif %}
                 <div class="info-row"><label>ESTADO:</label> <span>CONFIRMADO</span></div>
             </div>
             <div class="col">

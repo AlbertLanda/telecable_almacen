@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<section style="max-width:900px;margin:24px auto;padding:24px;">
+  <h2>Identificar equipos de {{ sal.numero }}</h2>
+  <p>Origen: <strong>{{ sal.sede.nombre }}</strong> · Recepción: <strong>{{ sal.sede_destino.nombre }}</strong></p>
+  <p>Esta salida antigua tiene cantidades sin sus números de equipo. Marca únicamente los códigos que llegaron en esta salida. Guardarlos no ingresa stock.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for linea in lineas %}
+      <fieldset style="margin:20px 0;padding:16px;">
+        <legend>{{ linea.producto.nombre }} · {{ linea.cantidad }} unidades</legend>
+        {% if linea.identificados %}
+          {% for vinculo in linea.identificados %}<p>#{{ vinculo.item_serializado.codigo_trazabilidad }} · {{ vinculo.item_serializado.serial }} (ya identificado)</p>{% endfor %}
+        {% else %}
+          <p>Selecciona exactamente {{ linea.cantidad }}. Son candidatos; verifica cada etiqueta física.</p>
+          {% for equipo in linea.candidatos %}
+            <label style="display:flex;align-items:center;gap:8px;padding:8px;"><input style="width:auto;margin:0;flex-shrink:0;" type="checkbox" name="equipos_{{ linea.pk }}" value="{{ equipo.pk }}"> <strong>#{{ equipo.codigo_trazabilidad|default:'Sin código' }}</strong> · {{ equipo.serial }}</label>
+          {% empty %}<p>No hay equipos candidatos. Almacén debe revisar la asignación antes de recibir.</p>{% endfor %}
+        {% endif %}
+      </fieldset>
+    {% endfor %}
+    <label style="display:flex;align-items:center;gap:8px;margin:20px 0;"><input style="width:auto;margin:0;flex-shrink:0;" type="checkbox" name="confirmacion_fisica" value="si" required> Confirmo que los códigos seleccionados corresponden a los equipos físicos recibidos en esta salida.</label>
+    <button type="submit" class="btn btn-primary">Guardar identificación y revisar salida</button>
+    <a href="{% url 'sal_detail' sal.id %}" class="btn">Volver</a>
+  </form>
+</section>
+{% endblock %}

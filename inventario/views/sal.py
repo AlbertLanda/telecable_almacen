@@ -84,7 +84,10 @@ def sal_detail(request, sal_id: int):
         if not allowed:
             raise PermissionDenied("No tienes permisos para ver esta Guía de Salida.")
 
-        return render(request, "inventario/sal_detail.html", {"sal": sal, "items": items})
+        return render(request, "inventario/sal_detail.html", {
+            "sal": sal, "items": items,
+            "faltan_seriales": any(it.producto.es_serializado and not getattr(it, "lista_series", None) for it in items),
+        })
 
     except PermissionDenied as e:
         messages.error(request, str(e))
@@ -164,6 +167,11 @@ def almacen_recepcionar_traspaso(request, sal_id):
 
             if DocumentoInventario.objects.filter(tipo=TipoDocumento.ING, origen=sal).exists():
                 raise ValidationError("Esta salida ya tiene un ingreso asociado; revisa su recepción antes de continuar.")
+
+            if any(it.producto.es_serializado and not it.seriales_seleccionados.exists()
+                   for it in sal.items.select_related("producto")):
+                messages.info(request, "Identifica los números de esta salida antes de confirmar el ingreso.")
+                return redirect('conciliar_traspaso', sal_id=sal.pk)
 
             ing = DocumentoInventario.objects.create(
                 tipo=TipoDocumento.ING,
