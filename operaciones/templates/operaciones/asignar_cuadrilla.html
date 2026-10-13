@@ -37,16 +37,16 @@
                 {% for stock in mi_stock %}
                 <tr style="border-bottom: 1px solid var(--border-light);">
                     <td style="padding: 15px 10px;">
-                        <b>{{ stock.producto.nombre }}</b>
+                        <b>{{ stock.producto.nombre }}</b><div>{{ stock.sede.nombre|default:"Sede pendiente de conciliación" }}</div>
                         
                         {% if stock.producto.es_serializado %}
                         <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
                             <span style="font-size: 11px; color: var(--primary); text-transform: uppercase;">Selecciona las MACs exactas:</span>
                             <div style="margin-top: 5px; display: grid; gap: 6px;">
                                 {% for equipo in mis_equipos %}
-                                    {% if equipo.producto == stock.producto %}
+                                    {% if equipo.producto == stock.producto and equipo.sede_asignacion_id == stock.sede_id and not equipo.proyecto_id %}
                                     <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="macs_{{ stock.producto.id }}" value="{{ equipo.id }}">
+                                        <input type="checkbox" name="macs_{{ stock.id }}" value="{{ equipo.id }}">
                                         {{ equipo.serial }} {% if equipo.mac_address %}({{ equipo.mac_address }}){% endif %}
                                     </label>
                                     {% endif %}
@@ -60,7 +60,7 @@
                         {{ stock.cantidad }}
                     </td>
                     <td style="padding: 15px 10px;">
-                        <input type="number" name="qty_{{ stock.producto.id }}" value="0" min="0" max="{{ stock.cantidad }}" 
+                        <input type="number" name="qty_{{ stock.id }}" value="0" min="0" max="{{ stock.cantidad }}"
                                style="width: 100%; padding: 8px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-main);">
                     </td>
                 </tr>

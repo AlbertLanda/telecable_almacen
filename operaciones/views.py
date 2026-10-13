@@ -13,6 +13,7 @@ from django.core.exceptions import PermissionDenied
 from datetime import timedelta
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
+from inventario.services.seriales_service import equipos_de_mochila, ids_unicos
 from django.contrib.auth import get_user_model
 
 # Importamos modelos del Core
@@ -33,10 +34,10 @@ User = get_user_model()
 def get_user_sede_info(user):
     if not hasattr(user, 'profile'): return None, False, False
     profile = user.profile
-    sede = profile.sede_principal or profile.sede_activa
-    if not sede: return None, False, False
-    es_sede_central = (sede.tipo == 'CENTRAL')
-    puede_liquidar_central = profile.rol in ['ADMIN', 'JEFA'] or (profile.rol == 'ALMACEN' and es_sede_central)
+    sede = profile.sede_principal if profile.rol == 'ALMACEN' else profile.get_sede_operativa()
+    es_sede_central = bool(sede and sede.tipo == 'CENTRAL')
+    # Ser almacén CENTRAL no concede permisos de administración global.
+    puede_liquidar_central = profile.rol in ['ADMIN', 'JEFA']
     return sede, es_sede_central, puede_liquidar_central
 
 def user_can_liquidar(user):
@@ -49,11 +50,20 @@ def user_can_liquidar_sede(user, sede_id):
     profile = user.profile
     if profile.rol in ['ADMIN', 'JEFA']: return True
     if profile.rol == 'ALMACEN':
-        sede_usuario = profile.sede_principal or profile.sede_activa
+        sede_usuario = profile.sede_principal
         if sede_usuario:
-            if sede_usuario.tipo == 'CENTRAL': return True
             return sede_usuario.id == sede_id
     return False
+
+
+def _liquidaciones_visibles(user):
+    if not user_can_liquidar(user):
+        raise PermissionDenied("No tienes permisos para consultar liquidaciones de almacén.")
+    qs = LiquidacionSemanal.objects.all()
+    if user.profile.rol in ['ADMIN', 'JEFA']:
+        return qs
+    sede_id = user.profile.sede_principal_id
+    return qs.filter(sede_id=sede_id) if sede_id else qs.none()
 
 def puede_liquidar_hoy():
     hoy = timezone.now()
@@ -89,12 +99,12 @@ def liquidacion_dashboard(request):
     puede_liquidar, mensaje_dia, dias_para_lunes = puede_liquidar_hoy()
     semana_liquidar, anio_liquidar = get_semana_a_liquidar()
     
-    if profile.rol in ['ADMIN', 'JEFA'] or es_sede_central:
+    if profile.rol in ['ADMIN', 'JEFA']:
         sedes_disponibles = Sede.objects.filter(activo=True).order_by('tipo', 'nombre')
         liquidaciones = LiquidacionSemanal.objects.all().order_by('-fecha_liquidacion')[:50]
     else:
         sedes_disponibles = Sede.objects.filter(id=sede_usuario.id) if sede_usuario else Sede.objects.none()
-        liquidaciones = LiquidacionSemanal.objects.filter(sede=sede_usuario).order_by('-fecha_liquidacion')[:50]
+        liquidaciones = _liquidaciones_visibles(request.user).order_by('-fecha_liquidacion')[:50]
     
     liquidaciones_semana = LiquidacionSemanal.objects.filter(semana=semana_liquidar, anio=anio_liquidar)
     estado_sedes = []
@@ -124,7 +134,7 @@ def liquidacion_dashboard(request):
 @csrf_protect
 def liquidar_sede(request, sede_id):
     if not user_can_liquidar_sede(request.user, sede_id):
-        return redirect('liquidacion_dashboard')
+        raise PermissionDenied("Solo puedes liquidar tu sede asignada.")
     
     sede = get_object_or_404(Sede, id=sede_id)
     puede_liquidar, mensaje, _ = puede_liquidar_hoy()
@@ -152,7 +162,8 @@ def liquidar_sede(request, sede_id):
 @csrf_protect
 def liquidar_central(request):
     _, _, puede = get_user_sede_info(request.user)
-    if not puede: return redirect('liquidacion_dashboard')
+    if not puede:
+        raise PermissionDenied("La liquidación central consolidada requiere ADMIN o JEFA.")
     
     puede_liq, mensaje, _ = puede_liquidar_hoy()
     semana, anio = get_semana_a_liquidar()
@@ -174,7 +185,7 @@ def liquidar_central(request):
 
 @login_required
 def liquidacion_detalle(request, liquidacion_id):
-    liq = get_object_or_404(LiquidacionSemanal, id=liquidacion_id)
+    liq = get_object_or_404(_liquidaciones_visibles(request.user), id=liquidacion_id)
     return render(request, 'operaciones/liquidacion/detalle.html', {'liquidacion': liq})
 
 @login_required
@@ -194,6 +205,9 @@ class LiquidacionListView(LoginRequiredMixin, ListView):
     template_name = 'operaciones/liquidacion/lista.html' 
     context_object_name = 'liquidaciones'
     paginate_by = 50
+
+    def get_queryset(self):
+        return _liquidaciones_visibles(self.request.user)
 
 # ========================================================
 # VISTAS DEL TÉCNICO (Operativas)
@@ -368,177 +382,112 @@ def liquidacion_tecnico_lista(request):
 
 @login_required
 def liquidar_tecnico(request, tecnico_id):
-    if not request.user.profile.rol in ['ALMACEN', 'ADMIN', 'JEFA']:
-        return redirect('home')
+    from inventario.models import Ubicacion
+    from inventario.services.seriales_service import (
+        equipos_de_mochila, registrar_seriales, validar_seleccion_liquidacion,
+    )
 
+    _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
     tecnico = get_object_or_404(User, id=tecnico_id)
-
     sede_almacen = request.user.profile.get_sede_operativa()
+    if not sede_almacen:
+        raise PermissionDenied("No tienes sede operativa asignada.")
 
-    mochila = (
-        StockTecnico.objects
-        .filter(
-            tecnico=tecnico,
-            sede=sede_almacen,
-            cantidad__gt=0,
-        )
-        .select_related("producto", "sede")
-    )
-
-    productos_mochila_ids = mochila.values_list("producto_id", flat=True)
-    
-    equipos_asignados = ItemSerializado.objects.filter(
-        asignado_a=tecnico,
-        estado=ItemSerializado.Estado.ASIGNADO,
-        producto_id__in=productos_mochila_ids,
-    )
+    mochila = StockTecnico.objects.filter(
+        tecnico=tecnico, sede=sede_almacen, cantidad__gt=0,
+    ).select_related("producto", "sede")
 
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                notas_usuario = request.POST.get('observaciones', '')
-                
-                from inventario.models import Ubicacion
+                # Bloquear sin joins nullable; el segundo envío relee el saldo.
+                items = list(StockTecnico.objects.select_for_update().filter(
+                    tecnico=tecnico, sede=sede_almacen, cantidad__gt=0,
+                ).order_by("id"))
+                if not items:
+                    raise ValueError("No hay saldo pendiente en esta sede; puede haberse liquidado ya.")
                 ubicacion_retorno = Ubicacion.objects.filter(sede=sede_almacen).first()
-                
                 doc_ing = DocumentoInventario.objects.create(
-                    tipo=TipoDocumento.ING,
-                    estado=EstadoDocumento.CONFIRMADO,
-                    sede=sede_almacen,
-                    responsable=request.user,
-                    solicitante=tecnico,
+                    tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO,
+                    sede=sede_almacen, responsable=request.user, solicitante=tecnico,
                     referencia="LIQ-SEMANAL",
-                    observaciones=f"Liquidación Semana. {notas_usuario}",
-                    fecha=timezone.now()
+                    observaciones=f"Liquidación Semana. {request.POST.get('observaciones', '')}",
+                    fecha=timezone.now(),
                 )
                 doc_ing.asignar_numero_si_falta()
-
                 reporte_mermas = []
-
-                # 🔒 Bloqueamos y releemos la mochila dentro de la transacción:
-                # sin esto, un doble clic en "Liquidar" (o dos solicitudes casi
-                # simultáneas, más probable con internet inestable en algunas
-                # sedes) generaba dos documentos ING duplicados con el mismo
-                # retorno/merma antes de que la primera transacción alcanzara
-                # a dejar la mochila en 0.
-                mochila_bloqueada = {
-                    m.id: m
-                    for m in StockTecnico.objects.select_for_update().filter(
-                        tecnico=tecnico, sede=sede_almacen, cantidad__gt=0
-                    )
-                }
-
-                for item in mochila:
-                    item = mochila_bloqueada.get(item.id)
-                    if item is None:
-                        # Ya fue liquidado por otra solicitud concurrente.
-                        continue
-
+                for item in items:
+                    equipos = []
                     if item.producto.es_serializado:
-                        devueltos_ids = request.POST.getlist(f'check_devuelto_{item.id}')
-                        mermas_ids = request.POST.getlist(f'check_merma_{item.id}')
-                        
-                        cant_devuelta = len(devueltos_ids)
-                        cant_merma = len(mermas_ids)
-                        total_salida = cant_devuelta + cant_merma
-                        consumo_calculado = item.cantidad - total_salida
-                        
-                        if total_salida > item.cantidad:
-                            raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
-
-                        # 2. Retornar al almacén
-                        if devueltos_ids:
-                            ItemSerializado.objects.filter(id__in=devueltos_ids).update(
-                                estado=ItemSerializado.Estado.EN_ALMACEN,
-                                asignado_a=None,
-                                ubicacion=ubicacion_retorno 
-                            )
-                            
-                        # 3. Mandar a merma
-                        if mermas_ids:
-                            ItemSerializado.objects.filter(id__in=mermas_ids).update(
-                                estado=ItemSerializado.Estado.MERMA,
-                                asignado_a=None,
-                                ubicacion=ubicacion_retorno 
-                            )
-                            
-                        # ✅ CORRECCIÓN: Los que NO devolvió, solo se instalan si son consumibles
-                        todos_ids = devueltos_ids + mermas_ids
-                        if not item.producto.es_activo: # Si es ONU/Material, se gastó
-                            ItemSerializado.objects.filter(
-                                asignado_a=tecnico, 
-                                producto=item.producto, 
-                                estado=ItemSerializado.Estado.ASIGNADO
-                            ).exclude(id__in=todos_ids).update(
-                                estado=ItemSerializado.Estado.INSTALADO,
-                                asignado_a=None
-                            )
-                        # Si es Herramienta (es_activo=True), sigue conservando su asignación normal.
-
+                        equipos, devueltos, mermas = validar_seleccion_liquidacion(
+                            item, request.POST.getlist(f'check_devuelto_{item.id}'),
+                            request.POST.getlist(f'check_merma_{item.id}'),
+                        )
+                        cant_devuelta, cant_merma = len(devueltos), len(mermas)
+                        if (devueltos or mermas) and not ubicacion_retorno:
+                            raise ValueError("Configura una ubicación de retorno en esta sede.")
+                        for equipo in equipos:
+                            if equipo.id in devueltos or equipo.id in mermas:
+                                equipo.estado = (ItemSerializado.Estado.EN_ALMACEN
+                                    if equipo.id in devueltos else ItemSerializado.Estado.MERMA)
+                                equipo.asignado_a = None
+                                equipo.ubicacion = ubicacion_retorno
+                                equipo.sede_asignacion = None
+                            elif not item.producto.es_activo:
+                                equipo.estado = ItemSerializado.Estado.INSTALADO
+                                equipo.asignado_a = None
+                                equipo.ubicacion = None
+                            else:
+                                continue
+                            equipo.save(update_fields=["estado", "asignado_a", "ubicacion", "sede_asignacion", "actualizado_en"])
                     else:
                         cant_devuelta = int(request.POST.get(f'devuelto_{item.id}', 0))
                         cant_merma = int(request.POST.get(f'merma_{item.id}', 0))
-                        
-                        total_salida = cant_devuelta + cant_merma
-                        consumo_calculado = item.cantidad - total_salida
-
-                        if total_salida > item.cantidad:
-                            raise ValueError(f"Error en {item.producto.nombre}: Devolución excede stock.")
-
-                    # ✅ CORRECCIÓN: una Herramienta (es_activo=True) nunca se "usa/instala";
-                    # si no se marcó como Bueno ni Dañado, sigue tal cual en poder del
-                    # técnico (no se tocó su StockTecnico ni su ItemSerializado más abajo).
-                    # Registrar consumo_calculado como "Usado" aquí hacía ver en el acta
-                    # impresa que esas unidades ya habían sido liquidadas/instaladas,
-                    # cuando en realidad seguían asignadas al técnico y por eso volvían
-                    # a aparecer pendientes en la siguiente liquidación.
-                    cantidad_usada_doc = 0 if item.producto.es_activo else consumo_calculado
-
-                    DocumentoItem.objects.create(
-                        documento=doc_ing,
-                        producto=item.producto,
-                        cantidad=cant_devuelta,
-                        cantidad_usada=cantidad_usada_doc,
-                        cantidad_merma=cant_merma,
-                        observacion="Liq. Técnico"
+                    total_salida = cant_devuelta + cant_merma
+                    if min(cant_devuelta, cant_merma) < 0 or total_salida > item.cantidad:
+                        raise ValueError(f"Cantidades inválidas para {item.producto.nombre}.")
+                    cantidad_usada = 0 if item.producto.es_activo else item.cantidad - total_salida
+                    linea = DocumentoItem.objects.create(
+                        documento=doc_ing, producto=item.producto, cantidad=cant_devuelta,
+                        cantidad_usada=cantidad_usada, cantidad_merma=cant_merma,
+                        observacion="Liq. Técnico",
                     )
-
-                    if cant_devuelta > 0:
+                    procesados = [e for e in equipos if e.asignado_a_id is None]
+                    registrar_seriales(linea, procesados)
+                    if cant_devuelta:
                         MovimientoInventario.objects.create(
-                            producto=item.producto,
-                            sede=sede_almacen,
-                            tipo=MovimientoInventario.TIPO_IN,
-                            qty=cant_devuelta,
-                            referencia=doc_ing.numero,
-                            usuario=request.user,
-                            nota=f"Retorno Liq. {tecnico.username}"
+                            producto=item.producto, sede=sede_almacen,
+                            tipo=MovimientoInventario.TIPO_IN, qty=cant_devuelta,
+                            referencia=doc_ing.numero, usuario=request.user,
+                            nota=f"Retorno Liq. {tecnico.username}",
                         ).aplicar()
-                    
-                    if item.producto.es_activo:
-                        item.cantidad -= total_salida
-                        if item.cantidad == 0: item.delete()
-                        else: item.save()
-                    else:
-                        item.cantidad = 0 
-                        item.save()
-
-                    if cant_merma > 0:
+                    item.cantidad = item.cantidad - total_salida if item.producto.es_activo else 0
+                    item.save(update_fields=["cantidad", "actualizado_en"])
+                    if cant_merma:
                         reporte_mermas.append(f"{cant_merma}x {item.producto.nombre}")
-
                 if reporte_mermas:
                     doc_ing.observaciones += " | MERMAS: " + ", ".join(reporte_mermas)
-                    doc_ing.save()
-
-                messages.success(request, f"✅ Liquidación registrada correctamente. Doc: {doc_ing.numero}")
+                    doc_ing.save(update_fields=["observaciones"])
+                messages.success(request, f"Liquidación registrada correctamente. Doc: {doc_ing.numero}")
                 return redirect('liquidacion_tecnico_lista')
-
         except Exception as e:
-            messages.error(request, f"Error: {str(e)}")
+            messages.error(request, f"Error: {e}")
 
+    equipos_asignados = equipos_de_mochila(tecnico, sede_almacen).filter(
+        producto_id__in=mochila.values_list("producto_id", flat=True),
+    )
+    inconsistencias = []
+    for item in mochila:
+        if item.producto.es_serializado:
+            identificados = equipos_asignados.filter(producto=item.producto).count()
+            if identificados != item.cantidad:
+                inconsistencias.append(
+                    f"{item.producto.nombre}: saldo {item.cantidad}, equipos identificados "
+                    f"en {sede_almacen.nombre}: {identificados}. Requiere conciliación."
+                )
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
-        'tecnico': tecnico,
-        'mochila': mochila,
-        'equipos_asignados': equipos_asignados
+        'tecnico': tecnico, 'mochila': mochila, 'equipos_asignados': equipos_asignados,
+        'sede_liquidacion': sede_almacen, 'inconsistencias': inconsistencias,
     })
 
 
@@ -655,7 +604,7 @@ def tecnico_dashboard(request):
     stock_qs = StockTecnico.objects.filter(
         tecnico=request.user, 
         cantidad__gt=0
-    ).select_related('producto').order_by('producto__nombre')
+    ).select_related('producto', 'sede').order_by('producto__nombre', 'sede_id')
     
     equipos_fisicos = ItemSerializado.objects.filter(
         asignado_a=request.user,
@@ -666,13 +615,18 @@ def tecnico_dashboard(request):
     materiales = []
     
     for item in stock_qs:
-        sus_equipos = [e for e in equipos_fisicos if e.producto.id == item.producto.id]
+        sus_equipos = [e for e in equipos_fisicos if item.sede_id and e.producto_id == item.producto_id
+                       and e.sede_asignacion_id == item.sede_id and not e.proyecto_id]
         
         # Armamos el paquete que el HTML va a leer
         item_data = {
             'producto': item.producto,
             'cantidad': item.cantidad,
-            'equipos': sus_equipos
+            'sede': item.sede,
+            'equipos': sus_equipos,
+            'requiere_revision': item.producto.es_serializado and (
+                not item.sede_id or len(sus_equipos) != item.cantidad
+            ),
         }
         
         if item.producto.es_activo:
@@ -788,8 +742,10 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
 
         try:
             with transaction.atomic():
-                for stock in mi_stock:
-                    qty = int(request.POST.get(f'qty_{stock.producto.id}', 0))
+                for stock in mi_stock.select_for_update().order_by('id'):
+                    qty = int(request.POST.get(f'qty_{stock.id}', 0))
+                    if qty and not stock.sede_id:
+                        raise ValueError("La mochila sin sede requiere conciliación antes de prestar.")
                     
                     if qty > 0:
                         if qty > stock.cantidad:
@@ -802,12 +758,12 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                         )
 
                         if stock.producto.es_serializado:
-                            macs_seleccionadas = request.POST.getlist(f'macs_{stock.producto.id}')
+                            macs_seleccionadas = request.POST.getlist(f'macs_{stock.id}')
                             if len(macs_seleccionadas) != qty:
                                 raise ValueError(f"Debes marcar exactamente {qty} equipos/MACs de {stock.producto.nombre}.")
                             
-                            for equipo_id in macs_seleccionadas:
-                                equipo = ItemSerializado.objects.get(id=equipo_id, asignado_a=request.user)
+                            for equipo_id in ids_unicos(macs_seleccionadas):
+                                equipo = equipos_de_mochila(request.user, stock.sede, stock.producto).select_for_update().get(id=equipo_id)
                                 # Cambiamos de dueño
                                 equipo.asignado_a = receptor
                                 equipo.save()
@@ -826,7 +782,7 @@ def proyecto_asignar_cuadrilla(request, proyecto_id):
                         # receptor, duplicando el producto en su "Mi Mochila" y
                         # dejando ese stock fuera de la liquidación semanal (que
                         # filtra por sede del almacén).
-                        stock_receptor, _ = StockTecnico.objects.get_or_create(
+                        stock_receptor, _ = StockTecnico.objects.select_for_update().get_or_create(
                             tecnico=receptor, producto=stock.producto, sede=stock.sede
                         )
                         stock_receptor.cantidad += qty
@@ -903,8 +859,10 @@ def prestar_a_tecnico(request):
 
         try:
             with transaction.atomic():
-                for stock in mi_stock:
-                    qty = int(request.POST.get(f'qty_{stock.producto.id}', 0))
+                for stock in mi_stock.select_for_update().order_by('id'):
+                    qty = int(request.POST.get(f'qty_{stock.id}', 0))
+                    if qty and not stock.sede_id:
+                        raise ValueError("La mochila sin sede requiere conciliación antes de prestar.")
                     if qty <= 0:
                         continue
 
@@ -917,7 +875,7 @@ def prestar_a_tecnico(request):
                     )
 
                     if stock.producto.es_serializado:
-                        codigos_raw = request.POST.get(f'codigos_{stock.producto.id}', '')
+                        codigos_raw = request.POST.get(f'codigos_{stock.id}', '')
                         codigos = [c.strip().upper() for c in codigos_raw.splitlines() if c.strip()]
 
                         if len(codigos) != qty:
@@ -932,14 +890,10 @@ def prestar_a_tecnico(request):
                             # Acepta el serial completo (GPON SN) o el código
                             # pintado/trazabilidad, lo que tenga a mano en
                             # campo.
-                            equipo = ItemSerializado.objects.filter(
-                                asignado_a=request.user, producto=stock.producto, serial=codigo,
-                            ).first()
+                            equipo = equipos_de_mochila(request.user, stock.sede, stock.producto).select_for_update().filter(serial=codigo).first()
                             if not equipo:
-                                equipo = ItemSerializado.objects.filter(
-                                    asignado_a=request.user, producto=stock.producto,
-                                    codigo_trazabilidad=codigo,
-                                ).first()
+                                coincidencias = list(equipos_de_mochila(request.user, stock.sede, stock.producto).select_for_update().filter(codigo_trazabilidad=codigo))
+                                equipo = coincidencias[0] if len(coincidencias) == 1 else None
 
                             if equipo:
                                 equipos.append(equipo)
@@ -952,6 +906,7 @@ def prestar_a_tecnico(request):
                                 f"de {stock.producto.nombre}."
                             )
 
+                        ids_unicos([equipo.id for equipo in equipos])
                         for equipo in equipos:
                             equipo.asignado_a = receptor
                             equipo.save()
@@ -963,7 +918,7 @@ def prestar_a_tecnico(request):
                     else:
                         stock.save()
 
-                    stock_receptor, _ = StockTecnico.objects.get_or_create(
+                    stock_receptor, _ = StockTecnico.objects.select_for_update().get_or_create(
                         tecnico=receptor, producto=stock.producto, sede=stock.sede
                     )
                     stock_receptor.cantidad += qty

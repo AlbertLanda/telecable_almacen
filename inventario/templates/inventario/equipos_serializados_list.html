@@ -444,6 +444,7 @@
             <th>Estado</th>
             <th>Ubicación</th>
             <th>Asignado a</th>
+            <th>Sede de asignación</th>
           </tr>
         </thead>
 
@@ -499,10 +500,11 @@
                   -
                 {% endif %}
               </td>
+              <td>{% if item.sede_asignacion %}{{ item.sede_asignacion.nombre }}{% elif item.estado == 'ASIGNADO' %}Sin conciliar{% else %}—{% endif %}</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="8">
+              <td colspan="9">
                 <div class="empty-state">
                   <strong>No se encontraron equipos serializados.</strong>
                   Prueba quitando filtros o revisando la carga inicial.

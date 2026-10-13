@@ -409,6 +409,14 @@ class ItemSerializado(TimeStampedModel):
     # Quién lo tiene actualmente (si está ASIGNADO)
     asignado_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="items_asignados")
 
+    # La ubicación física se vacía al despachar. La sede que carga la mochila
+    # debe sobrevivir al despacho y a los préstamos entre técnicos.
+    sede_asignacion = models.ForeignKey(
+        Sede, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="equipos_en_custodia",
+        help_text="Sede cuyo stock técnico contiene este equipo. Nulo: requiere conciliación.",
+    )
+
     # Obra/avería para la que se despachó este equipo, si aplica. Permite
     # cerrarlo correctamente (Instalado/Devuelto/Merma) cuando se liquida
     # la obra, en vez de quedar ASIGNADO al técnico para siempre.
@@ -653,6 +661,8 @@ class DocumentoInventario(models.Model):
 
     @transaction.atomic
     def confirmar(self, *, entregado_por=None, actualizar_mochila_tecnico=True):
+        # Releer bajo bloqueo: una segunda solicitud no puede aplicar el saldo dos veces.
+        self.estado = DocumentoInventario.objects.select_for_update().get(pk=self.pk).estado
         if self.tipo == TipoDocumento.REQ:
             raise ValidationError("Un REQ no se confirma; se envía y luego se atiende.")
         if self.estado != EstadoDocumento.BORRADOR:
@@ -666,6 +676,22 @@ class DocumentoInventario(models.Model):
         self.asignar_numero_si_falta()
 
         for it in items:
+            if self.tipo == TipoDocumento.SAL and it.producto.es_serializado and actualizar_mochila_tecnico:
+                ids = list(it.seriales_seleccionados.values_list("item_serializado_id", flat=True))
+                equipos = list(ItemSerializado.objects.select_for_update().filter(
+                    pk__in=ids, producto=it.producto, ubicacion__sede=self.sede,
+                    estado=ItemSerializado.Estado.EN_ALMACEN,
+                    asignado_a__isnull=True, proyecto__isnull=True,
+                ).order_by("id"))
+                if not self.solicitante_id or len(equipos) != it.cantidad:
+                    raise ValidationError("Identifica los seriales disponibles de esta sede antes de confirmar la salida.")
+                for equipo in equipos:
+                    equipo.estado = ItemSerializado.Estado.ASIGNADO
+                    equipo.asignado_a = self.solicitante
+                    equipo.sede_asignacion = self.sede
+                    equipo.ubicacion = None
+                    equipo.save(update_fields=["estado", "asignado_a", "sede_asignacion", "ubicacion", "actualizado_en"])
+                it.seriales_seleccionados.update(estado_resultante=ItemSerializado.Estado.ASIGNADO)
             if self.tipo == TipoDocumento.ING:
                 mov_tipo = MovimientoInventario.TIPO_IN
                 qty_mov = int(it.cantidad)
@@ -707,7 +733,7 @@ class DocumentoInventario(models.Model):
                     # Importación local para evitar ciclos
                     from .models import StockTecnico 
                     
-                    stock_tech, _ = StockTecnico.objects.get_or_create(
+                    stock_tech, _ = StockTecnico.objects.select_for_update().get_or_create(
                         tecnico=self.solicitante,
                         producto=it.producto,
                         sede=self.sede,
@@ -871,6 +897,10 @@ class StockTecnico(TimeStampedModel):
         return f"{self.tecnico.username} - {self.producto.nombre} @ {sede_nombre}: {self.cantidad}"
 
 class DocumentoItemSerializado(TimeStampedModel):
+    estado_resultante = models.CharField(
+        max_length=15, choices=ItemSerializado.Estado.choices, blank=True, default="",
+        help_text="Estado registrado al procesar el documento; vacío para selecciones antiguas.",
+    )
     documento_item = models.ForeignKey(
         DocumentoItem,
         on_delete=models.CASCADE,
@@ -894,3 +924,10 @@ class DocumentoItemSerializado(TimeStampedModel):
 
     def __str__(self):
         return f"{self.documento_item} -> {self.item_serializado.serial}"
+
+
+class CorreccionSeriales(TimeStampedModel):
+    """Respaldo e idempotencia de conciliaciones explícitas, sin nuevos despachos."""
+    clave = models.CharField(max_length=100, unique=True)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT)
+    detalle = models.JSONField()

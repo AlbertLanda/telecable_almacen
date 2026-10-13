@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
+from inventario.services.seriales_service import seleccionar_despacho, registrar_seriales, seleccionar_devolucion
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
@@ -1223,7 +1224,7 @@ def req_atender(request, req_id: int):
     profile = get_profile(request.user)
     if profile and profile.rol == UserProfile.Rol.ALMACEN:
         sede_user = profile.get_sede_operativa()
-        if sede_user and sede_user.id != sede_despachador.id:
+        if not sede_user or sede_user.id != sede_despachador.id:
              raise PermissionDenied(f"No puedes despachar mercadería de {sede_despachador.nombre}.")
     
     # --- PROCESO POST (Guardar Despacho) ---
@@ -1274,8 +1275,12 @@ def req_atender(request, req_id: int):
                     if qty_despacho > 0:
                         total_items_procesados += 1
 
+                        equipos_despacho = seleccionar_despacho(
+                            item, sede_despachador, request.POST, qty_despacho,
+                        ) if item.producto.es_serializado else []
+
                         # A. Documento Item
-                        DocumentoItem.objects.create(
+                        linea_sal = DocumentoItem.objects.create(
                             documento=sal,
                             producto=item.producto,
                             cantidad=qty_despacho,
@@ -1296,7 +1301,7 @@ def req_atender(request, req_id: int):
 
                         # C. Mochila Técnica (SOLO SI ES LOCAL)
                         if req.tipo_requerimiento == TipoRequerimiento.LOCAL:
-                            stock_tech, _ = StockTecnico.objects.get_or_create(
+                            stock_tech, _ = StockTecnico.objects.select_for_update().get_or_create(
                                 tecnico=req.responsable,
                                 producto=item.producto,
                                 sede=sede_despachador,
@@ -1306,48 +1311,15 @@ def req_atender(request, req_id: int):
                             stock_tech.cantidad += qty_despacho
                             stock_tech.save()
 
-                        # D. SERIALIZADOS
-                        if item.producto.es_serializado:
-                            # ... (Lógica de rangos y ONUs igual que antes, 
-                            # PERO buscando en sede_despachador)
-                            
-                            rango_inicio = request.POST.get(f'rango_inicio_{item.id}')
-                            rango_fin = request.POST.get(f'rango_fin_{item.id}')
-                            
-                            if rango_inicio and rango_fin:
-                                try:
-                                    start = int(rango_inicio)
-                                    end = int(rango_fin)
-                                    items_to_update = ItemSerializado.objects.filter(
-                                        producto=item.producto,
-                                        ubicacion__sede=sede_despachador, # <--- Busca en Jauja
-                                        estado=ItemSerializado.Estado.EN_ALMACEN,
-                                        serial__gte=str(start), 
-                                        serial__lte=str(end)
-                                    )
-                                    items_to_update.update(
-                                        estado=ItemSerializado.Estado.ASIGNADO, # O EN_TRANSITO si prefieres
-                                        asignado_a=req.responsable, 
-                                        ubicacion=None 
-                                    )
-                                except ValueError: pass
+                        # La asignación y la cantidad se confirman en la misma transacción.
+                        for equipo in equipos_despacho:
+                            equipo.estado = ItemSerializado.Estado.ASIGNADO
+                            equipo.asignado_a = req.responsable
+                            equipo.sede_asignacion = sede_despachador
+                            equipo.ubicacion = None
+                            equipo.save(update_fields=["estado", "asignado_a", "sede_asignacion", "ubicacion", "actualizado_en"])
+                        registrar_seriales(linea_sal, equipos_despacho)
 
-                            json_ids = request.POST.get(f'detalles_json_{item.id}')
-                            if json_ids:
-                                try:
-                                    ids_seleccionados = json.loads(json_ids)
-                                    items_onu = ItemSerializado.objects.filter(
-                                        id__in=ids_seleccionados,
-                                        producto=item.producto,
-                                        estado=ItemSerializado.Estado.EN_ALMACEN
-                                    )
-                                    items_onu.update(
-                                        estado=ItemSerializado.Estado.ASIGNADO,
-                                        asignado_a=req.responsable,
-                                        ubicacion=None
-                                    )
-                                except: pass
-                
                 # Validación de seguridad
                 if total_items_procesados == 0:
                     raise ValueError("⚠️ No has seleccionado ninguna cantidad para despachar.")
@@ -1599,9 +1571,20 @@ def almacen_devolucion_rapida(request):
                     qty = int(cantidades[i])
                     json_data = seriales_json[i] if i < len(seriales_json) else ""
 
+                    if qty <= 0:
+                        raise ValueError("La devolución debe ser positiva.")
                     if qty > 0:
+                        stock_tech = StockTecnico.objects.select_for_update().filter(
+                            tecnico=tecnico, producto=producto, sede=sede,
+                        ).first()
+                        if not stock_tech or stock_tech.cantidad < qty:
+                            raise ValueError("La devolución excede la mochila de esta sede.")
+                        equipos = seleccionar_devolucion(stock_tech, json_data, qty) if producto.es_serializado else []
+                        ubicacion_retorno = Ubicacion.objects.filter(sede=sede).first()
+                        if equipos and not ubicacion_retorno:
+                            raise ValueError("Configura una ubicación de retorno en esta sede.")
                         # A. Registrar Item en Documento
-                        DocumentoItem.objects.create(
+                        linea_ing = DocumentoItem.objects.create(
                             documento=ing,
                             producto=producto,
                             cantidad=qty,
@@ -1619,48 +1602,15 @@ def almacen_devolucion_rapida(request):
                             nota=f"Devolución de {tecnico.username}"
                         ).aplicar()
 
-                        # C. Ajustar Mochila Técnico (Baja su deuda)
-                        # Solo si es consumible o activo (ambos se descuentan al devolver)
-                        stock_tech = StockTecnico.objects.filter(tecnico=tecnico, producto=producto).first()
-                        if stock_tech:
-                            stock_tech.cantidad = max(0, stock_tech.cantidad - qty)
-                            if stock_tech.cantidad == 0 and not producto.es_activo:
-                                stock_tech.delete() # Limpiamos basura si es consumible y llega a 0
-                            else:
-                                stock_tech.save()
-
-                        # D. Lógica de Seriales (Liberar ONUs)
-                        if producto.es_serializado and json_data:
-                            import json
-                            try:
-                                series_list = json.loads(json_data) # [{'sn': '...', 'mac': '...'}]
-                                for s_data in series_list:
-                                    sn = s_data.get('sn', '').strip().upper()
-                                    if sn:
-                                        # Buscar el ítem (debería estar ASIGNADO al técnico o en estado ASIGNADO)
-                                        # Buscamos por SN globalmente
-                                        item_serial = ItemSerializado.objects.filter(serial=sn).first()
-
-                                        # ✅ Si no hay match por serial completo, probamos por el
-                                        # código de trazabilidad (el número pintado en la caja),
-                                        # que es lo único que almacén suele tener a mano cuando la
-                                        # devolución ocurre después de un préstamo informal en
-                                        # campo entre técnicos (ej: Kevin le prestó una ONU a
-                                        # Brayan y luego la recupera). Se restringe al mismo
-                                        # producto para no cruzar equipos distintos.
-                                        if not item_serial:
-                                            item_serial = ItemSerializado.objects.filter(
-                                                codigo_trazabilidad=sn, producto=producto,
-                                            ).first()
-
-                                        if item_serial:
-                                            # Lo devolvemos al almacén
-                                            item_serial.estado = ItemSerializado.Estado.EN_ALMACEN
-                                            item_serial.asignado_a = None
-                                            item_serial.ubicacion = Ubicacion.objects.filter(sede=sede).first() # Ubicación por defecto
-                                            item_serial.save()
-                            except:
-                                pass # Si falla el JSON, no rompemos todo, pero el stock sí cuadra
+                        stock_tech.cantidad -= qty
+                        stock_tech.save(update_fields=["cantidad", "actualizado_en"])
+                        for equipo in equipos:
+                            equipo.estado = ItemSerializado.Estado.EN_ALMACEN
+                            equipo.asignado_a = None
+                            equipo.sede_asignacion = None
+                            equipo.ubicacion = ubicacion_retorno
+                            equipo.save(update_fields=["estado", "asignado_a", "sede_asignacion", "ubicacion", "actualizado_en"])
+                        registrar_seriales(linea_ing, equipos)
 
                 messages.success(request, f"✅ Devolución registrada correctamente ({ing.numero}).")
                 return redirect('dash_almacen')
@@ -1732,6 +1682,12 @@ def req_scan_directo(request):
                 ubicacion = _get_ubicacion_operativa(request.user)
             except ValidationError as ve:
                 return JsonResponse({"ok": False, "error": f"Configuración incompleta: {str(ve)}"})
+
+            if serial_encontrado and (
+                not serial_encontrado.ubicacion_id
+                or serial_encontrado.ubicacion.sede_id != ubicacion.sede_id
+            ):
+                return JsonResponse({"ok": False, "error": "El equipo no está disponible en tu sede."})
 
             req_borrador = _get_req_carrito_segun_origen(request, ubicacion)
 
