@@ -591,7 +591,7 @@ def tecnico_dashboard(request):
     stock_qs = StockTecnico.objects.filter(
         tecnico=request.user, 
         cantidad__gt=0
-    ).select_related('producto').order_by('producto__nombre')
+    ).select_related('producto', 'sede').order_by('producto__nombre', 'sede_id')
     
     equipos_fisicos = ItemSerializado.objects.filter(
         asignado_a=request.user,
@@ -602,7 +602,7 @@ def tecnico_dashboard(request):
     materiales = []
     
     for item in stock_qs:
-        sus_equipos = [e for e in equipos_fisicos if e.producto_id == item.producto_id
+        sus_equipos = [e for e in equipos_fisicos if item.sede_id and e.producto_id == item.producto_id
                        and e.sede_asignacion_id == item.sede_id and not e.proyecto_id]
         
         # Armamos el paquete que el HTML va a leer
@@ -610,7 +610,10 @@ def tecnico_dashboard(request):
             'producto': item.producto,
             'cantidad': item.cantidad,
             'sede': item.sede,
-            'equipos': sus_equipos
+            'equipos': sus_equipos,
+            'requiere_revision': item.producto.es_serializado and (
+                not item.sede_id or len(sus_equipos) != item.cantidad
+            ),
         }
         
         if item.producto.es_activo:

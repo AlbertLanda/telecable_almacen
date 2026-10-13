@@ -252,6 +252,9 @@
                 <div class="sc-info">
                     <h4>{{ item.producto.nombre }}</h4>
                     <p>{{ item.producto.codigo_interno }} · {{ item.sede.nombre|default:"Sede pendiente" }}</p>
+                    {% if item.requiere_revision %}
+                    <p role="status">Almacén debe revisar este saldo: {{ item.equipos|length }} equipo(s) identificado(s) de {{ item.cantidad }} registrados.</p>
+                    {% endif %}
                     
                     {% if item.equipos %}
                     <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">
@@ -283,6 +286,9 @@
                 <div class="sc-info">
                     <h4>{{ item.producto.nombre }}</h4>
                     <p>{{ item.producto.codigo_interno }} · {{ item.sede.nombre|default:"Sede pendiente" }}</p>
+                    {% if item.requiere_revision %}
+                    <p role="status">Almacén debe revisar este saldo: {{ item.equipos|length }} equipo(s) identificado(s) de {{ item.cantidad }} registrados.</p>
+                    {% endif %}
                     
                     {% if item.equipos %}
                     <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">

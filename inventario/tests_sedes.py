@@ -66,6 +66,48 @@ class SedesBase(SedesMixin, TestCase):
     pass
 
 
+class MochilaSedesTests(SedesBase):
+    def mochila(self):
+        self.client.force_login(self.tecnico)
+        return self.client.get(reverse('tecnico_dashboard'))
+
+    def test_mismo_producto_en_dos_sedes_no_repite_seriales(self):
+        response = self.mochila()
+        self.assertEqual(response.status_code, 200)
+        tarjetas = {fila['sede'].id: fila for fila in response.context['materiales']}
+        self.assertEqual({e.id for e in tarjetas[self.j.id]['equipos']}, {self.j1.id, self.j2.id})
+        self.assertEqual({e.id for e in tarjetas[self.h.id]['equipos']}, {self.h1.id, self.h2.id, self.h3.id})
+        for codigo in ('701', '702', '801', '802', '803'):
+            self.assertContains(response, '#' + codigo, count=1)
+        self.assertContains(response, self.j.nombre)
+        self.assertContains(response, self.h.nombre)
+        self.assertNotContains(response, 'Almacén debe revisar este saldo')
+
+    def test_saldo_antiguo_no_toma_seriales_de_la_otra_sede(self):
+        self.j1.estado = 'INSTALADO'; self.j1.asignado_a = None; self.j1.save()
+        self.j2.estado = 'EN_ALMACEN'; self.j2.asignado_a = None; self.j2.ubicacion = self.uh; self.j2.save()
+        response = self.mochila()
+        tarjetas = {fila['sede'].id: fila for fila in response.context['materiales']}
+        self.assertEqual(tarjetas[self.j.id]['equipos'], [])
+        self.assertTrue(tarjetas[self.j.id]['requiere_revision'])
+        self.assertFalse(tarjetas[self.h.id]['requiere_revision'])
+        for codigo in ('801', '802', '803'):
+            self.assertContains(response, '#' + codigo, count=1)
+        self.assertContains(response, '0 equipo(s) identificado(s) de 2 registrados', count=1)
+        self.mj.refresh_from_db(); self.mh.refresh_from_db()
+        self.assertEqual((self.mj.cantidad, self.mh.cantidad), (2, 3))
+        self.assertFalse(MovimientoInventario.objects.exists())
+
+    def test_saldo_sin_sede_no_asume_procedencia_de_seriales(self):
+        self.mj.sede = None; self.mj.save()
+        self.j1.sede_asignacion = None; self.j1.save()
+        response = self.mochila()
+        sin_sede = next(fila for fila in response.context['materiales'] if fila['sede'] is None)
+        self.assertEqual(sin_sede['equipos'], [])
+        self.assertTrue(sin_sede['requiere_revision'])
+        self.assertNotContains(response, '#701')
+
+
 class LiquidacionSedesTests(SedesBase):
     def test_pantalla_muestra_solo_los_dos_de_jauja(self):
         response = self.client.get(self.url)
