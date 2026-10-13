@@ -11,6 +11,16 @@ producto, responsable, estado y cantidad dentro de una transacción. Las obras
 quedan fuera de la mochila personal. Un saldo que no coincide con sus seriales
 bloquea la liquidación y muestra que requiere conciliación.
 
+En el módulo de liquidación semanal por sede, ALMACEN solo puede operar y
+consultar liquidaciones de su sede principal. Ser almacén CENTRAL o tener otras
+sedes en `sedes_permitidas` no concede acceso global. El consolidado central
+queda reservado a ADMIN y JEFA. Una cuenta ALMACEN sin sede principal se bloquea.
+Esto no cambia perfiles existentes ni constituye una revisión integral de los
+permisos de otros módulos. Las plantillas y funciones SQL del módulo antiguo de
+liquidación por sede no están incluidas completamente en este repositorio;
+las pruebas de permisos comprueban que las llamadas no autorizadas se bloquean
+antes de invocar ese servicio, sin afirmar que validen su cálculo SQL.
+
 ## Despliegue y registros anteriores
 
 1. Revisar el PR y las pruebas con PostgreSQL 15. El despliegue requiere las

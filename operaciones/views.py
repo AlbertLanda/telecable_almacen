@@ -34,10 +34,10 @@ User = get_user_model()
 def get_user_sede_info(user):
     if not hasattr(user, 'profile'): return None, False, False
     profile = user.profile
-    sede = profile.sede_principal or profile.sede_activa
-    if not sede: return None, False, False
-    es_sede_central = (sede.tipo == 'CENTRAL')
-    puede_liquidar_central = profile.rol in ['ADMIN', 'JEFA'] or (profile.rol == 'ALMACEN' and es_sede_central)
+    sede = profile.sede_principal if profile.rol == 'ALMACEN' else profile.get_sede_operativa()
+    es_sede_central = bool(sede and sede.tipo == 'CENTRAL')
+    # Ser almacén CENTRAL no concede permisos de administración global.
+    puede_liquidar_central = profile.rol in ['ADMIN', 'JEFA']
     return sede, es_sede_central, puede_liquidar_central
 
 def user_can_liquidar(user):
@@ -50,11 +50,20 @@ def user_can_liquidar_sede(user, sede_id):
     profile = user.profile
     if profile.rol in ['ADMIN', 'JEFA']: return True
     if profile.rol == 'ALMACEN':
-        sede_usuario = profile.sede_principal or profile.sede_activa
+        sede_usuario = profile.sede_principal
         if sede_usuario:
-            if sede_usuario.tipo == 'CENTRAL': return True
             return sede_usuario.id == sede_id
     return False
+
+
+def _liquidaciones_visibles(user):
+    if not user_can_liquidar(user):
+        raise PermissionDenied("No tienes permisos para consultar liquidaciones de almacén.")
+    qs = LiquidacionSemanal.objects.all()
+    if user.profile.rol in ['ADMIN', 'JEFA']:
+        return qs
+    sede_id = user.profile.sede_principal_id
+    return qs.filter(sede_id=sede_id) if sede_id else qs.none()
 
 def puede_liquidar_hoy():
     hoy = timezone.now()
@@ -90,12 +99,12 @@ def liquidacion_dashboard(request):
     puede_liquidar, mensaje_dia, dias_para_lunes = puede_liquidar_hoy()
     semana_liquidar, anio_liquidar = get_semana_a_liquidar()
     
-    if profile.rol in ['ADMIN', 'JEFA'] or es_sede_central:
+    if profile.rol in ['ADMIN', 'JEFA']:
         sedes_disponibles = Sede.objects.filter(activo=True).order_by('tipo', 'nombre')
         liquidaciones = LiquidacionSemanal.objects.all().order_by('-fecha_liquidacion')[:50]
     else:
         sedes_disponibles = Sede.objects.filter(id=sede_usuario.id) if sede_usuario else Sede.objects.none()
-        liquidaciones = LiquidacionSemanal.objects.filter(sede=sede_usuario).order_by('-fecha_liquidacion')[:50]
+        liquidaciones = _liquidaciones_visibles(request.user).order_by('-fecha_liquidacion')[:50]
     
     liquidaciones_semana = LiquidacionSemanal.objects.filter(semana=semana_liquidar, anio=anio_liquidar)
     estado_sedes = []
@@ -125,7 +134,7 @@ def liquidacion_dashboard(request):
 @csrf_protect
 def liquidar_sede(request, sede_id):
     if not user_can_liquidar_sede(request.user, sede_id):
-        return redirect('liquidacion_dashboard')
+        raise PermissionDenied("Solo puedes liquidar tu sede asignada.")
     
     sede = get_object_or_404(Sede, id=sede_id)
     puede_liquidar, mensaje, _ = puede_liquidar_hoy()
@@ -153,7 +162,8 @@ def liquidar_sede(request, sede_id):
 @csrf_protect
 def liquidar_central(request):
     _, _, puede = get_user_sede_info(request.user)
-    if not puede: return redirect('liquidacion_dashboard')
+    if not puede:
+        raise PermissionDenied("La liquidación central consolidada requiere ADMIN o JEFA.")
     
     puede_liq, mensaje, _ = puede_liquidar_hoy()
     semana, anio = get_semana_a_liquidar()
@@ -175,7 +185,7 @@ def liquidar_central(request):
 
 @login_required
 def liquidacion_detalle(request, liquidacion_id):
-    liq = get_object_or_404(LiquidacionSemanal, id=liquidacion_id)
+    liq = get_object_or_404(_liquidaciones_visibles(request.user), id=liquidacion_id)
     return render(request, 'operaciones/liquidacion/detalle.html', {'liquidacion': liq})
 
 @login_required
@@ -195,6 +205,9 @@ class LiquidacionListView(LoginRequiredMixin, ListView):
     template_name = 'operaciones/liquidacion/lista.html' 
     context_object_name = 'liquidaciones'
     paginate_by = 50
+
+    def get_queryset(self):
+        return _liquidaciones_visibles(self.request.user)
 
 # ========================================================
 # VISTAS DEL TÉCNICO (Operativas)
