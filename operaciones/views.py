@@ -529,14 +529,21 @@ def liquidacion_tecnico_print(request, doc_id):
     """
     Vista de impresión para la liquidación semanal (Documento ING).
     """
-    # Buscamos el documento por ID
-    doc = get_object_or_404(DocumentoInventario, id=doc_id)
-
-    # Seguridad básica: verificar que sea un documento de la sede o usuario adecuado
-    # (Opcional, pero recomendado si quieres restringir)
+    doc = get_object_or_404(
+        DocumentoInventario.objects.select_related('sede', 'solicitante', 'responsable'),
+        id=doc_id, tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO,
+        referencia='LIQ-SEMANAL',
+    )
+    es_tecnico_del_documento = (
+        getattr(getattr(request.user, 'profile', None), 'rol', None) == UserProfile.Rol.SOLICITANTE
+        and doc.solicitante_id == request.user.id
+    )
+    if not es_tecnico_del_documento and not user_can_liquidar_sede(request.user, doc.sede_id):
+        raise PermissionDenied('No tienes permisos para consultar esta liquidación.')
 
     # Obtenemos los items devueltos (los que están en DocumentoItem)
-    items = doc.items.select_related('producto').order_by('producto__nombre')
+    from operaciones.reportes import items_con_trazabilidad
+    items = items_con_trazabilidad(doc)
 
     # Jalamos el técnico que retiró el material del último despacho (Preparación
     # de materiales) que armó la mochila que ahora se está liquidando.
