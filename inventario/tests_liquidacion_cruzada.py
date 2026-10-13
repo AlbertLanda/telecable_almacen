@@ -90,6 +90,16 @@ class LiquidacionCruzadaTests(SedesMixin, TestCase):
         self.assertContains(response, self.tecnico.username)
         self.assertContains(response, self.h.nombre)
 
+    def test_error_en_segunda_fila_revierte_retorno_de_la_primera(self):
+        self.client.post(self.url, self.payload([self.mj.id, self.mh.id], **{
+            f'check_devuelto_{self.mj.id}': [self.j1.id],
+            f'check_devuelto_{self.mh.id}': [self.j2.id],
+        }))
+        self.assertFalse(DocumentoInventario.objects.exists())
+        self.assertFalse(MovimientoInventario.objects.exists())
+        self.j1.refresh_from_db(); self.mj.refresh_from_db(); self.sj.refresh_from_db()
+        self.assertEqual((self.j1.estado, self.mj.cantidad, self.sj.cantidad), ('ASIGNADO', 2, 20))
+
 
 class ConciliarTransferenciaTests(SedesMixin, TestCase):
     def setUp(self):
@@ -152,3 +162,42 @@ class ConciliarTransferenciaTests(SedesMixin, TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 403)
         self.assertEqual(self.client.post(self.url, self.data()).status_code, 403)
         self.assertFalse(DocumentoItemSerializado.objects.exists())
+
+
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest import skipUnless
+from django.contrib.auth import get_user_model
+from django.db import connection, connections, close_old_connections
+from django.test import Client, TransactionTestCase
+
+
+@skipUnless(connection.vendor == 'postgresql', 'Bloqueo de equipos: requiere PostgreSQL')
+class ConciliacionConcurrenteTests(SedesMixin, TransactionTestCase):
+    def test_dos_salidas_no_pueden_apropiarse_del_mismo_equipo(self):
+        receptor = self.usuario('receptor', self.h, UserProfile.Rol.ALMACEN)
+        self.j1.asignado_a = receptor; self.j1.sede_asignacion = None; self.j1.save()
+        salidas = []
+        for n in range(2):
+            sal = DocumentoInventario.objects.create(tipo='SAL', estado='CONFIRMADO', numero=f'SAL-CONC-{n}',
+                sede=self.j, sede_destino=self.h, solicitante=receptor, responsable=self.almacen)
+            linea = DocumentoItem.objects.create(documento=sal, producto=self.p, cantidad=1)
+            salidas.append((sal.pk, linea.pk))
+        barrera = Barrier(2)
+        def conciliar(datos):
+            close_old_connections()
+            try:
+                cliente = Client()
+                cliente.force_login(get_user_model().objects.get(pk=receptor.pk))
+                barrera.wait(timeout=10)
+                return cliente.post(reverse('conciliar_traspaso', args=[datos[0]]), {
+                    'confirmacion_fisica': 'si', f'equipos_{datos[1]}': [self.j1.pk],
+                }).status_code
+            finally:
+                connections.close_all()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            resultados = list(executor.map(conciliar, salidas))
+        self.assertEqual(sorted(resultados), [200, 302])
+        self.assertEqual(DocumentoItemSerializado.objects.filter(item_serializado=self.j1).count(), 1)
+        self.assertEqual(CorreccionSeriales.objects.count(), 1)
+        self.assertFalse(MovimientoInventario.objects.exists())
