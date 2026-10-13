@@ -43,6 +43,16 @@
         .col-merma { background-color: #fef2f2; color: #991b1b; }
         .col-consumo { background-color: #fff7ed; color: #9a3412; font-weight: bold; }
 
+        .detalle-titulo { font-size: 14px; margin: 24px 0 6px; }
+        .detalle-nota { font-size: 10px; color: #555; margin: 5px 0 12px; }
+        .equipo-producto { font-size: 12px; margin: 18px 0 8px; break-after: avoid; }
+        .equipo-grupo { font-size: 10px; margin: 10px 0 4px; break-after: avoid; }
+        .equipos-lista { font-size: 10px; margin: 0 0 8px; padding-left: 18px; }
+        .equipos-lista li { padding: 3px 0; overflow-wrap: anywhere; break-inside: avoid; }
+        .trazabilidad-aviso { font-size: 10px; padding: 8px; border: 1px solid #b7791f; background: #fffaf0; break-inside: avoid; }
+        thead { display: table-header-group; }
+        tr { break-inside: avoid; }
+
         /* FIRMAS */
         .signatures { display: flex; justify-content: space-between; margin-top: 60px; padding: 0 20px; }
         .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
@@ -144,6 +154,39 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <h3 class="detalle-titulo">Detalle de equipos por liquidación</h3>
+        <p class="detalle-nota">Código de trazabilidad (número del equipo) y número de serie. La clasificación corresponde al resultado registrado en este documento.</p>
+        {% for item in items %}
+            {% if item.detalle_equipos %}
+                <h4 class="equipo-producto">{{ item.producto.nombre }} · {{ item.producto.codigo_interno }}</h4>
+                {% if item.sin_trazabilidad %}
+                    <p class="trazabilidad-aviso">Sin trazabilidad histórica: este documento no guardó los números de los equipos. Se conservan las cantidades de la tabla; no es posible identificar las unidades devueltas o consumidas.</p>
+                {% else %}
+                    {% if item.trazabilidad_incompleta %}
+                        <p class="trazabilidad-aviso">Trazabilidad incompleta o cantidades diferentes: los equipos identificados no respaldan completamente los totales del documento. Requiere revisión.</p>
+                    {% endif %}
+                    {% for grupo in item.detalle_equipos %}
+                        <h5 class="equipo-grupo">{{ grupo.titulo }} — Cantidad registrada: {{ grupo.cantidad }} · Identificadas: {{ grupo.equipos|length }}</h5>
+                        <ul class="equipos-lista">
+                            {% for equipo in grupo.equipos %}
+                                <li><strong>{% if equipo.codigo_trazabilidad %}#{{ equipo.codigo_trazabilidad }}{% else %}Sin código de trazabilidad{% endif %}</strong> · SN: {{ equipo.serial }}</li>
+                            {% empty %}
+                                <li>{% if grupo.cantidad %}Números de equipo no registrados para este resultado.{% else %}Ninguna registrada.{% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                    {% if item.equipos_sin_resultado %}
+                        <h5 class="equipo-grupo">Equipos vinculados sin resultado histórico verificable</h5>
+                        <ul class="equipos-lista">
+                            {% for equipo in item.equipos_sin_resultado %}
+                                <li><strong>{% if equipo.codigo_trazabilidad %}#{{ equipo.codigo_trazabilidad }}{% else %}Sin código de trazabilidad{% endif %}</strong> · SN: {{ equipo.serial }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
 
         <div style="border: 1px dashed #666; border-radius: 8px; padding: 10px; font-size: 11px; margin-top: 10px;">
             <strong>OBSERVACIONES:</strong><br>
