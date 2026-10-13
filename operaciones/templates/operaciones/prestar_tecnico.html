@@ -39,14 +39,14 @@
                 {% for stock in mi_stock %}
                 <tr style="border-bottom: 1px solid var(--border-light);">
                     <td style="padding: 15px 10px;">
-                        <b>{{ stock.producto.nombre }}</b>
+                        <b>{{ stock.producto.nombre }}</b><div>{{ stock.sede.nombre|default:"Sede pendiente de conciliación" }}</div>
 
                         {% if stock.producto.es_serializado %}
                         <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px;">
                             <span style="font-size: 11px; color: var(--primary); text-transform: uppercase;">
                                 Serial o código pintado (uno por línea):
                             </span>
-                            <textarea name="codigos_{{ stock.producto.id }}" rows="2" placeholder="Ej: 291"
+                            <textarea name="codigos_{{ stock.id }}" rows="2" placeholder="Ej: 291"
                                 style="width: 100%; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-main); font-family: monospace;"></textarea>
                         </div>
                         {% endif %}
@@ -56,7 +56,7 @@
                         {{ stock.cantidad }}
                     </td>
                     <td style="padding: 15px 10px;">
-                        <input type="number" name="qty_{{ stock.producto.id }}" value="0" min="0" max="{{ stock.cantidad }}"
+                        <input type="number" name="qty_{{ stock.id }}" value="0" min="0" max="{{ stock.cantidad }}"
                                style="width: 100%; padding: 8px; text-align: center; border-radius: 6px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-main);">
                     </td>
                 </tr>

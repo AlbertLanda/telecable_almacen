@@ -619,7 +619,7 @@ def almacen_generar_salida(request, proyecto_id):
                             )
 
                         for serial in seriales_ingresados:
-                            item_fisico = ItemSerializado.objects.filter(
+                            item_fisico = ItemSerializado.objects.select_for_update().filter(
                                 Q(serial__iexact=serial)
                                 | Q(mac_address__iexact=serial)
                                 | Q(serial_secundario__iexact=serial)
@@ -637,11 +637,13 @@ def almacen_generar_salida(request, proyecto_id):
 
                             item_fisico.estado = ItemSerializado.Estado.ASIGNADO
                             item_fisico.asignado_a = proyecto.responsable
+                            item_fisico.sede_asignacion = sede_despacho
                             item_fisico.ubicacion = None
                             item_fisico.proyecto = proyecto
                             item_fisico.save(update_fields=[
                                 "estado",
                                 "asignado_a",
+                                "sede_asignacion",
                                 "ubicacion",
                                 "proyecto",
                             ])

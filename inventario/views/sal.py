@@ -8,6 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from inventario.permissions import role_required, sede_required, get_profile
+from inventario.services.seriales_service import registrar_seriales
 
 from inventario.models import (
     DocumentoInventario, 
@@ -54,8 +55,7 @@ def sal_detail(request, sal_id: int):
         if it.producto.es_serializado and sal.solicitante:
             seriales = ItemSerializado.objects.filter(
                 producto=it.producto,
-                asignado_a=sal.solicitante,
-                estado=ItemSerializado.Estado.ASIGNADO
+                documentos_seleccionados__documento_item=it,
             ).values('serial', 'codigo_trazabilidad')
 
             if seriales:
@@ -150,14 +150,20 @@ def almacen_recepcionar_traspaso(request, sal_id):
     try:
         with transaction.atomic():
             mi_sede = _sede_operativa(request.user)
-            sal = get_object_or_404(DocumentoInventario, id=sal_id, tipo=TipoDocumento.SAL)
+            sal = get_object_or_404(DocumentoInventario.objects.select_for_update(), id=sal_id, tipo=TipoDocumento.SAL)
 
             if sal.sede_destino != mi_sede:
                 raise PermissionDenied("Este traspaso no es para tu sede.")
+
+            if not mi_sede or sal.sede_id == mi_sede.id or sal.estado != EstadoDocumento.CONFIRMADO:
+                raise ValidationError("Se requiere una transferencia confirmada desde otra sede.")
             
             if sal.recibido:
                 messages.warning(request, "Este traspaso ya fue recepcionado.")
                 return redirect('dash_almacen')
+
+            if DocumentoInventario.objects.filter(tipo=TipoDocumento.ING, origen=sal).exists():
+                raise ValidationError("Esta salida ya tiene un ingreso asociado; revisa su recepción antes de continuar.")
 
             ing = DocumentoInventario.objects.create(
                 tipo=TipoDocumento.ING,
@@ -173,7 +179,7 @@ def almacen_recepcionar_traspaso(request, sal_id):
             ing.asignar_numero_si_falta()
 
             for item_sal in sal.items.all():
-                DocumentoItem.objects.create(
+                linea_ing = DocumentoItem.objects.create(
                     documento=ing,
                     producto=item_sal.producto,
                     cantidad=item_sal.cantidad,
@@ -192,18 +198,24 @@ def almacen_recepcionar_traspaso(request, sal_id):
                 )
                 mov.aplicar() 
 
-                # --- MAGIA ENTERPRISE: MOVER LOS SERIALES A LA NUEVA SEDE ---
-                if item_sal.producto.es_serializado and sal.solicitante:
+                # Recepcionar exclusivamente los equipos documentados en ESTA salida.
+                if item_sal.producto.es_serializado:
                     ubi_destino = Ubicacion.objects.filter(sede=mi_sede).first()
-                    ItemSerializado.objects.filter(
-                        producto=item_sal.producto,
-                        asignado_a=sal.solicitante,
-                        estado=ItemSerializado.Estado.ASIGNADO
-                    ).update(
-                        estado=ItemSerializado.Estado.EN_ALMACEN,
-                        asignado_a=None,
-                        ubicacion=ubi_destino
-                    )
+                    ids = list(item_sal.seriales_seleccionados.values_list("item_serializado_id", flat=True))
+                    equipos = list(ItemSerializado.objects.select_for_update().filter(
+                        pk__in=ids, producto=item_sal.producto,
+                        asignado_a=sal.solicitante, sede_asignacion=sal.sede,
+                        estado=ItemSerializado.Estado.ASIGNADO, proyecto__isnull=True,
+                    ).order_by("id"))
+                    if not ubi_destino or len(equipos) != item_sal.cantidad:
+                        raise ValidationError("Concilia los seriales de esta salida antes de recibirla.")
+                    for equipo in equipos:
+                        equipo.estado = ItemSerializado.Estado.EN_ALMACEN
+                        equipo.asignado_a = None
+                        equipo.sede_asignacion = None
+                        equipo.ubicacion = ubi_destino
+                        equipo.save(update_fields=["estado", "asignado_a", "sede_asignacion", "ubicacion", "actualizado_en"])
+                    registrar_seriales(linea_ing, equipos)
 
             sal.recibido = True
             sal.recibido_por = request.user

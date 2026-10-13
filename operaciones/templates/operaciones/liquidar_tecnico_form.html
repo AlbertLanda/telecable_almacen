@@ -144,11 +144,18 @@
     <div class="page-header">
         <div class="header-title">
             <h3>⚖️ Liquidar: <span>{{ tecnico.username }}</span></h3>
-            <p>Calcula el consumo semanal y retorna materiales al almacén.</p>
+            <p>Calcula el consumo y retorna materiales de {{ sede_liquidacion.nombre }}.</p>
         </div>
         <a href="{% url 'liquidacion_tecnico_lista' %}" class="btn btn-ghost">Cancelar</a>
     </div>
 
+    {% if inconsistencias %}
+    <div role="alert" style="padding:16px;margin-bottom:16px;border:1px solid var(--danger);border-radius:10px;">
+        <strong>No se puede liquidar hasta conciliar los equipos de esta sede.</strong>
+        {% for error in inconsistencias %}<p>{{ error }}</p>{% endfor %}
+        <p>Los equipos sin sede de asignación o pertenecientes a proyectos no se liquidan aquí.</p>
+    </div>
+    {% endif %}
     <form method="POST" id="formLiquidacionTecnico">
         {% csrf_token %}
         
@@ -262,7 +269,7 @@
                 </label>
                 <textarea name="observaciones" class="notes-input" rows="2" placeholder="Ej: Se descontaron 2 conectores rotos, herramientas completas..."></textarea>
                 
-                <button type="submit" class="btn-confirm" id="btnPrepararCierre">
+                <button type="submit" class="btn-confirm" id="btnPrepararCierre" {% if inconsistencias %}disabled{% endif %}>
                     <i class='bx bx-check-double'></i> PROCESAR CIERRE DE SEMANA
                 </button>
             </div>

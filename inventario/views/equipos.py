@@ -31,7 +31,7 @@ def _query_equipos_serializados(request):
 
     equipos = (
         ItemSerializado.objects
-        .select_related("producto", "ubicacion", "ubicacion__sede", "asignado_a")
+        .select_related("producto", "ubicacion", "ubicacion__sede", "asignado_a", "sede_asignacion")
         .all()
         .order_by("producto__nombre", "serial")
     )
@@ -55,7 +55,9 @@ def _query_equipos_serializados(request):
         equipos = equipos.filter(producto_id=producto_id)
 
     if sede_id:
-        equipos = equipos.filter(ubicacion__sede_id=sede_id)
+        equipos = equipos.filter(Q(ubicacion__sede_id=sede_id) | Q(
+            estado=ItemSerializado.Estado.ASIGNADO, sede_asignacion_id=sede_id,
+        ))
 
     if solo_disponibles == "1":
         equipos = equipos.filter(estado=ItemSerializado.Estado.EN_ALMACEN)
@@ -126,6 +128,7 @@ def equipos_serializados_export(request):
         "Sede / Ubicación",
         "Asignado a",
         "Fecha registro",
+        "Sede de asignación",
     ]
 
     for col, header in enumerate(headers):
@@ -150,12 +153,14 @@ def equipos_serializados_export(request):
         worksheet.write(row, 6, ubicacion, cell_format)
         worksheet.write(row, 7, asignado, cell_format)
         worksheet.write(row, 8, item.creado_en.strftime("%d/%m/%Y %H:%M"), cell_format)
+        worksheet.write(row, 9, item.sede_asignacion.nombre if item.sede_asignacion_id else "", cell_format)
 
     worksheet.set_column(0, 0, 30)
     worksheet.set_column(1, 4, 24)
     worksheet.set_column(5, 5, 18)
     worksheet.set_column(6, 7, 30)
     worksheet.set_column(8, 8, 20)
+    worksheet.set_column(9, 9, 25)
 
     workbook.close()
     output.seek(0)
