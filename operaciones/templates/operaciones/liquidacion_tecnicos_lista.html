@@ -98,7 +98,8 @@
                                 </div>
                                 <div class="user-info">
                                     <div>{{ t.get_full_name|default:t.username }}</div>
-                                    <span>{{ t.username }}</span>
+                                    <span>{{ t.username }}</span><br>
+                                    <span>Origen de pendientes: {{ t.sedes_pendientes|join:", " }}</span>
                                 </div>
                             </div>
                         </td>

@@ -231,12 +231,17 @@
                 <div class="rb-title"><i class='bx bxs-truck'></i> Mercadería en Puerta</div>
                 <div class="rb-text">Verifica que las series listadas arriba coincidan con lo físico antes de ingresarlos a tu stock.</div>
                 
+                {% if faltan_seriales %}
+                <p>Faltan números de equipo en esta salida. Identifícalos antes de confirmar el ingreso.</p>
+                <a class="btn-action" href="{% url 'conciliar_traspaso' sal.id %}">IDENTIFICAR EQUIPOS RECIBIDOS</a>
+                {% else %}
                 <form method="post" action="{% url 'almacen_recepcionar_traspaso' sal.id %}">
                     {% csrf_token %}
                     <button class="btn-action btn-success-solid" style="width: 100%; justify-content: center; font-size: 16px;">
                         <i class='bx bx-check-circle'></i> CONFIRMAR INGRESO AL ALMACÉN
                     </button>
                 </form>
+                {% endif %}
             </div>
         {% endif %}
     {% endif %}

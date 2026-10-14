@@ -320,7 +320,6 @@ def liquidacion_tecnico_lista(request):
     tecnicos_base = (
         User.objects.filter(
             mi_stock__cantidad__gt=0,
-            mi_stock__sede=sede_actual,
         )
         .distinct()
         .order_by("username")
@@ -373,6 +372,7 @@ def liquidacion_tecnico_lista(request):
                 break
 
         if tiene_deuda_semanal:
+            tecnico.sedes_pendientes = list(stock_actual.values_list("sede__nombre", flat=True).distinct())
             tecnicos_con_deuda.append(tecnico)
 
     return render(request, 'operaciones/liquidacion_tecnicos_lista.html', {
@@ -384,7 +384,7 @@ def liquidacion_tecnico_lista(request):
 def liquidar_tecnico(request, tecnico_id):
     from inventario.models import Ubicacion
     from inventario.services.seriales_service import (
-        equipos_de_mochila, registrar_seriales, validar_seleccion_liquidacion,
+        registrar_seriales, validar_seleccion_liquidacion,
     )
 
     _require_roles(request.user, UserProfile.Rol.ALMACEN, UserProfile.Rol.ADMIN, UserProfile.Rol.JEFA)
@@ -393,30 +393,28 @@ def liquidar_tecnico(request, tecnico_id):
     if not sede_almacen:
         raise PermissionDenied("No tienes sede operativa asignada.")
 
-    mochila = StockTecnico.objects.filter(
-        tecnico=tecnico, sede=sede_almacen, cantidad__gt=0,
-    ).select_related("producto", "sede")
+    from operaciones.liquidacion import preparar_mochila, bloquear_seleccion
 
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # Bloquear sin joins nullable; el segundo envío relee el saldo.
-                items = list(StockTecnico.objects.select_for_update().filter(
-                    tecnico=tecnico, sede=sede_almacen, cantidad__gt=0,
-                ).order_by("id"))
-                if not items:
-                    raise ValueError("No hay saldo pendiente en esta sede; puede haberse liquidado ya.")
+                items = bloquear_seleccion(request.POST, tecnico, request.user, sede_almacen)
                 ubicacion_retorno = Ubicacion.objects.filter(sede=sede_almacen).first()
-                doc_ing = DocumentoInventario.objects.create(
-                    tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO,
-                    sede=sede_almacen, responsable=request.user, solicitante=tecnico,
-                    referencia="LIQ-SEMANAL",
-                    observaciones=f"Liquidación Semana. {request.POST.get('observaciones', '')}",
-                    fecha=timezone.now(),
-                )
-                doc_ing.asignar_numero_si_falta()
-                reporte_mermas = []
+                documentos = {}
                 for item in items:
+                    # Un documento por origen permite repetir producto sin mezclar saldos.
+                    if item.sede_id not in documentos:
+                        doc = DocumentoInventario.objects.create(
+                            tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO,
+                            sede=sede_almacen, sede_origen=item.sede,
+                            responsable=request.user, solicitante=tecnico,
+                            referencia="LIQ-SEMANAL",
+                            observaciones=f"Liquidación Semana. {request.POST.get('observaciones', '')}",
+                            fecha=timezone.now(),
+                        )
+                        doc.asignar_numero_si_falta()
+                        documentos[item.sede_id] = doc
+                    doc_ing = documentos[item.sede_id]
                     equipos = []
                     if item.producto.es_serializado:
                         equipos, devueltos, mermas = validar_seleccion_liquidacion(
@@ -464,29 +462,21 @@ def liquidar_tecnico(request, tecnico_id):
                     item.cantidad = item.cantidad - total_salida if item.producto.es_activo else 0
                     item.save(update_fields=["cantidad", "actualizado_en"])
                     if cant_merma:
-                        reporte_mermas.append(f"{cant_merma}x {item.producto.nombre}")
-                if reporte_mermas:
-                    doc_ing.observaciones += " | MERMAS: " + ", ".join(reporte_mermas)
-                    doc_ing.save(update_fields=["observaciones"])
-                messages.success(request, f"Liquidación registrada correctamente. Doc: {doc_ing.numero}")
+                        doc_ing.observaciones += f" | MERMA: {cant_merma}x {item.producto.nombre}"
+                        doc_ing.save(update_fields=["observaciones"])
+                numeros = ", ".join(doc.numero for doc in documentos.values())
+                messages.success(request, f"Liquidación registrada en {sede_almacen.nombre}. Documentos: {numeros}")
                 return redirect('liquidacion_tecnico_lista')
         except Exception as e:
             messages.error(request, f"Error: {e}")
 
-    equipos_asignados = equipos_de_mochila(tecnico, sede_almacen).filter(
-        producto_id__in=mochila.values_list("producto_id", flat=True),
-    )
-    inconsistencias = []
-    for item in mochila:
-        if item.producto.es_serializado:
-            identificados = equipos_asignados.filter(producto=item.producto).count()
-            if identificados != item.cantidad:
-                inconsistencias.append(
-                    f"{item.producto.nombre}: saldo {item.cantidad}, equipos identificados "
-                    f"en {sede_almacen.nombre}: {identificados}. Requiere conciliación."
-                )
+    mochila, token = preparar_mochila(tecnico, request.user, sede_almacen)
+    inconsistencias = [f"{item.producto.nombre} ({item.sede or 'Sin origen'}): saldo {item.cantidad}, "
+                       f"equipos identificados {len(item.equipos)}. Requiere conciliación."
+                       for item in mochila if item.requiere_revision]
     return render(request, 'operaciones/liquidar_tecnico_form.html', {
-        'tecnico': tecnico, 'mochila': mochila, 'equipos_asignados': equipos_asignados,
+        'tecnico': tecnico, 'mochila': mochila, 'mochila_version': token,
+        'equipos_asignados': [e for item in mochila for e in item.equipos],
         'sede_liquidacion': sede_almacen, 'inconsistencias': inconsistencias,
     })
 
@@ -538,7 +528,10 @@ def liquidacion_tecnico_print(request, doc_id):
         getattr(getattr(request.user, 'profile', None), 'rol', None) == UserProfile.Rol.SOLICITANTE
         and doc.solicitante_id == request.user.id
     )
-    if not es_tecnico_del_documento and not user_can_liquidar_sede(request.user, doc.sede_id):
+    if not es_tecnico_del_documento and not (
+        user_can_liquidar_sede(request.user, doc.sede_id)
+        or (doc.sede_origen_id and user_can_liquidar_sede(request.user, doc.sede_origen_id))
+    ):
         raise PermissionDenied('No tienes permisos para consultar esta liquidación.')
 
     # Obtenemos los items devueltos (los que están en DocumentoItem)
@@ -554,7 +547,7 @@ def liquidacion_tecnico_print(request, doc_id):
                 tipo=TipoDocumento.SAL,
                 estado=EstadoDocumento.CONFIRMADO,
                 solicitante=doc.solicitante,
-                sede=doc.sede,
+                sede_id=doc.sede_origen_id or doc.sede_id,
                 fecha__lte=doc.fecha,
             )
             .select_related('retirado_por')
