@@ -1,4 +1,5 @@
 import json
+import re
 from io import StringIO
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -442,9 +443,13 @@ class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
             try:
                 cliente = Client()
                 cliente.force_login(get_user_model().objects.get(pk=datos[0]))
-                token = cliente.get(self.url).context['mochila_version']
+                # Las señales de templates del cliente de pruebas son globales;
+                # con hilos, leer el token de la respuesta HTTP de este usuario.
+                pagina = cliente.get(self.url)
+                token = re.search(r'name="mochila_version" value="([^"]+)"', pagina.content.decode()).group(1)
                 barrera.wait(timeout=10)
-                return cliente.post(self.url, {'mochila_version': token, 'filas': [datos[1]]}).status_code
+                response = cliente.post(self.url, {'mochila_version': token, 'filas': [datos[1]]})
+                return response.status_code, [str(m) for m in response.wsgi_request._messages]
             finally:
                 connections.close_all()
 
@@ -452,7 +457,7 @@ class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
         # cierra la única carga que autorizaba a la segunda sede.
         with ThreadPoolExecutor(max_workers=2) as executor:
             resultados = list(executor.map(enviar, [(self.almacen.pk, self.mh.pk), (receptor.pk, self.mj.pk)]))
-        self.assertEqual(sorted(resultados), [302, 403])
+        self.assertEqual(sorted(r[0] for r in resultados), [302, 403], resultados)
         self.assertEqual(DocumentoInventario.objects.filter(tipo='ING').count(), 1)
         self.assertEqual(StockTecnico.objects.filter(tecnico=self.tecnico, cantidad__gt=0).count(), 1)
         self.assertFalse(MovimientoInventario.objects.exists())
@@ -465,7 +470,8 @@ class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
             try:
                 cliente = Client()
                 cliente.force_login(get_user_model().objects.get(pk=usuario_id))
-                token = cliente.get(self.url).context['mochila_version']
+                pagina = cliente.get(self.url)
+                token = re.search(r'name="mochila_version" value="([^"]+)"', pagina.content.decode()).group(1)
                 barrera.wait(timeout=10)
                 return cliente.post(self.url, {'mochila_version': token, 'filas': [self.mj.id], f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}).status_code
             finally:
