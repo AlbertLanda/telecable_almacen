@@ -30,7 +30,7 @@ class LiquidacionCruzadaTests(SedesMixin, TestCase):
         self.client.post(self.url, viejo)
         self.assertEqual(MovimientoInventario.objects.count(), 1)
         self.client.force_login(self.almacen)
-        self.assertNotIn(self.mj.id, [i.id for i in self.client.get(self.url).context['mochila']])
+        self.assertEqual(self.client.get(self.url).status_code, 403)
         reporte = self.client.get(reverse('liquidacion_tecnico_print', args=[doc.pk]))
         self.assertContains(reporte, self.j.nombre)
         self.assertContains(reporte, self.h.nombre)
@@ -84,11 +84,11 @@ class LiquidacionCruzadaTests(SedesMixin, TestCase):
         self.mj.refresh_from_db(); self.mh.refresh_from_db()
         self.assertEqual((self.mj.cantidad, self.mh.cantidad), (2, 0))
 
-    def test_lista_incluye_tecnico_con_saldo_solo_en_otra_sede(self):
+    def test_lista_excluye_tecnico_con_saldo_solo_en_otra_sede(self):
         self.mj.cantidad = 0; self.mj.save()
         response = self.client.get(reverse('liquidacion_tecnico_lista'))
-        self.assertContains(response, self.tecnico.username)
-        self.assertContains(response, self.h.nombre)
+        self.assertNotContains(response, self.tecnico.username)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
 
     def test_error_en_segunda_fila_revierte_retorno_de_la_primera(self):
         self.client.post(self.url, self.payload([self.mj.id, self.mh.id], **{

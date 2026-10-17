@@ -317,10 +317,10 @@ def liquidacion_tecnico_lista(request):
         messages.error(request, "No tienes una sede asignada para ver liquidaciones.")
         return redirect('dash_almacen')
 
+    from operaciones.liquidacion import saldos_visibles
+    saldos = saldos_visibles(request.user, sede_actual)
     tecnicos_base = (
-        User.objects.filter(
-            mi_stock__cantidad__gt=0,
-        )
+        User.objects.filter(pk__in=saldos.values('tecnico_id'))
         .distinct()
         .order_by("username")
     )
@@ -328,10 +328,7 @@ def liquidacion_tecnico_lista(request):
     tecnicos_con_deuda = []
 
     for tecnico in tecnicos_base:
-        stock_actual = StockTecnico.objects.filter(
-            tecnico=tecnico,
-            cantidad__gt=0,
-        ).select_related("producto")
+        stock_actual = saldos.filter(tecnico=tecnico).select_related("producto")
 
         tiene_deuda_semanal = False
 
@@ -372,11 +369,13 @@ def liquidacion_tecnico_lista(request):
                 break
 
         if tiene_deuda_semanal:
-            tecnico.sedes_pendientes = list(stock_actual.values_list("sede__nombre", flat=True).distinct())
+            tecnico.sedes_pendientes = list(StockTecnico.objects.filter(
+                tecnico=tecnico, cantidad__gt=0).values_list("sede__nombre", flat=True).distinct())
             tecnicos_con_deuda.append(tecnico)
 
     return render(request, 'operaciones/liquidacion_tecnicos_lista.html', {
-        'tecnicos': tecnicos_con_deuda
+        'tecnicos': tecnicos_con_deuda,
+        'sede_filtro': sede_actual if request.user.profile.rol == UserProfile.Rol.ALMACEN else None,
     })
 
 
@@ -393,7 +392,10 @@ def liquidar_tecnico(request, tecnico_id):
     if not sede_almacen:
         raise PermissionDenied("No tienes sede operativa asignada.")
 
-    from operaciones.liquidacion import preparar_mochila, bloquear_seleccion
+    from operaciones.liquidacion import preparar_mochila, bloquear_seleccion, saldos_visibles
+    if (request.user.profile.rol == UserProfile.Rol.ALMACEN
+            and not saldos_visibles(request.user, sede_almacen).filter(tecnico=tecnico).exists()):
+        raise PermissionDenied("Este técnico no tiene cargas pendientes de tu sede.")
 
     if request.method == 'POST':
         try:
@@ -467,6 +469,8 @@ def liquidar_tecnico(request, tecnico_id):
                 numeros = ", ".join(doc.numero for doc in documentos.values())
                 messages.success(request, f"Liquidación registrada en {sede_almacen.nombre}. Documentos: {numeros}")
                 return redirect('liquidacion_tecnico_lista')
+        except PermissionDenied:
+            raise
         except Exception as e:
             messages.error(request, f"Error: {e}")
 

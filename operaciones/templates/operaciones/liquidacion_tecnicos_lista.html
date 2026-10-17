@@ -70,7 +70,7 @@
     <div class="page-header">
         <div class="header-title">
             <h2>Liquidación de Técnicos</h2>
-            <p>Gestiona el stock pendiente en las mochilas de los técnicos.</p>
+            <p>{% if sede_filtro %}Técnicos con cargas pendientes de {{ sede_filtro.nombre }}.{% else %}Gestiona el stock pendiente en las mochilas de los técnicos.{% endif %}</p>
         </div>
         <div>
             <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">

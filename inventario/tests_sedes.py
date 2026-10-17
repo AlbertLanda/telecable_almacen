@@ -176,8 +176,10 @@ class LiquidacionSedesTests(SedesBase):
         self.assertFalse(DocumentoInventario.objects.exists())
 
     def test_segundo_envio_no_duplica_ingreso(self):
-        data = {f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}
-        self.liquidar(data); self.liquidar(data)
+        data = {'mochila_version': self.client.get(self.url).context['mochila_version'],
+                'filas': [self.mj.id], f'check_devuelto_{self.mj.id}': [self.j1.id, self.j2.id]}
+        self.assertEqual(self.client.post(self.url, data).status_code, 302)
+        self.assertEqual(self.client.post(self.url, data).status_code, 403)
         self.assertEqual(DocumentoInventario.objects.count(), 1)
         self.assertEqual(MovimientoInventario.objects.count(), 1)
         self.sj.refresh_from_db(); self.assertEqual(self.sj.cantidad, 22)
@@ -431,6 +433,30 @@ from django.test import Client, TransactionTestCase
 
 @skipUnless(connection.vendor == 'postgresql', 'Bloqueo de filas: requiere PostgreSQL')
 class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
+    def test_cierre_concurrente_de_la_carga_propia_revoca_acceso_a_otro_origen(self):
+        receptor = self.usuario('receptor_cruzado', self.h, UserProfile.Rol.ALMACEN)
+        barrera = Barrier(2)
+
+        def enviar(datos):
+            close_old_connections()
+            try:
+                cliente = Client()
+                cliente.force_login(get_user_model().objects.get(pk=datos[0]))
+                token = cliente.get(self.url).context['mochila_version']
+                barrera.wait(timeout=10)
+                return cliente.post(self.url, {'mochila_version': token, 'filas': [datos[1]]}).status_code
+            finally:
+                connections.close_all()
+
+        # Cada sede intenta cerrar el origen contrario. La primera operación
+        # cierra la única carga que autorizaba a la segunda sede.
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            resultados = list(executor.map(enviar, [(self.almacen.pk, self.mh.pk), (receptor.pk, self.mj.pk)]))
+        self.assertEqual(sorted(resultados), [302, 403])
+        self.assertEqual(DocumentoInventario.objects.filter(tipo='ING').count(), 1)
+        self.assertEqual(StockTecnico.objects.filter(tecnico=self.tecnico, cantidad__gt=0).count(), 1)
+        self.assertFalse(MovimientoInventario.objects.exists())
+
     def test_dos_sedes_crean_un_solo_retorno(self):
         receptor = self.usuario('receptor_concurrente', self.h, UserProfile.Rol.ALMACEN)
         barrera = Barrier(2)
@@ -447,7 +473,7 @@ class LiquidacionConcurrenteTests(SedesMixin, TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as executor:
             resultados = list(executor.map(enviar, [self.almacen.pk, receptor.pk]))
         self.assertIn(302, resultados)
-        self.assertTrue(all(r in (200, 302) for r in resultados))
+        self.assertTrue(all(r in (200, 302, 403) for r in resultados))
         self.assertEqual(DocumentoInventario.objects.filter(tipo='ING').count(), 1)
         self.assertEqual(MovimientoInventario.objects.count(), 1)
         self.sj.refresh_from_db(); self.sh.refresh_from_db()
