@@ -427,19 +427,41 @@
     }
 
     .pagination-bar {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, max-content) auto;
         align-items: center;
         justify-content: center;
-        gap: 18px;
+        gap: 12px 18px;
         padding: 18px 20px;
         border-top: 1px solid #edf2f7;
-        flex-wrap: wrap;
     }
 
     .page-numbers {
         display: flex;
         align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        min-width: 0;
+        max-width: 100%;
         gap: 6px;
+    }
+
+    .pagination-summary {
+        grid-column: 1 / -1;
+        margin: 0;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 750;
+        color: #64748b;
+    }
+
+    .page-ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 36px;
+        color: #64748b;
     }
 
     .page-btn,
@@ -458,12 +480,13 @@
         font-size: 12px;
         font-weight: 850;
         text-decoration: none;
+        white-space: nowrap;
         transition: .18s ease;
     }
 
     .page-num {
-        padding: 0;
-        width: 36px;
+        flex-shrink: 0;
+        padding: 0 8px;
     }
 
     .page-btn:hover,
@@ -481,6 +504,29 @@
     .page-btn.disabled {
         opacity: .45;
         pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+        .pagination-bar {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            padding: 16px 12px;
+            gap: 12px;
+        }
+
+        .page-numbers {
+            grid-column: 1 / -1;
+            grid-row: 1;
+        }
+
+        .page-previous {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .page-next {
+            grid-column: 2;
+            grid-row: 2;
+        }
     }
 
     .empty-state {
@@ -816,34 +862,49 @@
         </div>
 
         {% if historial.paginator.num_pages > 1 %}
-            <div class="pagination-bar">
-                <a
-                    href="{% if historial.has_previous %}?page={{ historial.previous_page_number }}{% else %}#{% endif %}"
-                    class="page-btn {% if not historial.has_previous %}disabled{% endif %}"
-                >
-                    <i class='bx bx-chevron-left'></i>
-                    Anterior
-                </a>
+            <nav class="pagination-bar" aria-label="Páginas del historial">
+                {% if historial.has_previous %}
+                    <a href="?page={{ historial.previous_page_number }}" class="page-btn page-previous">
+                        <i class='bx bx-chevron-left' aria-hidden="true"></i>
+                        Anterior
+                    </a>
+                {% else %}
+                    <span class="page-btn page-previous disabled" aria-disabled="true">
+                        <i class='bx bx-chevron-left' aria-hidden="true"></i>
+                        Anterior
+                    </span>
+                {% endif %}
 
                 <div class="page-numbers">
-                    {% for num in historial.paginator.page_range %}
-                        <a
-                            href="?page={{ num }}"
-                            class="page-num {% if num == historial.number %}active{% endif %}"
-                        >
-                            {{ num }}
-                        </a>
+                    {% for num in page_range %}
+                        {% if num == historial.paginator.ELLIPSIS %}
+                            <span class="page-ellipsis" aria-hidden="true">{{ num }}</span>
+                        {% elif num == historial.number %}
+                            <span class="page-num active" aria-current="page" aria-label="Página {{ num }}, actual">
+                                {{ num }}
+                            </span>
+                        {% else %}
+                            <a href="?page={{ num }}" class="page-num" aria-label="Ir a la página {{ num }}">
+                                {{ num }}
+                            </a>
+                        {% endif %}
                     {% endfor %}
                 </div>
 
-                <a
-                    href="{% if historial.has_next %}?page={{ historial.next_page_number }}{% else %}#{% endif %}"
-                    class="page-btn {% if not historial.has_next %}disabled{% endif %}"
-                >
-                    Siguiente
-                    <i class='bx bx-chevron-right'></i>
-                </a>
-            </div>
+                {% if historial.has_next %}
+                    <a href="?page={{ historial.next_page_number }}" class="page-btn page-next">
+                        Siguiente
+                        <i class='bx bx-chevron-right' aria-hidden="true"></i>
+                    </a>
+                {% else %}
+                    <span class="page-btn page-next disabled" aria-disabled="true">
+                        Siguiente
+                        <i class='bx bx-chevron-right' aria-hidden="true"></i>
+                    </span>
+                {% endif %}
+
+                <p class="pagination-summary">Página {{ historial.number }} de {{ historial.paginator.num_pages }}</p>
+            </nav>
         {% endif %}
     </div>
 </div>

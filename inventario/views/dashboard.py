@@ -699,6 +699,9 @@ def almacen_historial_global(request):
         "inventario/almacen_historial_global.html",
         {
             "historial": page_obj,
+            "page_range": paginator.get_elided_page_range(
+                page_obj.number, on_each_side=2, on_ends=1
+            ),
             "sede": sede,
         },
     )
