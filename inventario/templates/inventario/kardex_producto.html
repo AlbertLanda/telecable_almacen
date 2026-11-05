@@ -159,7 +159,38 @@
         margin-bottom: 4px;
     }
 
-    .kx-mes-card span { display: inline-block; margin-right: 8px; }
+    .kx-meses-titulo {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--kx-muted);
+    }
+
+    .kx-mes-linea {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        line-height: 1.6;
+    }
+
+    .kx-mes-linea span:first-child { color: var(--kx-muted); }
+
+    .kx-detalle-pie {
+        display: flex;
+        justify-content: flex-end;
+        padding: 14px 18px;
+    }
+
+    .kx-mes-pie {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--kx-border);
+        font-size: 11px;
+        color: var(--kx-muted);
+    }
 
     .kx-toggle-meses {
         width: 26px;
@@ -634,6 +665,46 @@
                 </a>
             </div>
 
+            {% if vista != 'mensual' %}
+            {# Totalizado: mismo formato que "todos los productos", solo con este producto #}
+            <div class="kx-table-scroll">
+                <div class="kx-grid">
+                    <div class="kx-grid-row kx-grid-head">
+                        <div class="kx-grid-cell kx-cell-left">Producto</div>
+                        <div class="kx-grid-cell">Saldo Inicial</div>
+                        <div class="kx-grid-cell">Entradas</div>
+                        <div class="kx-grid-cell">Salidas</div>
+                        <div class="kx-grid-cell">Ajustes</div>
+                        <div class="kx-grid-cell">Saldo Final del Periodo</div>
+                        <div class="kx-grid-cell">Stock Actual (Hoy)</div>
+                    </div>
+                    <div class="kx-grid-row">
+                        <div class="kx-grid-cell kx-cell-left">
+                            <span class="kx-product-name">{{ producto.nombre }}</span>
+                            <span class="kx-product-code">{{ producto.codigo_interno|default:"S/C" }}</span>
+                        </div>
+                        <div class="kx-grid-cell">{{ detalle.saldo_inicial }}</div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.entradas %}<span class="txt-entrada">+{{ detalle.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.salidas %}<span class="txt-salida">-{{ detalle.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.ajustes %}<span class="txt-ajuste">{% if detalle.ajustes > 0 %}+{% endif %}{{ detalle.ajustes }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell"><span class="saldo-final-pill">{{ detalle.saldo_final }}</span></div>
+                        <div class="kx-grid-cell">{{ stock_actual }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kx-detalle-pie">
+                <a href="?producto_id={{ producto.id }}&{{ query_periodo_mensual }}" class="btn-kx-ghost">
+                    <i class='bx bx-list-ul'></i>
+                    Ver movimientos por mes
+                </a>
+            </div>
+            {% else %}
             <div class="table-wrap">
                 <table class="kx-table">
                     <thead>
@@ -708,6 +779,7 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         </section>
     {% else %}
         {# ================= VISTA RESUMEN: TODOS LOS PRODUCTOS ================= #}
@@ -735,16 +807,23 @@
         </div>
 
         {% if not periodo.es_un_mes %}
-        <div class="kx-meses-strip">
-            {% for t in totales_por_mes %}
-            <div class="kx-mes-card">
-                <strong>{{ t.etiqueta_corta }}</strong>
-                <span class="txt-entrada">+{{ t.entradas }}</span>
-                <span class="txt-salida">-{{ t.salidas }}</span>
-                {% if t.ajustes %}<span class="txt-ajuste">{% if t.ajustes > 0 %}+{% endif %}{{ t.ajustes }}</span>{% endif %}
+        <section class="kx-meses-bloque">
+            <h4 class="kx-meses-titulo">
+                <i class='bx bx-calendar'></i>
+                Movimientos por mes — suma de todos los productos de la sede
+            </h4>
+            <div class="kx-meses-strip">
+                {% for t in totales_por_mes %}
+                <div class="kx-mes-card" title="{{ t.etiqueta }}: suma de todos los productos">
+                    <strong>{{ t.etiqueta_corta }}</strong>
+                    <div class="kx-mes-linea"><span>Entradas</span><span class="txt-entrada">+{{ t.entradas }}</span></div>
+                    <div class="kx-mes-linea"><span>Salidas</span><span class="txt-salida">-{{ t.salidas }}</span></div>
+                    <div class="kx-mes-linea"><span>Ajustes</span><span class="txt-ajuste">{% if t.ajustes > 0 %}+{% endif %}{{ t.ajustes }}</span></div>
+                    <div class="kx-mes-pie">{{ t.productos }} producto{{ t.productos|pluralize }} con movimiento</div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        </section>
         {% endif %}
 
         <section class="kx-panel">

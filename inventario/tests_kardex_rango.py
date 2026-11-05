@@ -218,7 +218,10 @@ class KardexRangoTests(TestCase):
         self.editar_stock(150)
         self.mov("OUT", 20, datetime(2025, 6, 5))
 
-        resp = self.client.get(self.url, {"producto_id": self.p.id, "desde": "2025-04", "hasta": "2025-06"})
+        resp = self.client.get(
+            self.url,
+            {"producto_id": self.p.id, "desde": "2025-04", "hasta": "2025-06", "vista": "mensual"},
+        )
         detalle = resp.context["detalle"]
 
         self.assertEqual(resp.status_code, 200)
@@ -229,6 +232,28 @@ class KardexRangoTests(TestCase):
         self.assertEqual(junio[0]["saldo_resultante"], 150)
         self.assertContains(resp, "Ajuste de inventario")
         self.assertContains(resp, "Abril 2025 – Junio 2025")
+
+    def test_detalle_totalizado_muestra_fila_resumen_y_no_movimientos(self):
+        self.mov("IN", 50, datetime(2025, 4, 10))
+        self.mov("OUT", 20, datetime(2025, 6, 5))
+
+        resp = self.client.get(self.url, {"producto_id": self.p.id, "desde": "2025-04", "hasta": "2025-06"})
+
+        self.assertContains(resp, "Saldo Final del Periodo")
+        self.assertContains(resp, "Ver movimientos por mes")
+        self.assertContains(resp, "vista=mensual")
+        self.assertNotContains(resp, "Saldo después")
+
+    def test_franja_mensual_cuenta_productos_con_movimiento(self):
+        otro = Producto.objects.create(nombre="Conector", codigo_interno="KX-002")
+        self.mov("IN", 10, datetime(2025, 4, 2))
+        self.mov("IN", 5, datetime(2025, 4, 3), producto=otro)
+        self.mov("OUT", 1, datetime(2025, 5, 3))
+
+        ctx = self.resumen(desde="2025-04", hasta="2025-05")
+
+        self.assertEqual([t["productos"] for t in ctx["totales_por_mes"]], [2, 1])
+        self.assertEqual([t["entradas"] for t in ctx["totales_por_mes"]], [15, 0])
 
     def test_vista_mensual_renderiza_desglose(self):
         self.mov("IN", 5, datetime(2025, 4, 1))

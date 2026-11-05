@@ -977,6 +977,12 @@ def kardex_producto(request):
             "hasta": periodo["hasta_str"],
             "vista": vista,
         }),
+        # Mismo periodo, pero forzando la vista "Por mes" (botón del detalle totalizado).
+        "query_periodo_mensual": urlencode({
+            "desde": periodo["desde_str"],
+            "hasta": periodo["hasta_str"],
+            "vista": "mensual",
+        }),
     }
 
     if producto:
@@ -1026,10 +1032,13 @@ def kardex_producto(request):
         totales_por_mes = []
         for i, mes in enumerate(periodo["meses"]):
             totales_por_mes.append({
+                "etiqueta": _etiqueta_mes(*mes),
                 "etiqueta_corta": _etiqueta_mes(*mes, corta=True),
                 "entradas": sum(f["meses"][i]["entradas"] for f in resumen),
                 "salidas": sum(f["meses"][i]["salidas"] for f in resumen),
                 "ajustes": sum(f["meses"][i]["ajustes"] for f in resumen),
+                # Productos con al menos un movimiento ese mes.
+                "productos": sum(1 for f in resumen if f["meses"][i]["num_movimientos"]),
             })
 
         context.update({
