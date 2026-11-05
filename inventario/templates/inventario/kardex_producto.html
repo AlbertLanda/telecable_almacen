@@ -68,6 +68,35 @@
         margin-bottom: 14px;
     }
 
+    /* Fila superior del recuadro: etiqueta a la izquierda, botón a la derecha */
+    .kx-hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .kx-btn-panel {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, .35);
+        background: rgba(255, 255, 255, .10);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        transition: background .15s ease;
+    }
+
+    .kx-btn-panel:hover {
+        background: rgba(255, 255, 255, .22);
+        color: #fff;
+    }
+
     .kx-hero h1 {
         margin: 0;
         font-size: clamp(24px, 3.6vw, 34px);
@@ -565,9 +594,15 @@
 <div class="kx-page">
 
     <section class="kx-hero">
-        <div class="kx-badge">
-            <i class='bx bx-line-chart'></i>
-            Informe de movimientos
+        <div class="kx-hero-top">
+            <div class="kx-badge">
+                <i class='bx bx-line-chart'></i>
+                Informe de movimientos
+            </div>
+            <a href="{% url 'dashboard' %}" class="kx-btn-panel">
+                <i class='bx bx-arrow-back'></i>
+                Volver al panel
+            </a>
         </div>
         <h1>Kardex de {{ sede.nombre }}</h1>
         <p>

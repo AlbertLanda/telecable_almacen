@@ -263,6 +263,12 @@ class KardexRangoTests(TestCase):
         self.assertContains(resp, "kx-meses-detalle")
         self.assertContains(resp, "Mayo 2025")
 
+    def test_boton_volver_al_panel(self):
+        resp = self.client.get(self.url)
+
+        self.assertContains(resp, "Volver al panel")
+        self.assertContains(resp, f'href="{reverse("dashboard")}"')
+
     def test_solicitante_no_tiene_acceso(self):
         self.client.force_login(self.usuario("tecnico_kardex", UserProfile.Rol.SOLICITANTE))
 
