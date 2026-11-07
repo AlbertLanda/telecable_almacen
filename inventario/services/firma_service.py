@@ -35,7 +35,7 @@ MAX_FIRMA = 250_000  # bytes del PNG (≈ 250 KB)
 
 # Las dos partes que firman cada documento:
 # RECEPTOR = el técnico (retira en la nota de salida, entrega en la devolución,
-#            da conformidad en la liquidación).
+#            da conformidad en la liquidación, recibe como responsable de la obra).
 # ALMACEN  = el almacenero (despacha, recibe la devolución o liquida).
 RECEPTOR = FirmaDocumento.Rol.RECEPTOR
 ALMACEN = FirmaDocumento.Rol.ALMACEN
@@ -44,6 +44,7 @@ ALMACEN = FirmaDocumento.Rol.ALMACEN
 NOTA_SALIDA = "SAL"   # nota de salida a técnico (REQ local)
 DEVOLUCION = "DEV"    # constancia de devolución del técnico (ING)
 LIQUIDACION = "LIQ"   # acta de liquidación semanal del técnico (ING LIQ-SEMANAL)
+SALIDA_OBRA = "OBRA"  # despacho de materiales a una obra (SAL con referencia = código de obra)
 REF_LIQUIDACION = "LIQ-SEMANAL"
 
 # Texto que cada parte acepta al firmar (queda guardado con la firma).
@@ -71,6 +72,14 @@ ACEPTACION = {
     (LIQUIDACION, ALMACEN): (
         "Declaro haber liquidado y recibido el material devuelto que figura en esta "
         "liquidación, y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (SALIDA_OBRA, RECEPTOR): (
+        "Como responsable de la obra, declaro haber recibido conforme el material "
+        "de este despacho, y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (SALIDA_OBRA, ALMACEN): (
+        "Declaro haber entregado el material de este despacho para la obra, "
+        "y lo confirmo con mi firma manuscrita electrónica."
     ),
 }
 
@@ -179,7 +188,8 @@ def clase_documento(doc):
     """
     Qué documento firmable es: NOTA_SALIDA (despacha un REQ local a un técnico),
     DEVOLUCION (ingreso por devolución de un técnico), LIQUIDACION (liquidación
-    semanal de la mochila de un técnico) o None si no se firma.
+    semanal de la mochila de un técnico), SALIDA_OBRA (despacho a una obra)
+    o None si no se firma.
     """
     if (
         doc.tipo == TipoDocumento.SAL
@@ -200,11 +210,31 @@ def clase_documento(doc):
         and doc.solicitante_id is not None
     ):
         return LIQUIDACION
+    if (
+        doc.tipo == TipoDocumento.SAL
+        and doc.origen_id is None
+        and doc.sede_destino_id is None
+        and doc.solicitante_id is not None
+        and doc.referencia
+        and _es_codigo_de_obra(doc.referencia)
+    ):
+        return SALIDA_OBRA
     return None
 
 
+def _es_codigo_de_obra(referencia):
+    # Import local: proyectos.models importa inventario.models.
+    from proyectos.models import Proyecto
+    return Proyecto.objects.filter(codigo=referencia).exists()
+
+
+def obra_del_documento(doc):
+    from proyectos.models import Proyecto
+    return Proyecto.objects.filter(codigo=doc.referencia).select_related("sede").first()
+
+
 def requiere_firma(doc):
-    """Nota de salida, devolución o liquidación confirmada, desde el despliegue de las firmas."""
+    """Nota de salida, devolución, liquidación o despacho a obra confirmado, desde el despliegue de las firmas."""
     desde = inicio_firmas()
     return (
         (desde is None or doc.fecha >= desde)
@@ -239,12 +269,14 @@ def firmante_esperado(doc, rol):
     Nota de salida: quien retiró y el almacenero que despachó.
     Devolución: el técnico que devolvió y el almacenero que recibió.
     Liquidación: el técnico liquidado y el almacenero que liquidó.
+    Despacho a obra: el técnico responsable de la obra (el material se le carga a él,
+    aunque lo retire otro) y el almacenero que despachó.
     """
     if rol == RECEPTOR:
         clase = clase_documento(doc)
         if clase == DEVOLUCION:
             return doc.entregado_por
-        if clase == LIQUIDACION:
+        if clase in (LIQUIDACION, SALIDA_OBRA):
             return doc.solicitante
         return firmante_receptor(doc)
     if rol == ALMACEN:
@@ -267,6 +299,19 @@ def contenido_documento(doc):
             "sede_id": doc.sede_id,
             "almacen_id": doc.responsable_id,
             "tecnico_id": doc.entregado_por_id,
+            "items": _items_documento(doc),
+        }
+    if clase_documento(doc) == SALIDA_OBRA:
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "obra": doc.referencia,
+            "sede_id": doc.sede_id,
+            "almacen_id": doc.responsable_id,
+            "responsable_obra_id": doc.solicitante_id,
+            "retirado_por_id": doc.retirado_por_id,
             "items": _items_documento(doc),
         }
     if clase_documento(doc) == LIQUIDACION:
@@ -383,6 +428,10 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el técnico que devolvió el material puede firmar esta constancia.")
                 raise PermissionDenied("Solo el almacenero que recibió la devolución puede firmar esta constancia.")
+            if clase == SALIDA_OBRA:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo el técnico responsable de la obra puede firmar este despacho.")
+                raise PermissionDenied("Solo el almacenero que despachó puede firmar este despacho.")
             if clase == LIQUIDACION:
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el técnico liquidado puede firmar esta liquidación.")
@@ -405,6 +454,8 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
             condicion = "Almacén"
         elif clase in (DEVOLUCION, LIQUIDACION):
             condicion = "Técnico"
+        elif clase == SALIDA_OBRA:
+            condicion = "Responsable de obra"
         else:
             condicion = "Responsable" if resp and resp.id == usuario.id else "Crew"
         datos = {
@@ -432,7 +483,8 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
 
 
 def _notas_desde_despliegue():
-    """Notas de salida, devoluciones y liquidaciones que pueden requerir firma, con todo precargado."""
+    """Notas de salida, devoluciones, liquidaciones y despachos a obra que pueden requerir firma."""
+    from proyectos.models import Proyecto
     qs = (
         DocumentoInventario.objects.filter(estado=EstadoDocumento.CONFIRMADO)
         .filter(
@@ -450,6 +502,13 @@ def _notas_desde_despliegue():
                 tipo=TipoDocumento.ING,
                 referencia=REF_LIQUIDACION,
                 solicitante__isnull=False,
+            )
+            | Q(
+                tipo=TipoDocumento.SAL,
+                origen__isnull=True,
+                sede_destino__isnull=True,
+                solicitante__isnull=False,
+                referencia__in=Proyecto.objects.values("codigo"),
             )
         )
         .select_related("origen", "sede", "solicitante", "retirado_por", "responsable", "entregado_por")
@@ -474,6 +533,7 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
             | Q(retirado_por__isnull=True, origen__retirado_por__isnull=True, solicitante=usuario)
             | Q(tipo=TipoDocumento.ING, entregado_por=usuario)
             | Q(tipo=TipoDocumento.ING, referencia=REF_LIQUIDACION, solicitante=usuario)
+            | Q(tipo=TipoDocumento.SAL, origen__isnull=True, solicitante=usuario)
         )
     else:
         candidatas = candidatas.filter(responsable=usuario)
@@ -499,7 +559,8 @@ def notas_de_mi_equipo(usuario):
     de su cuadrilla (el Crew). Solo consulta: el Resp no firma por ellos.
     Cada nota trae `estado_crew` ("PENDIENTE", "FIRMADO" o "CAMBIADO").
     """
-    candidatas = _notas_desde_despliegue().filter(tipo=TipoDocumento.SAL).filter(
+    # Solo notas de salida de un pedido (REQ): en los despachos a obra firma el propio Resp.
+    candidatas = _notas_desde_despliegue().filter(tipo=TipoDocumento.SAL, origen__isnull=False).filter(
         Q(solicitante=usuario) | Q(solicitante__isnull=True, origen__responsable=usuario)
     )
     notas = []

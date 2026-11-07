@@ -602,3 +602,91 @@ class LiquidacionFirmaTests(NotaSalidaMixin, TestCase):
         self.firmar(liq, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
         self.client.force_login(self.almacen)
         self.assertContains(self.client.get(reverse("almacen_historial_global")), "Firmada (2/2)")
+
+
+class SalidaObraFirmaTests(NotaSalidaMixin, TestCase):
+    """Despacho a obra: firma el técnico responsable de la obra y el almacenero que despachó."""
+
+    def setUp(self):
+        super().setUp()
+        from proyectos.models import EstadoProyecto, Proyecto
+        self.obra = Proyecto.objects.create(
+            codigo="OBRA-2026-0001", nombre="Obra de prueba firmas", sede=self.sede,
+            creado_por=self.almacen, responsable=self.resp, estado=EstadoProyecto.EN_PROCESO,
+        )
+
+    def despacho(self, retirado_por=None, numero="SAL-OBRA-001", **campos):
+        """Igual que almacen_generar_salida: SAL sin REQ, solicitante = responsable, referencia = obra."""
+        doc = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.SAL, estado=EstadoDocumento.CONFIRMADO, numero=numero,
+            sede=self.sede, responsable=self.almacen, solicitante=self.resp,
+            retirado_por=retirado_por or self.resp, referencia=self.obra.codigo, **campos,
+        )
+        DocumentoItem.objects.create(documento=doc, producto=self.producto, cantidad=7)
+        return doc
+
+    def test_firma_el_responsable_aunque_retire_el_crew(self):
+        sal = self.despacho(retirado_por=self.crew)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(sal, self.crew)
+        firma = self.firmar(sal, self.resp)
+        self.assertEqual(firma.datos_firmante["condicion"], "Responsable de obra")
+        self.firmar(sal, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(estado_documento(sal), "FIRMADO")
+
+    def test_otro_almacenero_no_firma_y_cambios_se_detectan(self):
+        sal = self.despacho()
+        otro = self.usuario("almacen_otro_f", UserProfile.Rol.ALMACEN)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(sal, otro, rol=FirmaDocumento.Rol.ALMACEN)
+        self.firmar(sal, self.resp)
+        sal.items.update(cantidad=8)
+        self.assertEqual(estado_firma(sal), "CAMBIADO")
+
+    def test_despachos_viejos_o_sin_obra_no_se_firman(self):
+        viejo = self.despacho(numero="SAL-OBRA-VIEJA", fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        sin_obra = self.despacho(numero="SAL-SIN-OBRA")
+        DocumentoInventario.objects.filter(pk=sin_obra.pk).update(referencia="OBRA-NO-EXISTE")
+        sin_obra.refresh_from_db()
+        self.assertEqual(estado_documento(viejo), "NO_APLICA")
+        self.assertEqual(estado_documento(sin_obra), "NO_APLICA")
+
+    def test_aparece_en_por_firmar_y_no_en_equipo(self):
+        sal = self.despacho(retirado_por=self.crew)
+        self.assertEqual(notas_para_firmar(self.resp)[0], [sal])
+        self.assertEqual(notas_para_firmar(self.crew)[0], [])
+        self.assertEqual(notas_para_firmar(self.almacen, FirmaDocumento.Rol.ALMACEN)[0], [sal])
+
+        self.client.force_login(self.resp)
+        lista = self.client.get(reverse("tecnico_por_firmar"))
+        self.assertContains(lista, "Salida a obra OBRA-2026-0001")
+        self.assertContains(lista, reverse("proyecto_pdf_salida", args=[self.obra.id]))
+        self.assertNotContains(lista, "Notas de mi equipo")
+
+    def test_pantalla_de_firma_del_responsable(self):
+        sal = self.despacho(retirado_por=self.crew)
+        url = reverse("tecnico_firmar_nota", args=[sal.id])
+        self.client.force_login(self.resp)
+        pantalla = self.client.get(url)
+        self.assertContains(pantalla, "Firmar salida a obra OBRA-2026-0001 SAL-OBRA-001")
+        self.assertContains(pantalla, "Obra: OBRA-2026-0001 - Obra de prueba firmas")
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(sal), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
+
+    def test_vale_impreso_con_firmas_por_despacho(self):
+        primero = self.despacho(numero="SAL-OBRA-001")
+        self.despacho(numero="SAL-OBRA-002")
+        self.firmar(primero, self.resp)
+        self.client.force_login(self.almacen)
+        vale = self.client.get(reverse("proyecto_pdf_salida", args=[self.obra.id]))
+        self.assertContains(vale, "Vale SAL-OBRA-001")
+        self.assertContains(vale, "Vale SAL-OBRA-002")
+        self.assertContains(vale, "Pendiente de firma", count=3)
+        self.assertContains(vale, "Firmado electrónicamente por Resp_F (Responsable de obra)")
+
+    def test_vale_de_obra_vieja_queda_como_antes(self):
+        self.despacho(fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.client.force_login(self.almacen)
+        vale = self.client.get(reverse("proyecto_pdf_salida", args=[self.obra.id]))
+        self.assertContains(vale, "DNI: _________________")
+        self.assertNotContains(vale, "Pendiente de firma")

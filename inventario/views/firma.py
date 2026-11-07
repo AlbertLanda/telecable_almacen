@@ -1,5 +1,6 @@
 """
-Pantallas de firma en pantalla: nota de salida, constancia de devolución y liquidación.
+Pantallas de firma en pantalla: nota de salida, constancia de devolución,
+liquidación y despacho a obra.
 
 La lógica (quién firma, validar el trazo, huella del documento) está en
 inventario/services/firma_service.py; aquí solo se arma la página.
@@ -10,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from inventario.models import DocumentoInventario, FirmaDocumento, TipoDocumento, UserProfile
 from inventario.permissions import role_required
@@ -27,10 +29,16 @@ def describir(doc):
     """Texto y enlace de impresión según el documento (para listas y pantalla de firma)."""
     clase = firma_service.clase_documento(doc)
     if clase == firma_service.DEVOLUCION:
-        return {"nombre": "constancia de devolución", "url_ver": "devolucion_print"}
+        return {"nombre": "constancia de devolución", "url": reverse("devolucion_print", args=[doc.id])}
     if clase == firma_service.LIQUIDACION:
-        return {"nombre": "liquidación", "url_ver": "liquidacion_tecnico_print"}
-    return {"nombre": "nota de salida", "url_ver": "sal_print"}
+        return {"nombre": "liquidación", "url": reverse("liquidacion_tecnico_print", args=[doc.id])}
+    if clase == firma_service.SALIDA_OBRA:
+        obra = firma_service.obra_del_documento(doc)
+        return {
+            "nombre": f"salida a obra {doc.referencia}",
+            "url": reverse("proyecto_pdf_salida", args=[obra.id]) if obra else "#",
+        }
+    return {"nombre": "nota de salida", "url": reverse("sal_print", args=[doc.id])}
 
 
 def pantalla_firma(request, sal_id, rol, url_lista):
@@ -71,7 +79,15 @@ def pantalla_firma(request, sal_id, rol, url_lista):
             return redirect(url_lista)
 
     clase = firma_service.clase_documento(doc)
-    if clase == firma_service.LIQUIDACION:
+    if clase == firma_service.SALIDA_OBRA:
+        obra = firma_service.obra_del_documento(doc)
+        detalle = [
+            f"Obra: {obra.codigo} - {obra.nombre}" if obra else f"Obra: {doc.referencia}",
+            f"Despachado por almacén: {_nombre(doc.responsable)}",
+            f"Retirado por: {_nombre(doc.retirado_por or doc.solicitante)} · Responsable de la obra: {_nombre(doc.solicitante)}",
+        ]
+        firmas_como = "Almacén (entregué el material)" if rol == ALMACEN else "Responsable de la obra"
+    elif clase == firma_service.LIQUIDACION:
         detalle = [
             f"Técnico liquidado: {_nombre(doc.solicitante)}",
             f"Liquidado por almacén: {_nombre(doc.responsable)}",
@@ -134,7 +150,7 @@ def almacen_por_firmar(request):
         request, ALMACEN,
         url_firmar="almacen_firmar_nota",
         url_volver="dash_almacen",
-        subtitulo="Notas de salida que despachaste, devoluciones que recibiste y liquidaciones que hiciste",
+        subtitulo="Salidas que despachaste (a técnicos y obras), devoluciones que recibiste y liquidaciones",
     )
 
 

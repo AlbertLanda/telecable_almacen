@@ -26,6 +26,7 @@ from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendiente
 from inventario.models import UserProfile
 
 from .utils import render_to_pdf
+from inventario.services.firma_service import firmas_para_mostrar
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 
@@ -762,10 +763,15 @@ def proyecto_pdf_salida(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     materiales_entregados = [m for m in proyecto.materiales.all() if m.cantidad_entregada > 0]
 
+    despachos = list(_despachos_del_proyecto(proyecto))
+    # Firmas de cada despacho (responsable de la obra + almacenero que despachó).
+    for doc in despachos:
+        doc.firmas_vista = firmas_para_mostrar(doc)
     return render(request, 'proyectos/pdf_vale_salida.html', {
         'proyecto': proyecto,
         'materiales': materiales_entregados,
-        'despachos': _despachos_del_proyecto(proyecto),
+        'despachos': despachos,
+        'despachos_con_firma': [d for d in despachos if d.firmas_vista["requiere"]],
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
     })

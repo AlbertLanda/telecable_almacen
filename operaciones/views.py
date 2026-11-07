@@ -307,7 +307,7 @@ def tecnico_por_firmar(request):
         request, FirmaDocumento.Rol.RECEPTOR,
         url_firmar="tecnico_firmar_nota",
         url_volver="tecnico_dashboard",
-        subtitulo="Material que retiraste, devoluciones que hiciste y tus liquidaciones",
+        subtitulo="Material que retiraste, despachos de tus obras, devoluciones y liquidaciones",
     )
 
 @login_required
