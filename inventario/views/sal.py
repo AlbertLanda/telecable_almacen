@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from inventario.permissions import role_required, sede_required, get_profile
 from inventario.services.seriales_service import registrar_seriales
-from inventario.services.firma_service import firmante_receptor
+from inventario.services.firma_service import firmante_receptor, firmas_para_mostrar
 
 from inventario.models import (
     DocumentoInventario, 
@@ -148,6 +148,7 @@ def sal_print(request, sal_id: int):
         "sal": sal,
         "items": items,
         "total_cantidad": total_cantidad,
+        "firmas": firmas_para_mostrar(sal),
     })
 
 

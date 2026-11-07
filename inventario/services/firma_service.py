@@ -390,3 +390,27 @@ def notas_de_mi_equipo(usuario):
         doc.estado_crew = estado_firma(doc, RECEPTOR)
         notas.append(doc)
     return notas
+
+
+def firmas_para_mostrar(doc):
+    """
+    Datos para pintar cada recuadro de la nota impresa:
+    {"requiere": bool, "RECEPTOR": {...} o None, "ALMACEN": {...} o None}.
+    La imagen va incrustada (data URI): no necesita una URL pública aparte.
+    """
+    resultado = {"requiere": requiere_firma(doc), RECEPTOR: None, ALMACEN: None}
+    if not resultado["requiere"]:
+        return resultado
+    sha = hash_documento(doc)
+    for rol in (RECEPTOR, ALMACEN):
+        firma = _firma_de(doc, rol)
+        if firma:
+            datos = firma.datos_firmante or {}
+            resultado[rol] = {
+                "imagen": PREFIJO_PNG + base64.b64encode(bytes(firma.trazo_png)).decode("ascii"),
+                "nombre": datos.get("nombre") or firma.firmante.username,
+                "condicion": datos.get("condicion", ""),
+                "fecha": firma.firmado_en,
+                "vigente": firma.sha256_contenido == sha,
+            }
+    return resultado
