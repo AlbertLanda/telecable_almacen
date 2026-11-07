@@ -260,6 +260,19 @@
         white-space: nowrap;
     }
 
+    /* Estado de firmas de la nota de salida */
+    .firma-estado {
+        display: block;
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+    .firma-ok { color: #15803d; }
+    .firma-parcial { color: #b45309; }
+    .firma-pendiente { color: #94a3b8; }
+    .firma-cambiado { color: #b91c1c; }
+
     .tb-liq {
         background: rgba(22, 163, 74, 0.12);
         color: #15803d;
@@ -843,6 +856,16 @@
                                         <i class='bx bx-info-circle'></i>
                                         Sin movimiento de stock
                                     </span>
+                                {% endif %}
+
+                                {% if item.estado_firma == 'FIRMADO' %}
+                                    <span class="firma-estado firma-ok"><i class='bx bx-check-double'></i> Firmada (2/2)</span>
+                                {% elif item.estado_firma == 'PARCIAL' %}
+                                    <span class="firma-estado firma-parcial"><i class='bx bx-pen'></i> Firma 1/2</span>
+                                {% elif item.estado_firma == 'PENDIENTE' %}
+                                    <span class="firma-estado firma-pendiente"><i class='bx bx-time-five'></i> Sin firmas</span>
+                                {% elif item.estado_firma == 'CAMBIADO' %}
+                                    <span class="firma-estado firma-cambiado"><i class='bx bx-error'></i> Cambió tras firmarse</span>
                                 {% endif %}
                             </td>
                         </tr>

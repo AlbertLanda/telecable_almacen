@@ -36,7 +36,7 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
-from inventario.services.firma_service import ALMACEN as FIRMA_ALMACEN, notas_para_firmar
+from inventario.services.firma_service import ALMACEN as FIRMA_ALMACEN, estado_documento, notas_para_firmar
 
 
 # --------------------
@@ -695,6 +695,11 @@ def almacen_historial_global(request):
 
     paginator = Paginator(historial, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Estado de firmas solo de las notas de salida de esta página (no de todo el historial)
+    for item in page_obj:
+        if item.tipo_movimiento in ("SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA"):
+            item.estado_firma = estado_documento(item)
 
     return render(
         request,

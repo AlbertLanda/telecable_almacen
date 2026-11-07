@@ -1,0 +1,19 @@
+{# Un recuadro de firma de la nota de salida. Recibe: f (datos de firmas_para_mostrar o None) y titulo. #}
+<div class="sign-col">
+    <div class="sign-trazo">
+        {% if f %}
+            <img src="{{ f.imagen }}" alt="Firma de {{ f.nombre }}">
+        {% else %}
+            <span class="sign-pendiente">Pendiente de firma</span>
+        {% endif %}
+    </div>
+    <div class="sign-box">{{ titulo }}</div>
+    {% if f %}
+        <div class="sign-constancia">
+            Firmado electrónicamente por {{ f.nombre }}{% if f.condicion %} ({{ f.condicion }}){% endif %} · {{ f.fecha|date:"d/m/Y H:i" }}
+        </div>
+        {% if not f.vigente %}
+            <div class="sign-cambio">El documento cambió después de firmarse</div>
+        {% endif %}
+    {% endif %}
+</div>

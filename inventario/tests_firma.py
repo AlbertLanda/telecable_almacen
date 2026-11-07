@@ -348,3 +348,78 @@ class VerNotaSalidaTests(NotaSalidaMixin, TestCase):
         otro = self.usuario("otro_tecnico_f", UserProfile.Rol.SOLICITANTE)
         self.client.force_login(otro)
         self.assertEqual(self.client.get(url).status_code, 302)
+
+
+class NotaImpresaConFirmasTests(NotaSalidaMixin, TestCase):
+    """La nota impresa (sal_print) pinta el trazo, la constancia o 'Pendiente'."""
+
+    def ver(self, sal):
+        self.client.force_login(self.almacen)
+        return self.client.get(reverse("sal_print", args=[sal.id]))
+
+    def test_nota_nueva_sin_firmas_muestra_pendiente_en_ambos_recuadros(self):
+        sal = self.nota_salida(retirado_por=self.crew)
+        self.assertContains(self.ver(sal), "Pendiente de firma", count=2)
+
+    def test_firma_del_crew_se_ve_con_su_constancia(self):
+        sal = self.nota_salida(retirado_por=self.crew)
+        self.firmar(sal, self.crew)
+        respuesta = self.ver(sal)
+        self.assertContains(respuesta, 'src="data:image/png;base64,')
+        self.assertContains(respuesta, "Firmado electrónicamente por Crew_F (Crew)")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)  # falta almacén
+        self.assertNotContains(respuesta, "El documento cambió después de firmarse")
+
+    def test_cambio_despues_de_firmar_se_avisa_en_la_nota(self):
+        sal = self.nota_salida(retirado_por=self.crew)
+        self.firmar(sal, self.crew)
+        sal.items.update(cantidad=9)
+        self.assertContains(self.ver(sal), "El documento cambió después de firmarse")
+
+    def test_nota_anterior_a_las_firmas_queda_como_antes(self):
+        vieja = self.nota_salida(retirado_por=self.crew, numero="SAL-VIEJA",
+                                 fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        respuesta = self.ver(vieja)
+        self.assertNotContains(respuesta, "Pendiente de firma")
+        self.assertContains(respuesta, "FIRMA DE QUIEN RETIRA")
+
+
+class HistorialConFirmasTests(NotaSalidaMixin, TestCase):
+    """El historial de almacén muestra en qué va la firma de cada nota de salida."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = reverse("almacen_historial_global")
+
+    def ver(self):
+        self.client.force_login(self.almacen)
+        return self.client.get(self.url)
+
+    def test_estados_de_firma_en_el_historial(self):
+        sin_firmas = self.nota_salida(retirado_por=self.crew, numero="SAL-H-1")
+        parcial = self.nota_salida(retirado_por=self.crew, numero="SAL-H-2")
+        completa = self.nota_salida(retirado_por=self.crew, numero="SAL-H-3")
+        self.firmar(parcial, self.crew)
+        self.firmar(completa, self.crew)
+        self.firmar(completa, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+
+        respuesta = self.ver()
+        estados = {item.numero: item.estado_firma for item in respuesta.context["historial"]
+                   if hasattr(item, "estado_firma")}
+        self.assertEqual(estados, {"SAL-H-1": "PENDIENTE", "SAL-H-2": "PARCIAL", "SAL-H-3": "FIRMADO"})
+        self.assertContains(respuesta, "Sin firmas")
+        self.assertContains(respuesta, "Firma 1/2")
+        self.assertContains(respuesta, "Firmada (2/2)")
+
+    def test_cambio_tras_firmar_se_marca(self):
+        sal = self.nota_salida(retirado_por=self.crew)
+        self.firmar(sal, self.crew)
+        sal.items.update(cantidad=9)
+        self.assertContains(self.ver(), "Cambió tras firmarse")
+
+    def test_notas_viejas_no_muestran_estado(self):
+        self.nota_salida(retirado_por=self.crew, numero="SAL-VIEJA",
+                         fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        respuesta = self.ver()
+        self.assertContains(respuesta, "SAL-VIEJA")
+        self.assertNotContains(respuesta, "Sin firmas")
