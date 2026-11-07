@@ -28,11 +28,19 @@
             Firmas como: <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ firmas_como }})
         </div>
         <table class="fn-tabla">
+            {% if es_liquidacion %}
+            <thead><tr><th>Código</th><th>Producto</th><th>Devuelto</th><th>Merma</th><th>Consumo</th></tr></thead>
+            <tbody>
+                {% for it in items %}
+                    <tr><td>{{ it.producto.codigo_interno }}</td><td>{{ it.producto.nombre }}</td><td>{{ it.cantidad }}</td><td>{{ it.cantidad_merma }}</td><td>{{ it.cantidad_usada }}</td></tr>
+                {% endfor %}
+            {% else %}
             <thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th></tr></thead>
             <tbody>
                 {% for it in items %}
                     <tr><td>{{ it.producto.codigo_interno }}</td><td>{{ it.producto.nombre }}</td><td>{{ it.cantidad }}</td></tr>
                 {% endfor %}
+            {% endif %}
             </tbody>
         </table>
         <div style="margin-top: 12px;">

@@ -696,9 +696,9 @@ def almacen_historial_global(request):
     paginator = Paginator(historial, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    # Estado de firmas (notas de salida y devoluciones) solo de esta página, no de todo el historial
+    # Estado de firmas (salidas, devoluciones y liquidaciones) solo de esta página, no de todo el historial
     for item in page_obj:
-        if item.tipo_movimiento in ("SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION"):
+        if item.tipo_movimiento in ("SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO"):
             item.estado_firma = estado_documento(item)
 
     return render(

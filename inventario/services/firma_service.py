@@ -34,14 +34,17 @@ PREFIJO_PNG = "data:image/png;base64,"
 MAX_FIRMA = 250_000  # bytes del PNG (≈ 250 KB)
 
 # Las dos partes que firman cada documento:
-# RECEPTOR = el técnico (retira en la nota de salida, entrega en la devolución).
-# ALMACEN  = el almacenero (despacha en la nota de salida, recibe en la devolución).
+# RECEPTOR = el técnico (retira en la nota de salida, entrega en la devolución,
+#            da conformidad en la liquidación).
+# ALMACEN  = el almacenero (despacha, recibe la devolución o liquida).
 RECEPTOR = FirmaDocumento.Rol.RECEPTOR
 ALMACEN = FirmaDocumento.Rol.ALMACEN
 
 # Documentos que se firman
 NOTA_SALIDA = "SAL"   # nota de salida a técnico (REQ local)
 DEVOLUCION = "DEV"    # constancia de devolución del técnico (ING)
+LIQUIDACION = "LIQ"   # acta de liquidación semanal del técnico (ING LIQ-SEMANAL)
+REF_LIQUIDACION = "LIQ-SEMANAL"
 
 # Texto que cada parte acepta al firmar (queda guardado con la firma).
 ACEPTACION = {
@@ -60,6 +63,14 @@ ACEPTACION = {
     (DEVOLUCION, ALMACEN): (
         "Declaro haber recibido conforme el material detallado en esta constancia "
         "de devolución, y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (LIQUIDACION, RECEPTOR): (
+        "Declaro mi conformidad con lo devuelto, la merma y el consumo registrados "
+        "en esta liquidación, y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (LIQUIDACION, ALMACEN): (
+        "Declaro haber liquidado y recibido el material devuelto que figura en esta "
+        "liquidación, y lo confirmo con mi firma manuscrita electrónica."
     ),
 }
 
@@ -167,7 +178,8 @@ def inicio_firmas():
 def clase_documento(doc):
     """
     Qué documento firmable es: NOTA_SALIDA (despacha un REQ local a un técnico),
-    DEVOLUCION (ingreso por devolución de un técnico) o None si no se firma.
+    DEVOLUCION (ingreso por devolución de un técnico), LIQUIDACION (liquidación
+    semanal de la mochila de un técnico) o None si no se firma.
     """
     if (
         doc.tipo == TipoDocumento.SAL
@@ -182,11 +194,17 @@ def clase_documento(doc):
         and doc.entregado_por_id is not None
     ):
         return DEVOLUCION
+    if (
+        doc.tipo == TipoDocumento.ING
+        and doc.referencia == REF_LIQUIDACION
+        and doc.solicitante_id is not None
+    ):
+        return LIQUIDACION
     return None
 
 
 def requiere_firma(doc):
-    """Nota de salida o devolución confirmada, desde el despliegue de las firmas."""
+    """Nota de salida, devolución o liquidación confirmada, desde el despliegue de las firmas."""
     desde = inicio_firmas()
     return (
         (desde is None or doc.fecha >= desde)
@@ -220,10 +238,14 @@ def firmante_esperado(doc, rol):
     Quién debe firmar cada recuadro.
     Nota de salida: quien retiró y el almacenero que despachó.
     Devolución: el técnico que devolvió y el almacenero que recibió.
+    Liquidación: el técnico liquidado y el almacenero que liquidó.
     """
     if rol == RECEPTOR:
-        if clase_documento(doc) == DEVOLUCION:
+        clase = clase_documento(doc)
+        if clase == DEVOLUCION:
             return doc.entregado_por
+        if clase == LIQUIDACION:
+            return doc.solicitante
         return firmante_receptor(doc)
     if rol == ALMACEN:
         return doc.responsable
@@ -246,6 +268,23 @@ def contenido_documento(doc):
             "almacen_id": doc.responsable_id,
             "tecnico_id": doc.entregado_por_id,
             "items": _items_documento(doc),
+        }
+    if clase_documento(doc) == LIQUIDACION:
+        # Aquí sí cuentan merma y consumo: son justamente lo que se liquida.
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "sede_id": doc.sede_id,
+            "sede_origen_id": doc.sede_origen_id,
+            "almacen_id": doc.responsable_id,
+            "tecnico_id": doc.solicitante_id,
+            "items": [
+                [it.producto.codigo_interno, int(it.cantidad or 0),
+                 int(it.cantidad_merma or 0), int(it.cantidad_usada or 0)]
+                for it in doc.items.select_related("producto").order_by("producto__codigo_interno", "id")
+            ],
         }
     receptor = firmante_receptor(doc)
     resp = responsable_cuadrilla(doc)
@@ -344,6 +383,10 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el técnico que devolvió el material puede firmar esta constancia.")
                 raise PermissionDenied("Solo el almacenero que recibió la devolución puede firmar esta constancia.")
+            if clase == LIQUIDACION:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo el técnico liquidado puede firmar esta liquidación.")
+                raise PermissionDenied("Solo el almacenero que liquidó puede firmar esta liquidación.")
             if rol == RECEPTOR:
                 raise PermissionDenied("Solo quien retiró el material puede firmar esta nota.")
             raise PermissionDenied("Solo el almacenero que despachó puede firmar esta nota.")
@@ -360,7 +403,7 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
         sede = perfil.get_sede_operativa() if perfil else None
         if rol == ALMACEN:
             condicion = "Almacén"
-        elif clase == DEVOLUCION:
+        elif clase in (DEVOLUCION, LIQUIDACION):
             condicion = "Técnico"
         else:
             condicion = "Responsable" if resp and resp.id == usuario.id else "Crew"
@@ -389,7 +432,7 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
 
 
 def _notas_desde_despliegue():
-    """Notas de salida y devoluciones que pueden requerir firma, con todo lo necesario precargado."""
+    """Notas de salida, devoluciones y liquidaciones que pueden requerir firma, con todo precargado."""
     qs = (
         DocumentoInventario.objects.filter(estado=EstadoDocumento.CONFIRMADO)
         .filter(
@@ -403,6 +446,11 @@ def _notas_desde_despliegue():
                 referencia__icontains="DEVOLUCION",
                 entregado_por__isnull=False,
             )
+            | Q(
+                tipo=TipoDocumento.ING,
+                referencia=REF_LIQUIDACION,
+                solicitante__isnull=False,
+            )
         )
         .select_related("origen", "sede", "solicitante", "retirado_por", "responsable", "entregado_por")
         .prefetch_related("firmas")
@@ -414,7 +462,7 @@ def _notas_desde_despliegue():
 
 def notas_para_firmar(usuario, rol=RECEPTOR):
     """
-    Notas de salida y devoluciones donde a `usuario` le toca firmar en el recuadro `rol`.
+    Notas de salida, devoluciones y liquidaciones donde a `usuario` le toca firmar en el recuadro `rol`.
     Devuelve (pendientes, firmadas). Solo notas desde inicio_firmas(),
     para no pedir firma de notas antiguas (anteriores a esta función).
     """
@@ -425,6 +473,7 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
             | Q(retirado_por__isnull=True, origen__retirado_por=usuario)
             | Q(retirado_por__isnull=True, origen__retirado_por__isnull=True, solicitante=usuario)
             | Q(tipo=TipoDocumento.ING, entregado_por=usuario)
+            | Q(tipo=TipoDocumento.ING, referencia=REF_LIQUIDACION, solicitante=usuario)
         )
     else:
         candidatas = candidatas.filter(responsable=usuario)

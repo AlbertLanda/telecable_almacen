@@ -528,3 +528,77 @@ class DevolucionFirmaTests(NotaSalidaMixin, TestCase):
         self.client.force_login(self.almacen)
         respuesta = self.client.get(reverse("almacen_historial_global"))
         self.assertContains(respuesta, "Firma 1/2")
+
+
+class LiquidacionFirmaTests(NotaSalidaMixin, TestCase):
+    """Acta de liquidación: firma el técnico liquidado (conformidad) y el almacenero que liquidó."""
+
+    def liquidacion(self, tecnico, numero="ING-LIQ-001", **campos):
+        """Igual que liquidacion_tecnico: ING LIQ-SEMANAL con solicitante = técnico."""
+        doc = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO, numero=numero,
+            sede=self.sede, sede_origen=self.sede, responsable=self.almacen, solicitante=tecnico,
+            referencia="LIQ-SEMANAL", **campos,
+        )
+        DocumentoItem.objects.create(documento=doc, producto=self.producto,
+                                     cantidad=2, cantidad_merma=1, cantidad_usada=4)
+        return doc
+
+    def test_tecnico_y_almacen_firman_la_liquidacion(self):
+        liq = self.liquidacion(self.crew)
+        firma = self.firmar(liq, self.crew)
+        self.assertEqual(firma.datos_firmante["condicion"], "Técnico")
+        self.assertIn("conformidad", firma.datos_firmante["aceptacion"])
+        self.firmar(liq, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(estado_documento(liq), "FIRMADO")
+
+    def test_solo_el_tecnico_liquidado_y_el_almacenero_que_liquido(self):
+        liq = self.liquidacion(self.crew)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(liq, self.resp)
+        otro_almacen = self.usuario("almacen_otro_f", UserProfile.Rol.ALMACEN)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(liq, otro_almacen, rol=FirmaDocumento.Rol.ALMACEN)
+
+    def test_cambiar_merma_o_consumo_despues_de_firmar_se_detecta(self):
+        liq = self.liquidacion(self.crew)
+        self.firmar(liq, self.crew)
+        liq.items.update(cantidad_merma=0, cantidad_usada=5)
+        self.assertEqual(estado_firma(liq), "CAMBIADO")
+
+    def test_liquidaciones_viejas_no_se_firman(self):
+        vieja = self.liquidacion(self.crew, numero="ING-LIQ-VIEJA",
+                                 fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.assertEqual(estado_documento(vieja), "NO_APLICA")
+
+    def test_aparece_en_por_firmar_y_se_firma_en_pantalla(self):
+        liq = self.liquidacion(self.crew)
+        self.assertEqual(notas_para_firmar(self.crew)[0], [liq])
+        self.assertEqual(notas_para_firmar(self.almacen, FirmaDocumento.Rol.ALMACEN)[0], [liq])
+
+        self.client.force_login(self.crew)
+        lista = self.client.get(reverse("tecnico_por_firmar"))
+        self.assertContains(lista, reverse("liquidacion_tecnico_print", args=[liq.id]))
+        url = reverse("tecnico_firmar_nota", args=[liq.id])
+        pantalla = self.client.get(url)
+        self.assertContains(pantalla, "Firmar liquidación ING-LIQ-001")
+        self.assertContains(pantalla, "<th>Merma</th>", html=False)
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(liq), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
+
+    def test_acta_impresa_con_firmas(self):
+        liq = self.liquidacion(self.crew)
+        url = reverse("liquidacion_tecnico_print", args=[liq.id])
+        self.client.force_login(self.almacen)
+        self.assertContains(self.client.get(url), "Pendiente de firma", count=2)
+        self.firmar(liq, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        respuesta = self.client.get(url)
+        self.assertContains(respuesta, "Firmado electrónicamente por Almacen_F (Almacén)")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)
+
+    def test_estado_en_el_historial(self):
+        liq = self.liquidacion(self.crew)
+        self.firmar(liq, self.crew)
+        self.firmar(liq, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.client.force_login(self.almacen)
+        self.assertContains(self.client.get(reverse("almacen_historial_global")), "Firmada (2/2)")

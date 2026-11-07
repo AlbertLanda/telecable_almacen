@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 from inventario.services.seriales_service import equipos_de_mochila, ids_unicos
-from inventario.services.firma_service import notas_para_firmar
+from inventario.services.firma_service import firmas_para_mostrar, notas_para_firmar
 from inventario.models import FirmaDocumento
 from inventario.views.firma import lista_por_firmar, pantalla_firma
 from django.contrib.auth import get_user_model
@@ -299,15 +299,15 @@ def tecnico_mis_entregas(request):
 def tecnico_por_firmar(request):
     """
     Documentos que el técnico debe firmar desde su sesión.
-    Notas de salida (carga de mochila) donde él retiró el material y
-    constancias de las devoluciones que él hizo.
+    Notas de salida (carga de mochila) donde él retiró el material,
+    constancias de las devoluciones que él hizo y sus liquidaciones.
     """
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
     return lista_por_firmar(
         request, FirmaDocumento.Rol.RECEPTOR,
         url_firmar="tecnico_firmar_nota",
         url_volver="tecnico_dashboard",
-        subtitulo="Material que retiraste de almacén y devoluciones que hiciste",
+        subtitulo="Material que retiraste, devoluciones que hiciste y tus liquidaciones",
     )
 
 @login_required
@@ -589,6 +589,7 @@ def liquidacion_tecnico_print(request, doc_id):
         'doc': doc,
         'items': items,
         'tecnico_retiro': tecnico_retiro,
+        'firmas': firmas_para_mostrar(doc),
     })
 
 @login_required

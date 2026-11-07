@@ -1,5 +1,5 @@
 """
-Pantallas de firma en pantalla: nota de salida y constancia de devolución.
+Pantallas de firma en pantalla: nota de salida, constancia de devolución y liquidación.
 
 La lógica (quién firma, validar el trazo, huella del documento) está en
 inventario/services/firma_service.py; aquí solo se arma la página.
@@ -25,8 +25,11 @@ def _nombre(usuario):
 
 def describir(doc):
     """Texto y enlace de impresión según el documento (para listas y pantalla de firma)."""
-    if firma_service.clase_documento(doc) == firma_service.DEVOLUCION:
+    clase = firma_service.clase_documento(doc)
+    if clase == firma_service.DEVOLUCION:
         return {"nombre": "constancia de devolución", "url_ver": "devolucion_print"}
+    if clase == firma_service.LIQUIDACION:
+        return {"nombre": "liquidación", "url_ver": "liquidacion_tecnico_print"}
     return {"nombre": "nota de salida", "url_ver": "sal_print"}
 
 
@@ -67,7 +70,14 @@ def pantalla_firma(request, sal_id, rol, url_lista):
             messages.success(request, f"Firmaste la {info['nombre']} {doc.numero}.")
             return redirect(url_lista)
 
-    if firma_service.clase_documento(doc) == firma_service.DEVOLUCION:
+    clase = firma_service.clase_documento(doc)
+    if clase == firma_service.LIQUIDACION:
+        detalle = [
+            f"Técnico liquidado: {_nombre(doc.solicitante)}",
+            f"Liquidado por almacén: {_nombre(doc.responsable)}",
+        ]
+        firmas_como = "Almacén (liquidé el material)" if rol == ALMACEN else "Técnico (conformidad)"
+    elif clase == firma_service.DEVOLUCION:
         detalle = [
             f"Devuelto por: {_nombre(doc.entregado_por)}",
             f"Recibido en almacén por: {_nombre(doc.responsable)}",
@@ -90,6 +100,7 @@ def pantalla_firma(request, sal_id, rol, url_lista):
         "doc": doc,
         "info": info,
         "detalle": detalle,
+        "es_liquidacion": clase == firma_service.LIQUIDACION,
         "items": doc.items.select_related("producto").order_by("producto__nombre"),
         "firmas_como": firmas_como,
         "sha256": firma_service.hash_documento(doc),
@@ -123,7 +134,7 @@ def almacen_por_firmar(request):
         request, ALMACEN,
         url_firmar="almacen_firmar_nota",
         url_volver="dash_almacen",
-        subtitulo="Notas de salida que despachaste y devoluciones que recibiste de técnicos",
+        subtitulo="Notas de salida que despachaste, devoluciones que recibiste y liquidaciones que hiciste",
     )
 
 
