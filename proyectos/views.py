@@ -45,6 +45,47 @@ def _despachos_del_proyecto(proyecto):
     )
 
 
+# Hasta este momento (merge 2160617 a main), el despacho de obra también
+# sumaba el material a la mochila personal del responsable (StockTecnico).
+# Desde entonces ya no: el material de obra se controla solo en la obra.
+MOCHILA_SEPARADA_DESDE = datetime.datetime(2026, 9, 15, 14, 22, 56, tzinfo=datetime.timezone.utc)
+
+
+def _descontar_mochila_antigua(proyecto, producto):
+    """
+    Al cerrar la obra, quita de la mochila del responsable solo lo que los
+    despachos ANTIGUOS (antes de MOCHILA_SEPARADA_DESDE) le habían sumado,
+    en la sede que despachó. Lo despachado después nunca entró a la mochila,
+    así que no se toca: ahí puede haber material de su carga semanal.
+    """
+    if not proyecto.responsable_id:
+        return
+    antiguos = (
+        DocumentoItem.objects.filter(
+            documento__tipo=TipoDocumento.SAL,
+            documento__estado=EstadoDocumento.CONFIRMADO,
+            documento__referencia=proyecto.codigo,
+            documento__fecha__lt=MOCHILA_SEPARADA_DESDE,
+            producto=producto,
+        )
+        .values("documento__sede_id")
+        .annotate(total=Sum("cantidad"))
+    )
+    for fila in antiguos:
+        stock_tecnico = StockTecnico.objects.select_for_update().filter(
+            tecnico_id=proyecto.responsable_id,
+            producto=producto,
+            sede_id=fila["documento__sede_id"],
+        ).first()
+        if not stock_tecnico:
+            continue
+        stock_tecnico.cantidad = max(int(stock_tecnico.cantidad or 0) - int(fila["total"] or 0), 0)
+        if stock_tecnico.cantidad <= 0:
+            stock_tecnico.delete()
+        else:
+            stock_tecnico.save(update_fields=["cantidad"])
+
+
 def _puede_gestionar_proyectos(user):
     """
     Todo el personal de Diseño comparte el mismo rol: cualquiera de ellos
@@ -591,6 +632,13 @@ def almacen_generar_salida(request, proyecto_id):
                     if qty <= 0:
                         continue
 
+                    # Releer bajo bloqueo: si otra sede despachó esta obra al mismo
+                    # tiempo, el pendiente real ya es menor que el de la pantalla.
+                    m = ProyectoMaterial.objects.select_for_update().select_related("producto").get(pk=m.pk)
+                    m.pendiente_temp = int(m.cantidad_planificada or 0) - int(m.cantidad_entregada or 0)
+                    stock_obj = Stock.objects.filter(producto=m.producto, sede=sede_despacho).first()
+                    m.stock_temp = int(stock_obj.cantidad or 0) if stock_obj else 0
+
                     if qty > m.pendiente_temp:
                         raise ValueError(
                             f"No puedes despachar más de lo pendiente en {m.producto.nombre}. "
@@ -798,6 +846,13 @@ def almacen_liquidar_proyecto(request, proyecto_id):
         messages.warning(request, "Solo puedes liquidar proyectos en proceso.")
         return redirect("almacen_liquidacion_lista")
 
+    # Lo devuelto entra al almacén que lo recibe físicamente (el de quien liquida),
+    # no siempre a la sede de la obra: una obra puede tener despachos de varias sedes.
+    sede_recepcion = profile.get_sede_operativa()
+    if not sede_recepcion:
+        messages.error(request, "Tu usuario no tiene una sede de almacén asignada.")
+        return redirect("almacen_liquidacion_lista")
+
     materiales = []
 
     for m in proyecto.materiales.select_related("producto").all():
@@ -812,7 +867,7 @@ def almacen_liquidar_proyecto(request, proyecto_id):
             with transaction.atomic():
                 doc_ing = None
                 hubo_buenos = False
-                ubicacion_retorno = Ubicacion.objects.filter(sede=proyecto.sede).first()
+                ubicacion_retorno = Ubicacion.objects.filter(sede=sede_recepcion).first()
 
                 for m in materiales:
                     good = int(request.POST.get(f"input_good_{m.id}", 0) or 0)
@@ -851,6 +906,9 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                         mermados = equipos_obra[good:good + bad]
                         instalados = equipos_obra[good + bad:]
 
+                        if (devueltos or mermados) and not ubicacion_retorno:
+                            raise ValueError(f"Configura una ubicación de retorno en {sede_recepcion.nombre}.")
+
                         if devueltos:
                             ItemSerializado.objects.filter(
                                 id__in=[e.id for e in devueltos]
@@ -883,11 +941,14 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                             doc_ing = DocumentoInventario.objects.create(
                                 tipo=TipoDocumento.ING,
                                 estado=EstadoDocumento.BORRADOR,
-                                sede=proyecto.sede,
+                                sede=sede_recepcion,
                                 responsable=request.user,
                                 solicitante=proyecto.responsable,
                                 referencia=f"RETORNO {proyecto.codigo}",
-                                observaciones=f"Retorno de materiales de obra {proyecto.codigo}",
+                                observaciones=(
+                                    f"Retorno de materiales de obra {proyecto.codigo} "
+                                    f"| Sede de la obra: {proyecto.sede.nombre}"
+                                ),
                                 fecha=timezone.now(),
                             )
 
@@ -900,26 +961,9 @@ def almacen_liquidar_proyecto(request, proyecto_id):
 
                         hubo_buenos = True
 
-                    # ✅ CLAVE: limpiar mochila del responsable
-                    # Todo lo entregado para la obra queda cerrado por acta:
-                    # bueno devuelto + merma + consumido.
-                    stock_tecnico = StockTecnico.objects.filter(
-                        tecnico=proyecto.responsable,
-                        producto=m.producto,
-                    ).first()
-
-                    if stock_tecnico:
-                        cantidad_a_descontar = int(m.cantidad_entregada or 0)
-
-                        stock_tecnico.cantidad = max(
-                            int(stock_tecnico.cantidad or 0) - cantidad_a_descontar,
-                            0,
-                        )
-
-                        if stock_tecnico.cantidad <= 0:
-                            stock_tecnico.delete()
-                        else:
-                            stock_tecnico.save(update_fields=["cantidad"])
+                    # Mochila del responsable: solo se descuenta lo que sumaron
+                    # los despachos antiguos de esta obra. Lo demás es su carga semanal.
+                    _descontar_mochila_antigua(proyecto, m.producto)
 
                 if hubo_buenos and doc_ing:
                     doc_ing.confirmar()
