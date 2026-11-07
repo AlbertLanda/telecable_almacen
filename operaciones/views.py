@@ -299,19 +299,20 @@ def tecnico_mis_entregas(request):
 def tecnico_por_firmar(request):
     """
     Documentos que el técnico debe firmar desde su sesión.
-    Por ahora: notas de salida (carga de mochila) donde él retiró el material.
+    Notas de salida (carga de mochila) donde él retiró el material y
+    constancias de las devoluciones que él hizo.
     """
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
     return lista_por_firmar(
         request, FirmaDocumento.Rol.RECEPTOR,
         url_firmar="tecnico_firmar_nota",
         url_volver="tecnico_dashboard",
-        subtitulo="Notas de salida del material que retiraste de almacén",
+        subtitulo="Material que retiraste de almacén y devoluciones que hiciste",
     )
 
 @login_required
 def tecnico_firmar_nota(request, sal_id):
-    """Resumen de la nota y recuadro para firmar como quien retiró (Resp o Crew)."""
+    """Resumen del documento y recuadro para firmar como técnico (quien retiró o devolvió)."""
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
     return pantalla_firma(request, sal_id, FirmaDocumento.Rol.RECEPTOR, url_lista="tecnico_por_firmar")
 

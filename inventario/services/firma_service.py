@@ -33,18 +33,33 @@ from inventario.models import (
 PREFIJO_PNG = "data:image/png;base64,"
 MAX_FIRMA = 250_000  # bytes del PNG (≈ 250 KB)
 
+# Las dos partes que firman cada documento:
+# RECEPTOR = el técnico (retira en la nota de salida, entrega en la devolución).
+# ALMACEN  = el almacenero (despacha en la nota de salida, recibe en la devolución).
 RECEPTOR = FirmaDocumento.Rol.RECEPTOR
 ALMACEN = FirmaDocumento.Rol.ALMACEN
 
+# Documentos que se firman
+NOTA_SALIDA = "SAL"   # nota de salida a técnico (REQ local)
+DEVOLUCION = "DEV"    # constancia de devolución del técnico (ING)
+
 # Texto que cada parte acepta al firmar (queda guardado con la firma).
 ACEPTACION = {
-    RECEPTOR: (
+    (NOTA_SALIDA, RECEPTOR): (
         "Declaro haber revisado la nota de salida y recibido conforme el material "
         "detallado, y lo confirmo con mi firma manuscrita electrónica."
     ),
-    ALMACEN: (
+    (NOTA_SALIDA, ALMACEN): (
         "Declaro haber entregado el material detallado en esta nota de salida, "
         "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (DEVOLUCION, RECEPTOR): (
+        "Declaro haber devuelto a almacén el material detallado en esta constancia, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (DEVOLUCION, ALMACEN): (
+        "Declaro haber recibido conforme el material detallado en esta constancia "
+        "de devolución, y lo confirmo con mi firma manuscrita electrónica."
     ),
 }
 
@@ -149,17 +164,39 @@ def inicio_firmas():
     return _inicio_cache
 
 
-def requiere_firma(doc):
-    """Nota de salida confirmada, desde el despliegue, que despacha un REQ local a un técnico."""
-    desde = inicio_firmas()
-    return (
-        (desde is None or doc.fecha >= desde)
-        and doc.tipo == TipoDocumento.SAL
-        and doc.estado == EstadoDocumento.CONFIRMADO
+def clase_documento(doc):
+    """
+    Qué documento firmable es: NOTA_SALIDA (despacha un REQ local a un técnico),
+    DEVOLUCION (ingreso por devolución de un técnico) o None si no se firma.
+    """
+    if (
+        doc.tipo == TipoDocumento.SAL
         and doc.origen_id is not None
         and doc.origen.tipo == TipoDocumento.REQ
         and doc.origen.tipo_requerimiento == TipoRequerimiento.LOCAL
+    ):
+        return NOTA_SALIDA
+    if (
+        doc.tipo == TipoDocumento.ING
+        and "DEVOLUCION" in (doc.referencia or "").upper()
+        and doc.entregado_por_id is not None
+    ):
+        return DEVOLUCION
+    return None
+
+
+def requiere_firma(doc):
+    """Nota de salida o devolución confirmada, desde el despliegue de las firmas."""
+    desde = inicio_firmas()
+    return (
+        (desde is None or doc.fecha >= desde)
+        and doc.estado == EstadoDocumento.CONFIRMADO
+        and clase_documento(doc) is not None
     )
+
+
+def texto_aceptacion(doc, rol):
+    return ACEPTACION[(clase_documento(doc), rol)]
 
 
 def responsable_cuadrilla(doc):
@@ -179,8 +216,14 @@ def firmante_receptor(doc):
 
 
 def firmante_esperado(doc, rol):
-    """Quién debe firmar cada recuadro: quien retiró, o el almacenero que despachó."""
+    """
+    Quién debe firmar cada recuadro.
+    Nota de salida: quien retiró y el almacenero que despachó.
+    Devolución: el técnico que devolvió y el almacenero que recibió.
+    """
     if rol == RECEPTOR:
+        if clase_documento(doc) == DEVOLUCION:
+            return doc.entregado_por
         return firmante_receptor(doc)
     if rol == ALMACEN:
         return doc.responsable
@@ -193,6 +236,17 @@ def contenido_documento(doc):
     No incluye cantidades devueltas/usadas: cambian después, al liquidar,
     y no forman parte de lo que se entregó.
     """
+    if clase_documento(doc) == DEVOLUCION:
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "sede_id": doc.sede_id,
+            "almacen_id": doc.responsable_id,
+            "tecnico_id": doc.entregado_por_id,
+            "items": _items_documento(doc),
+        }
     receptor = firmante_receptor(doc)
     resp = responsable_cuadrilla(doc)
     return {
@@ -204,11 +258,15 @@ def contenido_documento(doc):
         "almacen_id": doc.responsable_id,
         "responsable_cuadrilla_id": resp.id if resp else None,
         "retirado_por_id": receptor.id if receptor else None,
-        "items": [
-            [it.producto.codigo_interno, int(it.cantidad)]
-            for it in doc.items.select_related("producto").order_by("producto__codigo_interno")
-        ],
+        "items": _items_documento(doc),
     }
+
+
+def _items_documento(doc):
+    return [
+        [it.producto.codigo_interno, int(it.cantidad)]
+        for it in doc.items.select_related("producto").order_by("producto__codigo_interno")
+    ]
 
 
 def hash_documento(doc):
@@ -259,9 +317,9 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
     - El firmante es el usuario de la sesión (no un dato del formulario).
     - sha256_visto es la huella del documento que tenía en pantalla:
       si no coincide con la actual, el documento cambió y debe revisarlo de nuevo.
-    - acepto: marcó la declaración ACEPTACION[rol].
+    - acepto: marcó la declaración de ACEPTACION para ese documento y rol.
     """
-    if rol not in ACEPTACION:
+    if rol not in (RECEPTOR, ALMACEN):
         raise ValidationError("Tipo de firma no válido.")
     if not acepto:
         raise ValidationError("Marca la casilla de conformidad antes de firmar.")
@@ -273,14 +331,19 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
         # bloquear las tablas unidas que pueden venir vacías (retirado_por, etc.).
         doc = (
             DocumentoInventario.objects.select_for_update(of=("self",))
-            .select_related("origen", "solicitante", "retirado_por", "responsable", "sede")
+            .select_related("origen", "solicitante", "retirado_por", "responsable", "sede", "entregado_por")
             .get(id=doc_id)
         )
         if not requiere_firma(doc):
             raise ValidationError("Este documento no requiere firma.")
+        clase = clase_documento(doc)
 
         firmante = firmante_esperado(doc, rol)
         if not firmante or firmante.id != usuario.id:
+            if clase == DEVOLUCION:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo el técnico que devolvió el material puede firmar esta constancia.")
+                raise PermissionDenied("Solo el almacenero que recibió la devolución puede firmar esta constancia.")
             if rol == RECEPTOR:
                 raise PermissionDenied("Solo quien retiró el material puede firmar esta nota.")
             raise PermissionDenied("Solo el almacenero que despachó puede firmar esta nota.")
@@ -292,11 +355,13 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
         if sha256_visto != sha:
             raise ValidationError("El documento cambió. Vuelve a abrirlo, revísalo y firma de nuevo.")
 
-        resp = responsable_cuadrilla(doc)
+        resp = responsable_cuadrilla(doc) if clase == NOTA_SALIDA else None
         perfil = getattr(usuario, "profile", None)
         sede = perfil.get_sede_operativa() if perfil else None
         if rol == ALMACEN:
             condicion = "Almacén"
+        elif clase == DEVOLUCION:
+            condicion = "Técnico"
         else:
             condicion = "Responsable" if resp and resp.id == usuario.id else "Crew"
         datos = {
@@ -306,7 +371,7 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
             "condicion": condicion,
             "responsable_cuadrilla": _nombre(resp),
             "documento": doc.numero,
-            "aceptacion": ACEPTACION[rol],
+            "aceptacion": ACEPTACION[(clase, rol)],
         }
         try:
             return FirmaDocumento.objects.create(
@@ -324,15 +389,22 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
 
 
 def _notas_desde_despliegue():
-    """Notas de salida que pueden requerir firma, con todo lo necesario precargado."""
+    """Notas de salida y devoluciones que pueden requerir firma, con todo lo necesario precargado."""
     qs = (
-        DocumentoInventario.objects.filter(
-            tipo=TipoDocumento.SAL,
-            estado=EstadoDocumento.CONFIRMADO,
-            origen__tipo=TipoDocumento.REQ,
-            origen__tipo_requerimiento=TipoRequerimiento.LOCAL,
+        DocumentoInventario.objects.filter(estado=EstadoDocumento.CONFIRMADO)
+        .filter(
+            Q(
+                tipo=TipoDocumento.SAL,
+                origen__tipo=TipoDocumento.REQ,
+                origen__tipo_requerimiento=TipoRequerimiento.LOCAL,
+            )
+            | Q(
+                tipo=TipoDocumento.ING,
+                referencia__icontains="DEVOLUCION",
+                entregado_por__isnull=False,
+            )
         )
-        .select_related("origen", "sede", "solicitante", "retirado_por", "responsable")
+        .select_related("origen", "sede", "solicitante", "retirado_por", "responsable", "entregado_por")
         .prefetch_related("firmas")
         .order_by("-fecha")
     )
@@ -342,7 +414,7 @@ def _notas_desde_despliegue():
 
 def notas_para_firmar(usuario, rol=RECEPTOR):
     """
-    Notas de salida donde a `usuario` le toca firmar en el recuadro `rol`.
+    Notas de salida y devoluciones donde a `usuario` le toca firmar en el recuadro `rol`.
     Devuelve (pendientes, firmadas). Solo notas desde inicio_firmas(),
     para no pedir firma de notas antiguas (anteriores a esta función).
     """
@@ -352,6 +424,7 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
             Q(retirado_por=usuario)
             | Q(retirado_por__isnull=True, origen__retirado_por=usuario)
             | Q(retirado_por__isnull=True, origen__retirado_por__isnull=True, solicitante=usuario)
+            | Q(tipo=TipoDocumento.ING, entregado_por=usuario)
         )
     else:
         candidatas = candidatas.filter(responsable=usuario)
@@ -377,7 +450,7 @@ def notas_de_mi_equipo(usuario):
     de su cuadrilla (el Crew). Solo consulta: el Resp no firma por ellos.
     Cada nota trae `estado_crew` ("PENDIENTE", "FIRMADO" o "CAMBIADO").
     """
-    candidatas = _notas_desde_despliegue().filter(
+    candidatas = _notas_desde_despliegue().filter(tipo=TipoDocumento.SAL).filter(
         Q(solicitante=usuario) | Q(solicitante__isnull=True, origen__responsable=usuario)
     )
     notas = []

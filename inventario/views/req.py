@@ -42,6 +42,7 @@ from inventario.services.sal_service import req_to_sal
 from inventario.services.lookup_service import buscar_producto_por_code
 from inventario.services.req_service import clonar_req
 from inventario.permissions import role_required, sede_required, get_profile
+from inventario.services.firma_service import firmas_para_mostrar
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 import json
@@ -1628,12 +1629,22 @@ def devolucion_print(request, doc_id: int):
     """
     Imprime la constancia de devolución (Documento ING).
     """
-    doc = get_object_or_404(DocumentoInventario, id=doc_id, tipo=TipoDocumento.ING)
+    doc = get_object_or_404(
+        DocumentoInventario.objects.select_related("sede", "responsable", "entregado_por"),
+        id=doc_id, tipo=TipoDocumento.ING,
+    )
     
     # Validamos que sea una devolución
     if "DEVOLUCION" not in (doc.referencia or "").upper():
          messages.error(request, "Este documento no es una devolución de técnico.")
          return redirect("almacen_historial_global")
+
+    # Un técnico solo ve sus propias devoluciones (es quien las firma).
+    profile = get_profile(request.user)
+    if not profile:
+        return redirect("/")
+    if profile.rol == UserProfile.Rol.SOLICITANTE and doc.entregado_por_id != request.user.id:
+        return redirect("/")
 
     items = doc.items.select_related("producto").order_by("producto__nombre")
     total_cantidad = sum(int(it.cantidad) for it in items)
@@ -1644,6 +1655,7 @@ def devolucion_print(request, doc_id: int):
         "total_cantidad": total_cantidad,
         "fecha_impresion": timezone.now(),
         "usuario": request.user,
+        "firmas": firmas_para_mostrar(doc),
     })
 
 @require_POST

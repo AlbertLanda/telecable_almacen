@@ -21,11 +21,10 @@
 
 <div class="fn-wrap">
     <div class="fn-card">
-        <h2><i class='bx bx-pen'></i> Firmar nota {{ doc.numero }}</h2>
+        <h2><i class='bx bx-pen'></i> Firmar {{ info.nombre }} {{ doc.numero }}</h2>
         <div class="fn-meta">
             {{ doc.fecha|date:"d/m/Y H:i" }} · {{ doc.sede.nombre }}<br>
-            Entregado por almacén: {{ doc.responsable.get_full_name|default:doc.responsable.username }}<br>
-            Retirado por: {{ retirado_por }} · Responsable de cuadrilla: {{ responsable }}<br>
+            {% for linea in detalle %}{{ linea }}<br>{% endfor %}
             Firmas como: <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ firmas_como }})
         </div>
         <table class="fn-tabla">
@@ -37,7 +36,7 @@
             </tbody>
         </table>
         <div style="margin-top: 12px;">
-            <a href="{% url 'sal_print' doc.id %}" target="_blank" rel="noopener">Ver la nota completa</a>
+            <a href="{% url info.url_ver doc.id %}" target="_blank" rel="noopener">Ver el documento completo</a>
         </div>
     </div>
 
@@ -59,7 +58,7 @@
                 <a href="{% url url_lista %}" class="btn btn-outline-secondary">Cancelar</a>
                 <button type="button" id="firmaBorrar" class="btn btn-outline-secondary">Borrar firma</button>
             </div>
-            <button type="submit" id="firmaGuardar" class="btn btn-primary" disabled>Firmar nota</button>
+            <button type="submit" id="firmaGuardar" class="btn btn-primary" disabled>Firmar</button>
         </div>
     </form>
 </div>

@@ -283,7 +283,7 @@ class PantallaAlmacenTests(NotaSalidaMixin, TestCase):
 
     def test_almacenero_ve_su_pendiente_y_firma(self):
         self.client.force_login(self.almacen)
-        self.assertContains(self.client.get(reverse("dash_almacen")), "Notas por firmar (1)")
+        self.assertContains(self.client.get(reverse("dash_almacen")), "Documentos por firmar (1)")
         self.assertContains(self.client.get(reverse("almacen_por_firmar")), "SAL-F-001")
 
         pagina = self.client.get(self.url)
@@ -423,3 +423,108 @@ class HistorialConFirmasTests(NotaSalidaMixin, TestCase):
         respuesta = self.ver()
         self.assertContains(respuesta, "SAL-VIEJA")
         self.assertNotContains(respuesta, "Sin firmas")
+
+
+class DevolucionFirmaTests(NotaSalidaMixin, TestCase):
+    """Constancia de devolución: firma el técnico que devolvió y el almacenero que recibió."""
+
+    def devolucion(self, tecnico, numero="ING-DEV-001", referencia="DEVOLUCION-RAPIDA", **campos):
+        """Igual que almacen_devolucion_rapida: un ING confirmado con entregado_por = técnico."""
+        doc = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO, numero=numero,
+            sede=self.sede, responsable=self.almacen, entregado_por=tecnico,
+            referencia=referencia, **campos,
+        )
+        DocumentoItem.objects.create(documento=doc, producto=self.producto, cantidad=3)
+        return doc
+
+    def test_tecnico_y_almacen_firman_la_devolucion(self):
+        dev = self.devolucion(self.crew)
+        self.assertEqual(estado_documento(dev), "PENDIENTE")
+
+        firma = self.firmar(dev, self.crew)
+        self.assertEqual(firma.datos_firmante["condicion"], "Técnico")
+        self.assertIn("devuelto a almacén", firma.datos_firmante["aceptacion"])
+        self.assertEqual(estado_documento(dev), "PARCIAL")
+
+        firma = self.firmar(dev, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertIn("recibido conforme", firma.datos_firmante["aceptacion"])
+        self.assertEqual(estado_documento(dev), "FIRMADO")
+
+    def test_solo_el_tecnico_que_devolvio_y_el_almacenero_que_recibio(self):
+        dev = self.devolucion(self.crew)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(dev, self.resp)
+        otro_almacen = self.usuario("almacen_otro_f", UserProfile.Rol.ALMACEN)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(dev, otro_almacen, rol=FirmaDocumento.Rol.ALMACEN)
+
+    def test_cambio_despues_de_firmar_se_detecta(self):
+        dev = self.devolucion(self.crew)
+        self.firmar(dev, self.crew)
+        dev.items.update(cantidad=1)
+        self.assertEqual(estado_firma(dev), "CAMBIADO")
+
+    def test_otros_ingresos_y_devoluciones_viejas_no_se_firman(self):
+        compra = self.devolucion(self.crew, numero="ING-COMPRA", referencia="FACTURA 123")
+        vieja = self.devolucion(self.crew, numero="ING-VIEJA",
+                                fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.assertEqual(estado_documento(compra), "NO_APLICA")
+        self.assertEqual(estado_documento(vieja), "NO_APLICA")
+
+    def test_aparece_en_por_firmar_del_tecnico_y_del_almacen(self):
+        dev = self.devolucion(self.crew)
+        self.assertEqual(notas_para_firmar(self.crew)[0], [dev])
+        self.assertEqual(notas_para_firmar(self.almacen, FirmaDocumento.Rol.ALMACEN)[0], [dev])
+        self.assertEqual(notas_para_firmar(self.resp)[0], [])
+
+        self.client.force_login(self.crew)
+        respuesta = self.client.get(reverse("tecnico_por_firmar"))
+        self.assertContains(respuesta, "Constancia de devolución")
+        self.assertContains(respuesta, reverse("devolucion_print", args=[dev.id]))
+
+    def test_pantalla_de_firma_del_tecnico(self):
+        dev = self.devolucion(self.crew)
+        url = reverse("tecnico_firmar_nota", args=[dev.id])
+        self.client.force_login(self.crew)
+        respuesta = self.client.get(url)
+        self.assertContains(respuesta, "Firmar constancia de devolución ING-DEV-001")
+        self.assertContains(respuesta, "devuelto a almacén")
+
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(dev), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
+        self.assertTrue(dev.firmas.filter(rol=FirmaDocumento.Rol.RECEPTOR, firmante=self.crew).exists())
+
+    def test_pantalla_de_firma_del_almacen(self):
+        dev = self.devolucion(self.crew)
+        url = reverse("almacen_firmar_nota", args=[dev.id])
+        self.client.force_login(self.almacen)
+        self.assertContains(self.client.get(url), "recibido conforme")
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(dev), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("almacen_por_firmar"))
+
+    def test_constancia_impresa_con_firmas(self):
+        dev = self.devolucion(self.crew)
+        url = reverse("devolucion_print", args=[dev.id])
+        self.client.force_login(self.almacen)
+        self.assertContains(self.client.get(url), "Pendiente de firma", count=2)
+
+        self.firmar(dev, self.crew)
+        respuesta = self.client.get(url)
+        self.assertContains(respuesta, "Firmado electrónicamente por Crew_F (Técnico)")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)
+
+    def test_tecnico_solo_ve_sus_devoluciones(self):
+        dev = self.devolucion(self.crew)
+        url = reverse("devolucion_print", args=[dev.id])
+        self.client.force_login(self.crew)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.client.force_login(self.resp)
+        self.assertEqual(self.client.get(url).status_code, 302)
+
+    def test_estado_en_el_historial(self):
+        dev = self.devolucion(self.crew)
+        self.firmar(dev, self.crew)
+        self.client.force_login(self.almacen)
+        respuesta = self.client.get(reverse("almacen_historial_global"))
+        self.assertContains(respuesta, "Firma 1/2")
