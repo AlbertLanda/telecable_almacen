@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .firma-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+        margin-bottom: 24px; padding-bottom: 15px; border-bottom: 1px solid var(--border-light); }
+    .firma-header h2 { font-size: 26px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 10px; }
+    .firma-header p { color: var(--text-secondary); margin: 5px 0 0; font-size: 14px; }
+    .firma-section { font-size: 15px; font-weight: 700; color: var(--text-main); margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+    .firma-lista { display: grid; gap: 12px; }
+    .firma-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 14px; padding: 16px 18px;
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .firma-card.pendiente { border-left: 4px solid #f59e0b; }
+    .firma-card.firmada { border-left: 4px solid #16a34a; }
+    .firma-num { font-weight: 700; font-size: 15px; color: var(--text-main); }
+    .firma-meta { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+    .firma-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .firma-badge.pendiente { background: rgba(245, 158, 11, .15); color: #b45309; }
+    .firma-badge.firmada { background: rgba(22, 163, 74, .15); color: #15803d; }
+    .firma-acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn-firma { border: 1px solid var(--border-light); color: var(--text-main); background: transparent; padding: 6px 14px;
+        border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .firma-vacio { color: var(--text-secondary); padding: 24px; text-align: center; background: var(--bg-card);
+        border: 1px dashed var(--border-light); border-radius: 14px; }
+</style>
+
+<div style="max-width: 1000px; margin: 0 auto;">
+    <div class="firma-header">
+        <div>
+            <h2><i class='bx bx-pen' style="color: #f59e0b;"></i> Documentos por firmar</h2>
+            <p>{{ subtitulo }}</p>
+        </div>
+        <a href="{% url url_volver %}" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 600;">
+            <i class='bx bx-left-arrow-alt'></i> Volver al Panel
+        </a>
+    </div>
+
+    <div class="firma-section"><i class='bx bx-time-five'></i> Pendientes ({{ pendientes|length }})</div>
+    <div class="firma-lista">
+        {% for s in pendientes %}
+            <div class="firma-card pendiente">
+                <div>
+                    <div class="firma-num">{{ s.numero }}</div>
+                    <div class="firma-meta">
+                        {{ s.fecha|date:"d/m/Y H:i" }} · {{ s.sede.nombre }}
+                        {% if s.retirado_por and s.retirado_por != user %}· Retiró: {{ s.retirado_por.get_full_name|default:s.retirado_por.username }}{% endif %}
+                        {% if s.solicitante and s.solicitante != user %}· Responsable: {{ s.solicitante.get_full_name|default:s.solicitante.username }}{% endif %}
+                    </div>
+                </div>
+                <div class="firma-acciones">
+                    <span class="firma-badge pendiente">Pendiente de firma</span>
+                    <a href="{% url 'sal_print' s.id %}" target="_blank" class="btn-firma"><i class='bx bx-file'></i> Ver nota</a>
+                    <a href="{% url url_firmar s.id %}" class="btn-firma" style="border-color: #f59e0b;"><i class='bx bx-pen'></i> Firmar</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="firma-vacio"><i class='bx bx-check-circle'></i> No tienes documentos pendientes de firma.</div>
+        {% endfor %}
+    </div>
+
+    {% if firmadas %}
+        <div class="firma-section"><i class='bx bx-check-shield'></i> Firmados recientemente</div>
+        <div class="firma-lista">
+            {% for s in firmadas %}
+                <div class="firma-card firmada">
+                    <div>
+                        <div class="firma-num">{{ s.numero }}</div>
+                        <div class="firma-meta">Firmado el {{ s.mi_firma.firmado_en|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <div class="firma-acciones">
+                        <span class="firma-badge firmada">Firmado</span>
+                        <a href="{% url 'sal_print' s.id %}" target="_blank" class="btn-firma"><i class='bx bx-file'></i> Ver nota</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

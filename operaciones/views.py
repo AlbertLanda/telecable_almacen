@@ -14,6 +14,9 @@ from datetime import timedelta
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 from inventario.services.seriales_service import equipos_de_mochila, ids_unicos
+from inventario.services.firma_service import notas_para_firmar
+from inventario.models import FirmaDocumento
+from inventario.views.firma import lista_por_firmar, pantalla_firma
 from django.contrib.auth import get_user_model
 
 # Importamos modelos del Core
@@ -291,6 +294,26 @@ def tecnico_mis_entregas(request):
     ).select_related("origen", "sede").order_by("-fecha")[:50]
 
     return render(request, "operaciones/tecnico_mis_entregas.html", {"sals": sals})
+
+@login_required
+def tecnico_por_firmar(request):
+    """
+    Documentos que el técnico debe firmar desde su sesión.
+    Por ahora: notas de salida (carga de mochila) donde él retiró el material.
+    """
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
+    return lista_por_firmar(
+        request, FirmaDocumento.Rol.RECEPTOR,
+        url_firmar="tecnico_firmar_nota",
+        url_volver="tecnico_dashboard",
+        subtitulo="Notas de salida del material que retiraste de almacén",
+    )
+
+@login_required
+def tecnico_firmar_nota(request, sal_id):
+    """Resumen de la nota y recuadro para firmar como quien retiró (Resp o Crew)."""
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
+    return pantalla_firma(request, sal_id, FirmaDocumento.Rol.RECEPTOR, url_lista="tecnico_por_firmar")
 
 @login_required
 def tecnico_mis_reqs(request):
@@ -698,6 +721,7 @@ def tecnico_dashboard(request):
         "materiales": materiales,
         "material_obras": material_obras,
         "material_cuadrilla": material_cuadrilla,
+        "firmas_pendientes": len(notas_para_firmar(request.user)[0]),
     })
 
 

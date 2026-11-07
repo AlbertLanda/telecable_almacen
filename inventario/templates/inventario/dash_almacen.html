@@ -1112,6 +1112,17 @@
                     <i class='bx bx-chevron-right quick-arrow'></i>
                 </a>
 
+                <a href="{% url 'almacen_por_firmar' %}" class="quick-hero-item">
+                    <div class="quick-icon amber">
+                        <i class='bx bx-pen'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Notas por firmar{% if firmas_pendientes %} ({{ firmas_pendientes }}){% endif %}</strong>
+                        <span>Firma las notas de salida que despachaste.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
                 <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-hero-item">
                     <div class="quick-icon purple">
                         <i class='bx bx-reply-all'></i>

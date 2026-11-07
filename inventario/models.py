@@ -931,3 +931,45 @@ class CorreccionSeriales(TimeStampedModel):
     clave = models.CharField(max_length=100, unique=True)
     usuario = models.ForeignKey(User, on_delete=models.PROTECT)
     detalle = models.JSONField()
+
+
+# ============================================================
+# Firma manuscrita en pantalla
+# ============================================================
+class FirmaDocumento(TimeStampedModel):
+    """
+    Constancia de que una persona firmó a mano (en pantalla) un documento.
+
+    No es firma digital con certificado: guarda el trazo, quién firmó
+    (según su sesión), cuándo y un resumen (hash SHA-256) del contenido
+    del documento en ese momento, para detectar si cambió después.
+    Idea tomada de la firma manuscrita de Telecable RRHH.
+    """
+
+    class Rol(models.TextChoices):
+        RECEPTOR = "RECEPTOR", "Quien retira / recibe"
+        ALMACEN = "ALMACEN", "Encargado de almacén"
+
+    documento = models.ForeignKey(
+        DocumentoInventario, on_delete=models.PROTECT, related_name="firmas"
+    )
+    rol = models.CharField(max_length=10, choices=Rol.choices)
+    firmante = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="firmas_documentos"
+    )
+    trazo_png = models.BinaryField()
+    datos_firmante = models.JSONField(default=dict)
+    sha256_contenido = models.CharField(max_length=64)
+    firmado_en = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Firma de documento"
+        verbose_name_plural = "Firmas de documentos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["documento", "rol"], name="uq_firma_documento_rol"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.documento} - {self.get_rol_display()} - {self.firmante}"

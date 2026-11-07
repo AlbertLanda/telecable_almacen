@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .fn-wrap { max-width: 760px; margin: 0 auto; }
+    .fn-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 20px; margin-bottom: 18px; }
+    .fn-card h2 { font-size: 22px; font-weight: 700; margin: 0 0 4px; color: var(--text-main); }
+    .fn-meta { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+    .fn-tabla { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .fn-tabla th, .fn-tabla td { padding: 8px 6px; border-bottom: 1px solid var(--border-light); text-align: left; color: var(--text-main); }
+    .fn-tabla th:last-child, .fn-tabla td:last-child { text-align: right; }
+    #firmaLienzo { display: block; width: 100%; height: auto; aspect-ratio: 25 / 9; background: #fff;
+        border: 2px dashed #94a3b8; border-radius: 10px; touch-action: none; user-select: none; box-sizing: border-box; }
+    .fn-acepto { display: flex; gap: 10px; font-size: 14px; line-height: 1.5; padding: 12px; border-radius: 10px;
+        background: rgba(148, 163, 184, .12); color: var(--text-main); margin: 12px 0; }
+    .fn-acepto input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; }
+    .fn-botones { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+    #firmaGuardar:disabled { opacity: .55; }
+</style>
+
+<div class="fn-wrap">
+    <div class="fn-card">
+        <h2><i class='bx bx-pen'></i> Firmar nota {{ doc.numero }}</h2>
+        <div class="fn-meta">
+            {{ doc.fecha|date:"d/m/Y H:i" }} · {{ doc.sede.nombre }}<br>
+            Entregado por almacén: {{ doc.responsable.get_full_name|default:doc.responsable.username }}<br>
+            Retirado por: {{ retirado_por }} · Responsable de cuadrilla: {{ responsable }}<br>
+            Firmas como: <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ firmas_como }})
+        </div>
+        <table class="fn-tabla">
+            <thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th></tr></thead>
+            <tbody>
+                {% for it in items %}
+                    <tr><td>{{ it.producto.codigo_interno }}</td><td>{{ it.producto.nombre }}</td><td>{{ it.cantidad }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="margin-top: 12px;">
+            <a href="{% url 'sal_print' doc.id %}" target="_blank" rel="noopener">Ver la nota completa</a>
+        </div>
+    </div>
+
+    <form method="post" id="firmaForm" class="fn-card">
+        {% csrf_token %}
+        <input type="hidden" name="sha256" value="{{ sha256 }}">
+        <input type="hidden" name="trazo" value="">
+        <p class="fn-meta" id="firmaInstruccion" style="margin-top: 0;">
+            Firma dentro del recuadro con tu dedo, lápiz o mouse. Puedes borrar y volver a intentarlo.
+        </p>
+        <canvas id="firmaLienzo" width="1000" height="360"
+                aria-label="Recuadro para dibujar tu firma" aria-describedby="firmaInstruccion"></canvas>
+        <label class="fn-acepto">
+            <input type="checkbox" name="acepto" value="1">
+            <span>{{ aceptacion }}</span>
+        </label>
+        <div class="fn-botones">
+            <div style="display: flex; gap: 10px;">
+                <a href="{% url url_lista %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="button" id="firmaBorrar" class="btn btn-outline-secondary">Borrar firma</button>
+            </div>
+            <button type="submit" id="firmaGuardar" class="btn btn-primary" disabled>Firmar nota</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'inventario/firma.js' %}"></script>
+{% endblock %}
