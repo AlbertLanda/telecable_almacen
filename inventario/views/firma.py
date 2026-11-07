@@ -85,6 +85,8 @@ def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo):
         "url_firmar": url_firmar,
         "url_volver": url_volver,
         "subtitulo": subtitulo,
+        # Solo para técnicos: lo que retiró su cuadrilla a su cargo (solo consulta).
+        "equipo": firma_service.notas_de_mi_equipo(request.user)[:50] if rol == RECEPTOR else [],
     })
 
 

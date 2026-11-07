@@ -369,3 +369,24 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
             doc.mi_firma = firma
             firmadas.append(doc)
     return pendientes, firmadas
+
+
+def notas_de_mi_equipo(usuario):
+    """
+    Para el Tecnico_Resp: notas de salida a su cargo que retiró otra persona
+    de su cuadrilla (el Crew). Solo consulta: el Resp no firma por ellos.
+    Cada nota trae `estado_crew` ("PENDIENTE", "FIRMADO" o "CAMBIADO").
+    """
+    candidatas = _notas_desde_despliegue().filter(
+        Q(solicitante=usuario) | Q(solicitante__isnull=True, origen__responsable=usuario)
+    )
+    notas = []
+    for doc in candidatas:
+        resp = responsable_cuadrilla(doc)
+        receptor = firmante_receptor(doc)
+        if not resp or resp.id != usuario.id or not receptor or receptor.id == usuario.id:
+            continue
+        doc.receptor = receptor
+        doc.estado_crew = estado_firma(doc, RECEPTOR)
+        notas.append(doc)
+    return notas

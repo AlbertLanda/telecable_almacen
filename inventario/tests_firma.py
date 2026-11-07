@@ -157,8 +157,9 @@ class ApartadoPorFirmarTests(NotaSalidaMixin, TestCase):
         self.assertContains(self.client.get(self.url), "SAL-F-CREW")
         self.assertContains(self.client.get(reverse("tecnico_dashboard")), "1 documento pendiente")
 
+        # El Resp no la tiene para firmar (solo la ve en "Notas de mi equipo").
         self.client.force_login(self.resp)
-        self.assertNotContains(self.client.get(self.url), "SAL-F-CREW")
+        self.assertEqual(self.client.get(self.url).context["pendientes"], [])
 
     def test_firmada_pasa_a_firmados(self):
         sal = self.nota_salida(retirado_por=self.crew)
@@ -304,3 +305,46 @@ class PantallaAlmacenTests(NotaSalidaMixin, TestCase):
         self.client.force_login(self.crew)
         self.assertEqual(self.client.get(self.url).status_code, 403)
         self.assertEqual(self.client.get(reverse("almacen_por_firmar")).status_code, 403)
+
+
+class EquipoDelResponsableTests(NotaSalidaMixin, TestCase):
+    url = reverse_lazy("tecnico_por_firmar")
+
+    def test_resp_ve_estado_de_la_nota_del_crew_sin_poder_firmarla(self):
+        sal = self.nota_salida(retirado_por=self.crew, numero="SAL-EQUIPO")
+        self.client.force_login(self.resp)
+        pagina = self.client.get(self.url)
+        self.assertContains(pagina, "Notas de mi equipo")
+        self.assertEqual(pagina.context["equipo"], [sal])
+        self.assertEqual(pagina.context["pendientes"], [])  # no le toca firmar
+        self.assertNotContains(pagina, reverse("tecnico_firmar_nota", args=[sal.id]))
+        self.assertContains(pagina, "Pendiente de firma")
+
+        self.firmar(sal, self.crew)
+        pagina = self.client.get(self.url)
+        self.assertEqual(pagina.context["equipo"][0].estado_crew, "FIRMADO")
+
+    def test_lo_que_retira_el_resp_no_sale_en_equipo(self):
+        self.nota_salida(retirado_por=self.resp)
+        self.client.force_login(self.resp)
+        pagina = self.client.get(self.url)
+        self.assertEqual(pagina.context["equipo"], [])
+        self.assertEqual(len(pagina.context["pendientes"]), 1)
+
+    def test_crew_no_ve_seccion_de_equipo(self):
+        self.nota_salida(retirado_por=self.crew)
+        self.client.force_login(self.crew)
+        self.assertNotContains(self.client.get(self.url), "Notas de mi equipo")
+
+
+class VerNotaSalidaTests(NotaSalidaMixin, TestCase):
+    def test_crew_resp_pueden_ver_la_nota_y_otro_tecnico_no(self):
+        sal = self.nota_salida(retirado_por=self.crew)
+        url = reverse("sal_print", args=[sal.id])
+        for usuario in (self.crew, self.resp):
+            with self.subTest(usuario=usuario.username):
+                self.client.force_login(usuario)
+                self.assertEqual(self.client.get(url).status_code, 200)
+        otro = self.usuario("otro_tecnico_f", UserProfile.Rol.SOLICITANTE)
+        self.client.force_login(otro)
+        self.assertEqual(self.client.get(url).status_code, 302)
