@@ -51,7 +51,7 @@
                 <div class="firma-acciones">
                     <span class="firma-badge pendiente">Pendiente de firma</span>
                     <a href="{{ s.info.url }}" target="_blank" class="btn-firma"><i class='bx bx-file'></i> Ver documento</a>
-                    <a href="{% url url_firmar s.id %}" class="btn-firma" style="border-color: #f59e0b;"><i class='bx bx-pen'></i> Firmar</a>
+                    <a href="{{ s.url_firmar }}" class="btn-firma" style="border-color: #f59e0b;"><i class='bx bx-pen'></i> Firmar</a>
                 </div>
             </div>
         {% empty %}

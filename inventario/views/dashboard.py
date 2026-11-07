@@ -36,7 +36,8 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
-from inventario.services.firma_service import ALMACEN as FIRMA_ALMACEN, estado_documento, notas_para_firmar
+from inventario.services.firma_service import estado_documento
+from inventario.views.firma import documentos_del_almacenero
 
 
 # --------------------
@@ -510,7 +511,7 @@ def dash_almacen(request):
 
         # Notificaciones
         "notificacion_proyectos": count_proyectos_activos,
-        "firmas_pendientes": len(notas_para_firmar(request.user, FIRMA_ALMACEN)[0]),
+        "firmas_pendientes": len(documentos_del_almacenero(request.user)[0]),
 
         # Datos para gráficos
         "chart_stock_data": [stock_saludable, stock_bajo, stock_critico],

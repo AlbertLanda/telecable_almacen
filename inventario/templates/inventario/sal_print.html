@@ -274,7 +274,13 @@
             </div>
         </div>
 
-        {% if firmas.requiere %}
+        {% if firmas.requiere and sal.sede_destino %}
+        {# Traslado entre sedes: firma el almacén que envía y, al recepcionar, el que recibe #}
+        <div class="signatures">
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="ENVÍA: ALMACÉN "|add:sal.sede.nombre %}
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="RECIBE: ALMACÉN "|add:sal.sede_destino.nombre %}
+        </div>
+        {% elif firmas.requiere %}
         <div class="signatures">
             {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="FIRMA DE QUIEN RETIRA" %}
             {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="FIRMA ENCARGADO DE ALMACÉN" %}

@@ -32,6 +32,10 @@ def describir(doc):
         return {"nombre": "constancia de devolución", "url": reverse("devolucion_print", args=[doc.id])}
     if clase == firma_service.LIQUIDACION:
         return {"nombre": "liquidación", "url": reverse("liquidacion_tecnico_print", args=[doc.id])}
+    if clase == firma_service.TRASLADO:
+        return {"nombre": "traslado entre sedes", "url": reverse("sal_print", args=[doc.id])}
+    if clase == firma_service.PEDIDO_SEDES:
+        return {"nombre": "pedido entre sedes", "url": reverse("req_print", args=[doc.id])}
     if clase == firma_service.SALIDA_OBRA:
         obra = firma_service.obra_del_documento(doc)
         return {
@@ -48,9 +52,10 @@ def pantalla_firma(request, sal_id, rol, url_lista):
     """
     doc = get_object_or_404(
         DocumentoInventario.objects.select_related(
-            "origen", "sede", "solicitante", "retirado_por", "responsable", "entregado_por"
+            "origen", "sede", "sede_destino", "solicitante", "retirado_por", "responsable",
+            "entregado_por", "recibido_por",
         ),
-        id=sal_id, tipo__in=(TipoDocumento.SAL, TipoDocumento.ING),
+        id=sal_id, tipo__in=(TipoDocumento.SAL, TipoDocumento.ING, TipoDocumento.REQ),
     )
     if not firma_service.requiere_firma(doc):
         raise Http404("Este documento no requiere firma.")
@@ -79,7 +84,20 @@ def pantalla_firma(request, sal_id, rol, url_lista):
             return redirect(url_lista)
 
     clase = firma_service.clase_documento(doc)
-    if clase == firma_service.SALIDA_OBRA:
+    if clase == firma_service.TRASLADO:
+        detalle = [
+            f"De {doc.sede.nombre} a {doc.sede_destino.nombre}",
+            f"Envió: {_nombre(doc.responsable)} · Recibió: {_nombre(doc.recibido_por)}",
+        ]
+        firmas_como = "Almacén que recibe" if rol == RECEPTOR else "Almacén que envía"
+    elif clase == firma_service.PEDIDO_SEDES:
+        salida = firma_service.salida_del_pedido(doc)
+        detalle = [
+            f"Pedido de {doc.sede.nombre} a {doc.sede_destino.nombre}",
+            f"Pidió: {_nombre(doc.responsable)} · Atendió: {_nombre(salida.responsable if salida else None)}",
+        ]
+        firmas_como = "Sede solicitante" if rol == RECEPTOR else "Sede que atendió"
+    elif clase == firma_service.SALIDA_OBRA:
         obra = firma_service.obra_del_documento(doc)
         detalle = [
             f"Obra: {obra.codigo} - {obra.nombre}" if obra else f"Obra: {doc.referencia}",
@@ -125,14 +143,35 @@ def pantalla_firma(request, sal_id, rol, url_lista):
     })
 
 
-def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo):
-    pendientes, firmadas = firma_service.notas_para_firmar(request.user, rol)
+def documentos_del_almacenero(usuario):
+    """
+    Lo que firma un almacenero: como almacén (despachó, recibió una devolución,
+    liquidó, envió un traslado, atendió un pedido) y, entre sedes, como la sede
+    que recibe el traslado o que hizo el pedido.
+    Devuelve (pendientes, firmadas) con `url_firmar` en cada documento.
+    """
+    pend_alm, firm_alm = firma_service.notas_para_firmar(usuario, ALMACEN)
+    pend_rec, firm_rec = firma_service.notas_para_firmar(usuario, RECEPTOR)
+    entre_sedes = (firma_service.TRASLADO, firma_service.PEDIDO_SEDES)
+    pend_rec = [d for d in pend_rec if firma_service.clase_documento(d) in entre_sedes]
+    firm_rec = [d for d in firm_rec if firma_service.clase_documento(d) in entre_sedes]
+    for doc in pend_alm:
+        doc.url_firmar = reverse("almacen_firmar_nota", args=[doc.id])
+    for doc in pend_rec:
+        doc.url_firmar = reverse("almacen_firmar_recepcion", args=[doc.id])
+    por_fecha = lambda docs: sorted(docs, key=lambda d: d.fecha, reverse=True)
+    return por_fecha(pend_alm + pend_rec), por_fecha(firm_alm + firm_rec)
+
+
+def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo, documentos=None):
+    pendientes, firmadas = documentos or firma_service.notas_para_firmar(request.user, rol)
     for doc in pendientes + firmadas:
         doc.info = describir(doc)
+        if not getattr(doc, "url_firmar", None) and url_firmar:
+            doc.url_firmar = reverse(url_firmar, args=[doc.id])
     return render(request, "inventario/notas_por_firmar.html", {
         "pendientes": pendientes,
         "firmadas": firmadas[:30],
-        "url_firmar": url_firmar,
         "url_volver": url_volver,
         "subtitulo": subtitulo,
         # Solo para técnicos: lo que retiró su cuadrilla a su cargo (solo consulta).
@@ -148,9 +187,10 @@ def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo):
 def almacen_por_firmar(request):
     return lista_por_firmar(
         request, ALMACEN,
-        url_firmar="almacen_firmar_nota",
+        url_firmar=None,
         url_volver="dash_almacen",
-        subtitulo="Salidas que despachaste (a técnicos y obras), devoluciones que recibiste y liquidaciones",
+        subtitulo="Salidas que despachaste (a técnicos, obras y otras sedes), devoluciones, liquidaciones y pedidos entre sedes",
+        documentos=documentos_del_almacenero(request.user),
     )
 
 
@@ -158,3 +198,10 @@ def almacen_por_firmar(request):
 @role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
 def almacen_firmar_nota(request, sal_id):
     return pantalla_firma(request, sal_id, ALMACEN, url_lista="almacen_por_firmar")
+
+
+@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+def almacen_firmar_recepcion(request, sal_id):
+    """Entre sedes: firma de la sede que recibe el traslado o que hizo el pedido."""
+    return pantalla_firma(request, sal_id, RECEPTOR, url_lista="almacen_por_firmar")

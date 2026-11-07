@@ -88,6 +88,16 @@
     .sig-box { text-align: center; }
     .sig-line { border-top: 1px solid var(--ink); width: 80%; margin: 0 auto 5px auto; height: 1px; }
     .sig-role { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    /* Firma en pantalla: mismo recuadro que la nota de salida */
+    .signatures-firma { display: flex; justify-content: space-between; margin-top: 50px; padding: 0 30px; page-break-inside: avoid; }
+    .sign-col { width: 40%; display: flex; flex-direction: column; }
+    .sign-box { text-align: center; border-top: 1px solid var(--ink); padding-top: 5px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .sign-col .sign-box { width: 100%; }
+    .sign-trazo { height: 62px; display: flex; align-items: flex-end; justify-content: center; }
+    .sign-trazo img { max-height: 62px; max-width: 100%; }
+    .sign-pendiente { font-size: 9px; color: #888; font-style: italic; }
+    .sign-constancia { font-size: 8px; text-align: center; margin-top: 3px; }
+    .sign-cambio { font-size: 8px; text-align: center; color: #c00; font-weight: 700; }
 
     .floating-actions {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -207,6 +217,12 @@
       {{ req.observaciones|default:"Sin observaciones adicionales." }}
     </div>
 
+    {% if firmas.requiere %}
+    <div class="signatures-firma">
+      {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="SOLICITANTE ("|add:req.sede.nombre|add:")" %}
+      {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="ATENDIDO POR ("|add:req.sede_destino.nombre|add:")" %}
+    </div>
+    {% else %}
     <div class="signatures">
       <div class="sig-box">
         <div style="height: 50px;"></div>
@@ -219,6 +235,7 @@
         <div class="sig-role">Recepción Conforme ({{ req.sede_destino.nombre|default:"-" }})</div>
       </div>
     </div>
+    {% endif %}
 
   </div>
 

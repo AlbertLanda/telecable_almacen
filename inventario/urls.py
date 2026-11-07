@@ -24,7 +24,7 @@ from .views.api import (
 )
 
 # Firma en pantalla de notas de salida (almacenero)
-from .views.firma import almacen_por_firmar, almacen_firmar_nota
+from .views.firma import almacen_por_firmar, almacen_firmar_nota, almacen_firmar_recepcion
 
 # 3. Importación de SCAN
 from .views.scan import scan_view
@@ -131,6 +131,7 @@ urlpatterns = [
     path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path("almacen/por-firmar/", almacen_por_firmar, name="almacen_por_firmar"),
     path("almacen/firmar/<int:sal_id>/", almacen_firmar_nota, name="almacen_firmar_nota"),
+    path("almacen/firmar-recepcion/<int:sal_id>/", almacen_firmar_recepcion, name="almacen_firmar_recepcion"),
     path("req/<int:req_id>/atender/", req_atender, name="req_atender"),
     
 

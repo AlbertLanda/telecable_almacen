@@ -35,8 +35,10 @@ MAX_FIRMA = 250_000  # bytes del PNG (≈ 250 KB)
 
 # Las dos partes que firman cada documento:
 # RECEPTOR = el técnico (retira en la nota de salida, entrega en la devolución,
-#            da conformidad en la liquidación, recibe como responsable de la obra).
-# ALMACEN  = el almacenero (despacha, recibe la devolución o liquida).
+#            da conformidad en la liquidación, recibe como responsable de la obra);
+#            en traslados y pedidos entre sedes, el almacén de la sede que pide/recibe.
+# ALMACEN  = el almacenero que despacha, recibe la devolución o liquida;
+#            en traslados y pedidos entre sedes, el almacén de la sede que envía/atiende.
 RECEPTOR = FirmaDocumento.Rol.RECEPTOR
 ALMACEN = FirmaDocumento.Rol.ALMACEN
 
@@ -45,6 +47,8 @@ NOTA_SALIDA = "SAL"   # nota de salida a técnico (REQ local)
 DEVOLUCION = "DEV"    # constancia de devolución del técnico (ING)
 LIQUIDACION = "LIQ"   # acta de liquidación semanal del técnico (ING LIQ-SEMANAL)
 SALIDA_OBRA = "OBRA"  # despacho de materiales a una obra (SAL con referencia = código de obra)
+TRASLADO = "TRAS"     # traslado entre sedes (SAL con sede destino)
+PEDIDO_SEDES = "PED"  # pedido entre sedes (REQ ENTRE_SEDES ya atendido)
 REF_LIQUIDACION = "LIQ-SEMANAL"
 
 # Texto que cada parte acepta al firmar (queda guardado con la firma).
@@ -79,6 +83,22 @@ ACEPTACION = {
     ),
     (SALIDA_OBRA, ALMACEN): (
         "Declaro haber entregado el material de este despacho para la obra, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (TRASLADO, ALMACEN): (
+        "Declaro haber enviado a la otra sede el material detallado en este traslado, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (TRASLADO, RECEPTOR): (
+        "Declaro haber recibido conforme en mi sede el material de este traslado, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (PEDIDO_SEDES, RECEPTOR): (
+        "Declaro que este es el pedido que hizo mi sede, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (PEDIDO_SEDES, ALMACEN): (
+        "Declaro haber atendido este pedido desde mi sede, "
         "y lo confirmo con mi firma manuscrita electrónica."
     ),
 }
@@ -188,8 +208,8 @@ def clase_documento(doc):
     """
     Qué documento firmable es: NOTA_SALIDA (despacha un REQ local a un técnico),
     DEVOLUCION (ingreso por devolución de un técnico), LIQUIDACION (liquidación
-    semanal de la mochila de un técnico), SALIDA_OBRA (despacho a una obra)
-    o None si no se firma.
+    semanal de la mochila de un técnico), SALIDA_OBRA (despacho a una obra),
+    TRASLADO (salida a otra sede), PEDIDO_SEDES (pedido entre sedes) o None.
     """
     if (
         doc.tipo == TipoDocumento.SAL
@@ -210,6 +230,18 @@ def clase_documento(doc):
         and doc.solicitante_id is not None
     ):
         return LIQUIDACION
+    if (
+        doc.tipo == TipoDocumento.SAL
+        and doc.sede_destino_id is not None
+        and doc.sede_destino_id != doc.sede_id
+    ):
+        return TRASLADO
+    if (
+        doc.tipo == TipoDocumento.REQ
+        and doc.tipo_requerimiento == TipoRequerimiento.ENTRE_SEDES
+        and doc.sede_destino_id is not None
+    ):
+        return PEDIDO_SEDES
     if (
         doc.tipo == TipoDocumento.SAL
         and doc.origen_id is None
@@ -233,14 +265,31 @@ def obra_del_documento(doc):
     return Proyecto.objects.filter(codigo=doc.referencia).select_related("sede").first()
 
 
-def requiere_firma(doc):
-    """Nota de salida, devolución, liquidación o despacho a obra confirmado, desde el despliegue de las firmas."""
-    desde = inicio_firmas()
+def salida_del_pedido(req):
+    """La salida (SAL) con la que la otra sede atendió el pedido."""
     return (
-        (desde is None or doc.fecha >= desde)
-        and doc.estado == EstadoDocumento.CONFIRMADO
-        and clase_documento(doc) is not None
+        DocumentoInventario.objects.filter(tipo=TipoDocumento.SAL, origen=req)
+        .exclude(estado=EstadoDocumento.ANULADO)
+        .select_related("responsable", "sede")
+        .order_by("fecha")
+        .first()
     )
+
+
+def requiere_firma(doc):
+    """
+    Documento firmable, confirmado (o, si es un pedido entre sedes, ya atendido),
+    desde el despliegue de las firmas.
+    """
+    desde = inicio_firmas()
+    if desde is not None and doc.fecha < desde:
+        return False
+    clase = clase_documento(doc)
+    if clase is None:
+        return False
+    if clase == PEDIDO_SEDES:
+        return doc.estado == EstadoDocumento.REQ_ATENDIDO
+    return doc.estado == EstadoDocumento.CONFIRMADO
 
 
 def texto_aceptacion(doc, rol):
@@ -272,8 +321,18 @@ def firmante_esperado(doc, rol):
     Despacho a obra: el técnico responsable de la obra (el material se le carga a él,
     aunque lo retire otro) y el almacenero que despachó.
     """
+    clase = clase_documento(doc)
+    if clase == TRASLADO:
+        # Quien recibe firma después de recepcionar en su sede.
+        if rol == RECEPTOR:
+            return doc.recibido_por if doc.recibido else None
+        return doc.responsable if rol == ALMACEN else None
+    if clase == PEDIDO_SEDES:
+        if rol == RECEPTOR:
+            return doc.responsable  # quien hizo el pedido
+        salida = salida_del_pedido(doc) if rol == ALMACEN else None
+        return salida.responsable if salida else None
     if rol == RECEPTOR:
-        clase = clase_documento(doc)
         if clase == DEVOLUCION:
             return doc.entregado_por
         if clase in (LIQUIDACION, SALIDA_OBRA):
@@ -299,6 +358,29 @@ def contenido_documento(doc):
             "sede_id": doc.sede_id,
             "almacen_id": doc.responsable_id,
             "tecnico_id": doc.entregado_por_id,
+            "items": _items_documento(doc),
+        }
+    if clase_documento(doc) == TRASLADO:
+        # Sin los datos de recepción: cambian después, cuando la otra sede recibe.
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "sede_id": doc.sede_id,
+            "sede_destino_id": doc.sede_destino_id,
+            "almacen_id": doc.responsable_id,
+            "items": _items_documento(doc),
+        }
+    if clase_documento(doc) == PEDIDO_SEDES:
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "sede_id": doc.sede_id,
+            "sede_destino_id": doc.sede_destino_id,
+            "solicitante_id": doc.responsable_id,
             "items": _items_documento(doc),
         }
     if clase_documento(doc) == SALIDA_OBRA:
@@ -415,7 +497,9 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
         # bloquear las tablas unidas que pueden venir vacías (retirado_por, etc.).
         doc = (
             DocumentoInventario.objects.select_for_update(of=("self",))
-            .select_related("origen", "solicitante", "retirado_por", "responsable", "sede", "entregado_por")
+            .select_related(
+                "origen", "solicitante", "retirado_por", "responsable", "sede", "entregado_por", "recibido_por"
+            )
             .get(id=doc_id)
         )
         if not requiere_firma(doc):
@@ -428,6 +512,14 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el técnico que devolvió el material puede firmar esta constancia.")
                 raise PermissionDenied("Solo el almacenero que recibió la devolución puede firmar esta constancia.")
+            if clase == TRASLADO:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo el almacenero que recepcionó el traslado puede firmar como quien recibe.")
+                raise PermissionDenied("Solo el almacenero que envió el traslado puede firmar como quien envía.")
+            if clase == PEDIDO_SEDES:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo quien hizo el pedido puede firmarlo como solicitante.")
+                raise PermissionDenied("Solo el almacenero que atendió el pedido puede firmarlo.")
             if clase == SALIDA_OBRA:
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el técnico responsable de la obra puede firmar este despacho.")
@@ -450,7 +542,11 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
         resp = responsable_cuadrilla(doc) if clase == NOTA_SALIDA else None
         perfil = getattr(usuario, "profile", None)
         sede = perfil.get_sede_operativa() if perfil else None
-        if rol == ALMACEN:
+        if clase == TRASLADO:
+            condicion = "Almacén que recibe" if rol == RECEPTOR else "Almacén que envía"
+        elif clase == PEDIDO_SEDES:
+            condicion = "Sede solicitante" if rol == RECEPTOR else "Sede que atendió"
+        elif rol == ALMACEN:
             condicion = "Almacén"
         elif clase in (DEVOLUCION, LIQUIDACION):
             condicion = "Técnico"
@@ -483,11 +579,9 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
 
 
 def _notas_desde_despliegue():
-    """Notas de salida, devoluciones, liquidaciones y despachos a obra que pueden requerir firma."""
+    """Documentos que pueden requerir firma (todas las clases), con lo necesario precargado."""
     from proyectos.models import Proyecto
-    qs = (
-        DocumentoInventario.objects.filter(estado=EstadoDocumento.CONFIRMADO)
-        .filter(
+    confirmados = Q(estado=EstadoDocumento.CONFIRMADO) & (
             Q(
                 tipo=TipoDocumento.SAL,
                 origen__tipo=TipoDocumento.REQ,
@@ -510,8 +604,20 @@ def _notas_desde_despliegue():
                 solicitante__isnull=False,
                 referencia__in=Proyecto.objects.values("codigo"),
             )
+            | Q(tipo=TipoDocumento.SAL, sede_destino__isnull=False)
+    )
+    pedidos = Q(
+        tipo=TipoDocumento.REQ,
+        tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES,
+        estado=EstadoDocumento.REQ_ATENDIDO,
+        sede_destino__isnull=False,
+    )
+    qs = (
+        DocumentoInventario.objects.filter(confirmados | pedidos)
+        .select_related(
+            "origen", "sede", "sede_destino", "solicitante", "retirado_por",
+            "responsable", "entregado_por", "recibido_por",
         )
-        .select_related("origen", "sede", "solicitante", "retirado_por", "responsable", "entregado_por")
         .prefetch_related("firmas")
         .order_by("-fecha")
     )
@@ -534,9 +640,14 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
             | Q(tipo=TipoDocumento.ING, entregado_por=usuario)
             | Q(tipo=TipoDocumento.ING, referencia=REF_LIQUIDACION, solicitante=usuario)
             | Q(tipo=TipoDocumento.SAL, origen__isnull=True, solicitante=usuario)
+            | Q(tipo=TipoDocumento.SAL, sede_destino__isnull=False, recibido_por=usuario)
+            | Q(tipo=TipoDocumento.REQ, responsable=usuario)
         )
     else:
-        candidatas = candidatas.filter(responsable=usuario)
+        candidatas = candidatas.filter(
+            Q(responsable=usuario)
+            | Q(tipo=TipoDocumento.REQ, derivados__tipo=TipoDocumento.SAL, derivados__responsable=usuario)
+        ).distinct()
 
     pendientes, firmadas = [], []
     for doc in candidatas:
@@ -560,7 +671,9 @@ def notas_de_mi_equipo(usuario):
     Cada nota trae `estado_crew` ("PENDIENTE", "FIRMADO" o "CAMBIADO").
     """
     # Solo notas de salida de un pedido (REQ): en los despachos a obra firma el propio Resp.
-    candidatas = _notas_desde_despliegue().filter(tipo=TipoDocumento.SAL, origen__isnull=False).filter(
+    candidatas = _notas_desde_despliegue().filter(
+        tipo=TipoDocumento.SAL, origen__tipo_requerimiento=TipoRequerimiento.LOCAL,
+    ).filter(
         Q(solicitante=usuario) | Q(solicitante__isnull=True, origen__responsable=usuario)
     )
     notas = []

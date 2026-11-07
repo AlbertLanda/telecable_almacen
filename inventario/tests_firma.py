@@ -16,6 +16,7 @@ from inventario.models import (
 from inventario.services.firma_service import (
     estado_documento, estado_firma, hash_documento, notas_para_firmar, registrar_firma, validar_trazo,
 )
+from inventario.views.firma import documentos_del_almacenero
 
 
 def png_base64(con_trazo=True, formato="PNG"):
@@ -690,3 +691,126 @@ class SalidaObraFirmaTests(NotaSalidaMixin, TestCase):
         vale = self.client.get(reverse("proyecto_pdf_salida", args=[self.obra.id]))
         self.assertContains(vale, "DNI: _________________")
         self.assertNotContains(vale, "Pendiente de firma")
+
+
+class EntreSedesMixin(NotaSalidaMixin):
+    """Oroya pide a la sede central; la central atiende con un traslado; Oroya recepciona."""
+
+    def setUp(self):
+        super().setUp()
+        self.oroya = Sede.objects.create(nombre="SEDE-OROYA-F", tipo=Sede.SECUNDARIO)
+        self.alm_oroya = self.usuario("almacen_oroya_f", UserProfile.Rol.ALMACEN)
+        self.alm_oroya.profile.sede_principal = self.oroya
+        self.alm_oroya.profile.save()
+
+    def pedido_atendido(self, numero="REQ-SED-001", recibido=False, **campos):
+        req = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.REQ, estado=EstadoDocumento.REQ_ATENDIDO, numero=numero,
+            tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES, sede=self.oroya, sede_destino=self.sede,
+            responsable=self.alm_oroya, **campos,
+        )
+        DocumentoItem.objects.create(documento=req, producto=self.producto, cantidad=10)
+        sal = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.SAL, estado=EstadoDocumento.CONFIRMADO, numero=numero.replace("REQ", "SAL"),
+            sede=self.sede, sede_destino=self.oroya, responsable=self.almacen, solicitante=self.alm_oroya,
+            origen=req, referencia=f"Atención de {numero}", **campos,
+        )
+        DocumentoItem.objects.create(documento=sal, producto=self.producto, cantidad=10)
+        if recibido:
+            self.recibir(sal)
+        return req, sal
+
+    def recibir(self, sal):
+        sal.recibido, sal.recibido_por, sal.recibido_en = True, self.alm_oroya, timezone.now()
+        sal.save(update_fields=["recibido", "recibido_por", "recibido_en"])
+
+
+class TrasladoFirmaTests(EntreSedesMixin, TestCase):
+    def test_envia_firma_ya_y_recibe_firma_despues_de_recepcionar(self):
+        _, sal = self.pedido_atendido()
+        self.firmar(sal, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        with self.assertRaises(PermissionDenied):
+            self.firmar(sal, self.alm_oroya)  # aún no recepciona
+        self.assertNotIn(sal, notas_para_firmar(self.alm_oroya)[0])  # el pedido sí, el traslado aún no
+
+        self.recibir(sal)
+        firma = self.firmar(sal, self.alm_oroya)
+        self.assertEqual(firma.datos_firmante["condicion"], "Almacén que recibe")
+        self.assertEqual(estado_documento(sal), "FIRMADO")
+
+    def test_recibir_no_rompe_la_firma_de_quien_envia(self):
+        _, sal = self.pedido_atendido()
+        self.firmar(sal, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.recibir(sal)
+        self.assertEqual(estado_firma(sal, FirmaDocumento.Rol.ALMACEN), "FIRMADO")
+
+    def test_traslados_viejos_no_se_firman(self):
+        _, sal = self.pedido_atendido(fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.assertEqual(estado_documento(sal), "NO_APLICA")
+
+    def test_lista_y_pantallas_del_almacen(self):
+        _, sal = self.pedido_atendido(recibido=True)
+        self.client.force_login(self.alm_oroya)
+        lista = self.client.get(reverse("almacen_por_firmar"))
+        self.assertContains(lista, "Traslado entre sedes")
+        url = reverse("almacen_firmar_recepcion", args=[sal.id])
+        self.assertContains(lista, url)
+        pantalla = self.client.get(url)
+        self.assertContains(pantalla, "Firmar traslado entre sedes")
+        self.assertContains(pantalla, "De SEDE-FIRMA a SEDE-OROYA-F")
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(sal), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("almacen_por_firmar"))
+        self.assertTrue(sal.firmas.filter(rol=FirmaDocumento.Rol.RECEPTOR, firmante=self.alm_oroya).exists())
+
+    def test_nota_impresa_del_traslado(self):
+        _, sal = self.pedido_atendido(recibido=True)
+        self.firmar(sal, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.client.force_login(self.almacen)
+        respuesta = self.client.get(reverse("sal_print", args=[sal.id]))
+        self.assertContains(respuesta, "ENVÍA: ALMACÉN SEDE-FIRMA")
+        self.assertContains(respuesta, "RECIBE: ALMACÉN SEDE-OROYA-F")
+        self.assertContains(respuesta, "Almacén que envía")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)
+
+
+class PedidoSedesFirmaTests(EntreSedesMixin, TestCase):
+    def test_firma_quien_pidio_y_quien_atendio(self):
+        req, _ = self.pedido_atendido()
+        with self.assertRaises(PermissionDenied):
+            self.firmar(req, self.almacen)  # el que atendió no firma como solicitante
+        firma = self.firmar(req, self.alm_oroya)
+        self.assertEqual(firma.datos_firmante["condicion"], "Sede solicitante")
+        firma = self.firmar(req, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(firma.datos_firmante["condicion"], "Sede que atendió")
+        self.assertEqual(estado_documento(req), "FIRMADO")
+
+    def test_pedido_sin_atender_no_se_firma(self):
+        req, _ = self.pedido_atendido()
+        req.estado = EstadoDocumento.REQ_PENDIENTE
+        req.save(update_fields=["estado"])
+        self.assertEqual(estado_documento(req), "NO_APLICA")
+
+    def test_aparece_en_la_lista_de_ambos_almacenes(self):
+        req, sal = self.pedido_atendido()
+        pend_oroya, _ = documentos_del_almacenero(self.alm_oroya)
+        pend_central, _ = documentos_del_almacenero(self.almacen)
+        self.assertIn(req, pend_oroya)
+        self.assertIn(req, pend_central)
+        self.assertIn(sal, pend_central)        # el traslado, como quien envía
+        self.assertNotIn(sal, pend_oroya)       # aún no lo recepciona
+
+    def test_pedido_impreso_con_firmas(self):
+        req, _ = self.pedido_atendido()
+        self.firmar(req, self.alm_oroya)
+        self.client.force_login(self.almacen)
+        respuesta = self.client.get(reverse("req_print", args=[req.id]))
+        self.assertContains(respuesta, "SOLICITANTE (SEDE-OROYA-F)")
+        self.assertContains(respuesta, "ATENDIDO POR (SEDE-FIRMA)")
+        self.assertContains(respuesta, "Firmado electrónicamente por Almacen_Oroya_F (Sede solicitante)")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)
+
+    def test_tecnico_no_ve_documentos_entre_sedes(self):
+        self.pedido_atendido(recibido=True)
+        self.assertEqual(notas_para_firmar(self.crew)[0], [])
+        self.client.force_login(self.resp)
+        self.assertNotContains(self.client.get(reverse("tecnico_por_firmar")), "entre sedes")

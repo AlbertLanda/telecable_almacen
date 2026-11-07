@@ -828,7 +828,8 @@ def req_print(request, req_id: int):
     return render(request, template, {
         "req": req,
         "items": items,
-        "total_cantidad": sum(int(it.cantidad) for it in items)
+        "total_cantidad": sum(int(it.cantidad) for it in items),
+        "firmas": firmas_para_mostrar(req),
     })
 
 @require_POST
