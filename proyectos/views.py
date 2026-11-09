@@ -26,7 +26,7 @@ from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendiente
 from inventario.models import UserProfile
 
 from .utils import render_to_pdf
-from inventario.services.firma_service import firmas_para_mostrar
+from inventario.services.firma_service import acta_firmas_para_mostrar, firmas_para_mostrar
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 
@@ -932,7 +932,8 @@ def almacen_liquidar_proyecto(request, proyecto_id):
 
                 proyecto.estado = EstadoProyecto.FINALIZADO
                 proyecto.fin = timezone.now()
-                proyecto.save(update_fields=["estado", "fin", "actualizado_en"])
+                proyecto.liquidado_por = request.user  # firma el V° B° del acta de cierre
+                proyecto.save(update_fields=["estado", "fin", "liquidado_por", "actualizado_en"])
 
                 messages.success(request, f"Proyecto {proyecto.codigo} LIQUIDADO.")
                 return redirect("almacen_liquidacion_lista")
@@ -976,6 +977,7 @@ def proyecto_pdf_liquidacion(request, proyecto_id):
         'despachos': _despachos_del_proyecto(proyecto),
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
+        'firmas': acta_firmas_para_mostrar(proyecto),
     }
     
     # 🚀 CAMBIO CLAVE: Usamos render normal

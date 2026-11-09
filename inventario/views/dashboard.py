@@ -36,7 +36,7 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
-from inventario.services.firma_service import estado_documento
+from inventario.services.firma_service import acta_estado, estado_documento
 from inventario.views.firma import documentos_del_almacenero
 
 
@@ -701,6 +701,8 @@ def almacen_historial_global(request):
     for item in page_obj:
         if item.tipo_movimiento in ("SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO"):
             item.estado_firma = estado_documento(item)
+        elif item.tipo_movimiento == "CIERRE_OBRA":
+            item.estado_firma = acta_estado(item)
 
     return render(
         request,

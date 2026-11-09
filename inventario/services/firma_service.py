@@ -49,6 +49,7 @@ LIQUIDACION = "LIQ"   # acta de liquidación semanal del técnico (ING LIQ-SEMAN
 SALIDA_OBRA = "OBRA"  # despacho de materiales a una obra (SAL con referencia = código de obra)
 TRASLADO = "TRAS"     # traslado entre sedes (SAL con sede destino)
 PEDIDO_SEDES = "PED"  # pedido entre sedes (REQ ENTRE_SEDES ya atendido)
+ORDEN_PROVEEDOR = "OC"  # orden de compra a proveedor (REQ PROVEEDOR ya recepcionada)
 REF_LIQUIDACION = "LIQ-SEMANAL"
 
 # Texto que cada parte acepta al firmar (queda guardado con la firma).
@@ -99,6 +100,14 @@ ACEPTACION = {
     ),
     (PEDIDO_SEDES, ALMACEN): (
         "Declaro haber atendido este pedido desde mi sede, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (ORDEN_PROVEEDOR, RECEPTOR): (
+        "Declaro que esta es la orden de compra que solicité, "
+        "y lo confirmo con mi firma manuscrita electrónica."
+    ),
+    (ORDEN_PROVEEDOR, ALMACEN): (
+        "Declaro haber recibido conforme la mercadería de esta orden de compra, "
         "y lo confirmo con mi firma manuscrita electrónica."
     ),
 }
@@ -209,7 +218,8 @@ def clase_documento(doc):
     Qué documento firmable es: NOTA_SALIDA (despacha un REQ local a un técnico),
     DEVOLUCION (ingreso por devolución de un técnico), LIQUIDACION (liquidación
     semanal de la mochila de un técnico), SALIDA_OBRA (despacho a una obra),
-    TRASLADO (salida a otra sede), PEDIDO_SEDES (pedido entre sedes) o None.
+    TRASLADO (salida a otra sede), PEDIDO_SEDES (pedido entre sedes),
+    ORDEN_PROVEEDOR (orden de compra) o None.
     """
     if (
         doc.tipo == TipoDocumento.SAL
@@ -242,6 +252,8 @@ def clase_documento(doc):
         and doc.sede_destino_id is not None
     ):
         return PEDIDO_SEDES
+    if doc.tipo == TipoDocumento.REQ and doc.tipo_requerimiento == TipoRequerimiento.PROVEEDOR:
+        return ORDEN_PROVEEDOR
     if (
         doc.tipo == TipoDocumento.SAL
         and doc.origen_id is None
@@ -266,9 +278,13 @@ def obra_del_documento(doc):
 
 
 def salida_del_pedido(req):
-    """La salida (SAL) con la que la otra sede atendió el pedido."""
+    """
+    El documento con que se atendió el pedido: la salida (SAL) de la otra sede
+    en un pedido entre sedes, o el ingreso (ING) de la compra en una orden a proveedor.
+    """
+    tipo = TipoDocumento.ING if req.tipo_requerimiento == TipoRequerimiento.PROVEEDOR else TipoDocumento.SAL
     return (
-        DocumentoInventario.objects.filter(tipo=TipoDocumento.SAL, origen=req)
+        DocumentoInventario.objects.filter(tipo=tipo, origen=req)
         .exclude(estado=EstadoDocumento.ANULADO)
         .select_related("responsable", "sede")
         .order_by("fecha")
@@ -287,7 +303,7 @@ def requiere_firma(doc):
     clase = clase_documento(doc)
     if clase is None:
         return False
-    if clase == PEDIDO_SEDES:
+    if clase in (PEDIDO_SEDES, ORDEN_PROVEEDOR):
         return doc.estado == EstadoDocumento.REQ_ATENDIDO
     return doc.estado == EstadoDocumento.CONFIRMADO
 
@@ -327,9 +343,10 @@ def firmante_esperado(doc, rol):
         if rol == RECEPTOR:
             return doc.recibido_por if doc.recibido else None
         return doc.responsable if rol == ALMACEN else None
-    if clase == PEDIDO_SEDES:
+    if clase in (PEDIDO_SEDES, ORDEN_PROVEEDOR):
+        # Quien hizo el pedido / la orden, y quien la atendió / recepcionó la compra.
         if rol == RECEPTOR:
-            return doc.responsable  # quien hizo el pedido
+            return doc.responsable
         salida = salida_del_pedido(doc) if rol == ALMACEN else None
         return salida.responsable if salida else None
     if rol == RECEPTOR:
@@ -370,6 +387,18 @@ def contenido_documento(doc):
             "sede_id": doc.sede_id,
             "sede_destino_id": doc.sede_destino_id,
             "almacen_id": doc.responsable_id,
+            "items": _items_documento(doc),
+        }
+    if clase_documento(doc) == ORDEN_PROVEEDOR:
+        return {
+            "tipo": doc.tipo,
+            "numero": doc.numero,
+            "fecha": doc.fecha.isoformat(),
+            "estado": doc.estado,
+            "sede_id": doc.sede_id,
+            "solicitante_id": doc.responsable_id,
+            "proveedor_id": doc.proveedor_id,
+            "proveedor_manual": doc.proveedor_manual or "",
             "items": _items_documento(doc),
         }
     if clase_documento(doc) == PEDIDO_SEDES:
@@ -516,6 +545,10 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo el almacenero que recepcionó el traslado puede firmar como quien recibe.")
                 raise PermissionDenied("Solo el almacenero que envió el traslado puede firmar como quien envía.")
+            if clase == ORDEN_PROVEEDOR:
+                if rol == RECEPTOR:
+                    raise PermissionDenied("Solo quien hizo la orden de compra puede firmarla como solicitante.")
+                raise PermissionDenied("Solo el almacenero que recepcionó la compra puede firmar la recepción.")
             if clase == PEDIDO_SEDES:
                 if rol == RECEPTOR:
                     raise PermissionDenied("Solo quien hizo el pedido puede firmarlo como solicitante.")
@@ -546,6 +579,8 @@ def registrar_firma(*, doc_id, usuario, rol, trazo, sha256_visto, acepto):
             condicion = "Almacén que recibe" if rol == RECEPTOR else "Almacén que envía"
         elif clase == PEDIDO_SEDES:
             condicion = "Sede solicitante" if rol == RECEPTOR else "Sede que atendió"
+        elif clase == ORDEN_PROVEEDOR:
+            condicion = "Solicitante" if rol == RECEPTOR else "Recepción conforme"
         elif rol == ALMACEN:
             condicion = "Almacén"
         elif clase in (DEVOLUCION, LIQUIDACION):
@@ -606,11 +641,9 @@ def _notas_desde_despliegue():
             )
             | Q(tipo=TipoDocumento.SAL, sede_destino__isnull=False)
     )
-    pedidos = Q(
-        tipo=TipoDocumento.REQ,
-        tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES,
-        estado=EstadoDocumento.REQ_ATENDIDO,
-        sede_destino__isnull=False,
+    pedidos = Q(tipo=TipoDocumento.REQ, estado=EstadoDocumento.REQ_ATENDIDO) & (
+        Q(tipo_requerimiento=TipoRequerimiento.ENTRE_SEDES, sede_destino__isnull=False)
+        | Q(tipo_requerimiento=TipoRequerimiento.PROVEEDOR)
     )
     qs = (
         DocumentoInventario.objects.filter(confirmados | pedidos)
@@ -646,7 +679,7 @@ def notas_para_firmar(usuario, rol=RECEPTOR):
     else:
         candidatas = candidatas.filter(
             Q(responsable=usuario)
-            | Q(tipo=TipoDocumento.REQ, derivados__tipo=TipoDocumento.SAL, derivados__responsable=usuario)
+            | Q(tipo=TipoDocumento.REQ, derivados__responsable=usuario)
         ).distinct()
 
     pendientes, firmadas = [], []
@@ -710,3 +743,184 @@ def firmas_para_mostrar(doc):
                 "vigente": firma.sha256_contenido == sha,
             }
     return resultado
+
+
+# ============================================================
+# Acta de cierre de obra: se firma la obra (Proyecto), no un documento de inventario.
+# RECEPTOR = técnico responsable de la obra; ALMACEN = almacenero que la liquidó.
+# ============================================================
+ACTA_CIERRE = "ACTA"
+
+ACEPTACION[(ACTA_CIERRE, RECEPTOR)] = (
+    "Como responsable técnico, acepto la conformidad del consumo, la merma y las "
+    "devoluciones de esta obra, y lo confirmo con mi firma manuscrita electrónica."
+)
+ACEPTACION[(ACTA_CIERRE, ALMACEN)] = (
+    "Doy el visto bueno de almacén al cierre de esta obra y a la conciliación de sus "
+    "materiales, y lo confirmo con mi firma manuscrita electrónica."
+)
+
+
+def acta_requiere_firma(proyecto):
+    """Obra finalizada (liquidada) desde el despliegue de las firmas, con responsable y liquidador."""
+    from proyectos.models import EstadoProyecto
+    desde = inicio_firmas()
+    return bool(
+        proyecto.estado == EstadoProyecto.FINALIZADO
+        and proyecto.fin
+        and (desde is None or proyecto.fin >= desde)
+        and proyecto.responsable_id
+        and proyecto.liquidado_por_id
+    )
+
+
+def acta_firmante(proyecto, rol):
+    if rol == RECEPTOR:
+        return proyecto.responsable
+    if rol == ALMACEN:
+        return proyecto.liquidado_por
+    return None
+
+
+def acta_contenido(proyecto):
+    """Lo que muestra el acta: entregado, devuelto, merma y consumo de cada material."""
+    return {
+        "obra": proyecto.codigo,
+        "estado": proyecto.estado,
+        "fin": proyecto.fin.isoformat() if proyecto.fin else None,
+        "sede_id": proyecto.sede_id,
+        "responsable_id": proyecto.responsable_id,
+        "liquidado_por_id": proyecto.liquidado_por_id,
+        "materiales": [
+            [m.producto.codigo_interno, int(m.cantidad_entregada or 0), int(m.cantidad_devuelta or 0),
+             int(m.cantidad_merma or 0), int(m.cantidad_usada or 0)]
+            for m in proyecto.materiales.select_related("producto").order_by("producto__codigo_interno", "id")
+        ],
+    }
+
+
+def acta_hash(proyecto):
+    texto = json.dumps(acta_contenido(proyecto), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()
+
+
+def _firma_acta(proyecto, rol):
+    return next((f for f in proyecto.firmas_acta.all() if f.rol == rol), None)
+
+
+def acta_estado_firma(proyecto, rol=RECEPTOR):
+    if not acta_requiere_firma(proyecto):
+        return "NO_APLICA"
+    firma = _firma_acta(proyecto, rol)
+    if not firma:
+        return "PENDIENTE"
+    return "FIRMADO" if firma.sha256_contenido == acta_hash(proyecto) else "CAMBIADO"
+
+
+def acta_estado(proyecto):
+    """Igual que estado_documento, para el acta de cierre."""
+    if not acta_requiere_firma(proyecto):
+        return "NO_APLICA"
+    hechas = [f for f in (_firma_acta(proyecto, RECEPTOR), _firma_acta(proyecto, ALMACEN)) if f]
+    if not hechas:
+        return "PENDIENTE"
+    sha = acta_hash(proyecto)
+    if any(f.sha256_contenido != sha for f in hechas):
+        return "CAMBIADO"
+    return "FIRMADO" if len(hechas) == 2 else "PARCIAL"
+
+
+def registrar_firma_acta(*, proyecto_id, usuario, rol, trazo, sha256_visto, acepto):
+    """Guarda la firma del acta de cierre. Mismas reglas que registrar_firma."""
+    from proyectos.models import Proyecto
+    if rol not in (RECEPTOR, ALMACEN):
+        raise ValidationError("Tipo de firma no válido.")
+    if not acepto:
+        raise ValidationError("Marca la casilla de conformidad antes de firmar.")
+    png = validar_trazo(trazo)
+
+    with transaction.atomic():
+        proyecto = (
+            Proyecto.objects.select_for_update(of=("self",))
+            .select_related("sede", "responsable", "liquidado_por")
+            .get(id=proyecto_id)
+        )
+        if not acta_requiere_firma(proyecto):
+            raise ValidationError("Esta obra no requiere firma del acta de cierre.")
+        firmante = acta_firmante(proyecto, rol)
+        if not firmante or firmante.id != usuario.id:
+            if rol == RECEPTOR:
+                raise PermissionDenied("Solo el técnico responsable de la obra puede firmar el acta.")
+            raise PermissionDenied("Solo el almacenero que liquidó la obra puede firmar el visto bueno.")
+        if proyecto.firmas_acta.filter(rol=rol).exists():
+            raise ValidationError("Ya firmaste esta acta.")
+        sha = acta_hash(proyecto)
+        if sha256_visto != sha:
+            raise ValidationError("El acta cambió. Vuelve a abrirla, revísala y firma de nuevo.")
+
+        perfil = getattr(usuario, "profile", None)
+        sede = perfil.get_sede_operativa() if perfil else None
+        datos = {
+            "nombre": _nombre(usuario),
+            "usuario": usuario.username,
+            "sede": sede.nombre if sede else "",
+            "condicion": "Responsable técnico" if rol == RECEPTOR else "Jefatura de almacén",
+            "documento": proyecto.codigo,
+            "aceptacion": ACEPTACION[(ACTA_CIERRE, rol)],
+        }
+        try:
+            return FirmaDocumento.objects.create(
+                proyecto=proyecto, rol=rol, firmante=usuario, trazo_png=png,
+                datos_firmante=datos, sha256_contenido=sha, firmado_en=timezone.now(),
+            )
+        except IntegrityError:
+            raise ValidationError("Ya firmaste esta acta.")
+
+
+def _vista_firma(firma, sha):
+    datos = firma.datos_firmante or {}
+    return {
+        "imagen": PREFIJO_PNG + base64.b64encode(bytes(firma.trazo_png)).decode("ascii"),
+        "nombre": datos.get("nombre") or firma.firmante.username,
+        "condicion": datos.get("condicion", ""),
+        "fecha": firma.firmado_en,
+        "vigente": firma.sha256_contenido == sha,
+    }
+
+
+def acta_firmas_para_mostrar(proyecto):
+    resultado = {"requiere": acta_requiere_firma(proyecto), RECEPTOR: None, ALMACEN: None}
+    if not resultado["requiere"]:
+        return resultado
+    sha = acta_hash(proyecto)
+    for rol in (RECEPTOR, ALMACEN):
+        firma = _firma_acta(proyecto, rol)
+        if firma:
+            resultado[rol] = _vista_firma(firma, sha)
+    return resultado
+
+
+def actas_para_firmar(usuario, rol=RECEPTOR):
+    """Actas de cierre donde a `usuario` le toca firmar. Devuelve (pendientes, firmadas)."""
+    from proyectos.models import EstadoProyecto, Proyecto
+    qs = (
+        Proyecto.objects.filter(estado=EstadoProyecto.FINALIZADO, fin__isnull=False)
+        .select_related("sede", "responsable", "liquidado_por")
+        .prefetch_related("firmas_acta")
+        .order_by("-fin")
+    )
+    qs = qs.filter(responsable=usuario) if rol == RECEPTOR else qs.filter(liquidado_por=usuario)
+    desde = inicio_firmas()
+    if desde:
+        qs = qs.filter(fin__gte=desde)
+    pendientes, firmadas = [], []
+    for p in qs:
+        if not acta_requiere_firma(p):
+            continue
+        firma = _firma_acta(p, rol)
+        if firma is None:
+            pendientes.append(p)
+        else:
+            p.mi_firma = firma
+            firmadas.append(p)
+    return pendientes, firmadas

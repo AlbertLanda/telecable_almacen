@@ -814,3 +814,155 @@ class PedidoSedesFirmaTests(EntreSedesMixin, TestCase):
         self.assertEqual(notas_para_firmar(self.crew)[0], [])
         self.client.force_login(self.resp)
         self.assertNotContains(self.client.get(reverse("tecnico_por_firmar")), "entre sedes")
+
+
+class OrdenProveedorFirmaTests(NotaSalidaMixin, TestCase):
+    """Orden de compra: firma quien la pidió y quien recepcionó la compra. La aprobación queda a mano."""
+
+    def setUp(self):
+        super().setUp()
+        self.alm_2 = self.usuario("almacen_dos_f", UserProfile.Rol.ALMACEN)
+
+    def orden_recibida(self, numero="OC-F-001", recibida=True, **campos):
+        req = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.REQ, numero=numero, sede=self.sede, responsable=self.almacen,
+            tipo_requerimiento=TipoRequerimiento.PROVEEDOR, proveedor_manual="Proveedor SAC",
+            estado=EstadoDocumento.REQ_ATENDIDO if recibida else EstadoDocumento.REQ_PENDIENTE, **campos,
+        )
+        DocumentoItem.objects.create(documento=req, producto=self.producto, cantidad=50)
+        if recibida:
+            ing = DocumentoInventario.objects.create(
+                tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO, sede=self.sede,
+                responsable=self.alm_2, origen=req, referencia=f"Llegada Compra {numero}", **campos,
+            )
+            DocumentoItem.objects.create(documento=ing, producto=self.producto, cantidad=50)
+        return req
+
+    def test_firma_quien_pidio_y_quien_recepciono(self):
+        req = self.orden_recibida()
+        with self.assertRaises(PermissionDenied):
+            self.firmar(req, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)  # pidió, no recepcionó
+        self.assertEqual(self.firmar(req, self.almacen).datos_firmante["condicion"], "Solicitante")
+        firma = self.firmar(req, self.alm_2, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(firma.datos_firmante["condicion"], "Recepción conforme")
+        self.assertEqual(estado_documento(req), "FIRMADO")
+
+    def test_orden_sin_recibir_o_vieja_no_se_firma(self):
+        pendiente = self.orden_recibida(numero="OC-PEND", recibida=False)
+        vieja = self.orden_recibida(numero="OC-VIEJA", fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.assertEqual(estado_documento(pendiente), "NO_APLICA")
+        self.assertEqual(estado_documento(vieja), "NO_APLICA")
+
+    def test_aparece_en_la_lista_de_cada_almacenero(self):
+        req = self.orden_recibida()
+        self.assertIn(req, documentos_del_almacenero(self.almacen)[0])
+        self.assertIn(req, documentos_del_almacenero(self.alm_2)[0])
+        self.client.force_login(self.alm_2)
+        lista = self.client.get(reverse("almacen_por_firmar"))
+        self.assertContains(lista, "Orden de compra")
+        self.assertContains(lista, reverse("almacen_firmar_nota", args=[req.id]))
+
+    def test_orden_impresa_con_firmas_y_aprobacion_a_mano(self):
+        req = self.orden_recibida()
+        self.firmar(req, self.alm_2, rol=FirmaDocumento.Rol.ALMACEN)
+        self.client.force_login(self.almacen)
+        respuesta = self.client.get(reverse("req_print", args=[req.id]))
+        self.assertContains(respuesta, "JEFE DE COMPRAS / APROBACIÓN")
+        self.assertContains(respuesta, "Firmado electrónicamente por Almacen_Dos_F (Recepción conforme)")
+        self.assertContains(respuesta, "Pendiente de firma", count=1)
+
+
+class ActaCierreObraFirmaTests(NotaSalidaMixin, TestCase):
+    """Acta de cierre: firma el técnico responsable de la obra y el almacenero que la liquidó."""
+
+    def setUp(self):
+        super().setUp()
+        from proyectos.models import EstadoProyecto, Proyecto, ProyectoMaterial
+        self.obra = Proyecto.objects.create(
+            codigo="OBRA-2026-0099", nombre="Obra acta de cierre", sede=self.sede,
+            creado_por=self.almacen, responsable=self.resp, estado=EstadoProyecto.FINALIZADO,
+            fin=timezone.now(), liquidado_por=self.almacen,
+        )
+        self.material = ProyectoMaterial.objects.create(
+            proyecto=self.obra, producto=self.producto, cantidad_planificada=10,
+            cantidad_entregada=10, cantidad_devuelta=2, cantidad_merma=1, cantidad_usada=7,
+        )
+
+    def firmar_acta(self, usuario, rol=FirmaDocumento.Rol.RECEPTOR, sha=None):
+        from inventario.services.firma_service import acta_hash, registrar_firma_acta
+        return registrar_firma_acta(
+            proyecto_id=self.obra.id, usuario=usuario, rol=rol, trazo=png_base64(),
+            sha256_visto=sha or acta_hash(self.obra), acepto=True,
+        )
+
+    def estado(self):
+        from inventario.services.firma_service import acta_estado
+        self.obra.refresh_from_db()
+        return acta_estado(self.obra)
+
+    def test_firma_el_responsable_y_quien_liquido(self):
+        self.assertEqual(self.estado(), "PENDIENTE")
+        with self.assertRaises(PermissionDenied):
+            self.firmar_acta(self.crew)
+        otro = self.usuario("almacen_otro_f", UserProfile.Rol.ALMACEN)
+        with self.assertRaises(PermissionDenied):
+            self.firmar_acta(otro, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(self.firmar_acta(self.resp).datos_firmante["condicion"], "Responsable técnico")
+        self.firmar_acta(self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.assertEqual(self.estado(), "FIRMADO")
+
+    def test_cambiar_merma_o_consumo_despues_de_firmar_se_detecta(self):
+        self.firmar_acta(self.resp)
+        self.material.cantidad_merma, self.material.cantidad_usada = 0, 8
+        self.material.save()
+        self.assertEqual(self.estado(), "CAMBIADO")
+
+    def test_obras_sin_liquidador_o_viejas_no_se_firman(self):
+        self.obra.liquidado_por = None
+        self.obra.save()
+        self.assertEqual(self.estado(), "NO_APLICA")
+        self.obra.liquidado_por = self.almacen
+        self.obra.fin = timezone.make_aware(datetime(2026, 10, 1, 9, 0))
+        self.obra.save()
+        self.assertEqual(self.estado(), "NO_APLICA")
+
+    def test_aparece_en_por_firmar_y_se_firma_en_pantalla(self):
+        self.client.force_login(self.resp)
+        lista = self.client.get(reverse("tecnico_por_firmar"))
+        self.assertContains(lista, "Acta de cierre de obra")
+        url = reverse("tecnico_firmar_acta", args=[self.obra.id])
+        self.assertContains(lista, url)
+        pantalla = self.client.get(url)
+        self.assertContains(pantalla, "Firmar acta de cierre de obra OBRA-2026-0099")
+        from inventario.services.firma_service import acta_hash
+        respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": acta_hash(self.obra), "acepto": "1"})
+        self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
+        self.assertTrue(self.obra.firmas_acta.filter(firmante=self.resp).exists())
+
+        self.client.force_login(self.almacen)
+        lista = self.client.get(reverse("almacen_por_firmar"))
+        self.assertContains(lista, reverse("almacen_firmar_acta", args=[self.obra.id]))
+
+    def test_acta_impresa_con_firmas_y_estado_en_historial(self):
+        self.firmar_acta(self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.client.force_login(self.almacen)
+        acta = self.client.get(reverse("proyecto_pdf_liquidacion", args=[self.obra.id]))
+        self.assertContains(acta, "JEFATURA DE ALMACÉN · V° B° CONFORMIDAD")
+        self.assertContains(acta, "Firmado electrónicamente por Almacen_F (Jefatura de almacén)")
+        self.assertContains(acta, "Pendiente de firma", count=1)
+        historial = self.client.get(reverse("almacen_historial_global"))
+        self.assertContains(historial, "Firma 1/2")
+
+    def test_liquidar_la_obra_guarda_quien_la_liquido(self):
+        from proyectos.models import EstadoProyecto
+        self.obra.estado, self.obra.liquidado_por, self.obra.fin = EstadoProyecto.EN_PROCESO, None, None
+        self.obra.save()
+        self.material.cantidad_devuelta = self.material.cantidad_merma = self.material.cantidad_usada = 0
+        self.material.save()
+        self.client.force_login(self.almacen)
+        self.client.post(reverse("almacen_liquidar_proyecto", args=[self.obra.id]),
+                         {f"input_good_{self.material.id}": 0, f"input_bad_{self.material.id}": 0})
+        self.obra.refresh_from_db()
+        self.assertEqual(self.obra.estado, EstadoProyecto.FINALIZADO)
+        self.assertEqual(self.obra.liquidado_por, self.almacen)
+        self.assertEqual(self.estado(), "PENDIENTE")

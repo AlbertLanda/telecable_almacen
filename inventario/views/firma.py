@@ -1,6 +1,7 @@
 """
 Pantallas de firma en pantalla: nota de salida, constancia de devolución,
-liquidación y despacho a obra.
+liquidación, despacho a obra, traslado y pedido entre sedes, orden de compra
+y acta de cierre de obra (esta última firma la obra, no un documento de inventario).
 
 La lógica (quién firma, validar el trazo, huella del documento) está en
 inventario/services/firma_service.py; aquí solo se arma la página.
@@ -12,6 +13,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from types import SimpleNamespace
 
 from inventario.models import DocumentoInventario, FirmaDocumento, TipoDocumento, UserProfile
 from inventario.permissions import role_required
@@ -36,6 +38,8 @@ def describir(doc):
         return {"nombre": "traslado entre sedes", "url": reverse("sal_print", args=[doc.id])}
     if clase == firma_service.PEDIDO_SEDES:
         return {"nombre": "pedido entre sedes", "url": reverse("req_print", args=[doc.id])}
+    if clase == firma_service.ORDEN_PROVEEDOR:
+        return {"nombre": "orden de compra", "url": reverse("req_print", args=[doc.id])}
     if clase == firma_service.SALIDA_OBRA:
         obra = firma_service.obra_del_documento(doc)
         return {
@@ -97,6 +101,14 @@ def pantalla_firma(request, sal_id, rol, url_lista):
             f"Pidió: {_nombre(doc.responsable)} · Atendió: {_nombre(salida.responsable if salida else None)}",
         ]
         firmas_como = "Sede solicitante" if rol == RECEPTOR else "Sede que atendió"
+    elif clase == firma_service.ORDEN_PROVEEDOR:
+        ingreso = firma_service.salida_del_pedido(doc)
+        proveedor = doc.proveedor.razon_social if doc.proveedor_id else (doc.proveedor_manual or "-")
+        detalle = [
+            f"Proveedor: {proveedor} · Sede: {doc.sede.nombre}",
+            f"Solicitó: {_nombre(doc.responsable)} · Recepcionó: {_nombre(ingreso.responsable if ingreso else None)}",
+        ]
+        firmas_como = "Solicitante" if rol == RECEPTOR else "Recepción conforme"
     elif clase == firma_service.SALIDA_OBRA:
         obra = firma_service.obra_del_documento(doc)
         detalle = [
@@ -152,21 +164,48 @@ def documentos_del_almacenero(usuario):
     """
     pend_alm, firm_alm = firma_service.notas_para_firmar(usuario, ALMACEN)
     pend_rec, firm_rec = firma_service.notas_para_firmar(usuario, RECEPTOR)
-    entre_sedes = (firma_service.TRASLADO, firma_service.PEDIDO_SEDES)
+    entre_sedes = (firma_service.TRASLADO, firma_service.PEDIDO_SEDES, firma_service.ORDEN_PROVEEDOR)
     pend_rec = [d for d in pend_rec if firma_service.clase_documento(d) in entre_sedes]
     firm_rec = [d for d in firm_rec if firma_service.clase_documento(d) in entre_sedes]
     for doc in pend_alm:
         doc.url_firmar = reverse("almacen_firmar_nota", args=[doc.id])
     for doc in pend_rec:
         doc.url_firmar = reverse("almacen_firmar_recepcion", args=[doc.id])
+    return _juntar((pend_alm, firm_alm), (pend_rec, firm_rec), _actas(usuario, ALMACEN, "almacen_firmar_acta"))
+
+
+def _actas(usuario, rol, url_firmar):
+    """Actas de cierre de obra con los mismos atributos que usan las listas de documentos."""
+    pendientes, firmadas = firma_service.actas_para_firmar(usuario, rol)
+    for p in pendientes + firmadas:
+        p.numero, p.fecha = p.codigo, p.fin
+        p.info = {"nombre": "acta de cierre de obra", "url": reverse("proyecto_pdf_liquidacion", args=[p.id])}
+    for p in pendientes:
+        p.url_firmar = reverse(url_firmar, args=[p.id])
+    return pendientes, firmadas
+
+
+def _juntar(*grupos):
     por_fecha = lambda docs: sorted(docs, key=lambda d: d.fecha, reverse=True)
-    return por_fecha(pend_alm + pend_rec), por_fecha(firm_alm + firm_rec)
+    return (
+        por_fecha([d for pend, _ in grupos for d in pend]),
+        por_fecha([d for _, firm in grupos for d in firm]),
+    )
+
+
+def documentos_del_tecnico(usuario):
+    """Lo que firma un técnico: sus documentos de inventario y las actas de cierre de sus obras."""
+    pend, firm = firma_service.notas_para_firmar(usuario, RECEPTOR)
+    for doc in pend:
+        doc.url_firmar = reverse("tecnico_firmar_nota", args=[doc.id])
+    return _juntar((pend, firm), _actas(usuario, RECEPTOR, "tecnico_firmar_acta"))
 
 
 def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo, documentos=None):
     pendientes, firmadas = documentos or firma_service.notas_para_firmar(request.user, rol)
     for doc in pendientes + firmadas:
-        doc.info = describir(doc)
+        if not getattr(doc, "info", None):
+            doc.info = describir(doc)
         if not getattr(doc, "url_firmar", None) and url_firmar:
             doc.url_firmar = reverse(url_firmar, args=[doc.id])
     return render(request, "inventario/notas_por_firmar.html", {
@@ -189,7 +228,7 @@ def almacen_por_firmar(request):
         request, ALMACEN,
         url_firmar=None,
         url_volver="dash_almacen",
-        subtitulo="Salidas que despachaste (a técnicos, obras y otras sedes), devoluciones, liquidaciones y pedidos entre sedes",
+        subtitulo="Salidas que despachaste, devoluciones, liquidaciones, pedidos, órdenes de compra y actas de cierre de obra",
         documentos=documentos_del_almacenero(request.user),
     )
 
@@ -205,3 +244,66 @@ def almacen_firmar_nota(request, sal_id):
 def almacen_firmar_recepcion(request, sal_id):
     """Entre sedes: firma de la sede que recibe el traslado o que hizo el pedido."""
     return pantalla_firma(request, sal_id, RECEPTOR, url_lista="almacen_por_firmar")
+
+
+# ============================================================
+# Acta de cierre de obra
+# ============================================================
+def pantalla_firma_acta(request, proyecto_id, rol, url_lista):
+    """Igual que pantalla_firma, pero lo firmado es la obra (acta de cierre)."""
+    from proyectos.models import Proyecto
+    proyecto = get_object_or_404(
+        Proyecto.objects.select_related("sede", "responsable", "liquidado_por"), id=proyecto_id,
+    )
+    if not firma_service.acta_requiere_firma(proyecto):
+        raise Http404("Esta obra no requiere firma del acta de cierre.")
+    firmante = firma_service.acta_firmante(proyecto, rol)
+    if not firmante or firmante.id != request.user.id:
+        raise PermissionDenied("No te corresponde firmar esta acta.")
+    if proyecto.firmas_acta.filter(rol=rol).exists():
+        messages.info(request, f"Ya firmaste el acta de cierre de {proyecto.codigo}.")
+        return redirect(url_lista)
+
+    if request.method == "POST":
+        try:
+            firma_service.registrar_firma_acta(
+                proyecto_id=proyecto.id,
+                usuario=request.user,
+                rol=rol,
+                trazo=request.POST.get("trazo"),
+                sha256_visto=request.POST.get("sha256"),
+                acepto=request.POST.get("acepto") == "1",
+            )
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        else:
+            messages.success(request, f"Firmaste el acta de cierre de {proyecto.codigo}.")
+            return redirect(url_lista)
+
+    # Mismas columnas que la liquidación: devuelto, merma y consumo de cada material entregado.
+    items = [
+        SimpleNamespace(producto=m.producto, cantidad=m.cantidad_devuelta,
+                        cantidad_merma=m.cantidad_merma, cantidad_usada=m.cantidad_usada)
+        for m in proyecto.materiales.select_related("producto").order_by("producto__nombre")
+        if m.cantidad_entregada > 0
+    ]
+    return render(request, "inventario/firmar_nota.html", {
+        "doc": SimpleNamespace(numero=proyecto.codigo, fecha=proyecto.fin, sede=proyecto.sede),
+        "info": {"nombre": "acta de cierre de obra", "url": reverse("proyecto_pdf_liquidacion", args=[proyecto.id])},
+        "detalle": [
+            f"Obra: {proyecto.nombre}",
+            f"Responsable técnico: {_nombre(proyecto.responsable)} · Liquidó: {_nombre(proyecto.liquidado_por)}",
+        ],
+        "es_liquidacion": True,
+        "items": items,
+        "firmas_como": "Jefatura de almacén (V° B°)" if rol == ALMACEN else "Responsable técnico",
+        "sha256": firma_service.acta_hash(proyecto),
+        "aceptacion": firma_service.ACEPTACION[(firma_service.ACTA_CIERRE, rol)],
+        "url_lista": url_lista,
+    })
+
+
+@login_required
+@role_required(UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+def almacen_firmar_acta(request, proyecto_id):
+    return pantalla_firma_acta(request, proyecto_id, ALMACEN, url_lista="almacen_por_firmar")

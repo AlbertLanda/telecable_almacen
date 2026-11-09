@@ -97,6 +97,15 @@ class Proyecto(TimeStampedModel):
     )
     inicio = models.DateTimeField(default=timezone.now)
     fin = models.DateTimeField(null=True, blank=True)
+    # Almacenero que cerró (liquidó) la obra: es quien firma el V° B° del acta de cierre.
+    liquidado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="obras_liquidadas",
+        verbose_name="Liquidado por",
+    )
 
     # Trazabilidad histórica (se conserva por proyectos antiguos que sí
     # pasaron por el flujo de revisión/aprobación manual).

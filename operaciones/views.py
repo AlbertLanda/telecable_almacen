@@ -14,9 +14,9 @@ from datetime import timedelta
 from django.db import transaction
 from inventario.models import StockTecnico, DocumentoItem, MovimientoInventario
 from inventario.services.seriales_service import equipos_de_mochila, ids_unicos
-from inventario.services.firma_service import firmas_para_mostrar, notas_para_firmar
+from inventario.services.firma_service import firmas_para_mostrar
 from inventario.models import FirmaDocumento
-from inventario.views.firma import lista_por_firmar, pantalla_firma
+from inventario.views.firma import documentos_del_tecnico, lista_por_firmar, pantalla_firma, pantalla_firma_acta
 from django.contrib.auth import get_user_model
 
 # Importamos modelos del Core
@@ -300,14 +300,16 @@ def tecnico_por_firmar(request):
     """
     Documentos que el técnico debe firmar desde su sesión.
     Notas de salida (carga de mochila) donde él retiró el material,
-    constancias de las devoluciones que él hizo y sus liquidaciones.
+    constancias de las devoluciones que él hizo, sus liquidaciones y las
+    actas de cierre de sus obras.
     """
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
     return lista_por_firmar(
         request, FirmaDocumento.Rol.RECEPTOR,
         url_firmar="tecnico_firmar_nota",
         url_volver="tecnico_dashboard",
-        subtitulo="Material que retiraste, despachos de tus obras, devoluciones y liquidaciones",
+        subtitulo="Material que retiraste, despachos y cierres de tus obras, devoluciones y liquidaciones",
+        documentos=documentos_del_tecnico(request.user),
     )
 
 @login_required
@@ -315,6 +317,12 @@ def tecnico_firmar_nota(request, sal_id):
     """Resumen del documento y recuadro para firmar como técnico (quien retiró o devolvió)."""
     _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
     return pantalla_firma(request, sal_id, FirmaDocumento.Rol.RECEPTOR, url_lista="tecnico_por_firmar")
+
+@login_required
+def tecnico_firmar_acta(request, proyecto_id):
+    """Acta de cierre de obra: firma el técnico responsable de la obra."""
+    _require_roles(request.user, UserProfile.Rol.SOLICITANTE)
+    return pantalla_firma_acta(request, proyecto_id, FirmaDocumento.Rol.RECEPTOR, url_lista="tecnico_por_firmar")
 
 @login_required
 def tecnico_mis_reqs(request):
@@ -723,7 +731,7 @@ def tecnico_dashboard(request):
         "materiales": materiales,
         "material_obras": material_obras,
         "material_cuadrilla": material_cuadrilla,
-        "firmas_pendientes": len(notas_para_firmar(request.user)[0]),
+        "firmas_pendientes": len(documentos_del_tecnico(request.user)[0]),
     })
 
 

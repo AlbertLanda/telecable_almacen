@@ -6,6 +6,7 @@ from .views import (
     tecnico_mis_entregas,
     tecnico_por_firmar,
     tecnico_firmar_nota,
+    tecnico_firmar_acta,
     tecnico_obras_asignadas,
     
     # Liquidación Sede/Central
@@ -33,6 +34,7 @@ urlpatterns = [
     path("tecnico/mis-entregas/", tecnico_mis_entregas, name="tecnico_mis_entregas"),
     path("tecnico/por-firmar/", tecnico_por_firmar, name="tecnico_por_firmar"),
     path("tecnico/firmar/<int:sal_id>/", tecnico_firmar_nota, name="tecnico_firmar_nota"),
+    path("tecnico/firmar-acta/<int:proyecto_id>/", tecnico_firmar_acta, name="tecnico_firmar_acta"),
     path("tecnico/obras-asignadas/", tecnico_obras_asignadas, name="tecnico_obras_asignadas"),
     path('tecnico/mi-stock/', tecnico_mi_stock, name='tecnico_mi_stock'),
 

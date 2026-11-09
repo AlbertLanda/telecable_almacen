@@ -950,8 +950,15 @@ class FirmaDocumento(TimeStampedModel):
         RECEPTOR = "RECEPTOR", "Quien retira / recibe"
         ALMACEN = "ALMACEN", "Encargado de almacén"
 
+    # Lo firmado es un documento de inventario o, en el acta de cierre, una obra.
+    # Siempre uno de los dos (ver la restricción ck_firma_documento_u_obra).
     documento = models.ForeignKey(
-        DocumentoInventario, on_delete=models.PROTECT, related_name="firmas"
+        DocumentoInventario, on_delete=models.PROTECT, related_name="firmas",
+        null=True, blank=True,
+    )
+    proyecto = models.ForeignKey(
+        "proyectos.Proyecto", on_delete=models.PROTECT, related_name="firmas_acta",
+        null=True, blank=True,
     )
     rol = models.CharField(max_length=10, choices=Rol.choices)
     firmante = models.ForeignKey(
@@ -968,8 +975,18 @@ class FirmaDocumento(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["documento", "rol"], name="uq_firma_documento_rol"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["proyecto", "rol"], name="uq_firma_proyecto_rol"
+            ),
+            models.CheckConstraint(
+                check=(
+                    models.Q(documento__isnull=False, proyecto__isnull=True)
+                    | models.Q(documento__isnull=True, proyecto__isnull=False)
+                ),
+                name="ck_firma_documento_u_obra",
+            ),
         ]
 
     def __str__(self):
-        return f"{self.documento} - {self.get_rol_display()} - {self.firmante}"
+        return f"{self.documento or self.proyecto} - {self.get_rol_display()} - {self.firmante}"
