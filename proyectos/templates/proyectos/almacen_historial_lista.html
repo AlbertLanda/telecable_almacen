@@ -80,6 +80,16 @@
     @media (max-width: 768px) {
         .page-header { flex-direction: column; align-items: flex-start; gap: 15px; }
     }
+    .firma-filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .firma-filtros-titulo { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; margin-right: 4px; }
+    .firma-filtro { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
+        border: 1px solid var(--border-light); color: var(--text-main); text-decoration: none; font-size: 13px; font-weight: 600; }
+    .firma-filtro.activo { background: #1e293b; border-color: #1e293b; color: #fff; }
+    .firma-estado { display: block; margin-top: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .firma-ok { color: #15803d; }
+    .firma-parcial { color: #b45309; }
+    .firma-pendiente { color: #94a3b8; }
+    .firma-cambiado { color: #b91c1c; }
 </style>
 
 <div class="history-container">
@@ -95,6 +105,13 @@
             </a>
         </div>
     </div>
+
+    <nav class="firma-filtros" aria-label="Filtrar por firma del acta">
+        <span class="firma-filtros-titulo">Firmas del acta:</span>
+        <a href="?firma=todos" class="firma-filtro {% if firma == 'todos' %}activo{% endif %}" {% if firma == 'todos' %}aria-current="page"{% endif %}>Todos</a>
+        <a href="?firma=pendientes" class="firma-filtro {% if firma == 'pendientes' %}activo{% endif %}" {% if firma == 'pendientes' %}aria-current="page"{% endif %}><i class='bx bx-time-five'></i> Por firmar</a>
+        <a href="?firma=firmados" class="firma-filtro {% if firma == 'firmados' %}activo{% endif %}" {% if firma == 'firmados' %}aria-current="page"{% endif %}><i class='bx bx-check-double'></i> Firmados</a>
+    </nav>
 
     <div class="content-card">
         <div class="table-responsive">
@@ -135,6 +152,15 @@
                             <a href="{% url 'proyecto_pdf_liquidacion' p.id %}" target="_blank" class="btn-pdf">
                                 <i class='bx bxs-file-pdf'></i> Acta de Cierre
                             </a>
+                            {% if p.estado_firma == 'FIRMADO' %}
+                                <span class="firma-estado firma-ok"><i class='bx bx-check-double'></i> Firmada (2/2)</span>
+                            {% elif p.estado_firma == 'PARCIAL' %}
+                                <span class="firma-estado firma-parcial"><i class='bx bx-pen'></i> Firma 1/2</span>
+                            {% elif p.estado_firma == 'PENDIENTE' %}
+                                <span class="firma-estado firma-pendiente"><i class='bx bx-time-five'></i> Sin firmas</span>
+                            {% elif p.estado_firma == 'CAMBIADO' %}
+                                <span class="firma-estado firma-cambiado"><i class='bx bx-error'></i> Cambió tras firmarse</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
@@ -142,8 +168,13 @@
                         <td colspan="5">
                             <div class="empty-state">
                                 <i class='bx bx-archive'></i>
+                                {% if firma == 'todos' %}
                                 <h3>Archivo Vacío</h3>
                                 <p>Aún no hay obras en el historial.</p>
+                                {% else %}
+                                <h3>Sin resultados</h3>
+                                <p>No hay obras con actas {% if firma == 'firmados' %}firmadas{% else %}por firmar{% endif %}.</p>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

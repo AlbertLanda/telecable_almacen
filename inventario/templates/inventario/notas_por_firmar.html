@@ -20,6 +20,12 @@
     .firma-acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .btn-firma { border: 1px solid var(--border-light); color: var(--text-main); background: transparent; padding: 6px 14px;
         border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .firma-filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .firma-filtro { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px;
+        border: 1px solid var(--border-light); color: var(--text-main); text-decoration: none; font-size: 14px; font-weight: 600; }
+    .firma-filtro .cuenta { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: rgba(148, 163, 184, .18); }
+    .firma-filtro.activo { background: #1e293b; border-color: #1e293b; color: #fff; }
+    .firma-filtro.activo .cuenta { background: rgba(255, 255, 255, .2); }
     .firma-vacio { color: var(--text-secondary); padding: 24px; text-align: center; background: var(--bg-card);
         border: 1px dashed var(--border-light); border-radius: 14px; }
 </style>
@@ -35,7 +41,20 @@
         </a>
     </div>
 
-    <div class="firma-section"><i class='bx bx-time-five'></i> Pendientes ({{ pendientes|length }})</div>
+    <nav class="firma-filtros" aria-label="Filtrar documentos">
+        <a href="?ver=todos" class="firma-filtro {% if ver == 'todos' %}activo{% endif %}" {% if ver == 'todos' %}aria-current="page"{% endif %}>
+            Todos
+        </a>
+        <a href="?ver=pendientes" class="firma-filtro {% if ver == 'pendientes' %}activo{% endif %}" {% if ver == 'pendientes' %}aria-current="page"{% endif %}>
+            <i class='bx bx-time-five'></i> Por firmar <span class="cuenta">{{ total_pendientes }}</span>
+        </a>
+        <a href="?ver=firmados" class="firma-filtro {% if ver == 'firmados' %}activo{% endif %}" {% if ver == 'firmados' %}aria-current="page"{% endif %}>
+            <i class='bx bx-check-shield'></i> Firmados <span class="cuenta">{{ total_firmadas }}</span>
+        </a>
+    </nav>
+
+    {% if ver != 'firmados' %}
+    <div class="firma-section"><i class='bx bx-time-five'></i> Por firmar ({{ total_pendientes }})</div>
     <div class="firma-lista">
         {% for s in pendientes %}
             <div class="firma-card pendiente">
@@ -58,9 +77,15 @@
             <div class="firma-vacio"><i class='bx bx-check-circle'></i> No tienes documentos pendientes de firma.</div>
         {% endfor %}
     </div>
+    {% endif %}
 
+    {% if ver == 'firmados' and not firmadas %}
+        <div class="firma-vacio"><i class='bx bx-info-circle'></i> Todavía no has firmado documentos.</div>
+    {% endif %}
     {% if firmadas %}
-        <div class="firma-section"><i class='bx bx-check-shield'></i> Firmados recientemente</div>
+        <div class="firma-section"><i class='bx bx-check-shield'></i>
+            {% if ver == 'firmados' %}Firmados ({{ total_firmadas }}){% else %}Firmados recientemente{% endif %}
+        </div>
         <div class="firma-lista">
             {% for s in firmadas %}
                 <div class="firma-card firmada">

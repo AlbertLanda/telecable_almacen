@@ -27,6 +27,75 @@ def _nombre(usuario):
     return (usuario.get_full_name() or usuario.username) if usuario else "-"
 
 
+# Qué es cada documento y qué representa cada recuadro de firma (para la pantalla de firma).
+FS = firma_service
+EXPLICACION = {
+    FS.NOTA_SALIDA: (
+        "Material que el almacén entregó a un técnico. Queda a su cargo (mochila) hasta que lo liquide o lo devuelva.",
+        {RECEPTOR: "Quien retira el material", ALMACEN: "Almacén que entrega"},
+    ),
+    FS.DEVOLUCION: (
+        "Material que el técnico devolvió al almacén. Sale de su mochila y vuelve al stock de la sede.",
+        {RECEPTOR: "Técnico que devuelve", ALMACEN: "Almacén que recibe"},
+    ),
+    FS.LIQUIDACION: (
+        "Cierre semanal de la mochila del técnico: qué se devolvió en buen estado, qué se perdió (merma) y qué se usó (consumo).",
+        {RECEPTOR: "Técnico liquidado (conformidad)", ALMACEN: "Almacén que liquida"},
+    ),
+    FS.SALIDA_OBRA: (
+        "Material despachado para una obra. Queda a cargo del responsable de la obra, aunque lo haya retirado otro técnico.",
+        {RECEPTOR: "Responsable de la obra", ALMACEN: "Almacén que despacha"},
+    ),
+    FS.TRASLADO: (
+        "Material que sale de una sede hacia otra. Firma quien lo envía y, al recepcionarlo, quien lo recibe.",
+        {ALMACEN: "Almacén que envía", RECEPTOR: "Almacén que recibe"},
+    ),
+    FS.PEDIDO_SEDES: (
+        "Material que una sede pidió a otra. Firma quien hizo el pedido y quien lo atendió.",
+        {RECEPTOR: "Sede que pide", ALMACEN: "Sede que atiende"},
+    ),
+    FS.ORDEN_PROVEEDOR: (
+        "Mercadería pedida a un proveedor y recibida en el almacén. La aprobación de compras se firma a mano en la impresión.",
+        {RECEPTOR: "Solicitante", ALMACEN: "Recepción conforme"},
+    ),
+    FS.ACTA_CIERRE: (
+        "Conciliación final de los materiales de la obra: entregado, devuelto, merma y consumo.",
+        {RECEPTOR: "Responsable técnico", ALMACEN: "Jefatura de almacén (V° B°)"},
+    ),
+}
+ESTADO_TEXTO = {
+    "FIRMADO": "Ya firmó",
+    "CAMBIADO": "Firmó, pero el documento cambió después",
+    "PENDIENTE": "Todavía no firma",
+}
+
+
+def _explicacion(clase, rol, otro_firmante, estado_otro, items, es_liquidacion):
+    """Textos de ayuda de la pantalla de firma: qué es, qué rol firmas, la otra parte y totales."""
+    texto, roles = EXPLICACION[clase]
+    otro_rol = ALMACEN if rol == RECEPTOR else RECEPTOR
+    if es_liquidacion:
+        totales = {
+            "devuelto": sum(int(i.cantidad or 0) for i in items),
+            "merma": sum(int(i.cantidad_merma or 0) for i in items),
+            "consumo": sum(int(i.cantidad_usada or 0) for i in items),
+        }
+    else:
+        totales = {"cantidad": sum(int(i.cantidad or 0) for i in items)}
+    return {
+        "explicacion": texto,
+        "mi_rol": roles[rol],
+        "otra_parte": {
+            "rol": roles[otro_rol],
+            "nombre": _nombre(otro_firmante) if otro_firmante else None,
+            "estado": estado_otro,
+            "estado_texto": ESTADO_TEXTO.get(estado_otro, ""),
+        },
+        "totales": totales,
+        "n_items": len(items),
+    }
+
+
 def describir(doc):
     """Texto y enlace de impresión según el documento (para listas y pantalla de firma)."""
     clase = firma_service.clase_documento(doc)
@@ -142,12 +211,21 @@ def pantalla_firma(request, sal_id, rol, url_lista):
             firmas_como = "Crew"
         else:
             firmas_como = "Responsable"
+    items = list(doc.items.select_related("producto").order_by("producto__nombre"))
+    otro_rol = ALMACEN if rol == RECEPTOR else RECEPTOR
+    ayuda = _explicacion(
+        clase, rol,
+        firma_service.firmante_esperado(doc, otro_rol),
+        firma_service.estado_firma(doc, otro_rol),
+        items, clase == firma_service.LIQUIDACION,
+    )
     return render(request, "inventario/firmar_nota.html", {
+        **ayuda,
         "doc": doc,
         "info": info,
         "detalle": detalle,
         "es_liquidacion": clase == firma_service.LIQUIDACION,
-        "items": doc.items.select_related("producto").order_by("producto__nombre"),
+        "items": items,
         "firmas_como": firmas_como,
         "sha256": firma_service.hash_documento(doc),
         "aceptacion": firma_service.texto_aceptacion(doc, rol),
@@ -201,7 +279,14 @@ def documentos_del_tecnico(usuario):
     return _juntar((pend, firm), _actas(usuario, RECEPTOR, "tecnico_firmar_acta"))
 
 
+FILTROS_LISTA = ("todos", "pendientes", "firmados")
+
+
 def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo, documentos=None):
+    # Filtro de la lista: ?ver=todos (por defecto), ?ver=pendientes o ?ver=firmados
+    ver = request.GET.get("ver", "todos")
+    if ver not in FILTROS_LISTA:
+        ver = "todos"
     pendientes, firmadas = documentos or firma_service.notas_para_firmar(request.user, rol)
     for doc in pendientes + firmadas:
         if not getattr(doc, "info", None):
@@ -209,12 +294,16 @@ def lista_por_firmar(request, rol, url_firmar, url_volver, subtitulo, documentos
         if not getattr(doc, "url_firmar", None) and url_firmar:
             doc.url_firmar = reverse(url_firmar, args=[doc.id])
     return render(request, "inventario/notas_por_firmar.html", {
-        "pendientes": pendientes,
-        "firmadas": firmadas[:30],
+        "ver": ver,
+        "total_pendientes": len(pendientes),
+        "total_firmadas": len(firmadas),
+        "pendientes": pendientes if ver in ("todos", "pendientes") else [],
+        # En "Todos" solo los recientes; en "Firmados" se muestran más.
+        "firmadas": (firmadas[:30] if ver == "todos" else firmadas[:200]) if ver in ("todos", "firmados") else [],
         "url_volver": url_volver,
         "subtitulo": subtitulo,
         # Solo para técnicos: lo que retiró su cuadrilla a su cargo (solo consulta).
-        "equipo": firma_service.notas_de_mi_equipo(request.user)[:50] if rol == RECEPTOR else [],
+        "equipo": firma_service.notas_de_mi_equipo(request.user)[:50] if rol == RECEPTOR and ver == "todos" else [],
     })
 
 
@@ -287,7 +376,15 @@ def pantalla_firma_acta(request, proyecto_id, rol, url_lista):
         for m in proyecto.materiales.select_related("producto").order_by("producto__nombre")
         if m.cantidad_entregada > 0
     ]
+    otro_rol = ALMACEN if rol == RECEPTOR else RECEPTOR
+    ayuda = _explicacion(
+        firma_service.ACTA_CIERRE, rol,
+        firma_service.acta_firmante(proyecto, otro_rol),
+        firma_service.acta_estado_firma(proyecto, otro_rol),
+        items, True,
+    )
     return render(request, "inventario/firmar_nota.html", {
+        **ayuda,
         "doc": SimpleNamespace(numero=proyecto.codigo, fecha=proyecto.fin, sede=proyecto.sede),
         "info": {"nombre": "acta de cierre de obra", "url": reverse("proyecto_pdf_liquidacion", args=[proyecto.id])},
         "detalle": [

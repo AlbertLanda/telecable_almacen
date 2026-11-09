@@ -489,7 +489,7 @@ class DevolucionFirmaTests(NotaSalidaMixin, TestCase):
         url = reverse("tecnico_firmar_nota", args=[dev.id])
         self.client.force_login(self.crew)
         respuesta = self.client.get(url)
-        self.assertContains(respuesta, "Firmar constancia de devolución ING-DEV-001")
+        self.assertContains(respuesta, "Constancia de devolución ING-DEV-001")
         self.assertContains(respuesta, "devuelto a almacén")
 
         respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(dev), "acepto": "1"})
@@ -582,8 +582,8 @@ class LiquidacionFirmaTests(NotaSalidaMixin, TestCase):
         self.assertContains(lista, reverse("liquidacion_tecnico_print", args=[liq.id]))
         url = reverse("tecnico_firmar_nota", args=[liq.id])
         pantalla = self.client.get(url)
-        self.assertContains(pantalla, "Firmar liquidación ING-LIQ-001")
-        self.assertContains(pantalla, "<th>Merma</th>", html=False)
+        self.assertContains(pantalla, "Liquidación ING-LIQ-001")
+        self.assertContains(pantalla, ">Merma</th>", html=False)
         respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(liq), "acepto": "1"})
         self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
 
@@ -669,7 +669,7 @@ class SalidaObraFirmaTests(NotaSalidaMixin, TestCase):
         url = reverse("tecnico_firmar_nota", args=[sal.id])
         self.client.force_login(self.resp)
         pantalla = self.client.get(url)
-        self.assertContains(pantalla, "Firmar salida a obra OBRA-2026-0001 SAL-OBRA-001")
+        self.assertContains(pantalla, "Salida a obra OBRA-2026-0001 SAL-OBRA-001")
         self.assertContains(pantalla, "Obra: OBRA-2026-0001 - Obra de prueba firmas")
         respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(sal), "acepto": "1"})
         self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
@@ -756,7 +756,7 @@ class TrasladoFirmaTests(EntreSedesMixin, TestCase):
         url = reverse("almacen_firmar_recepcion", args=[sal.id])
         self.assertContains(lista, url)
         pantalla = self.client.get(url)
-        self.assertContains(pantalla, "Firmar traslado entre sedes")
+        self.assertContains(pantalla, "Traslado entre sedes")
         self.assertContains(pantalla, "De SEDE-FIRMA a SEDE-OROYA-F")
         respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": hash_documento(sal), "acepto": "1"})
         self.assertRedirects(respuesta, reverse("almacen_por_firmar"))
@@ -933,7 +933,7 @@ class ActaCierreObraFirmaTests(NotaSalidaMixin, TestCase):
         url = reverse("tecnico_firmar_acta", args=[self.obra.id])
         self.assertContains(lista, url)
         pantalla = self.client.get(url)
-        self.assertContains(pantalla, "Firmar acta de cierre de obra OBRA-2026-0099")
+        self.assertContains(pantalla, "Acta de cierre de obra OBRA-2026-0099")
         from inventario.services.firma_service import acta_hash
         respuesta = self.client.post(url, {"trazo": png_base64(), "sha256": acta_hash(self.obra), "acepto": "1"})
         self.assertRedirects(respuesta, reverse("tecnico_por_firmar"))
@@ -966,3 +966,111 @@ class ActaCierreObraFirmaTests(NotaSalidaMixin, TestCase):
         self.assertEqual(self.obra.estado, EstadoProyecto.FINALIZADO)
         self.assertEqual(self.obra.liquidado_por, self.almacen)
         self.assertEqual(self.estado(), "PENDIENTE")
+
+
+class ListaYPantallaVisualTests(NotaSalidaMixin, TestCase):
+    """Filtro Todos / Por firmar / Firmados y textos de ayuda de la pantalla de firma."""
+
+    def setUp(self):
+        super().setUp()
+        self.pendiente = self.nota_salida(retirado_por=self.crew, numero="SAL-PEND")
+        self.firmada = self.nota_salida(retirado_por=self.crew, numero="SAL-FIRM")
+        self.firmar(self.firmada, self.crew)
+        self.url = reverse("tecnico_por_firmar")
+        self.client.force_login(self.crew)
+
+    def test_filtro_por_firmar_y_firmados(self):
+        todos = self.client.get(self.url)
+        self.assertContains(todos, "SAL-PEND")
+        self.assertContains(todos, "SAL-FIRM")
+
+        por_firmar = self.client.get(self.url, {"ver": "pendientes"})
+        self.assertContains(por_firmar, "SAL-PEND")
+        self.assertNotContains(por_firmar, "SAL-FIRM")
+
+        firmados = self.client.get(self.url, {"ver": "firmados"})
+        self.assertContains(firmados, "SAL-FIRM")
+        self.assertNotContains(firmados, "SAL-PEND")
+        self.assertEqual((firmados.context["total_pendientes"], firmados.context["total_firmadas"]), (1, 1))
+
+    def test_filtro_desconocido_muestra_todos(self):
+        self.assertEqual(self.client.get(self.url, {"ver": "xyz"}).context["ver"], "todos")
+
+    def test_pantalla_explica_documento_roles_y_totales(self):
+        pantalla = self.client.get(reverse("tecnico_firmar_nota", args=[self.pendiente.id]))
+        self.assertContains(pantalla, "Estás firmando")
+        self.assertContains(pantalla, "Material que el almacén entregó a un técnico")
+        self.assertContains(pantalla, "Quien retira el material")
+        self.assertContains(pantalla, "Almacén que entrega")
+        self.assertContains(pantalla, "Todavía no firma")          # la otra parte (almacén)
+        self.assertEqual(pantalla.context["totales"], {"cantidad": 5})
+        self.assertContains(pantalla, "1 producto.")
+
+    def test_pantalla_muestra_si_la_otra_parte_ya_firmo(self):
+        self.firmar(self.pendiente, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        pantalla = self.client.get(reverse("tecnico_firmar_nota", args=[self.pendiente.id]))
+        self.assertEqual(pantalla.context["otra_parte"]["estado"], "FIRMADO")
+        self.assertContains(pantalla, "Ya firmó")
+
+
+class FiltroFirmaHistorialTests(NotaSalidaMixin, TestCase):
+    """Filtro Por firmar / Firmados en el historial de almacén y en el archivo de obras."""
+
+    def setUp(self):
+        super().setUp()
+        self.pend = self.nota_salida(retirado_por=self.crew, numero="SAL-H-PEND")
+        self.parcial = self.nota_salida(retirado_por=self.crew, numero="SAL-H-PARC")
+        self.completa = self.nota_salida(retirado_por=self.crew, numero="SAL-H-COMP")
+        self.vieja = self.nota_salida(retirado_por=self.crew, numero="SAL-H-VIEJA",
+                                      fecha=timezone.make_aware(datetime(2026, 10, 1, 9, 0)))
+        self.firmar(self.parcial, self.crew)
+        self.firmar(self.completa, self.crew)
+        self.firmar(self.completa, self.almacen, rol=FirmaDocumento.Rol.ALMACEN)
+        self.client.force_login(self.almacen)
+
+    def numeros(self, **params):
+        respuesta = self.client.get(reverse("almacen_historial_global"), params)
+        return {getattr(i, "numero", None) for i in respuesta.context["historial"]}, respuesta
+
+    def test_historial_sin_filtro_muestra_todo(self):
+        numeros, _ = self.numeros()
+        self.assertTrue({"SAL-H-PEND", "SAL-H-PARC", "SAL-H-COMP", "SAL-H-VIEJA"} <= numeros)
+
+    def test_historial_por_firmar(self):
+        numeros, respuesta = self.numeros(firma="pendientes")
+        self.assertEqual(numeros, {"SAL-H-PEND", "SAL-H-PARC"})
+        self.assertEqual(respuesta.context["qs_firma"], "&firma=pendientes")
+
+    def test_historial_firmados(self):
+        numeros, _ = self.numeros(firma="firmados")
+        self.assertEqual(numeros, {"SAL-H-COMP"})
+
+    def test_historial_compra_muestra_la_firma_de_su_orden(self):
+        orden = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.REQ, numero="OC-H-1", sede=self.sede, responsable=self.almacen,
+            tipo_requerimiento=TipoRequerimiento.PROVEEDOR, estado=EstadoDocumento.REQ_ATENDIDO,
+        )
+        DocumentoItem.objects.create(documento=orden, producto=self.producto, cantidad=3)
+        ingreso = DocumentoInventario.objects.create(
+            tipo=TipoDocumento.ING, estado=EstadoDocumento.CONFIRMADO, numero="ING-H-1", sede=self.sede,
+            responsable=self.almacen, origen=orden, referencia="Llegada Compra OC-H-1",
+        )
+        numeros, _ = self.numeros(firma="pendientes")
+        self.assertIn("ING-H-1", numeros)
+
+    def test_archivo_de_obras_filtra_por_firma_del_acta(self):
+        from proyectos.models import EstadoProyecto, Proyecto
+        datos = dict(sede=self.sede, creado_por=self.almacen, responsable=self.resp,
+                     estado=EstadoProyecto.FINALIZADO, fin=timezone.now(), liquidado_por=self.almacen)
+        sin_firmar = Proyecto.objects.create(codigo="OBRA-ARCH-1", nombre="Sin firmar", **datos)
+        firmada = Proyecto.objects.create(codigo="OBRA-ARCH-2", nombre="Firmada", **datos)
+        from inventario.services.firma_service import acta_hash, registrar_firma_acta
+        for usuario, rol in ((self.resp, FirmaDocumento.Rol.RECEPTOR), (self.almacen, FirmaDocumento.Rol.ALMACEN)):
+            registrar_firma_acta(proyecto_id=firmada.id, usuario=usuario, rol=rol, trazo=png_base64(),
+                                 sha256_visto=acta_hash(firmada), acepto=True)
+        url = reverse("almacen_historial_obras")
+        self.assertEqual([p.codigo for p in self.client.get(url, {"firma": "pendientes"}).context["proyectos"]],
+                         ["OBRA-ARCH-1"])
+        respuesta = self.client.get(url, {"firma": "firmados"})
+        self.assertEqual([p.codigo for p in respuesta.context["proyectos"]], ["OBRA-ARCH-2"])
+        self.assertContains(respuesta, "Firmada (2/2)")

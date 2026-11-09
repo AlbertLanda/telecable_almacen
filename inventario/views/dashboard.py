@@ -36,7 +36,7 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
-from inventario.services.firma_service import acta_estado, estado_documento
+from inventario.services.firma_service import acta_estado, estado_documento, inicio_firmas
 from inventario.views.firma import documentos_del_almacenero
 
 
@@ -694,15 +694,29 @@ def almacen_historial_global(request):
         reverse=True,
     )
 
+    # Filtro por firma: ?firma=pendientes (falta alguna firma o cambió tras firmarse) o ?firma=firmados.
+    firma = request.GET.get("firma", "todos")
+    if firma not in FILTROS_FIRMA:
+        firma = "todos"
+    if firma != "todos":
+        # Solo se revisan los documentos desde el despliegue de las firmas: los anteriores no se firman.
+        desde = inicio_firmas()
+        filtrado = []
+        for item in historial:
+            if item.tipo_movimiento not in TIPOS_CON_FIRMA or (desde and item.fecha < desde):
+                continue
+            item.estado_firma = _estado_firma_historial(item)
+            if item.estado_firma in FILTROS_FIRMA[firma]:
+                filtrado.append(item)
+        historial = filtrado
+
     paginator = Paginator(historial, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    # Estado de firmas (salidas, devoluciones y liquidaciones) solo de esta página, no de todo el historial
+    # Sin filtro, el estado de firmas se calcula solo para esta página, no para todo el historial.
     for item in page_obj:
-        if item.tipo_movimiento in ("SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO"):
-            item.estado_firma = estado_documento(item)
-        elif item.tipo_movimiento == "CIERRE_OBRA":
-            item.estado_firma = acta_estado(item)
+        if not hasattr(item, "estado_firma"):
+            item.estado_firma = _estado_firma_historial(item)
 
     return render(
         request,
@@ -713,8 +727,35 @@ def almacen_historial_global(request):
                 page_obj.number, on_each_side=2, on_ends=1
             ),
             "sede": sede,
+            "firma": firma,
+            # Para no perder el filtro al cambiar de página.
+            "qs_firma": f"&firma={firma}" if firma != "todos" else "",
         },
     )
+
+
+# Filtro de firma del historial: qué estados entran en cada opción.
+FILTROS_FIRMA = {
+    "todos": None,
+    "pendientes": ("PENDIENTE", "PARCIAL", "CAMBIADO"),
+    "firmados": ("FIRMADO",),
+}
+TIPOS_CON_FIRMA = (
+    "SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO", "CIERRE_OBRA", "COMPRA",
+)
+
+
+def _estado_firma_historial(item):
+    """Estado de firmas de una fila del historial ("NO_APLICA" si ese movimiento no se firma)."""
+    tipo = item.tipo_movimiento
+    if tipo == "CIERRE_OBRA":
+        return acta_estado(item)
+    if tipo == "COMPRA":
+        # La que se firma es la orden de compra (el REQ de origen), no el ingreso.
+        return estado_documento(item.origen) if item.origen_id else "NO_APLICA"
+    if tipo in TIPOS_CON_FIRMA:
+        return estado_documento(item)
+    return "NO_APLICA"
 
 
 def _mes_desde_request(request):

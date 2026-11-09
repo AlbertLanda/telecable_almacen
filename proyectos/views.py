@@ -26,7 +26,7 @@ from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendiente
 from inventario.models import UserProfile
 
 from .utils import render_to_pdf
-from inventario.services.firma_service import acta_firmas_para_mostrar, firmas_para_mostrar
+from inventario.services.firma_service import acta_estado, acta_firmas_para_mostrar, firmas_para_mostrar
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 
@@ -987,11 +987,23 @@ def proyecto_pdf_liquidacion(request, proyecto_id):
 @login_required
 def almacen_historial_obras(request):
     profile = request.user.profile
-    proyectos = Proyecto.objects.filter(
-        sede=profile.get_sede_operativa(),
-        estado=EstadoProyecto.FINALIZADO
-    ).select_related('responsable').order_by('-fin')
-    return render(request, 'proyectos/almacen_historial_lista.html', {'proyectos': proyectos})
+    proyectos = list(
+        Proyecto.objects.filter(
+            sede=profile.get_sede_operativa(),
+            estado=EstadoProyecto.FINALIZADO
+        ).select_related('responsable', 'liquidado_por').prefetch_related('firmas_acta').order_by('-fin')
+    )
+    # Estado de firmas del acta de cierre y filtro ?firma=pendientes / ?firma=firmados.
+    for p in proyectos:
+        p.estado_firma = acta_estado(p)
+    firma = request.GET.get("firma", "todos")
+    if firma == "pendientes":
+        proyectos = [p for p in proyectos if p.estado_firma in ("PENDIENTE", "PARCIAL", "CAMBIADO")]
+    elif firma == "firmados":
+        proyectos = [p for p in proyectos if p.estado_firma == "FIRMADO"]
+    else:
+        firma = "todos"
+    return render(request, 'proyectos/almacen_historial_lista.html', {'proyectos': proyectos, 'firma': firma})
 
 @login_required
 def admin_reporte_lista(request):
