@@ -1,5 +1,22 @@
 from django.contrib import admin
-from .models import Proyecto, ProyectoAsignacion, ProyectoMaterial, ProyectoMaterialPendiente
+from django import forms
+from .models import Proyecto, ProyectoAsignacion, ProyectoMaterial, ProyectoMaterialPendiente, EstadoProyecto
+
+
+class ProyectoAdminForm(forms.ModelForm):
+    class Meta:
+        model = Proyecto
+        fields = "__all__"
+
+    def clean(self):
+        datos = super().clean()
+        if self.instance.pk and datos.get("estado") not in (None, EstadoProyecto.FINALIZADO, EstadoProyecto.ANULADO):
+            # Django admin ejecuta la validación y el guardado del changeform
+            # dentro del mismo atomic: este lock también serializa las firmas.
+            proyecto = Proyecto.objects.select_for_update().get(pk=self.instance.pk)
+            if proyecto.firmas_acta.exists():
+                self.add_error("estado", "El acta ya tiene firmas. Crea una nueva obra o ampliación; esta obra no puede reabrirse.")
+        return datos
 
 class ProyectoMaterialInline(admin.TabularInline):
     model = ProyectoMaterial
@@ -14,10 +31,12 @@ class ProyectoAsignacionInline(admin.TabularInline):
 
 @admin.register(Proyecto)
 class ProyectoAdmin(admin.ModelAdmin):
+    form = ProyectoAdminForm
     list_display = ('codigo', 'tipo', 'nombre', 'estado', 'responsable', 'creado_por')
     list_filter = ('tipo', 'estado', 'sede')
     search_fields = ('codigo', 'nombre', 'centro_costo')
     inlines = [ProyectoAsignacionInline, ProyectoMaterialInline]
+    readonly_fields = ('cierre_registrado', 'mochila_antigua_conciliada')
 
     fieldsets = (
         ('Datos Generales', {
@@ -27,7 +46,7 @@ class ProyectoAdmin(admin.ModelAdmin):
             'fields': ('inicio', 'fin')
         }),
         ('Auditoría', {
-            'fields': ('creado_por',)
+            'fields': ('creado_por', 'cierre_registrado', 'mochila_antigua_conciliada')
         }),
     )
 

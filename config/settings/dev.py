@@ -2,6 +2,9 @@ from .base import *
 
 DEBUG = True
 
+# Opt-in únicamente en desarrollo: los comandos demo crean usuarios e inventario.
+ALLOW_DEMO_DATA = os.getenv("ALLOW_DEMO_DATA", "").strip() == "1"
+
 # Dev: si no hay ALLOWED_HOSTS en env, usa localhost
 if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]

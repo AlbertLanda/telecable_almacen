@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 from itertools import chain
 from operator import attrgetter
 
@@ -16,8 +17,15 @@ from django.db.models import (
     Case,
     When,
     IntegerField,
+    CharField,
+    DateTimeField,
+    Exists,
+    Value,
+    Min,
+    OuterRef,
+    Subquery,
 )
-from django.db.models.functions import TruncDate
+from django.db.models.functions import Coalesce, TruncDate
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -36,6 +44,8 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
+from inventario.services.firma_service import acta_estado, estado_documento, inicio_firmas
+from inventario.views.firma import documentos_del_almacenero
 
 
 # --------------------
@@ -509,6 +519,7 @@ def dash_almacen(request):
 
         # Notificaciones
         "notificacion_proyectos": count_proyectos_activos,
+        "firmas_pendientes": len(documentos_del_almacenero(request.user)[0]),
 
         # Datos para gráficos
         "chart_stock_data": [stock_saludable, stock_bajo, stock_critico],
@@ -691,8 +702,29 @@ def almacen_historial_global(request):
         reverse=True,
     )
 
+    # Filtro por firma: ?firma=pendientes (falta alguna firma o cambió tras firmarse) o ?firma=firmados.
+    firma = request.GET.get("firma", "todos")
+    if firma not in FILTROS_FIRMA:
+        firma = "todos"
+    if firma != "todos":
+        # Solo se revisan los documentos desde el despliegue de las firmas: los anteriores no se firman.
+        desde = inicio_firmas()
+        filtrado = []
+        for item in historial:
+            if item.tipo_movimiento not in TIPOS_CON_FIRMA or (desde and item.fecha < desde):
+                continue
+            item.estado_firma = _estado_firma_historial(item)
+            if item.estado_firma in FILTROS_FIRMA[firma]:
+                filtrado.append(item)
+        historial = filtrado
+
     paginator = Paginator(historial, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Sin filtro, el estado de firmas se calcula solo para esta página, no para todo el historial.
+    for item in page_obj:
+        if not hasattr(item, "estado_firma"):
+            item.estado_firma = _estado_firma_historial(item)
 
     return render(
         request,
@@ -703,45 +735,318 @@ def almacen_historial_global(request):
                 page_obj.number, on_each_side=2, on_ends=1
             ),
             "sede": sede,
+            "firma": firma,
+            # Para no perder el filtro al cambiar de página.
+            "qs_firma": f"&firma={firma}" if firma != "todos" else "",
         },
     )
 
 
-def _mes_desde_request(request):
-    """Resuelve (anio, mes, inicio_mes, fin_mes, 'YYYY-MM') a partir de ?mes=."""
+# Filtro de firma del historial: qué estados entran en cada opción.
+FILTROS_FIRMA = {
+    "todos": None,
+    "pendientes": ("PENDIENTE", "PARCIAL", "CAMBIADO"),
+    "firmados": ("FIRMADO",),
+}
+TIPOS_CON_FIRMA = (
+    "SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO", "CIERRE_OBRA", "COMPRA",
+)
+
+
+def _estado_firma_historial(item):
+    """Estado de firmas de una fila del historial ("NO_APLICA" si ese movimiento no se firma)."""
+    tipo = item.tipo_movimiento
+    if tipo == "CIERRE_OBRA":
+        return acta_estado(item)
+    if tipo == "COMPRA":
+        # La que se firma es la orden de compra (el REQ de origen), no el ingreso.
+        return estado_documento(item.origen) if item.origen_id else "NO_APLICA"
+    if tipo in TIPOS_CON_FIRMA:
+        return estado_documento(item)
+    return "NO_APLICA"
+
+
+# --------------------
+# INFORME DE MOVIMIENTOS (KARDEX) POR RANGO DE MESES
+# --------------------
+KARDEX_MAX_MESES = 24
+NOMBRES_MES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+]
+
+
+def _parse_mes(valor):
+    """'YYYY-MM' -> (anio, mes) o None si no es válido."""
+    try:
+        anio, mes = (int(x) for x in (valor or "").split("-"))
+    except (ValueError, TypeError):
+        return None
+    if 1 <= mes <= 12 and 2000 <= anio <= 2100:
+        return anio, mes
+    return None
+
+
+def _mes_siguiente(anio, mes):
+    return (anio + 1, 1) if mes == 12 else (anio, mes + 1)
+
+
+def _inicio_de_mes(anio, mes):
+    return timezone.make_aware(datetime(anio, mes, 1))
+
+
+def _etiqueta_mes(anio, mes, corta=False):
+    nombre = NOMBRES_MES[mes - 1]
+    return f"{nombre[:3]} {anio}" if corta else f"{nombre} {anio}"
+
+
+def _periodo_desde_request(request):
+    """
+    Resuelve el periodo del informe a partir de ?desde=YYYY-MM&hasta=YYYY-MM.
+    Sigue aceptando el formato anterior ?mes=YYYY-MM (desde = hasta = mes).
+    Sin parámetros: mes actual.
+    """
     hoy = timezone.localdate()
-    anio, mes = hoy.year, hoy.month
+    actual = (hoy.year, hoy.month)
+    avisos = []
 
-    mes_param = request.GET.get("mes")  # formato YYYY-MM
-    if mes_param:
-        try:
-            anio_param, mes_param_num = (int(x) for x in mes_param.split("-"))
-            if 1 <= mes_param_num <= 12:
-                anio, mes = anio_param, mes_param_num
-        except (ValueError, TypeError):
-            pass
+    mes_anterior = _parse_mes(request.GET.get("mes"))
+    desde = _parse_mes(request.GET.get("desde")) or mes_anterior or actual
+    hasta = _parse_mes(request.GET.get("hasta")) or mes_anterior or desde
 
-    inicio_mes = timezone.make_aware(datetime(anio, mes, 1))
-    if mes == 12:
-        fin_mes = timezone.make_aware(datetime(anio + 1, 1, 1))
+    if hasta < desde:
+        desde, hasta = hasta, desde
+    if hasta > actual:
+        hasta = actual
+    if desde > actual:
+        desde = actual
+
+    meses = [desde]
+    while meses[-1] < hasta:
+        meses.append(_mes_siguiente(*meses[-1]))
+
+    if len(meses) > KARDEX_MAX_MESES:
+        meses = meses[-KARDEX_MAX_MESES:]
+        desde = meses[0]
+        avisos.append(
+            f"El rango máximo es de {KARDEX_MAX_MESES} meses. "
+            f"Se muestra desde {_etiqueta_mes(*desde)}."
+        )
+
+    if desde == hasta:
+        etiqueta = _etiqueta_mes(*desde)
     else:
-        fin_mes = timezone.make_aware(datetime(anio, mes + 1, 1))
+        etiqueta = f"{_etiqueta_mes(*desde)} – {_etiqueta_mes(*hasta)}"
 
-    return anio, mes, inicio_mes, fin_mes, f"{anio:04d}-{mes:02d}"
+    return {
+        "desde": desde,
+        "hasta": hasta,
+        "meses": meses,
+        "inicio": _inicio_de_mes(*desde),
+        "fin": _inicio_de_mes(*_mes_siguiente(*hasta)),
+        "desde_str": f"{desde[0]:04d}-{desde[1]:02d}",
+        "hasta_str": f"{hasta[0]:04d}-{hasta[1]:02d}",
+        "actual_str": f"{actual[0]:04d}-{actual[1]:02d}",
+        "incluye_mes_actual": hasta == actual,
+        "es_un_mes": desde == hasta,
+        "etiqueta": etiqueta,
+        "avisos": avisos,
+    }
 
 
-# --------------------
-# KARDEX DE PRODUCTO (ALMACEN/ADMIN/JEFA)
-# --------------------
+def _delta_movimiento(tipo, qty):
+    """Efecto del movimiento sobre el stock (los ADJ ya traen su signo)."""
+    if tipo == MovimientoInventario.TIPO_OUT:
+        return -qty
+    return qty
+
+
+def _leer_snapshot_kardex(sede, periodo, producto_id=None):
+    """Lee cantidades y movimientos en UNA sentencia, sin bloqueos ni escrituras.
+
+    UNION ALL mantiene una sola instantánea de lectura en SQLite y PostgreSQL,
+    incluso con READ COMMITTED. Las sumas históricas se calculan una vez por
+    producto; sólo se cargan los movimientos del periodo solicitado.
+    """
+    stock = Stock.objects.filter(sede=sede, producto_id=OuterRef("pk"))
+    historial = MovimientoInventario.objects.filter(
+        sede=sede, producto_id=OuterRef("pk")
+    )
+
+    def suma_documental(qs):
+        return (
+            qs.order_by().values("producto_id")
+            .annotate(total=Sum(Case(
+                When(tipo=MovimientoInventario.TIPO_OUT, then=-F("qty")),
+                default=F("qty"), output_field=IntegerField(),
+            )))
+            .values("total")[:1]
+        )
+
+    productos = Producto.objects.all()
+    movimientos = MovimientoInventario.objects.filter(
+        sede=sede, creado_en__gte=periodo["inicio"], creado_en__lt=periodo["fin"]
+    )
+    if producto_id is not None:
+        productos = productos.filter(pk=producto_id)
+        movimientos = movimientos.filter(producto_id=producto_id)
+    else:
+        productos = productos.annotate(
+            kx_tiene_stock=Exists(stock),
+            kx_tiene_historia=Exists(historial.filter(creado_en__lt=periodo["fin"])),
+        ).filter(Q(kx_tiene_stock=True) | Q(kx_tiene_historia=True))
+
+    # Todas las columnas son anotaciones en el mismo orden y con tipos
+    # compatibles: Django 4.2 reordena campos directos frente a anotaciones.
+    campos = {
+        "kx_clase": Value("producto", output_field=CharField()),
+        "kx_producto": F("pk"),
+        "kx_nombre": F("nombre"),
+        "kx_codigo": F("codigo_interno"),
+        "kx_stock": Coalesce(Subquery(stock.values("cantidad")[:1]), 0),
+        "kx_inicial": Coalesce(Subquery(suma_documental(
+            historial.filter(creado_en__lt=periodo["inicio"])
+        )), 0),
+        "kx_documentado": Coalesce(Subquery(suma_documental(historial)), 0),
+        "kx_movimiento": Value(0, output_field=IntegerField()),
+        "kx_fecha": Value(None, output_field=DateTimeField()),
+        "kx_tipo": Value("", output_field=CharField()),
+        "kx_qty": Value(0, output_field=IntegerField()),
+        "kx_guardado": Value(0, output_field=IntegerField()),
+        "kx_referencia": Value("", output_field=CharField()),
+        "kx_nota": Value("", output_field=CharField()),
+        "kx_usuario": Value("", output_field=CharField()),
+        "kx_nombres": Value("", output_field=CharField()),
+        "kx_apellidos": Value("", output_field=CharField()),
+    }
+    campos_mov = {
+        **campos,
+        "kx_clase": Value("movimiento", output_field=CharField()),
+        "kx_producto": F("producto_id"),
+        "kx_nombre": Value("", output_field=CharField()),
+        "kx_codigo": Value("", output_field=CharField()),
+        "kx_stock": Value(0, output_field=IntegerField()),
+        "kx_inicial": Value(0, output_field=IntegerField()),
+        "kx_documentado": Value(0, output_field=IntegerField()),
+        "kx_movimiento": F("pk"),
+        "kx_fecha": F("creado_en"),
+        "kx_tipo": F("tipo"),
+        "kx_qty": F("qty"),
+        "kx_guardado": F("saldo_resultante"),
+        "kx_referencia": F("referencia"),
+        "kx_nota": F("nota"),
+        "kx_usuario": Coalesce(F("usuario__username"), Value("")),
+        "kx_nombres": Coalesce(F("usuario__first_name"), Value("")),
+        "kx_apellidos": Coalesce(F("usuario__last_name"), Value("")),
+    }
+    cabeceras = productos.order_by().annotate(**campos).values_list(*campos)
+    filas_mov = movimientos.order_by().annotate(**campos_mov).values_list(*campos)
+    filas = list(cabeceras.union(filas_mov, all=True))
+
+    snapshot = {}
+    pendientes = []
+    for fila in filas:
+        (clase, pid, nombre, codigo, cantidad, inicial, documentado,
+         mid, fecha, tipo, qty, guardado, referencia, nota,
+         usuario, nombres, apellidos) = fila
+        if clase == "producto":
+            snapshot[pid] = {
+                "producto": Producto(id=pid, nombre=nombre, codigo_interno=codigo),
+                "stock_actual": cantidad,
+                "saldo_inicial": inicial,
+                "saldo_documentado_actual": documentado,
+                "movimientos": [],
+            }
+        else:
+            pendientes.append((pid, {
+                "id": mid, "creado_en": fecha, "tipo": tipo, "qty": qty,
+                "saldo_resultante": guardado, "referencia": referencia, "nota": nota,
+                "usuario_nombre": f"{nombres} {apellidos}".strip() or usuario,
+            }))
+    # UNION no garantiza el orden de las ramas ni el de sus filas.
+    for pid, movimiento in pendientes:
+        snapshot[pid]["movimientos"].append(movimiento)
+    for datos in snapshot.values():
+        datos["movimientos"].sort(key=lambda m: (m["creado_en"], m["id"]))
+    return snapshot
+
+
+def _kardex_por_mes(snapshot, periodo, con_detalle=False):
+    """Calcula saldos documentales; nunca inventa ajustes ni fechas.
+
+    La diferencia actual se compara con TODO el historial, no con el cierre
+    de un periodo antiguo. No se suma a los movimientos de ningún mes.
+    """
+    resultado = {}
+    for pid, fuente in snapshot.items():
+        saldo_corriente = fuente["saldo_inicial"]
+        datos = {
+            "saldo_inicial": saldo_corriente,
+            "diferencia_actual": fuente["stock_actual"] - fuente["saldo_documentado_actual"],
+            "tiene_diferencias_historicas": False,
+            "meses": {
+                mes: {
+                    "anio": mes[0],
+                    "mes": mes[1],
+                    "clave": f"{mes[0]:04d}-{mes[1]:02d}",
+                    "etiqueta": _etiqueta_mes(*mes),
+                    "etiqueta_corta": _etiqueta_mes(*mes, corta=True),
+                    "entradas": 0,
+                    "salidas": 0,
+                    "ajustes": 0,
+                    "num_movimientos": 0,
+                    "movimientos": [],
+                }
+                for mes in periodo["meses"]
+            },
+        }
+
+        for mov in fuente["movimientos"]:
+            local = timezone.localtime(mov["creado_en"])
+            fila = datos["meses"][(local.year, local.month)]
+            if mov["tipo"] == MovimientoInventario.TIPO_IN:
+                fila["entradas"] += mov["qty"]
+            elif mov["tipo"] == MovimientoInventario.TIPO_OUT:
+                fila["salidas"] += mov["qty"]
+            elif mov["tipo"] == MovimientoInventario.TIPO_ADJ:
+                fila["ajustes"] += mov["qty"]
+            fila["num_movimientos"] += 1
+            saldo_corriente += _delta_movimiento(mov["tipo"], mov["qty"])
+            difiere = mov["saldo_resultante"] != saldo_corriente
+            datos["tiene_diferencias_historicas"] |= difiere
+            if con_detalle:
+                fila["movimientos"].append({
+                    **mov, "saldo_documentado": saldo_corriente, "saldo_difiere": difiere,
+                })
+
+        saldo = datos["saldo_inicial"]
+        meses = []
+        for fila in datos["meses"].values():
+            fila["saldo_inicial"] = saldo
+            saldo = saldo + fila["entradas"] - fila["salidas"] + fila["ajustes"]
+            fila["saldo_final"] = saldo
+            meses.append(fila)
+
+        datos["meses"] = meses
+        datos["entradas"] = sum(f["entradas"] for f in meses)
+        datos["salidas"] = sum(f["salidas"] for f in meses)
+        datos["ajustes"] = sum(f["ajustes"] for f in meses)
+        datos["num_movimientos"] = sum(f["num_movimientos"] for f in meses)
+        datos["saldo_final"] = saldo
+        resultado[pid] = datos
+
+    return resultado
+
+
 @login_required
 def kardex_producto(request):
     """
-    Informe mensual de movimientos de inventario. Por defecto muestra una
-    tabla con TODOS los productos de la sede en el mes elegido (saldo
-    inicial, entradas, salidas, saldo actual), para que almacén vea de un
-    vistazo qué se movió sin tener que ir producto por producto. Si se
-    pasa ?producto_id=, muestra el detalle movimiento por movimiento de
-    ese producto ("tenías 30 clavos, le diste 5 a Juan, hoy tienes 25").
+    Informe de movimientos de inventario por rango de meses
+    (?desde=YYYY-MM&hasta=YYYY-MM). Por defecto muestra una tabla con todos
+    los productos de la sede (saldo inicial, entradas, salidas, ajustes,
+    saldo final y stock de hoy); con ?vista=mensual cada producto se puede
+    desplegar mes a mes. Con ?producto_id= muestra el detalle movimiento por
+    movimiento de ese producto, agrupado por mes.
     """
     profile = _require_roles(
         request.user,
@@ -751,7 +1056,13 @@ def kardex_producto(request):
     )
     sede = _require_sede(profile)
 
-    anio, mes, inicio_mes, fin_mes, mes_actual = _mes_desde_request(request)
+    periodo = _periodo_desde_request(request)
+    vista = "mensual" if request.GET.get("vista") == "mensual" else "total"
+
+    primer_movimiento = (
+        MovimientoInventario.objects.filter(sede=sede).aggregate(primero=Min("creado_en"))["primero"]
+    )
+    mes_minimo = timezone.localtime(primer_movimiento).strftime("%Y-%m") if primer_movimiento else ""
 
     producto = None
     producto_id = request.GET.get("producto_id")
@@ -763,119 +1074,74 @@ def kardex_producto(request):
         "sede": sede,
         "producto": producto,
         "productos": Producto.objects.order_by("nombre"),
-        "mes_actual": mes_actual,
+        "periodo": periodo,
+        "vista": vista,
+        "mes_minimo": mes_minimo,
+        "query_periodo": urlencode({
+            "desde": periodo["desde_str"],
+            "hasta": periodo["hasta_str"],
+            "vista": vista,
+        }),
+        # Mismo periodo, pero forzando la vista "Por mes" (botón del detalle totalizado).
+        "query_periodo_mensual": urlencode({
+            "desde": periodo["desde_str"],
+            "hasta": periodo["hasta_str"],
+            "vista": "mensual",
+        }),
     }
+
+    snapshot = _leer_snapshot_kardex(sede, periodo, producto.id if producto else None)
+    kardex = _kardex_por_mes(snapshot, periodo, con_detalle=bool(producto))
 
     if producto:
         # ---- Vista detalle: un producto, movimiento por movimiento ----
-        movimiento_previo = (
-            MovimientoInventario.objects
-            .filter(producto=producto, sede=sede, creado_en__lt=inicio_mes)
-            .order_by("-creado_en")
-            .first()
-        )
-        saldo_inicial = movimiento_previo.saldo_resultante if movimiento_previo else 0
-
-        movimientos = list(
-            MovimientoInventario.objects
-            .filter(
-                producto=producto,
-                sede=sede,
-                creado_en__gte=inicio_mes,
-                creado_en__lt=fin_mes,
-            )
-            .select_related("usuario")
-            .order_by("creado_en")
-        )
-
-        saldo_final_periodo = movimientos[-1].saldo_resultante if movimientos else saldo_inicial
-
-        stock_actual_obj = Stock.objects.filter(producto=producto, sede=sede).first()
-        stock_actual = stock_actual_obj.cantidad if stock_actual_obj else 0
-
-        total_entradas = sum(m.qty for m in movimientos if m.tipo == MovimientoInventario.TIPO_IN)
-        total_salidas = sum(m.qty for m in movimientos if m.tipo == MovimientoInventario.TIPO_OUT)
-
         context.update({
-            "saldo_inicial": saldo_inicial,
-            "movimientos": movimientos,
-            "saldo_final_periodo": saldo_final_periodo,
-            "stock_actual": stock_actual,
-            "total_entradas": total_entradas,
-            "total_salidas": total_salidas,
+            "detalle": kardex[producto.id],
+            "stock_actual": snapshot[producto.id]["stock_actual"],
         })
     else:
-        # ---- Vista resumen: todos los productos de la sede en el mes ----
-        stocks_sede = (
-            Stock.objects.filter(sede=sede)
-            .select_related("producto")
-            .order_by("producto__nombre")
-        )
-        producto_ids = [s.producto_id for s in stocks_sede]
-
-        movs_mes = (
-            MovimientoInventario.objects
-            .filter(sede=sede, producto_id__in=producto_ids, creado_en__gte=inicio_mes, creado_en__lt=fin_mes)
-            .values("producto_id")
-            .annotate(
-                entradas=Sum(Case(
-                    When(tipo=MovimientoInventario.TIPO_IN, then=F("qty")),
-                    default=0, output_field=IntegerField(),
-                )),
-                salidas=Sum(Case(
-                    When(tipo=MovimientoInventario.TIPO_OUT, then=F("qty")),
-                    default=0, output_field=IntegerField(),
-                )),
-                ajustes=Sum(Case(
-                    When(tipo=MovimientoInventario.TIPO_ADJ, then=F("qty")),
-                    default=0, output_field=IntegerField(),
-                )),
-                num_movimientos=Count("id"),
-            )
-        )
-        movs_por_producto = {m["producto_id"]: m for m in movs_mes}
-
-        # Saldo inicial = saldo_resultante del último movimiento ANTES del mes.
-        saldos_iniciales = {}
-        vistos = set()
-        previos = (
-            MovimientoInventario.objects
-            .filter(sede=sede, producto_id__in=producto_ids, creado_en__lt=inicio_mes)
-            .order_by("producto_id", "-creado_en")
-            .values("producto_id", "saldo_resultante")
-        )
-        for m in previos:
-            pid = m["producto_id"]
-            if pid not in vistos:
-                saldos_iniciales[pid] = m["saldo_resultante"]
-                vistos.add(pid)
-
+        # ---- Vista resumen: todos los productos de la sede en el periodo ----
         resumen = []
-        for s in stocks_sede:
-            pid = s.producto_id
-            agg = movs_por_producto.get(pid, {})
-            entradas = agg.get("entradas") or 0
-            salidas = agg.get("salidas") or 0
-            ajustes = agg.get("ajustes") or 0
-            num_movimientos = agg.get("num_movimientos") or 0
-            saldo_inicial = saldos_iniciales.get(pid, 0)
-            saldo_final_periodo = saldo_inicial + entradas - salidas + ajustes
-
+        for fuente in sorted(snapshot.values(), key=lambda f: (f["producto"].nombre, f["producto"].id)):
+            p = fuente["producto"]
+            datos = kardex[p.id]
             resumen.append({
-                "producto": s.producto,
-                "saldo_inicial": saldo_inicial,
-                "entradas": entradas,
-                "salidas": salidas,
-                "ajustes": ajustes,
-                "saldo_final_periodo": saldo_final_periodo,
-                "stock_actual": s.cantidad,
-                "num_movimientos": num_movimientos,
+                "producto": p,
+                "saldo_inicial": datos["saldo_inicial"],
+                "entradas": datos["entradas"],
+                "salidas": datos["salidas"],
+                "ajustes": datos["ajustes"],
+                "saldo_final_periodo": datos["saldo_final"],
+                "stock_actual": fuente["stock_actual"],
+                "diferencia_actual": datos["diferencia_actual"],
+                "tiene_diferencias_historicas": datos["tiene_diferencias_historicas"],
+                "num_movimientos": datos["num_movimientos"],
+                "meses": datos["meses"],
             })
 
-        context["resumen"] = resumen
-        context["total_productos"] = len(resumen)
-        context["productos_con_movimiento"] = sum(1 for f in resumen if f["num_movimientos"])
-        context["total_entradas_mes"] = sum(f["entradas"] for f in resumen)
-        context["total_salidas_mes"] = sum(f["salidas"] for f in resumen)
+        totales_por_mes = []
+        for i, mes in enumerate(periodo["meses"]):
+            totales_por_mes.append({
+                "etiqueta": _etiqueta_mes(*mes),
+                "etiqueta_corta": _etiqueta_mes(*mes, corta=True),
+                "entradas": sum(f["meses"][i]["entradas"] for f in resumen),
+                "salidas": sum(f["meses"][i]["salidas"] for f in resumen),
+                "ajustes": sum(f["meses"][i]["ajustes"] for f in resumen),
+                # Productos con al menos un movimiento ese mes.
+                "productos": sum(1 for f in resumen if f["meses"][i]["num_movimientos"]),
+            })
+
+        context.update({
+            "resumen": resumen,
+            "totales_por_mes": totales_por_mes,
+            "total_productos": len(resumen),
+            "productos_con_movimiento": sum(1 for f in resumen if f["num_movimientos"]),
+            "total_entradas_periodo": sum(f["entradas"] for f in resumen),
+            "total_salidas_periodo": sum(f["salidas"] for f in resumen),
+            "total_ajustes_periodo": sum(f["ajustes"] for f in resumen),
+            "productos_con_diferencias": sum(
+                1 for f in resumen if f["diferencia_actual"] or f["tiene_diferencias_historicas"]
+            ),
+        })
 
     return render(request, "inventario/kardex_producto.html", context)

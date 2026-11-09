@@ -76,6 +76,12 @@
         border-color: #94a3b8;
     }
 
+    .firma-filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+    .firma-filtros-titulo { font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-right: 4px; }
+    .firma-filtro { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
+        border: 1px solid #d9e2ef; color: #0f172a; text-decoration: none; font-size: 13px; font-weight: 700; background: #fff; }
+    .firma-filtro.activo { background: #1e293b; border-color: #1e293b; color: #fff; }
+
     .filter-bar {
         margin-bottom: 24px;
         background: #ffffff;
@@ -259,6 +265,19 @@
         border: 1px solid transparent;
         white-space: nowrap;
     }
+
+    /* Estado de firmas de la nota de salida */
+    .firma-estado {
+        display: block;
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 850;
+        white-space: nowrap;
+    }
+    .firma-ok { color: #15803d; }
+    .firma-parcial { color: #b45309; }
+    .firma-pendiente { color: #94a3b8; }
+    .firma-cambiado { color: #b91c1c; }
 
     .tb-liq {
         background: rgba(22, 163, 74, 0.12);
@@ -670,6 +689,12 @@
                 autocomplete="off"
             >
         </div>
+        <nav class="firma-filtros" aria-label="Filtrar por firma">
+            <span class="firma-filtros-titulo">Firmas:</span>
+            <a href="?firma=todos" class="firma-filtro {% if firma == 'todos' %}activo{% endif %}" {% if firma == 'todos' %}aria-current="page"{% endif %}>Todos</a>
+            <a href="?firma=pendientes" class="firma-filtro {% if firma == 'pendientes' %}activo{% endif %}" {% if firma == 'pendientes' %}aria-current="page"{% endif %}><i class='bx bx-time-five'></i> Por firmar</a>
+            <a href="?firma=firmados" class="firma-filtro {% if firma == 'firmados' %}activo{% endif %}" {% if firma == 'firmados' %}aria-current="page"{% endif %}><i class='bx bx-check-double'></i> Firmados</a>
+        </nav>
     </div>
 
     <div class="content-card">
@@ -844,6 +869,16 @@
                                         Sin movimiento de stock
                                     </span>
                                 {% endif %}
+
+                                {% if item.estado_firma == 'FIRMADO' %}
+                                    <span class="firma-estado firma-ok"><i class='bx bx-check-double'></i> Firmada (2/2)</span>
+                                {% elif item.estado_firma == 'PARCIAL' %}
+                                    <span class="firma-estado firma-parcial"><i class='bx bx-pen'></i> Firma 1/2</span>
+                                {% elif item.estado_firma == 'PENDIENTE' %}
+                                    <span class="firma-estado firma-pendiente"><i class='bx bx-time-five'></i> Sin firmas</span>
+                                {% elif item.estado_firma == 'CAMBIADO' %}
+                                    <span class="firma-estado firma-cambiado"><i class='bx bx-error'></i> Cambió tras firmarse</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% empty %}
@@ -864,7 +899,7 @@
         {% if historial.paginator.num_pages > 1 %}
             <nav class="pagination-bar" aria-label="Páginas del historial">
                 {% if historial.has_previous %}
-                    <a href="?page={{ historial.previous_page_number }}" class="page-btn page-previous">
+                    <a href="?page={{ historial.previous_page_number }}{{ qs_firma }}" class="page-btn page-previous">
                         <i class='bx bx-chevron-left' aria-hidden="true"></i>
                         Anterior
                     </a>
@@ -884,7 +919,7 @@
                                 {{ num }}
                             </span>
                         {% else %}
-                            <a href="?page={{ num }}" class="page-num" aria-label="Ir a la página {{ num }}">
+                            <a href="?page={{ num }}{{ qs_firma }}" class="page-num" aria-label="Ir a la página {{ num }}">
                                 {{ num }}
                             </a>
                         {% endif %}
@@ -892,7 +927,7 @@
                 </div>
 
                 {% if historial.has_next %}
-                    <a href="?page={{ historial.next_page_number }}" class="page-btn page-next">
+                    <a href="?page={{ historial.next_page_number }}{{ qs_firma }}" class="page-btn page-next">
                         Siguiente
                         <i class='bx bx-chevron-right' aria-hidden="true"></i>
                     </a>

@@ -1112,6 +1112,17 @@
                     <i class='bx bx-chevron-right quick-arrow'></i>
                 </a>
 
+                <a href="{% url 'almacen_por_firmar' %}" class="quick-hero-item">
+                    <div class="quick-icon amber">
+                        <i class='bx bx-pen'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Documentos por firmar{% if firmas_pendientes %} ({{ firmas_pendientes }}){% endif %}</strong>
+                        <span>Salidas que despachaste, devoluciones y liquidaciones.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+
                 <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-hero-item">
                     <div class="quick-icon purple">
                         <i class='bx bx-reply-all'></i>
@@ -1213,7 +1224,7 @@
                     </div>
                     <div class="quick-info">
                         <strong>Informe de movimientos</strong>
-                        <span>Saldo inicial del mes, a dónde se fue cada material, saldo actual.</span>
+                        <span>Entradas, salidas, ajustes y saldos por rango de meses.</span>
                     </div>
                     <i class='bx bx-chevron-right quick-arrow'></i>
                 </a>

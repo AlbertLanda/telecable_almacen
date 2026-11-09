@@ -84,6 +84,14 @@
         /* --- FIRMAS --- */
         .signatures { display: flex; justify-content: space-between; padding: 0 30px; }
         .sign-box { width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        /* Trazo o "Pendiente" encima de la línea; la constancia, debajo */
+        .sign-col { width: 40%; display: flex; flex-direction: column; }
+        .sign-col .sign-box { width: 100%; }
+        .sign-trazo { height: 62px; display: flex; align-items: flex-end; justify-content: center; }
+        .sign-trazo img { max-height: 62px; max-width: 100%; }
+        .sign-pendiente { font-size: 9px; color: #888; font-style: italic; }
+        .sign-constancia { font-size: 8px; text-align: center; margin-top: 3px; }
+        .sign-cambio { font-size: 8px; text-align: center; color: #c00; font-weight: 700; }
 
         /* --- BARRA FLOTANTE (Solo Pantalla) --- */
         .floating-actions {
@@ -266,10 +274,23 @@
             </div>
         </div>
 
+        {% if firmas.requiere and sal.sede_destino %}
+        {# Traslado entre sedes: firma el almacén que envía y, al recepcionar, el que recibe #}
+        <div class="signatures">
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="ENVÍA: ALMACÉN "|add:sal.sede.nombre %}
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="RECIBE: ALMACÉN "|add:sal.sede_destino.nombre %}
+        </div>
+        {% elif firmas.requiere %}
+        <div class="signatures">
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="FIRMA DE QUIEN RETIRA" %}
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="FIRMA ENCARGADO DE ALMACÉN" %}
+        </div>
+        {% else %}
         <div class="signatures">
             <div class="sign-box">FIRMA DE QUIEN RETIRA</div>
             <div class="sign-box">FIRMA ENCARGADO DE ALMACÉN</div>
         </div>
+        {% endif %}
 
     </div>
 

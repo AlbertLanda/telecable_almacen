@@ -26,6 +26,7 @@ from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendiente
 from inventario.models import UserProfile
 
 from .utils import render_to_pdf
+from inventario.services.firma_service import acta_estado, acta_firmas_para_mostrar, firmas_para_mostrar
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 
@@ -547,6 +548,13 @@ def almacen_generar_salida(request, proyecto_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():
+                # El cierre y todos los despachos de una obra toman este mismo
+                # bloqueo antes de leer pendientes o modificar inventario.
+                proyecto = Proyecto.objects.select_for_update().get(pk=proyecto.pk)
+                if proyecto.firmas_acta.exists():
+                    raise ValueError("El acta de esta obra ya tiene firmas. Crea una nueva obra o ampliación para nuevas entregas.")
+                if proyecto.estado not in [EstadoProyecto.APROBADO, EstadoProyecto.EN_PROCESO]:
+                    raise ValueError("El proyecto ya no está disponible para despacho.")
                 notas_usuario = request.POST.get('notas', '').strip()
                 retirado_por_id = (request.POST.get('retirado_por_id') or '').strip()
 
@@ -585,11 +593,20 @@ def almacen_generar_salida(request, proyecto_id):
                 for m in items_pendientes:
                     try:
                         qty = int(request.POST.get(f'input_{m.id}', 0) or 0)
-                    except ValueError:
-                        qty = 0
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError(f"Indica una cantidad entera para {m.producto.nombre}.") from exc
 
-                    if qty <= 0:
+                    if qty < 0:
+                        raise ValueError(f"La cantidad no puede ser negativa: {m.producto.nombre}.")
+                    if qty == 0:
                         continue
+
+                    # Releer bajo bloqueo: si otra sede despachó esta obra al mismo
+                    # tiempo, el pendiente real ya es menor que el de la pantalla.
+                    m = ProyectoMaterial.objects.select_for_update(of=("self",)).select_related("producto").get(pk=m.pk)
+                    m.pendiente_temp = int(m.cantidad_planificada or 0) - int(m.cantidad_entregada or 0)
+                    stock_obj = Stock.objects.filter(producto=m.producto, sede=sede_despacho).first()
+                    m.stock_temp = int(stock_obj.cantidad or 0) if stock_obj else 0
 
                     if qty > m.pendiente_temp:
                         raise ValueError(
@@ -762,10 +779,15 @@ def proyecto_pdf_salida(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     materiales_entregados = [m for m in proyecto.materiales.all() if m.cantidad_entregada > 0]
 
+    despachos = list(_despachos_del_proyecto(proyecto))
+    # Firmas de cada despacho (responsable de la obra + almacenero que despachó).
+    for doc in despachos:
+        doc.firmas_vista = firmas_para_mostrar(doc, usuario=request.user, proyecto=proyecto)
     return render(request, 'proyectos/pdf_vale_salida.html', {
         'proyecto': proyecto,
         'materiales': materiales_entregados,
-        'despachos': _despachos_del_proyecto(proyecto),
+        'despachos': despachos,
+        'despachos_con_firma': [d for d in despachos if d.firmas_vista["requiere"]],
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
     })
@@ -798,11 +820,18 @@ def almacen_liquidar_proyecto(request, proyecto_id):
         messages.warning(request, "Solo puedes liquidar proyectos en proceso.")
         return redirect("almacen_liquidacion_lista")
 
+    # Lo devuelto entra al almacén que lo recibe físicamente (el de quien liquida),
+    # no siempre a la sede de la obra: una obra puede tener despachos de varias sedes.
+    sede_recepcion = profile.get_sede_operativa()
+    if not sede_recepcion:
+        messages.error(request, "Tu usuario no tiene una sede de almacén asignada.")
+        return redirect("almacen_liquidacion_lista")
+
     materiales = []
 
     for m in proyecto.materiales.select_related("producto").all():
         if m.cantidad_entregada > 0:
-            m.max_devolucion = m.cantidad_entregada - (m.cantidad_devuelta + m.cantidad_merma)
+            m.max_devolucion = m.cantidad_por_liquidar
 
             if m.max_devolucion > 0:
                 materiales.append(m)
@@ -810,13 +839,36 @@ def almacen_liquidar_proyecto(request, proyecto_id):
     if request.method == "POST":
         try:
             with transaction.atomic():
+                # Una segunda liquidación o un despacho debe esperar y volver
+                # a validar el mismo proyecto con los datos ya confirmados.
+                proyecto = Proyecto.objects.select_for_update().get(pk=proyecto.pk)
+                if proyecto.firmas_acta.exists():
+                    raise ValueError("El acta de esta obra ya tiene firmas. Crea una nueva obra o ampliación para nuevas entregas.")
+                if proyecto.estado != EstadoProyecto.EN_PROCESO:
+                    messages.warning(request, "La obra ya no está pendiente de liquidación.")
+                    return redirect("almacen_liquidacion_lista")
+                if proyecto.requiere_conciliacion_mochila:
+                    raise ValueError(
+                        "Esta obra tiene despachos antiguos. Revisa y concilia su mochila "
+                        "con TI antes de liquidar; no se descontará material personal automáticamente."
+                    )
+                materiales_bloqueados = list(
+                    ProyectoMaterial.objects.select_for_update(of=("self",))
+                    .filter(proyecto=proyecto).select_related("producto").order_by("pk")
+                )
                 doc_ing = None
                 hubo_buenos = False
-                ubicacion_retorno = Ubicacion.objects.filter(sede=proyecto.sede).first()
+                ubicacion_retorno = Ubicacion.objects.filter(sede=sede_recepcion).first()
 
-                for m in materiales:
-                    good = int(request.POST.get(f"input_good_{m.id}", 0) or 0)
-                    bad = int(request.POST.get(f"input_bad_{m.id}", 0) or 0)
+                for m in materiales_bloqueados:
+                    m.max_devolucion = m.cantidad_por_liquidar
+                    try:
+                        good = int(request.POST.get(f"input_good_{m.id}", 0) or 0)
+                        bad = int(request.POST.get(f"input_bad_{m.id}", 0) or 0)
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError(f"Indica cantidades enteras para {m.producto.nombre}.") from exc
+                    if good < 0 or bad < 0:
+                        raise ValueError(f"Las cantidades no pueden ser negativas: {m.producto.nombre}.")
 
                     total_cierre = good + bad
 
@@ -824,6 +876,22 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                         raise ValueError(
                             f"Error en {m.producto.nombre}: la devolución + merma supera lo pendiente."
                         )
+                    equipos_obra = []
+                    if m.producto.es_serializado:
+                        equipos_obra = list(
+                            ItemSerializado.objects.select_for_update().filter(
+                                proyecto=proyecto,
+                                producto=m.producto,
+                                estado=ItemSerializado.Estado.ASIGNADO,
+                            ).order_by("id")
+                        )
+                        if len(equipos_obra) != m.max_devolucion:
+                            raise ValueError(
+                                f"{m.producto.nombre}: hay {len(equipos_obra)} equipos identificados "
+                                f"para {m.max_devolucion} pendientes. Concilia los seriales de la obra antes de liquidar."
+                            )
+                    if m.max_devolucion == 0:
+                        continue
 
                     # Actualizamos liquidación del material de obra
                     m.cantidad_devuelta += good
@@ -839,17 +907,12 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                     # esta obra: sin esto, quedaban ASIGNADO al responsable para
                     # siempre, sin importar que la obra ya se hubiera liquidado.
                     if m.producto.es_serializado:
-                        equipos_obra = list(
-                            ItemSerializado.objects.filter(
-                                proyecto=proyecto,
-                                producto=m.producto,
-                                estado=ItemSerializado.Estado.ASIGNADO,
-                            ).order_by("id")
-                        )
-
                         devueltos = equipos_obra[:good]
                         mermados = equipos_obra[good:good + bad]
                         instalados = equipos_obra[good + bad:]
+
+                        if (devueltos or mermados) and not ubicacion_retorno:
+                            raise ValueError(f"Configura una ubicación de retorno en {sede_recepcion.nombre}.")
 
                         if devueltos:
                             ItemSerializado.objects.filter(
@@ -883,11 +946,14 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                             doc_ing = DocumentoInventario.objects.create(
                                 tipo=TipoDocumento.ING,
                                 estado=EstadoDocumento.BORRADOR,
-                                sede=proyecto.sede,
+                                sede=sede_recepcion,
                                 responsable=request.user,
                                 solicitante=proyecto.responsable,
                                 referencia=f"RETORNO {proyecto.codigo}",
-                                observaciones=f"Retorno de materiales de obra {proyecto.codigo}",
+                                observaciones=(
+                                    f"Retorno de materiales de obra {proyecto.codigo} "
+                                    f"| Sede de la obra: {proyecto.sede.nombre}"
+                                ),
                                 fecha=timezone.now(),
                             )
 
@@ -900,33 +966,18 @@ def almacen_liquidar_proyecto(request, proyecto_id):
 
                         hubo_buenos = True
 
-                    # ✅ CLAVE: limpiar mochila del responsable
-                    # Todo lo entregado para la obra queda cerrado por acta:
-                    # bueno devuelto + merma + consumido.
-                    stock_tecnico = StockTecnico.objects.filter(
-                        tecnico=proyecto.responsable,
-                        producto=m.producto,
-                    ).first()
-
-                    if stock_tecnico:
-                        cantidad_a_descontar = int(m.cantidad_entregada or 0)
-
-                        stock_tecnico.cantidad = max(
-                            int(stock_tecnico.cantidad or 0) - cantidad_a_descontar,
-                            0,
-                        )
-
-                        if stock_tecnico.cantidad <= 0:
-                            stock_tecnico.delete()
-                        else:
-                            stock_tecnico.save(update_fields=["cantidad"])
-
                 if hubo_buenos and doc_ing:
                     doc_ing.confirmar()
 
                 proyecto.estado = EstadoProyecto.FINALIZADO
                 proyecto.fin = timezone.now()
-                proyecto.save(update_fields=["estado", "fin", "actualizado_en"])
+                proyecto.cierre_registrado = True
+                proyecto.mochila_antigua_conciliada = True
+                proyecto.liquidado_por = request.user  # firma el V° B° del acta de cierre
+                proyecto.save(update_fields=[
+                    "estado", "fin", "liquidado_por", "cierre_registrado",
+                    "mochila_antigua_conciliada", "actualizado_en",
+                ])
 
                 messages.success(request, f"Proyecto {proyecto.codigo} LIQUIDADO.")
                 return redirect("almacen_liquidacion_lista")
@@ -970,6 +1021,7 @@ def proyecto_pdf_liquidacion(request, proyecto_id):
         'despachos': _despachos_del_proyecto(proyecto),
         'fecha_impresion': timezone.now(),
         'usuario': request.user,
+        'firmas': acta_firmas_para_mostrar(proyecto, usuario=request.user),
     }
     
     # 🚀 CAMBIO CLAVE: Usamos render normal
@@ -979,11 +1031,23 @@ def proyecto_pdf_liquidacion(request, proyecto_id):
 @login_required
 def almacen_historial_obras(request):
     profile = request.user.profile
-    proyectos = Proyecto.objects.filter(
-        sede=profile.get_sede_operativa(),
-        estado=EstadoProyecto.FINALIZADO
-    ).select_related('responsable').order_by('-fin')
-    return render(request, 'proyectos/almacen_historial_lista.html', {'proyectos': proyectos})
+    proyectos = list(
+        Proyecto.objects.filter(
+            sede=profile.get_sede_operativa(),
+            estado=EstadoProyecto.FINALIZADO
+        ).select_related('responsable', 'liquidado_por').prefetch_related('firmas_acta').order_by('-fin')
+    )
+    # Estado de firmas del acta de cierre y filtro ?firma=pendientes / ?firma=firmados.
+    for p in proyectos:
+        p.estado_firma = acta_estado(p)
+    firma = request.GET.get("firma", "todos")
+    if firma == "pendientes":
+        proyectos = [p for p in proyectos if p.estado_firma in ("PENDIENTE", "PARCIAL", "CAMBIADO")]
+    elif firma == "firmados":
+        proyectos = [p for p in proyectos if p.estado_firma == "FIRMADO"]
+    else:
+        firma = "todos"
+    return render(request, 'proyectos/almacen_historial_lista.html', {'proyectos': proyectos, 'firma': firma})
 
 @login_required
 def admin_reporte_lista(request):
