@@ -156,3 +156,26 @@ class DespachoObraMultisedeTests(TestCase):
         self.liquidar("almacen_jauja_1", buenos=0)
 
         self.assertEqual(StockTecnico.objects.get(tecnico=resp, producto=self.cable.producto).cantidad, 100)
+
+    def test_obra_antigua_reabierta_no_descuenta_la_mochila_dos_veces(self):
+        """Caso OBRA-2026-0008: cerrada antes de tiempo, reabierta desde el admin y cerrada de nuevo."""
+        self.despachar("almacen_jauja_1", {self.cable: 200})
+        DocumentoInventario.objects.filter(tipo=TipoDocumento.SAL, referencia=self.obra.codigo).update(
+            fecha=timezone.make_aware(datetime(2026, 8, 1, 10, 0)))
+        resp = User.objects.get(username="tecnico_resp_jauja")
+        StockTecnico.objects.create(tecnico=resp, producto=self.cable.producto, sede=self.obra.sede, cantidad=300)
+
+        self.liquidar("almacen_jauja_1", buenos=0)   # primer cierre: quita los 200 antiguos
+        self.assertEqual(StockTecnico.objects.get(tecnico=resp, producto=self.cable.producto).cantidad, 100)
+
+        # Se reabre desde el admin (solo el estado), se despacha lo que faltaba y se cierra otra vez.
+        self.obra.refresh_from_db()
+        self.obra.estado = EstadoProyecto.EN_PROCESO
+        self.obra.save(update_fields=["estado"])
+        self.despachar("almacen_oroya_1", {self.cable: 400, self.conector: 40})
+        self.liquidar("almacen_oroya_1", buenos=0)
+
+        self.recargar()
+        self.assertEqual(self.obra.estado, EstadoProyecto.FINALIZADO)
+        self.assertEqual(self.cable.cantidad_entregada, 600)
+        self.assertEqual(StockTecnico.objects.get(tecnico=resp, producto=self.cable.producto).cantidad, 100)

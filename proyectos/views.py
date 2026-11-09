@@ -853,6 +853,10 @@ def almacen_liquidar_proyecto(request, proyecto_id):
         messages.error(request, "Tu usuario no tiene una sede de almacén asignada.")
         return redirect("almacen_liquidacion_lista")
 
+    # Una obra reabierta (por ejemplo, desde el admin) ya tiene fecha de fin de su
+    # primer cierre: en ese cierre ya se descontó la mochila antigua, no se repite.
+    primer_cierre = proyecto.fin is None
+
     materiales = []
 
     for m in proyecto.materiales.select_related("producto").all():
@@ -962,8 +966,10 @@ def almacen_liquidar_proyecto(request, proyecto_id):
                         hubo_buenos = True
 
                     # Mochila del responsable: solo se descuenta lo que sumaron
-                    # los despachos antiguos de esta obra. Lo demás es su carga semanal.
-                    _descontar_mochila_antigua(proyecto, m.producto)
+                    # los despachos antiguos de esta obra, y una sola vez (primer cierre).
+                    # Lo demás es su carga semanal.
+                    if primer_cierre:
+                        _descontar_mochila_antigua(proyecto, m.producto)
 
                 if hubo_buenos and doc_ing:
                     doc_ing.confirmar()
