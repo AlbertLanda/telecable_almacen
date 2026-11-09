@@ -68,6 +68,35 @@
         margin-bottom: 14px;
     }
 
+    /* Fila superior del recuadro: etiqueta a la izquierda, botón a la derecha */
+    .kx-hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .kx-btn-panel {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, .35);
+        background: rgba(255, 255, 255, .10);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        transition: background .15s ease;
+    }
+
+    .kx-btn-panel:hover {
+        background: rgba(255, 255, 255, .22);
+        color: #fff;
+    }
+
     .kx-hero h1 {
         margin: 0;
         font-size: clamp(24px, 3.6vw, 34px);
@@ -93,10 +122,165 @@
 
     .kx-filter-form {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 52px;
+        grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.6fr) minmax(0, 1fr) 52px;
         gap: 12px;
         align-items: end;
     }
+
+    .kx-vista-toggle {
+        display: flex;
+        min-height: 48px;
+        border: 1px solid var(--kx-border-strong);
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .kx-vista-toggle label {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 850;
+        color: var(--kx-muted);
+        padding: 0 10px;
+        white-space: nowrap;
+    }
+
+    .kx-vista-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+    .kx-vista-toggle input:checked + span { color: #fff; }
+    .kx-vista-toggle label:has(input:checked) { background: var(--kx-primary); color: #fff; }
+
+    .kx-aviso {
+        margin-top: 12px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--kx-warning-soft);
+        color: #92400e;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .kx-criterio {
+        margin: 14px 0 0;
+        color: var(--kx-muted);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .kx-diferencia {
+        display: block;
+        margin-top: 5px;
+        color: #92400e;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+        white-space: normal;
+    }
+
+    .kx-meses-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    .kx-mes-card {
+        background: var(--kx-card);
+        border: 1px solid var(--kx-border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        box-shadow: var(--kx-shadow-sm);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kx-mes-card strong {
+        display: block;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--kx-muted);
+        margin-bottom: 4px;
+    }
+
+    .kx-meses-titulo {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--kx-muted);
+    }
+
+    .kx-mes-linea {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        line-height: 1.6;
+    }
+
+    .kx-mes-linea span:first-child { color: var(--kx-muted); }
+
+    .kx-detalle-pie {
+        display: flex;
+        justify-content: flex-end;
+        padding: 14px 18px;
+    }
+
+    .kx-mes-pie {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--kx-border);
+        font-size: 11px;
+        color: var(--kx-muted);
+    }
+
+    .kx-toggle-meses {
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--kx-border-strong);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--kx-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        flex: 0 0 auto;
+        transition: transform .15s ease;
+    }
+
+    .kx-toggle-meses[aria-expanded="true"] { transform: rotate(90deg); }
+
+    .kx-producto-cell { display: flex; align-items: center; }
+
+    .kx-meses-detalle { background: #f8fafc; border-bottom: 1px solid var(--kx-border); }
+    .kx-meses-detalle[hidden] { display: none; }
+    .kx-meses-detalle .kx-grid-row { border-bottom: 1px dashed var(--kx-border); }
+    .kx-meses-detalle .kx-grid-cell { padding: 9px 20px; font-size: 12px; }
+    .kx-meses-detalle .kx-cell-left { padding-left: 56px; color: var(--kx-muted); font-weight: 850; }
+
+    .kx-mes-header td {
+        background: #eef4ff !important;
+        font-weight: 900;
+        color: var(--kx-text);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .kx-mes-subtotal td {
+        background: #f8fafc !important;
+        font-size: 12px;
+        color: var(--kx-muted);
+        font-weight: 800;
+    }
+
+    .kx-mes-subtotal td strong { color: var(--kx-text); }
 
     .kx-label {
         display: flex;
@@ -151,7 +335,7 @@
 
     .kx-summary {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 14px;
     }
 
@@ -182,6 +366,7 @@
 
     .kx-stat.entrada strong { color: var(--kx-success); }
     .kx-stat.salida strong { color: var(--kx-danger); }
+    .kx-stat.ajuste strong { color: #b45309; }
 
     .kx-panel {
         background: var(--kx-card);
@@ -321,14 +506,14 @@
 
     .kx-grid {
         width: 100%;
-        min-width: 760px;
+        min-width: 880px;
         display: flex;
         flex-direction: column;
     }
 
     .kx-grid-row {
         display: grid;
-        grid-template-columns: 2.2fr 1fr 1fr 1fr 1.2fr 1fr;
+        grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr 1.2fr 1fr;
         align-items: center;
         column-gap: 10px;
         border-bottom: 1px solid var(--kx-border);
@@ -336,9 +521,11 @@
 
     .kx-grid-row:last-child { border-bottom: none; }
 
+    .kx-producto-block { border-bottom: 1px solid var(--kx-border); }
+    .kx-producto-block:nth-child(even) > .kx-row-link { background: #fafbfd; }
+    .kx-producto-block > .kx-grid-row { border-bottom: none; }
     .kx-grid-row.kx-row-link { cursor: pointer; transition: background .12s ease; }
-    .kx-grid-row.kx-row-link:nth-child(even) { background: #fafbfd; }
-    .kx-grid-row.kx-row-link:hover { background: var(--kx-primary-soft); }
+    .kx-grid-row.kx-row-link:hover { background: var(--kx-primary-soft) !important; }
 
     .kx-grid-head {
         position: sticky;
@@ -384,6 +571,7 @@
     .td-right { text-align: center; }
     .txt-entrada { color: #15803d; font-weight: 950; }
     .txt-salida { color: #b91c1c; font-weight: 950; }
+    .txt-ajuste { color: #b45309; font-weight: 950; }
     .txt-muted { color: var(--kx-muted); }
 
     .kx-product-name {
@@ -413,7 +601,9 @@
 
     @media (max-width: 900px) {
         .kx-summary { grid-template-columns: repeat(2, 1fr); }
-        .kx-filter-form { grid-template-columns: 1fr; }
+        .kx-filter-form { grid-template-columns: 1fr 1fr; }
+        .kx-filter-form > :nth-child(3), .kx-filter-form > :nth-child(4) { grid-column: 1 / -1; }
+        .btn-kx-search { grid-column: 1 / -1; }
         .btn-kx-search { width: 100%; }
     }
 </style>
@@ -421,35 +611,44 @@
 <div class="kx-page">
 
     <section class="kx-hero">
-        <div class="kx-badge">
-            <i class='bx bx-line-chart'></i>
-            Informe de movimientos
+        <div class="kx-hero-top">
+            <div class="kx-badge">
+                <i class='bx bx-line-chart'></i>
+                Informe de movimientos
+            </div>
+            <a href="{% url 'dashboard' %}" class="kx-btn-panel">
+                <i class='bx bx-arrow-back'></i>
+                Volver al panel
+            </a>
         </div>
         <h1>Kardex de {{ sede.nombre }}</h1>
         <p>
             {% if producto %}
-                Detalle de <strong>{{ producto.nombre }}</strong>: cada movimiento del mes, a dónde fue, y el saldo después de cada uno.
+                Detalle de <strong>{{ producto.nombre }}</strong> en <strong>{{ periodo.etiqueta }}</strong>: totales y saldos según los movimientos registrados. Selecciona Por mes para ver cada movimiento.
             {% else %}
-                Vista de todos los productos del mes: cuánto tenías al empezar, qué entró y salió, y cuánto tienes ahora.
+                Todos los productos en <strong>{{ periodo.etiqueta }}</strong>: saldos, entradas, salidas y ajustes registrados en el periodo.
             {% endif %}
         </p>
     </section>
 
     <section class="kx-filter-card">
         <form class="kx-filter-form" method="GET">
-            {% if producto %}
-                <input type="hidden" name="producto_id" value="{{ producto.id }}">
-            {% endif %}
-
             <div>
-                <label class="kx-label"><i class='bx bx-calendar'></i> Mes</label>
-                <input type="month" name="mes" class="kx-input" value="{{ mes_actual }}">
+                <label class="kx-label" for="kx-desde"><i class='bx bx-calendar'></i> Desde</label>
+                <input type="month" id="kx-desde" name="desde" class="kx-input" value="{{ periodo.desde_str }}"
+                       max="{{ periodo.actual_str }}" {% if mes_minimo %}min="{{ mes_minimo }}"{% endif %}>
             </div>
 
             <div>
-                <label class="kx-label"><i class='bx bx-target-lock'></i> Ir directo a un producto (opcional)</label>
-                <select name="producto_id" class="kx-select" onchange="this.form.submit()">
-                    <option value="">Ver todos los productos del mes</option>
+                <label class="kx-label" for="kx-hasta"><i class='bx bx-calendar-check'></i> Hasta</label>
+                <input type="month" id="kx-hasta" name="hasta" class="kx-input" value="{{ periodo.hasta_str }}"
+                       max="{{ periodo.actual_str }}" {% if mes_minimo %}min="{{ mes_minimo }}"{% endif %}>
+            </div>
+
+            <div>
+                <label class="kx-label" for="kx-producto"><i class='bx bx-target-lock'></i> Ir directo a un producto (opcional)</label>
+                <select id="kx-producto" name="producto_id" class="kx-select" onchange="this.form.submit()">
+                    <option value="">Ver todos los productos</option>
                     {% for p in productos %}
                         <option value="{{ p.id }}" {% if producto and p.id == producto.id %}selected{% endif %}>
                             {{ p.nombre }} ({{ p.codigo_interno|default:"S/C" }})
@@ -458,26 +657,64 @@
                 </select>
             </div>
 
+            <div>
+                <span class="kx-label"><i class='bx bx-layer'></i> Vista</span>
+                <div class="kx-vista-toggle">
+                    <label><input type="radio" name="vista" value="total" {% if vista != 'mensual' %}checked{% endif %} onchange="this.form.submit()"><span>Totalizado</span></label>
+                    <label><input type="radio" name="vista" value="mensual" {% if vista == 'mensual' %}checked{% endif %} onchange="this.form.submit()"><span>Por mes</span></label>
+                </div>
+            </div>
+
             <button type="submit" class="btn-kx-search" title="Consultar">
                 <i class='bx bx-search'></i>
             </button>
         </form>
+        {% for aviso in periodo.avisos %}
+            <div class="kx-aviso"><i class='bx bx-info-circle'></i> {{ aviso }}</div>
+        {% endfor %}
+        <p class="kx-criterio">
+            Los saldos se calculan con los movimientos registrados. La columna Ajustes incluye solo ajustes registrados.
+            El stock actual corresponde al momento de la consulta; las diferencias pendientes de conciliación se muestran por separado.
+        </p>
     </section>
 
     {% if producto %}
         {# ================= VISTA DETALLE DE UN PRODUCTO ================= #}
+        {% if detalle.diferencia_actual %}
+        <div class="kx-aviso" role="status">
+            <i class='bx bx-info-circle'></i>
+            Diferencia actual por conciliar: <strong>{% if detalle.diferencia_actual > 0 %}+{% endif %}{{ detalle.diferencia_actual }}</strong>.
+            Es la diferencia entre el stock actual y el saldo de todos los movimientos registrados, incluidos los posteriores al periodo consultado.
+            No se asigna a un mes ni se suma a los ajustes.
+        </div>
+        {% endif %}
+        {% if detalle.tiene_diferencias_historicas %}
+        <div class="kx-aviso" role="status">
+            <i class='bx bx-info-circle'></i>
+            Hay saldos guardados que difieren del cálculo por movimientos y requieren revisión.
+            En la vista Por mes se muestran ambos valores cuando difieren.
+        </div>
+        {% endif %}
         <div class="kx-summary">
             <div class="kx-stat">
-                <span>Saldo inicial del mes</span>
-                <strong>{{ saldo_inicial }}</strong>
+                <span>Saldo inicial</span>
+                <strong>{{ detalle.saldo_inicial }}</strong>
             </div>
             <div class="kx-stat entrada">
                 <span>Total entradas</span>
-                <strong>+{{ total_entradas }}</strong>
+                <strong>+{{ detalle.entradas }}</strong>
             </div>
             <div class="kx-stat salida">
                 <span>Total salidas</span>
-                <strong>-{{ total_salidas }}</strong>
+                <strong>-{{ detalle.salidas }}</strong>
+            </div>
+            <div class="kx-stat ajuste">
+                <span>Ajustes registrados</span>
+                <strong>{% if detalle.ajustes > 0 %}+{% endif %}{{ detalle.ajustes }}</strong>
+            </div>
+            <div class="kx-stat">
+                <span>Saldo final del periodo</span>
+                <strong>{{ detalle.saldo_final }}</strong>
             </div>
             <div class="kx-stat">
                 <span>Stock actual (hoy)</span>
@@ -490,15 +727,55 @@
                 <div>
                     <h3>
                         <i class='bx bx-history'></i>
-                        {{ producto.nombre }} — movimientos de {{ mes_actual }}
+                        {{ producto.nombre }} — {{ periodo.etiqueta }}
                     </h3>
                 </div>
-                <a href="?mes={{ mes_actual }}" class="btn-kx-ghost">
+                <a href="?{{ query_periodo }}" class="btn-kx-ghost">
                     <i class='bx bx-arrow-back'></i>
                     Volver al resumen de todos los productos
                 </a>
             </div>
 
+            {% if vista != 'mensual' %}
+            {# Totalizado: mismo formato que "todos los productos", solo con este producto #}
+            <div class="kx-table-scroll">
+                <div class="kx-grid">
+                    <div class="kx-grid-row kx-grid-head">
+                        <div class="kx-grid-cell kx-cell-left">Producto</div>
+                        <div class="kx-grid-cell">Saldo Inicial</div>
+                        <div class="kx-grid-cell">Entradas</div>
+                        <div class="kx-grid-cell">Salidas</div>
+                        <div class="kx-grid-cell">Ajustes</div>
+                        <div class="kx-grid-cell">Saldo Final del Periodo</div>
+                        <div class="kx-grid-cell">Stock Actual (Hoy)</div>
+                    </div>
+                    <div class="kx-grid-row">
+                        <div class="kx-grid-cell kx-cell-left">
+                            <span class="kx-product-name">{{ producto.nombre }}</span>
+                            <span class="kx-product-code">{{ producto.codigo_interno|default:"S/C" }}</span>
+                        </div>
+                        <div class="kx-grid-cell">{{ detalle.saldo_inicial }}</div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.entradas %}<span class="txt-entrada">+{{ detalle.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.salidas %}<span class="txt-salida">-{{ detalle.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell">
+                            {% if detalle.ajustes %}<span class="txt-ajuste">{% if detalle.ajustes > 0 %}+{% endif %}{{ detalle.ajustes }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                        </div>
+                        <div class="kx-grid-cell"><span class="saldo-final-pill">{{ detalle.saldo_final }}</span></div>
+                        <div class="kx-grid-cell">{{ stock_actual }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kx-detalle-pie">
+                <a href="?producto_id={{ producto.id }}&{{ query_periodo_mensual }}" class="btn-kx-ghost">
+                    <i class='bx bx-list-ul'></i>
+                    Ver movimientos por mes
+                </a>
+            </div>
+            {% else %}
             <div class="table-wrap">
                 <table class="kx-table">
                     <thead>
@@ -509,73 +786,129 @@
                             <th>Referencia</th>
                             <th>Destino / Nota</th>
                             <th>Usuario</th>
-                            <th class="td-right">Saldo después</th>
+                            <th class="td-right">Saldo según movimientos</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for m in movimientos %}
-                        <tr>
-                            <td>{{ m.creado_en|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                {% if m.tipo == 'IN' %}
-                                    <span class="mov-badge mov-in"><i class='bx bx-down-arrow-alt'></i> Entrada</span>
-                                {% elif m.tipo == 'OUT' %}
-                                    <span class="mov-badge mov-out"><i class='bx bx-up-arrow-alt'></i> Salida</span>
-                                {% else %}
-                                    <span class="mov-badge mov-adj"><i class='bx bx-adjust'></i> Ajuste</span>
-                                {% endif %}
-                            </td>
-                            <td class="td-right">
-                                {% if m.tipo == 'OUT' %}-{% elif m.tipo == 'IN' %}+{% endif %}{{ m.qty }}
-                            </td>
-                            <td>{{ m.referencia|default:"—" }}</td>
-                            <td>{{ m.nota|default:"—" }}</td>
-                            <td>{{ m.usuario.get_full_name|default:m.usuario.username|default:"—" }}</td>
-                            <td class="td-right"><strong>{{ m.saldo_resultante }}</strong></td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7">
-                                <div class="kx-empty">
-                                    <i class='bx bx-inbox'></i>
-                                    <p style="margin:0;">Sin movimientos registrados de este producto en {{ mes_actual }}.</p>
-                                </div>
-                            </td>
-                        </tr>
+                        {% for mes in detalle.meses %}
+                            {% if not periodo.es_un_mes %}
+                            <tr class="kx-mes-header">
+                                <td colspan="7">{{ mes.etiqueta }} · Saldo inicial {{ mes.saldo_inicial }}</td>
+                            </tr>
+                            {% endif %}
+
+                            {% for m in mes.movimientos %}
+                                <tr>
+                                    <td>{{ m.creado_en|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if m.tipo == 'IN' %}
+                                            <span class="mov-badge mov-in"><i class='bx bx-down-arrow-alt'></i> Entrada</span>
+                                        {% elif m.tipo == 'OUT' %}
+                                            <span class="mov-badge mov-out"><i class='bx bx-up-arrow-alt'></i> Salida</span>
+                                        {% else %}
+                                            <span class="mov-badge mov-adj"><i class='bx bx-adjust'></i> Ajuste</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="td-right">
+                                        {% if m.tipo == 'OUT' %}-{% elif m.tipo == 'IN' %}+{% elif m.qty > 0 %}+{% endif %}{{ m.qty }}
+                                    </td>
+                                    <td>{{ m.referencia|default:"—" }}</td>
+                                    <td>{{ m.nota|default:"—" }}</td>
+                                    <td>{{ m.usuario_nombre|default:"—" }}</td>
+                                    <td class="td-right">
+                                        <strong>{{ m.saldo_documentado }}</strong>
+                                        {% if m.saldo_difiere %}
+                                        <small class="kx-diferencia">Guardado: {{ m.saldo_resultante }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="txt-muted">Sin movimientos en {{ mes.etiqueta }}.</td>
+                                </tr>
+                            {% endfor %}
+
+                            {% if not periodo.es_un_mes %}
+                            <tr class="kx-mes-subtotal">
+                                <td colspan="7">
+                                    Total {{ mes.etiqueta }}:
+                                    <span class="txt-entrada">+{{ mes.entradas }}</span> ·
+                                    <span class="txt-salida">-{{ mes.salidas }}</span> ·
+                                    <span class="txt-ajuste">Ajustes {% if mes.ajustes > 0 %}+{% endif %}{{ mes.ajustes }}</span> ·
+                                    Saldo final <strong>{{ mes.saldo_final }}</strong>
+                                </td>
+                            </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         </section>
     {% else %}
         {# ================= VISTA RESUMEN: TODOS LOS PRODUCTOS ================= #}
+        {% if productos_con_diferencias %}
+        <div class="kx-aviso" role="status">
+            <i class='bx bx-info-circle'></i>
+            {{ productos_con_diferencias }} producto{{ productos_con_diferencias|pluralize }} con diferencias por revisar.
+            Consulta su detalle para distinguir las diferencias actuales de los saldos históricos guardados.
+            Estas diferencias no se suman a los ajustes.
+        </div>
+        {% endif %}
         <div class="kx-summary">
             <div class="kx-stat">
                 <span>Productos en la sede</span>
                 <strong>{{ total_productos }}</strong>
             </div>
             <div class="kx-stat">
-                <span>Con movimiento este mes</span>
+                <span>Con movimiento en el periodo</span>
                 <strong>{{ productos_con_movimiento }}</strong>
             </div>
             <div class="kx-stat entrada">
-                <span>Total entradas del mes</span>
-                <strong>+{{ total_entradas_mes }}</strong>
+                <span>Total entradas</span>
+                <strong>+{{ total_entradas_periodo }}</strong>
             </div>
             <div class="kx-stat salida">
-                <span>Total salidas del mes</span>
-                <strong>-{{ total_salidas_mes }}</strong>
+                <span>Total salidas</span>
+                <strong>-{{ total_salidas_periodo }}</strong>
+            </div>
+            <div class="kx-stat ajuste">
+                <span>Ajustes registrados</span>
+                <strong>{% if total_ajustes_periodo > 0 %}+{% endif %}{{ total_ajustes_periodo }}</strong>
             </div>
         </div>
+
+        {% if not periodo.es_un_mes %}
+        <section class="kx-meses-bloque">
+            <h4 class="kx-meses-titulo">
+                <i class='bx bx-calendar'></i>
+                Movimientos por mes — suma de todos los productos de la sede
+            </h4>
+            <div class="kx-meses-strip">
+                {% for t in totales_por_mes %}
+                <div class="kx-mes-card" title="{{ t.etiqueta }}: suma de todos los productos">
+                    <strong>{{ t.etiqueta_corta }}</strong>
+                    <div class="kx-mes-linea"><span>Entradas</span><span class="txt-entrada">+{{ t.entradas }}</span></div>
+                    <div class="kx-mes-linea"><span>Salidas</span><span class="txt-salida">-{{ t.salidas }}</span></div>
+                    <div class="kx-mes-linea"><span>Ajustes</span><span class="txt-ajuste">{% if t.ajustes > 0 %}+{% endif %}{{ t.ajustes }}</span></div>
+                    <div class="kx-mes-pie">{{ t.productos }} producto{{ t.productos|pluralize }} con movimiento</div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
 
         <section class="kx-panel">
             <div class="kx-panel-head">
                 <div>
                     <h3>
                         <i class='bx bx-table'></i>
-                        Todos los productos — {{ mes_actual }}
+                        Todos los productos — {{ periodo.etiqueta }}
                     </h3>
-                    <p>Clic en un producto para ver el detalle movimiento por movimiento.</p>
+                    <p>
+                        Clic en un producto para ver su detalle. Selecciona Por mes para consultar sus movimientos.
+                        {% if vista == 'mensual' and not periodo.es_un_mes %}Usa la flecha para desplegar los meses.{% endif %}
+                    </p>
                 </div>
 
                 <div class="kx-search-box">
@@ -591,32 +924,81 @@
                         <div class="kx-grid-cell">Saldo Inicial</div>
                         <div class="kx-grid-cell">Entradas</div>
                         <div class="kx-grid-cell">Salidas</div>
-                        <div class="kx-grid-cell">Saldo Final del Mes</div>
+                        <div class="kx-grid-cell">Ajustes</div>
+                        <div class="kx-grid-cell">Saldo Final del Periodo</div>
                         <div class="kx-grid-cell">Stock Actual (Hoy)</div>
                     </div>
 
                     {% for fila in resumen %}
-                    <div class="kx-grid-row kx-row-link" data-nombre="{{ fila.producto.nombre|lower }} {{ fila.producto.codigo_interno|lower }}"
-                        onclick="window.location='?producto_id={{ fila.producto.id }}&mes={{ mes_actual }}'">
-                        <div class="kx-grid-cell kx-cell-left">
-                            <span class="kx-product-name">{{ fila.producto.nombre }}</span>
-                            <span class="kx-product-code">{{ fila.producto.codigo_interno|default:"S/C" }}</span>
+                    <div class="kx-producto-block" data-nombre="{{ fila.producto.nombre|lower }} {{ fila.producto.codigo_interno|lower }}">
+                        <div class="kx-grid-row kx-row-link"
+                            onclick="window.location='?producto_id={{ fila.producto.id }}&{{ query_periodo }}'">
+                            <div class="kx-grid-cell kx-cell-left">
+                                <div class="kx-producto-cell">
+                                    {% if vista == 'mensual' and not periodo.es_un_mes %}
+                                    <button type="button" class="kx-toggle-meses" aria-expanded="false"
+                                            aria-label="Ver meses de {{ fila.producto.nombre }}"
+                                            onclick="toggleMeses(event, this)">
+                                        <i class='bx bx-chevron-right'></i>
+                                    </button>
+                                    {% endif %}
+                                    <div>
+                                        <span class="kx-product-name">{{ fila.producto.nombre }}</span>
+                                        <span class="kx-product-code">{{ fila.producto.codigo_interno|default:"S/C" }}</span>
+                                        {% if fila.tiene_diferencias_historicas %}
+                                        <small class="kx-diferencia">Revisar saldos históricos</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="kx-grid-cell">{{ fila.saldo_inicial }}</div>
+                            <div class="kx-grid-cell">
+                                {% if fila.entradas %}<span class="txt-entrada">+{{ fila.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                            </div>
+                            <div class="kx-grid-cell">
+                                {% if fila.salidas %}<span class="txt-salida">-{{ fila.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                            </div>
+                            <div class="kx-grid-cell">
+                                {% if fila.ajustes %}<span class="txt-ajuste">{% if fila.ajustes > 0 %}+{% endif %}{{ fila.ajustes }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                            </div>
+                            <div class="kx-grid-cell"><span class="saldo-final-pill">{{ fila.saldo_final_periodo }}</span></div>
+                            <div class="kx-grid-cell">
+                                {{ fila.stock_actual }}
+                                {% if fila.diferencia_actual %}
+                                <small class="kx-diferencia" title="Stock actual menos el saldo de todos los movimientos registrados, incluidos los posteriores al periodo consultado.">
+                                    Por conciliar: {% if fila.diferencia_actual > 0 %}+{% endif %}{{ fila.diferencia_actual }}
+                                </small>
+                                {% endif %}
+                            </div>
                         </div>
-                        <div class="kx-grid-cell">{{ fila.saldo_inicial }}</div>
-                        <div class="kx-grid-cell">
-                            {% if fila.entradas %}<span class="txt-entrada">+{{ fila.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+
+                        {% if vista == 'mensual' and not periodo.es_un_mes %}
+                        <div class="kx-meses-detalle" hidden>
+                            {% for mes in fila.meses %}
+                            <div class="kx-grid-row">
+                                <div class="kx-grid-cell kx-cell-left">{{ mes.etiqueta }}</div>
+                                <div class="kx-grid-cell">{{ mes.saldo_inicial }}</div>
+                                <div class="kx-grid-cell">
+                                    {% if mes.entradas %}<span class="txt-entrada">+{{ mes.entradas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                                </div>
+                                <div class="kx-grid-cell">
+                                    {% if mes.salidas %}<span class="txt-salida">-{{ mes.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                                </div>
+                                <div class="kx-grid-cell">
+                                    {% if mes.ajustes %}<span class="txt-ajuste">{% if mes.ajustes > 0 %}+{% endif %}{{ mes.ajustes }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
+                                </div>
+                                <div class="kx-grid-cell">{{ mes.saldo_final }}</div>
+                                <div class="kx-grid-cell"></div>
+                            </div>
+                            {% endfor %}
                         </div>
-                        <div class="kx-grid-cell">
-                            {% if fila.salidas %}<span class="txt-salida">-{{ fila.salidas }}</span>{% else %}<span class="txt-muted">0</span>{% endif %}
-                        </div>
-                        <div class="kx-grid-cell"><span class="saldo-final-pill">{{ fila.saldo_final_periodo }}</span></div>
-                        <div class="kx-grid-cell">{{ fila.stock_actual }}</div>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div class="kx-grid-row">
                         <div class="kx-empty" style="grid-column: 1 / -1;">
                             <i class='bx bx-inbox'></i>
-                            <p style="margin:0;">No hay productos con stock registrado en esta sede.</p>
+                            <p style="margin:0;">No hay productos con stock o movimientos en esta sede.</p>
                         </div>
                     </div>
                     {% endfor %}
@@ -630,12 +1012,20 @@
 <script>
     function filtrarKardex() {
         const texto = document.getElementById('buscador-kardex').value.toLowerCase();
-        const filas = document.querySelectorAll('#tabla-kardex .kx-row-link');
-        filas.forEach(function (fila) {
-            const nombre = fila.getAttribute('data-nombre') || '';
-            fila.style.display = nombre.includes(texto) ? '' : 'none';
+        const bloques = document.querySelectorAll('#tabla-kardex .kx-producto-block');
+        bloques.forEach(function (bloque) {
+            const nombre = bloque.getAttribute('data-nombre') || '';
+            bloque.style.display = nombre.includes(texto) ? '' : 'none';
         });
     }
-</script>
 
+    function toggleMeses(event, boton) {
+        event.stopPropagation();
+        const bloque = boton.closest('.kx-producto-block');
+        const detalle = bloque.querySelector('.kx-meses-detalle');
+        const abierto = boton.getAttribute('aria-expanded') === 'true';
+        boton.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+        detalle.hidden = abierto;
+    }
+</script>
 {% endblock %}

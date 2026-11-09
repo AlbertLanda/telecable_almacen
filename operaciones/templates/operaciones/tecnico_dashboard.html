@@ -111,6 +111,16 @@
             </div>
         </a>
         
+        <a href="{% url 'tecnico_por_firmar' %}" style="text-decoration: none;">
+            <div class="kpi-card">
+                <div class="kpi-info">
+                    <h4>Por Firmar</h4>
+                    <p>{% if firmas_pendientes %}{{ firmas_pendientes }} documento{{ firmas_pendientes|pluralize }} pendiente{{ firmas_pendientes|pluralize }}{% else %}Sin pendientes{% endif %}</p>
+                </div>
+                <div class="kpi-icon ic-orange"><i class='bx bx-pen'></i></div>
+            </div>
+        </a>
+
         <a href="{% url 'tecnico_mis_liquidaciones' %}" style="text-decoration: none;">
             <div class="kpi-card">
                 <div class="kpi-info">

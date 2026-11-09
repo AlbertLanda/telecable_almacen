@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime, timezone as datetime_timezone
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -9,7 +10,15 @@ from inventario.models import (
     Producto,
     TimeStampedModel,
     ItemSerializado,
+    DocumentoInventario,
+    TipoDocumento,
+    EstadoDocumento,
 )
+
+
+# Identifica expedientes que necesitan revisión; la fecha nunca autoriza
+# descontar cantidades de la mochila personal del técnico.
+MOCHILA_SEPARADA_DESDE = datetime(2026, 9, 15, 14, 22, 56, tzinfo=datetime_timezone.utc)
 
 
 class TipoProyecto(models.TextChoices):
@@ -97,6 +106,25 @@ class Proyecto(TimeStampedModel):
     )
     inicio = models.DateTimeField(default=timezone.now)
     fin = models.DateTimeField(null=True, blank=True)
+    cierre_registrado = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="Existe evidencia de un cierre; la fecha fin estimada no cuenta como cierre.",
+    )
+    mochila_antigua_conciliada = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="La mochila histórica ya fue revisada o existe evidencia de un cierre anterior.",
+    )
+    # Almacenero que cerró (liquidó) la obra: es quien firma el V° B° del acta de cierre.
+    liquidado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="obras_liquidadas",
+        verbose_name="Liquidado por",
+    )
 
     # Trazabilidad histórica (se conserva por proyectos antiguos que sí
     # pasaron por el flujo de revisión/aprobación manual).
@@ -117,6 +145,17 @@ class Proyecto(TimeStampedModel):
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+
+    @property
+    def requiere_conciliacion_mochila(self):
+        if self.mochila_antigua_conciliada:
+            return False
+        return DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.SAL,
+            estado=EstadoDocumento.CONFIRMADO,
+            referencia=self.codigo,
+            fecha__lt=MOCHILA_SEPARADA_DESDE,
+        ).exists()
 
     @property
     def costo_total_real(self) -> Decimal:

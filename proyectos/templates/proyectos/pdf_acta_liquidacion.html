@@ -93,6 +93,15 @@
         .sign-line { border-top: 1px solid #000; margin-bottom: 5px; }
         .sign-role { font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .sign-name { font-size: 9px; margin-bottom: 2px; }
+        /* Firma en pantalla: mismo recuadro que la nota de salida */
+        .signatures-firma { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 60px; page-break-inside: avoid; }
+        .sign-col { width: 40%; display: flex; flex-direction: column; }
+        .sign-col .sign-box { width: 100%; border-top: 1px solid #000; padding-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .sign-trazo { height: 62px; display: flex; align-items: flex-end; justify-content: center; }
+        .sign-trazo img { max-height: 62px; max-width: 100%; }
+        .sign-pendiente { font-size: 9px; color: #888; font-style: italic; }
+        .sign-constancia { font-size: 8px; text-align: center; margin-top: 3px; }
+        .sign-cambio { font-size: 8px; text-align: center; color: #c00; font-weight: 700; }
 
         /* --- LEGAL --- */
         .legal { 
@@ -242,6 +251,12 @@
             <span class="total-badge">TOTAL ÍTEMS INSTALADOS: {{ total_consumido }}</span>
         </div>
 
+        {% if firmas.requiere %}
+        <div class="signatures-firma">
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.ALMACEN titulo="JEFATURA DE ALMACÉN · V° B° CONFORMIDAD" %}
+            {% include "inventario/_sal_firma_recuadro.html" with f=firmas.RECEPTOR titulo="RESPONSABLE TÉCNICO" %}
+        </div>
+        {% else %}
         <div class="signatures">
             <div class="sign-box">
                 <br><br><br>
@@ -263,6 +278,7 @@
                 <div class="sign-name" style="margin-top:2px;">DNI: _________________</div>
             </div>
         </div>
+        {% endif %}
 
         <div class="legal">
             Este documento certifica el cierre operativo del proyecto y la conciliación de los materiales asignados. 

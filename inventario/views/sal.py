@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from inventario.permissions import role_required, sede_required, get_profile
 from inventario.services.seriales_service import registrar_seriales
+from inventario.services.firma_service import firmante_receptor, firmas_para_mostrar
 
 from inventario.models import (
     DocumentoInventario, 
@@ -133,16 +134,21 @@ def sal_print(request, sal_id: int):
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
     profile = get_profile(request.user)
-    if not profile: return redirect("/")
-    if profile.rol == UserProfile.Rol.SOLICITANTE:
+    if not profile and not request.user.is_superuser: return redirect("/")
+    if profile and profile.rol == UserProfile.Rol.SOLICITANTE and not request.user.is_superuser:
+        # Puede verla: el responsable del documento o del pedido, y también
+        # quien retiró el material (el Crew), que es quien la firma.
+        receptor = firmante_receptor(sal)
         if sal.responsable_id != request.user.id:
              if not (sal.origen and sal.origen.responsable_id == request.user.id):
-                 return redirect("/")
+                 if not (receptor and receptor.id == request.user.id):
+                     return redirect("/")
 
     return render(request, "inventario/sal_print.html", {
         "sal": sal,
         "items": items,
         "total_cantidad": total_cantidad,
+        "firmas": firmas_para_mostrar(sal, usuario=request.user),
     })
 
 
