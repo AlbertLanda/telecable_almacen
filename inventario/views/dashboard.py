@@ -44,6 +44,7 @@ from inventario.models import (
 )
 
 from proyectos.models import Proyecto, EstadoProyecto
+from proyectos.queries import proyectos_por_atender
 from inventario.services.firma_service import acta_estado, estado_documento, inicio_firmas
 from inventario.views.firma import documentos_del_almacenero
 
@@ -399,12 +400,14 @@ def dash_almacen(request):
     ).count()
 
     # ==========================================
-    # 6. KPI: PROYECTOS ACTIVOS
+    # 6. KPI: PROYECTOS POR ATENDER (mismo alcance multisede que la bandeja)
     # ==========================================
-    count_proyectos_activos = Proyecto.objects.filter(
-        sede=sede,
-        estado=EstadoProyecto.APROBADO
-    ).count()
+    proyectos_pendientes = proyectos_por_atender()
+    if profile.rol != UserProfile.Rol.ALMACEN:
+        # Solo Almacén tiene acceso a la bandeja multisede. Otros accesos
+        # existentes al dashboard conservan el alcance de su propia sede.
+        proyectos_pendientes = proyectos_pendientes.filter(sede=sede)
+    count_proyectos_activos = proyectos_pendientes.count()
 
     # ==========================================
     # 7. KPI TOTAL
