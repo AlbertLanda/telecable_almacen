@@ -85,7 +85,7 @@
     <div class="page-header">
         <div class="header-content">
             <h2>Proyectos por Atender</h2>
-            <p>Selecciona una obra para iniciar el despacho de materiales.</p>
+            <p>Obras de todas las sedes con materiales por despachar o pendientes de catálogo.</p>
         </div>
         <div>
             <a href="{% url 'dash_almacen' %}" class="btn btn-ghost">
@@ -116,6 +116,9 @@
                         <td>
                             <span class="project-name">{{ p.nombre }}</span>
                             <span class="designer-name">Diseñado por: {{ p.creado_por.username }}</span>
+                            {% if p.tiene_pendientes_catalogo %}
+                                <span class="designer-name">Pendiente de catálogo</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if p.responsable %}
@@ -128,10 +131,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if p.estado == 'PENDIENTE' %}
-                                <span class="badge st-pend">Pendiente</span>
+                            {% if p.estado == 'APROBADO' %}
+                                <span class="badge st-pend">{{ p.get_estado_display }}</span>
                             {% else %}
-                                <span class="badge st-proc">En Proceso</span>
+                                <span class="badge st-proc">{{ p.get_estado_display }}</span>
                             {% endif %}
                         </td>
                         <td style="color: var(--text-secondary);">{{ p.creado_en|date:"d/m/Y" }}</td>
@@ -148,7 +151,7 @@
                             <div class="empty-state">
                                 <i class='bx bx-folder-open'></i>
                                 <h3>Todo al día</h3>
-                                <p>No hay proyectos pendientes de atención en esta sede.</p>
+                                <p>No hay obras con materiales pendientes de despacho o de catálogo.</p>
                             </div>
                         </td>
                     </tr>

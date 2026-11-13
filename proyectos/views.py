@@ -21,6 +21,7 @@ from .models import (
 )
 # ✅ IMPORTANTE: Agregamos ProyectoMaterialForm aquí abajo 👇
 from .forms import ProyectoForm, ProyectoMaterialForm, ProyectoMaterialPendienteForm
+from .queries import proyectos_por_atender
 
 # Importamos modelos del core
 from inventario.models import UserProfile
@@ -430,15 +431,9 @@ def almacen_proyectos_list(request):
     sede_almacen = profile.get_sede_operativa()
 
     # Un almacén puede apoyar despachos de obras de otras sedes.
-    # Por eso mostramos proyectos aprobados/en proceso de todas las sedes.
+    # Solo quedan en esta bandeja las obras con materiales por atender.
     proyectos = (
-        Proyecto.objects
-        .filter(
-            estado__in=[
-                EstadoProyecto.APROBADO,
-                EstadoProyecto.EN_PROCESO,
-            ]
-        )
+        proyectos_por_atender()
         .select_related("sede", "responsable", "creado_por")
         .order_by("-creado_en")
     )
@@ -483,11 +478,15 @@ def almacen_proyecto_detalle(request, proyecto_id):
             items_completos += 1
 
     progreso = (items_completos / total_items * 100) if total_items > 0 else 0
+    pendientes_catalogo = proyecto.materiales_pendientes.filter(resuelto=False)
 
     return render(request, 'proyectos/almacen_proyecto_detalle.html', {
         'proyecto': proyecto,
         'materiales': materiales,
         'progreso': int(progreso),
+        'total_items': total_items,
+        'tiene_pendientes_despacho': any(m.cantidad_pendiente > 0 for m in materiales),
+        'pendientes_catalogo': pendientes_catalogo,
         'sede_almacen': sede_almacen,
     })
 
@@ -535,7 +534,12 @@ def almacen_generar_salida(request, proyecto_id):
             items_pendientes.append(m)
 
     if not items_pendientes:
-        messages.success(request, "Todo entregado.")
+        if proyecto.materiales_pendientes.filter(resuelto=False).exists():
+            messages.warning(request, "No hay materiales catalogados pendientes de despacho; aún quedan materiales pendientes de catálogo.")
+        elif materiales:
+            messages.success(request, "Todos los materiales planificados ya fueron entregados.")
+        else:
+            messages.info(request, "La obra no tiene materiales planificados para despachar.")
         return redirect('almacen_proyecto_detalle', proyecto_id=proyecto.id)
 
     tecnicos = (

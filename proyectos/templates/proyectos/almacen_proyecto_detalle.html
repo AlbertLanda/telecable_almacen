@@ -58,6 +58,8 @@
     }
     .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); }
     .card-header h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main); }
+    .pendientes-catalogo { margin-bottom: 24px; border-color: var(--warning); }
+    .pendientes-catalogo p { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; }
 
     .table-responsive { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
@@ -123,9 +125,11 @@
             <a href="{% url 'proyecto_pdf_salida' proyecto.id %}" target="_blank" class="btn-action btn-pdf">
                 <i class='bx bxs-file-pdf'></i> Imprimir Vale
             </a>
-            <a href="{% url 'almacen_generar_salida' proyecto.id %}" class="btn-action btn-primary-solid">
-                <i class='bx bx-export'></i> Generar Salida
-            </a>
+            {% if tiene_pendientes_despacho and proyecto.puede_despachar_almacen %}
+                <a href="{% url 'almacen_generar_salida' proyecto.id %}" class="btn-action btn-primary-solid">
+                    <i class='bx bx-export'></i> Generar Salida
+                </a>
+            {% endif %}
         </div>
     </div>
 
@@ -142,17 +146,40 @@
             <div class="ib-val"><i class='bx bx-calendar'></i> {{ proyecto.inicio|date:"d M Y" }}</div>
         </div>
         <div class="info-box">
-            <div class="ib-label">Progreso de Entrega</div>
+            <div class="ib-label">Entrega de materiales catalogados</div>
             <div class="ib-val" style="display: block;">
+                {% if total_items %}
                 <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
-                    <span>{{ progreso }}%</span>
+                    <span>{{ progreso }}% de materiales catalogados completos</span>
                 </div>
+                {% else %}
+                    <span>Sin materiales catalogados</span>
+                {% endif %}
                 <div class="progress-track">
                     <div class="progress-bar {% if progreso == 100 %}bar-success{% endif %}" style="--w: {{ progreso }}%;"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    {% if pendientes_catalogo %}
+    <section class="content-card pendientes-catalogo" aria-label="Materiales pendientes de catálogo">
+        <div class="card-header">
+            <h4>Pendientes de catálogo ({{ pendientes_catalogo|length }})</h4>
+            <p>Estos materiales aún requieren atención y no están incluidos en el porcentaje de entrega. Coordina su registro y vinculación con Diseño.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>Material solicitado</th><th>Cantidad estimada</th><th>Nota</th></tr></thead>
+                <tbody>
+                    {% for pendiente in pendientes_catalogo %}
+                    <tr><td>{{ pendiente.nombre_solicitado }}</td><td>{{ pendiente.cantidad_estimada }}</td><td>{{ pendiente.nota|default:"—" }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
 
     <div class="content-card">
         <div class="card-header">
@@ -182,7 +209,7 @@
                         </td>
                         
                         <td class="col-center">
-                            {% if item.stock_actual < item.cantidad_planificada %}
+                            {% if item.stock_actual < item.cantidad_pendiente %}
                                 <span class="stock-badge sb-low">{{ item.stock_actual }}</span>
                             {% else %}
                                 <span class="stock-badge sb-ok">{{ item.stock_actual }}</span>
@@ -201,7 +228,7 @@
                             {% if item.cantidad_entregada >= item.cantidad_planificada %}
                                 <span class="status-badge st-ready">Completo</span>
                             {% else %}
-                                {% with pendiente=item.cantidad_planificada|add:"-"|add:item.cantidad_entregada %}
+                                {% with pendiente=item.cantidad_pendiente %}
                                     <span class="status-badge st-pending">{{ pendiente }} Pendiente</span>
                                     {% if item.stock_actual < pendiente %}
                                         <div style="font-size: 10px; color: var(--danger); margin-top: 4px; font-weight: 600;">
