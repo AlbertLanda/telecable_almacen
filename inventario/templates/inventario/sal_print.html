@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nota de Salida {{ sal.numero }}</title>
+    <title>{% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}Vale de retorno{% else %}Nota de Salida{% endif %} {{ sal.numero }}</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
@@ -155,14 +155,19 @@
         </div>
 
         <div class="doc-title">
+            {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+            <h1>VALE DE RETORNO N° {{ sal.numero }}</h1>
+            <h2>RETORNO A ALMACÉN CENTRAL</h2>
+            {% else %}
             <h1>NOTA DE SALIDA N° {{ sal.numero|default:"------------" }}</h1>
             <h2>REQUERIMIENTOS</h2>
+            {% endif %}
         </div>
 
         <div class="info-box">
             <div>
                 <div class="info-row"><span class="label">FECHA</span><span class="value">{{ sal.fecha|date:"d/m/Y" }}</span></div>
-                <div class="info-row"><span class="label">TIPO DE MOVIMIENTO</span><span class="value">REQUERIMIENTO</span></div>
+                <div class="info-row"><span class="label">TIPO DE MOVIMIENTO</span><span class="value">{% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}RETORNO A CENTRAL{% else %}REQUERIMIENTO{% endif %}</span></div>
                 <div class="info-row"><span class="label">ALMACÉN</span><span class="value">{{ sal.sede.nombre }}</span></div>
                 <div class="info-row"><span class="label">UBICACIÓN</span><span class="value">{{ sal.ubicacion.nombre|default:"(sin ubicación)" }}</span></div>
             </div>
@@ -176,6 +181,13 @@
                     {% endif %}
                 </span></div>
 
+                {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+                <div class="info-row"><span class="label">DESTINO</span><span class="value">{{ sal.sede_destino.nombre }}</span></div>
+                <div class="info-row"><span class="label">ESTADO DEL RETORNO</span><span class="value">{% if sal.recibido %}RECIBIDO{% else %}EN TRÁNSITO{% endif %}</span></div>
+                {% if ingreso_retorno %}
+                <div class="info-row"><span class="label">INGRESO EN CENTRAL</span><span class="value">{{ ingreso_retorno.numero }}</span></div>
+                {% endif %}
+                {% else %}
                 <div class="info-row"><span class="label">RESP. CUADRILLA</span><span class="value">
                     {% if sal.solicitante %}
                         {% if sal.solicitante.get_full_name %}{{ sal.solicitante.get_full_name }}{% else %}{{ sal.solicitante.username }}{% endif %}
@@ -201,6 +213,7 @@
                 </span></div>
                 <div class="info-row"><span class="label">CENTRO DE COSTO</span><span class="value">{{ sal.centro_costo|default:"OPERACIONES" }}</span></div>
                 <div class="info-row"><span class="label">ORIGEN (REQ)</span><span class="value">{{ sal.origen.numero|default:"-" }}</span></div>
+                {% endif %}
             </div>
         </div>
 
@@ -227,7 +240,7 @@
                         {% endif %}
                     </td>
                     <td class="col-center">{{ it.producto.unidad|default:"UND" }}</td>
-                    <td class="col-center" style="font-weight:bold;">{{ it.cantidad }}</td>
+                    <td class="col-center" style="font-weight:bold;">{{ it.cantidad }}{% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %} {{ it.producto.unidad|default:"UND" }}{% endif %}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="col-center" style="padding:20px;">Sin ítems</td></tr>
@@ -244,6 +257,14 @@
         <div class="obs-section">
             <div class="obs-title">OBSERVACIONES</div>
             <div>
+                {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+                Origen: {{ sal.sede.nombre }} · Destino: {{ sal.sede_destino.nombre }}.
+                {% if sal.recibido %}
+                    <br>Recepcionado por {{ sal.recibido_por.get_full_name|default:sal.recibido_por.username }} el {{ sal.recibido_en|date:"d/m/Y H:i" }}.
+                {% else %}
+                    <br>Pendiente de recepción física en el almacén central.
+                {% endif %}
+                {% else %}
                 Responsable de cuadrilla:
                 {% if sal.solicitante %}
                     {{ sal.solicitante.get_full_name|default:sal.solicitante.username }}
@@ -269,6 +290,7 @@
                 {% endif %}
 
                 <br>
+                {% endif %}
                 Estado del Documento: {{ sal.get_estado_display }}
                 {% if sal.observaciones %} <br> Nota: {{ sal.observaciones }} {% endif %}
             </div>

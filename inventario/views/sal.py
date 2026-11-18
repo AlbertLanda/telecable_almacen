@@ -9,11 +9,12 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from inventario.permissions import role_required, sede_required, get_profile
 from inventario.services.seriales_service import registrar_seriales
-from inventario.services.firma_service import firmante_receptor, firmas_para_mostrar
+from inventario.services.firma_service import firmante_receptor, firmas_para_mostrar, puede_ver_firmas_documento
 
 from inventario.models import (
     DocumentoInventario, 
-    TipoDocumento, 
+    TipoDocumento,
+    TipoRequerimiento,
     UserProfile, 
     EstadoDocumento, 
     MovimientoInventario, 
@@ -85,8 +86,17 @@ def sal_detail(request, sal_id: int):
         if not allowed:
             raise PermissionDenied("No tienes permisos para ver esta Guía de Salida.")
 
+        es_retorno = sal.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL
+        if es_retorno and sal.estado == EstadoDocumento.BORRADOR:
+            return redirect("retorno_central_detalle", sal.pk)
+        sede_operativa = profile.get_sede_operativa() if es_retorno else None
         return render(request, "inventario/sal_detail.html", {
             "sal": sal, "items": items,
+            "puede_recepcionar_retorno": bool(
+                es_retorno and sede_operativa and sede_operativa.id == sal.sede_destino_id
+                and profile.rol in (UserProfile.Rol.ALMACEN, UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN)
+            ),
+            "ingreso_retorno": sal.derivados.filter(tipo=TipoDocumento.ING).first() if es_retorno and sal.recibido else None,
             "faltan_seriales": any(it.producto.es_serializado and not getattr(it, "lista_series", None) for it in items),
         })
 
@@ -100,10 +110,13 @@ def sal_detail(request, sal_id: int):
 @transaction.atomic
 def sal_confirmar(request, sal_id: int):
     try:
-        profile = request.user_profile
         sal = DocumentoInventario.objects.select_for_update().get(
             id=sal_id, tipo=TipoDocumento.SAL
         )
+        if sal.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL:
+            # El operador debe revisar el borrador antes de confirmar el envío.
+            return redirect("retorno_central_detalle", sal.pk)
+        profile = request.user_profile
 
         if profile.rol not in (UserProfile.Rol.JEFA, UserProfile.Rol.ADMIN):
             sede = _sede_operativa(request.user)
@@ -130,6 +143,12 @@ def sal_print(request, sal_id: int):
         id=sal_id,
         tipo=TipoDocumento.SAL,
     )
+    es_retorno = sal.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL
+    if es_retorno:
+        if not puede_ver_firmas_documento(request.user, sal):
+            raise PermissionDenied("No tienes acceso a esta devolución.")
+        if sal.estado != EstadoDocumento.CONFIRMADO:
+            return redirect("retorno_central_detalle", sal.pk)
     items = sal.items.select_related("producto").order_by("producto__nombre")
     total_cantidad = sum(int(it.cantidad or 0) for it in items)
 
@@ -148,6 +167,7 @@ def sal_print(request, sal_id: int):
         "sal": sal,
         "items": items,
         "total_cantidad": total_cantidad,
+        "ingreso_retorno": sal.derivados.filter(tipo=TipoDocumento.ING).first() if es_retorno and sal.recibido else None,
         "firmas": firmas_para_mostrar(sal, usuario=request.user),
     })
 
@@ -192,6 +212,10 @@ def almacen_recepcionar_traspaso(request, sal_id):
             )
             ing.asignar_numero_si_falta()
 
+            nota_ingreso = f"Transferencia desde {sal.sede.nombre}"
+            if sal.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL:
+                nota_ingreso = f"Retorno a central: {sal.sede.nombre} -> {mi_sede.nombre}"
+
             for item_sal in sal.items.all():
                 linea_ing = DocumentoItem.objects.create(
                     documento=ing,
@@ -208,7 +232,7 @@ def almacen_recepcionar_traspaso(request, sal_id):
                     qty=item_sal.cantidad,
                     referencia=ing.numero,
                     usuario=request.user,
-                    nota=f"Transferencia desde {sal.sede.nombre}"
+                    nota=nota_ingreso,
                 )
                 mov.aplicar() 
 

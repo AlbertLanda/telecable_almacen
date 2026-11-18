@@ -501,6 +501,7 @@ class TipoRequerimiento(models.TextChoices):
     LOCAL = "LOCAL", "Local (técnico)"
     PROVEEDOR = "PROVEEDOR", "Proveedor"
     ENTRE_SEDES = "ENTRE_SEDES", "Entre sedes"
+    RETORNO_CENTRAL = "RETORNO_CENTRAL", "Retorno al almacén central"
 
 
 class Correlativo(models.Model):
@@ -598,6 +599,8 @@ class DocumentoInventario(models.Model):
         return f"{self.tipo} {self.numero or '(sin número)'}"
 
     def clean(self):
+        if self.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL and self.tipo != TipoDocumento.SAL:
+            raise ValidationError("El retorno al almacén central debe ser un documento SAL.")
         if self.tipo == TipoDocumento.REQ and not self.sede_id:
             raise ValidationError({"sede": "REQ requiere sede (almacén solicitante)."})
         if self.tipo in (TipoDocumento.SAL, TipoDocumento.ING, TipoDocumento.MER) and not self.sede_id:
@@ -662,23 +665,43 @@ class DocumentoInventario(models.Model):
     @transaction.atomic
     def confirmar(self, *, entregado_por=None, actualizar_mochila_tecnico=True):
         # Releer bajo bloqueo: una segunda solicitud no puede aplicar el saldo dos veces.
-        self.estado = DocumentoInventario.objects.select_for_update().get(pk=self.pk).estado
+        bloqueado = DocumentoInventario.objects.select_for_update().get(pk=self.pk)
+        self.estado = bloqueado.estado
+        es_retorno = bloqueado.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL
+        if self.tipo_requerimiento == TipoRequerimiento.RETORNO_CENTRAL and not es_retorno:
+            raise ValidationError("La marca de retorno debe estar guardada antes de confirmar.")
+        if es_retorno:
+            # La excepción de dirección se concede a la cabecera persistida,
+            # nunca a campos alterados solamente en una instancia en memoria.
+            self.refresh_from_db()
         if self.tipo == TipoDocumento.REQ:
             raise ValidationError("Un REQ no se confirma; se envía y luego se atiende.")
         if self.estado != EstadoDocumento.BORRADOR:
             raise ValidationError("Solo se puede confirmar un documento en BORRADOR.")
         
         # ✅ USAMOS TU RELACIÓN 'items' (DocumentoItem)
-        items = list(self.items.select_related("producto"))
+        items_qs = self.items.select_related("producto")
+        if es_retorno:
+            items_qs = items_qs.select_for_update(of=("self",)).order_by("producto_id", "pk")
+        items = list(items_qs)
         if not items:
             raise ValidationError("No puedes confirmar un documento sin ítems.")
+        if es_retorno:
+            from inventario.services.retorno_service import validar_retorno_para_confirmar
+            validar_retorno_para_confirmar(self, items)
+            if entregado_por is not None and entregado_por.pk != self.responsable_id:
+                raise ValidationError("El retorno debe ser enviado por su almacenero responsable.")
+            # El vale registra el envío físico, no el día en que se abrió
+            # un borrador que pudo permanecer pendiente durante varios días.
+            self.fecha = timezone.now()
+            self.save(update_fields=["fecha"])
 
         self.asignar_numero_si_falta()
 
         for it in items:
-            if self.tipo == TipoDocumento.SAL and it.producto.es_serializado and actualizar_mochila_tecnico:
+            if self.tipo == TipoDocumento.SAL and it.producto.es_serializado and (actualizar_mochila_tecnico or es_retorno):
                 ids = list(it.seriales_seleccionados.values_list("item_serializado_id", flat=True))
-                equipos = list(ItemSerializado.objects.select_for_update().filter(
+                equipos = list(ItemSerializado.objects.select_for_update(of=("self",)).filter(
                     pk__in=ids, producto=it.producto, ubicacion__sede=self.sede,
                     estado=ItemSerializado.Estado.EN_ALMACEN,
                     asignado_a__isnull=True, proyecto__isnull=True,
@@ -701,7 +724,9 @@ class DocumentoInventario(models.Model):
             else:
                 raise ValidationError("Tipo no soportado para confirmar.")
             
-            if self.tipo == TipoDocumento.SAL and self.solicitante:
+            if es_retorno:
+                nota_movimiento = f"Retorno a central: {self.sede.nombre} -> {self.sede_destino.nombre}"
+            elif self.tipo == TipoDocumento.SAL and self.solicitante:
                 nota_movimiento = f"DESPACHO A TÉCNICO: {self.solicitante.username}"
             elif self.tipo == TipoDocumento.MER:
                 nota_movimiento = "MERMA / BAJA DE INVENTARIO"
@@ -728,7 +753,7 @@ class DocumentoInventario(models.Model):
             # obra/proyecto (almacen_generar_salida): ese material se controla
             # aparte por ProyectoMaterial/ItemSerializado.proyecto y se cierra
             # en almacen_liquidar_proyecto, no en la mochila semanal personal.
-            if actualizar_mochila_tecnico and self.tipo == TipoDocumento.SAL and self.solicitante and hasattr(self.solicitante, 'profile'):
+            if not es_retorno and actualizar_mochila_tecnico and self.tipo == TipoDocumento.SAL and self.solicitante and hasattr(self.solicitante, 'profile'):
                 if self.solicitante.profile.rol == UserProfile.Rol.SOLICITANTE:
                     # Importación local para evitar ciclos
                     from .models import StockTecnico 
@@ -755,7 +780,10 @@ class DocumentoInventario(models.Model):
                 req.estado = EstadoDocumento.REQ_ATENDIDO
                 req.save(update_fields=["estado"])
 
-        if (self.tipo == TipoDocumento.SAL and self.sede_id and self.sede_destino_id and self.sede_destino_id != self.sede_id):
+        # Los retornos se reciben mediante almacen_recepcionar_traspaso, que
+        # crea el único ING al recibir físicamente. Las rutas previas conservan
+        # su generación de ingreso en borrador.
+        if (not es_retorno and self.tipo == TipoDocumento.SAL and self.sede_id and self.sede_destino_id and self.sede_destino_id != self.sede_id):
             if self.sede.tipo != Sede.CENTRAL:
                 raise ValidationError("Solo la sede CENTRAL puede despachar transferencias.")
 

@@ -836,7 +836,7 @@ def req_print(request, req_id: int):
 @login_required
 def req_set_tipo_doc(request, req_id):
     """Acción rápida desde dashboard para cambiar tipo"""
-    req = get_object_or_404(DocumentoInventario, id=req_id)
+    req = get_object_or_404(DocumentoInventario, id=req_id, tipo=TipoDocumento.REQ)
     tipo = request.POST.get("tipo_requerimiento")
     dest_id = request.POST.get("sede_destino_id")
     

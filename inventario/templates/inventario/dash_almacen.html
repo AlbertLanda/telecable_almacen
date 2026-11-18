@@ -1123,6 +1123,19 @@
                     <i class='bx bx-chevron-right quick-arrow'></i>
                 </a>
 
+                {% if profile.rol == 'ALMACEN' and sede.tipo == 'SECUNDARIO' and sede.activo %}
+                <a href="{% url 'retorno_central_crear' %}" class="quick-hero-item">
+                    <div class="quick-icon purple">
+                        <i class='bx bx-transfer'></i>
+                    </div>
+                    <div class="quick-info">
+                        <strong>Devolver a central</strong>
+                        <span>Preparar o continuar una devolución entre almacenes.</span>
+                    </div>
+                    <i class='bx bx-chevron-right quick-arrow'></i>
+                </a>
+                {% endif %}
+
                 <a href="{% url 'almacen_devolucion_rapida' %}" class="quick-hero-item">
                     <div class="quick-icon purple">
                         <i class='bx bx-reply-all'></i>

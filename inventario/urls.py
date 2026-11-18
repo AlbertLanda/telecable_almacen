@@ -62,6 +62,10 @@ from .views.req import (
 from .views.sal import sal_detail, sal_confirmar, sal_print, almacen_recepcionar_traspaso
 
 from .views.conciliar_traspaso import conciliar_traspaso
+from .views.retorno import (
+    retorno_central_crear, retorno_central_detalle,
+    retorno_central_confirmar, retorno_central_equipos,
+)
 
 # 6. Importaciones de CARGA INICIAL
 from .views.carga_inicial import (
@@ -128,6 +132,10 @@ urlpatterns = [
     # ==========================
     path("almacen/conciliar-traspaso/<int:sal_id>/", conciliar_traspaso, name="conciliar_traspaso"),
     path("almacen/recepcionar/<int:sal_id>/", almacen_recepcionar_traspaso, name="almacen_recepcionar_traspaso"),
+    path("almacen/retorno-central/", retorno_central_crear, name="retorno_central_crear"),
+    path("almacen/retorno-central/equipos/", retorno_central_equipos, name="retorno_central_equipos"),
+    path("almacen/retorno-central/<int:sal_id>/", retorno_central_detalle, name="retorno_central_detalle"),
+    path("almacen/retorno-central/<int:sal_id>/confirmar/", retorno_central_confirmar, name="retorno_central_confirmar"),
     path("almacen/asignar-directo/", req_asignacion_directa, name="req_asignacion_directa"),
     path("almacen/por-firmar/", almacen_por_firmar, name="almacen_por_firmar"),
     path("almacen/firmar/<int:sal_id>/", almacen_firmar_nota, name="almacen_firmar_nota"),

@@ -123,7 +123,11 @@
             <h1>{{ sal.numero|default:"(Borrador)" }}</h1>
             <div class="dh-meta">
                 {% if sal.estado == 'CONFIRMADO' %}
-                    <span class="badge-lg st-confirmado"><i class='bx bx-check'></i> Confirmado</span>
+                    <span class="badge-lg st-confirmado"><i class='bx bx-check'></i>
+                        {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+                            {% if sal.recibido %}Recibido{% else %}En tránsito{% endif %}
+                        {% else %}Confirmado{% endif %}
+                    </span>
                 {% elif sal.estado == 'ANULADO' %}
                     <span class="badge-lg st-anulado"><i class='bx bx-x'></i> Anulado</span>
                 {% else %}
@@ -141,9 +145,11 @@
                 <a href="{% url 'tecnico_mis_entregas' %}" class="btn-action btn-ghost"><i class='bx bx-arrow-back'></i> Volver</a>
             {% endif %}
 
+            {% if sal.tipo_requerimiento != 'RETORNO_CENTRAL' or sal.estado == 'CONFIRMADO' %}
             <a href="{% url 'sal_print' sal.id %}" target="_blank" class="btn-action btn-ghost">
                 <i class='bx bx-printer'></i> Imprimir
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -153,7 +159,7 @@
             <div class="ib-val"><i class='bx bxs-store'></i> {{ sal.sede.nombre }}</div>
         </div>
         <div class="info-box">
-            <div class="ib-label">Destino / Técnico</div>
+            <div class="ib-label">{% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}Destino del retorno{% else %}Destino / Técnico{% endif %}</div>
             <div class="ib-val">
                 {% if sal.sede_destino %}
                     <i class='bx bxs-business'></i> {{ sal.sede_destino.nombre }}
@@ -167,16 +173,31 @@
             <div class="ib-val" style="color: var(--primary);">
                 {% if sal.origen %}
                     <i class='bx bx-file-blank'></i> {{ sal.origen.numero }}
+                {% elif sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+                    <i class='bx bx-undo'></i> Retorno a central
                 {% else %}
                     <span style="color: var(--text-muted); font-weight: 400;">Entrega Directa</span>
                 {% endif %}
             </div>
         </div>
+        {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+        <div class="info-box">
+            <div class="ib-label">Enviado por</div>
+            <div class="ib-val">{{ sal.responsable.get_full_name|default:sal.responsable.username }}</div>
+            {% if sal.observaciones %}<p>{{ sal.observaciones }}</p>{% endif %}
+        </div>
+        {% if ingreso_retorno %}
+        <div class="info-box">
+            <div class="ib-label">Ingreso en central</div>
+            <div class="ib-val">{{ ingreso_retorno.numero }}</div>
+        </div>
+        {% endif %}
+        {% endif %}
     </div>
 
     <div class="items-card">
         <div class="card-header">
-            <h4><i class='bx bx-list-check'></i> Materiales Entregados</h4>
+            <h4><i class='bx bx-list-check'></i> {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}Materiales del retorno{% else %}Materiales Entregados{% endif %}</h4>
         </div>
         
         <div class="table-responsive">
@@ -211,7 +232,7 @@
                             {% endif %}
                         </td>
                         <td style="font-family: monospace; color: var(--text-secondary);">{{ it.producto.codigo_interno|default:"-" }}</td>
-                        <td style="text-align: right; font-weight: 700; font-size: 18px;">{{ it.cantidad }}</td>
+                        <td style="text-align: right; font-weight: 700; font-size: 18px;">{{ it.cantidad }}{% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %} <small>{{ it.producto.unidad|default:"UND" }}</small>{% endif %}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -227,9 +248,17 @@
 
     {% if sal.estado == "CONFIRMADO" and not sal.recibido and sal.sede_destino %}
         {% if request.user.profile.get_sede_operativa.id == sal.sede_destino.id %}
+            {% if sal.tipo_requerimiento != 'RETORNO_CENTRAL' or puede_recepcionar_retorno %}
             <div class="reception-box no-print">
-                <div class="rb-title"><i class='bx bxs-truck'></i> Mercadería en Puerta</div>
-                <div class="rb-text">Verifica que las series listadas arriba coincidan con lo físico antes de ingresarlos a tu stock.</div>
+                <div class="rb-title"><i class='bx bxs-truck'></i> {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}Retorno pendiente de recepción{% else %}Mercadería en Puerta{% endif %}</div>
+                <div class="rb-text">
+                    {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' %}
+                        Verifica la cantidad y unidad de cada material, y las series de los equipos, contra lo recibido físicamente.
+                        Si hay diferencias, deja el retorno pendiente y coordina con el almacén de origen antes de confirmar.
+                    {% else %}
+                        Verifica que las series listadas arriba coincidan con lo físico antes de ingresarlos a tu stock.
+                    {% endif %}
+                </div>
                 
                 {% if faltan_seriales %}
                 <p>Faltan números de equipo en esta salida. Identifícalos antes de confirmar el ingreso.</p>
@@ -243,6 +272,7 @@
                 </form>
                 {% endif %}
             </div>
+            {% endif %}
         {% endif %}
     {% endif %}
 
@@ -251,7 +281,14 @@
             <p style="margin: 0; color: var(--success); font-weight: 600;">
                 <i class='bx bx-check-double'></i> Recepcionado por {{ sal.recibido_por.username }} el {{ sal.recibido_en|date:"d M Y - H:i" }}
             </p>
+            {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' and request.user.id == sal.recibido_por_id %}
+                <a href="{% url 'almacen_firmar_recepcion' sal.id %}" class="btn-action btn-ghost no-print" style="margin-top:12px;">Firmar recepción</a>
+            {% endif %}
         </div>
+    {% endif %}
+
+    {% if sal.tipo_requerimiento == 'RETORNO_CENTRAL' and sal.estado == 'CONFIRMADO' and request.user.id == sal.responsable_id %}
+        <a href="{% url 'almacen_firmar_nota' sal.id %}" class="btn-action btn-ghost no-print">Firmar envío del retorno</a>
     {% endif %}
 
 </div>
