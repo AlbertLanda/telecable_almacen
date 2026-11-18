@@ -46,7 +46,7 @@ class RetornoPresentacionTests(TestCase):
         self.salida.recibido_en = timezone.now()
         self.salida.save(update_fields=["recibido", "recibido_por", "recibido_en"])
         return DocumentoInventario.objects.create(
-            tipo=TipoDocumento.ING, tipo_requerimiento=TipoRequerimiento.RETORNO_CENTRAL,
+            tipo=TipoDocumento.ING,
             estado=EstadoDocumento.CONFIRMADO, numero="ING-RET-UI-001",
             sede=self.central, sede_origen=self.origen, origen=self.salida,
             responsable=self.receptor, referencia=self.salida.numero,
