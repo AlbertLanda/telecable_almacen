@@ -1,0 +1,58 @@
+{% extends 'inventario/retorno_central_base.html' %}
+{% block retorno_intro %}
+{% if documento.estado == 'CONFIRMADO' %}
+<p><strong>{{ documento.numero }}</strong> · {% if documento.recibido %}Recepcionado en central{% else %}Enviado, pendiente de recepción en central{% endif %}</p>
+{% else %}
+<p class="muted">Borrador #{{ documento.pk }} · El material todavía figura en el stock de {{ sede_origen.nombre }}.</p>
+{% endif %}
+{% endblock %}
+{% block retorno_content %}
+<section class="panel">
+  <h2>{% if documento.estado == 'BORRADOR' %}2. Revisar devolución{% else %}Material enviado{% endif %}</h2>
+  {% if error_confirmacion %}<p class="notice error" role="alert">{{ error_confirmacion }}</p>{% endif %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Series</th></tr></thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.producto.codigo_interno }} · {{ item.producto.nombre }}</td>
+          <td>{{ item.cantidad }}</td><td>{{ item.producto.unidad }}</td>
+          <td>{% for registro in item.seriales_seleccionados.all %}{{ registro.item_serializado.serial }}{% if not forloop.last %}<br>{% endif %}{% empty %}No aplica{% endfor %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="4">El borrador todavía no tiene productos.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <h2 style="margin-top: 24px;">Motivo</h2>
+  <p class="motivo">{{ documento.observaciones|default:'Pendiente de completar.' }}</p>
+  {% if documento.estado == 'BORRADOR' %}
+    <p class="notice">Al confirmar, se descontarán estas cantidades de {{ sede_origen.nombre }}. {{ sede_destino.nombre }} las ingresará cuando confirme la recepción física.</p>
+    {% if items %}
+    <form method="post" action="{% url 'retorno_central_confirmar' documento.pk %}" id="confirmar-retorno">
+      {% csrf_token %}
+      <input type="hidden" name="revision" value="{{ revision }}">
+      <label><input type="checkbox" name="acepto" value="1" required>Revisé el producto, la unidad, la cantidad y los equipos que saldrán de mi sede.</label>
+      <div class="actions">
+        <button type="submit" class="button primary">Confirmar envío a central</button>
+        {% if puede_editar %}<a class="button" href="{% url 'retorno_central_crear' %}">Editar borrador</a>{% endif %}
+      </div>
+    </form>
+    {% elif puede_editar %}<a class="button" href="{% url 'retorno_central_crear' %}">Completar borrador</a>{% endif %}
+  {% else %}
+    <div class="actions">
+      <a class="button primary" href="{% url 'sal_print' documento.pk %}">Ver comprobante</a>
+      <a class="button" href="{% url 'almacen_por_firmar' %}">Revisar firmas pendientes</a>
+      <a class="button" href="{% url 'dash_almacen' %}">Volver al almacén</a>
+    </div>
+  {% endif %}
+</section>
+<script>
+const confirmarRetorno = document.getElementById('confirmar-retorno');
+if (confirmarRetorno) confirmarRetorno.addEventListener('submit', function () {
+  const boton = this.querySelector('button[type="submit"]');
+  boton.disabled = true;
+  boton.textContent = 'Confirmando envío…';
+});
+</script>
+{% endblock %}

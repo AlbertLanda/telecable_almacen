@@ -1,0 +1,88 @@
+{% extends 'inventario/retorno_central_base.html' %}
+{% block retorno_intro %}
+<p class="muted">Prepara el material de tu almacén y revisa el resumen antes de confirmar su salida.</p>
+{% endblock %}
+{% block retorno_content %}
+{% if error_configuracion %}
+<div class="panel error" role="alert">{{ error_configuracion }}</div>
+{% endif %}
+{% if form %}
+<form method="post" action="{% url 'retorno_central_crear' %}" class="panel" id="retorno-form">
+  {% csrf_token %}
+  {{ form.documento_id }}
+  <h2>1. Preparar devolución</h2>
+  <p class="muted">Borrador #{{ documento.pk }}. Puedes volver desde “Devolver a central” para continuar lo guardado.</p>
+  {{ form.non_field_errors }}
+  {{ form.documento_id.errors }}
+  <div class="fields">
+    <div class="field full">
+      {{ form.producto.label_tag }}{{ form.producto }}{{ form.producto.errors }}
+    </div>
+    <div class="field">
+      {{ form.cantidad.label_tag }}{{ form.cantidad }}{{ form.cantidad.errors }}
+    </div>
+    <div class="field">
+      <label>Unidad del catálogo</label>
+      <div class="notice" id="retorno-unidad" aria-live="polite">Selecciona un producto.</div>
+    </div>
+    <div class="notice full">Usa la unidad indicada en el catálogo. Si el cable está registrado en metros, ingresa los metros reales; no escribas “1” para representar un rollo.</div>
+    <div class="field full" id="retorno-seriales">
+      {{ form.seriales.label_tag }}{{ form.seriales }}{{ form.seriales.errors }}
+      <small class="muted">Para productos serializados, selecciona exactamente los equipos que enviarás. Usa Ctrl o Cmd para seleccionar varios.</small>
+      <small class="error" id="retorno-error-equipos" role="status"></small>
+    </div>
+    <div class="field full">
+      {{ form.motivo.label_tag }}{{ form.motivo }}{{ form.motivo.errors }}
+    </div>
+  </div>
+  <p class="muted">Guardar conserva el borrador. El stock se descontará después de revisar y confirmar el envío.</p>
+  <div class="actions">
+    <button class="button primary" type="submit">Guardar borrador y revisar</button>
+    <a class="button" href="{% url 'dash_almacen' %}">Volver al almacén</a>
+  </div>
+</form>
+{{ productos_retorno|json_script:'retorno-productos' }}
+<script>
+(function () {
+  const productos = JSON.parse(document.getElementById('retorno-productos').textContent);
+  const producto = document.getElementById('id_producto');
+  const seriales = document.getElementById('id_seriales');
+  function actualizar(limpiar) {
+    const elegido = productos.find(p => String(p.id) === producto.value);
+    document.getElementById('retorno-unidad').textContent = elegido
+      ? elegido.unidad + ' · Disponible: ' + elegido.disponible : 'Selecciona un producto.';
+    document.getElementById('retorno-seriales').hidden = !!elegido && !elegido.es_serializado;
+    for (const opcion of seriales.options) {
+      const corresponde = opcion.dataset.producto === producto.value;
+      opcion.hidden = !corresponde;
+      if (limpiar && !corresponde) opcion.selected = false;
+    }
+  }
+  producto.addEventListener('change', async function () {
+    const elegido = productos.find(p => String(p.id) === producto.value);
+    const idElegido = producto.value;
+    seriales.replaceChildren();
+    actualizar(true);
+    const error = document.getElementById('retorno-error-equipos');
+    error.textContent = '';
+    if (!elegido || !elegido.es_serializado) return;
+    try {
+      const respuesta = await fetch("{% url 'retorno_central_equipos' %}?producto=" + encodeURIComponent(idElegido));
+      if (!respuesta.ok) throw new Error('No disponible');
+      const datos = await respuesta.json();
+      if (producto.value !== idElegido) return;
+      for (const equipo of datos.equipos) {
+        const opcion = new Option(equipo.texto, equipo.id);
+        opcion.dataset.producto = idElegido;
+        seriales.add(opcion);
+      }
+      if (!datos.equipos.length) error.textContent = 'No hay equipos disponibles de este producto en tu sede.';
+    } catch (_) {
+      if (producto.value === idElegido) error.textContent = 'No se pudieron cargar los equipos. Vuelve a seleccionar el producto.';
+    }
+  });
+  actualizar(false);
+})();
+</script>
+{% endif %}
+{% endblock %}

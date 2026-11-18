@@ -644,6 +644,7 @@ def almacen_historial_global(request):
             solicitante__isnull=False,
         )
         .exclude(referencia__startswith="OBRA-")
+        .exclude(tipo_requerimiento=TipoRequerimiento.RETORNO_CENTRAL)
         .select_related("responsable", "solicitante")
     )
 
@@ -661,12 +662,36 @@ def almacen_historial_global(request):
             estado=EstadoDocumento.CONFIRMADO,
         )
         .exclude(referencia__startswith="OBRA-")
+        .exclude(tipo_requerimiento=TipoRequerimiento.RETORNO_CENTRAL)
         .select_related("responsable", "sede_destino")
     )
 
     for t in transferencias:
         t.tipo_movimiento = "TRANSFERENCIA"
         t.tecnico_nombre = f"Destino: {t.sede_destino.nombre}"
+
+    # Retornos a central: una misma salida se sigue desde ambas sedes.
+    # El solicitante puede ser el emisor por custodia de seriales; no es una
+    # salida a técnico ni debe duplicarse con las transferencias anteriores.
+    ingreso_retorno = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.ING, origen_id=OuterRef("pk"),
+            estado=EstadoDocumento.CONFIRMADO,
+        ).order_by("id")
+    )
+    retornos_central = (
+        DocumentoInventario.objects.filter(
+            tipo=TipoDocumento.SAL,
+            tipo_requerimiento=TipoRequerimiento.RETORNO_CENTRAL,
+            estado=EstadoDocumento.CONFIRMADO,
+        )
+        .filter(Q(sede=sede) | Q(sede_destino=sede))
+        .select_related("responsable", "sede", "sede_destino", "recibido_por")
+        .annotate(ingreso_retorno_numero=Subquery(ingreso_retorno.values("numero")[:1]))
+    )
+    for retorno in retornos_central:
+        retorno.tipo_movimiento = "RETORNO_CENTRAL"
+        retorno.tecnico_nombre = f"{retorno.sede.nombre} → {retorno.sede_destino.nombre}"
 
     # 6. Solicitudes anuladas
     reqs_anulados = (
@@ -699,6 +724,7 @@ def almacen_historial_global(request):
             salidas_obras,
             salidas_tecnicos,
             transferencias,
+            retornos_central,
             reqs_anulados,
         ),
         key=attrgetter("fecha"),
@@ -752,7 +778,7 @@ FILTROS_FIRMA = {
     "firmados": ("FIRMADO",),
 }
 TIPOS_CON_FIRMA = (
-    "SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "DEVOLUCION", "LIQ_TECNICO", "CIERRE_OBRA", "COMPRA",
+    "SALIDA_TECNICO", "SALIDA_OBRA", "TRANSFERENCIA", "RETORNO_CENTRAL", "DEVOLUCION", "LIQ_TECNICO", "CIERRE_OBRA", "COMPRA",
 )
 
 

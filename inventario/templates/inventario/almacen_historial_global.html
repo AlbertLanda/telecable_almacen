@@ -758,6 +758,14 @@
                                         <i class='bx bx-transfer'></i>
                                         Traslado
                                     </span>
+                                {% elif item.tipo_movimiento == 'RETORNO_CENTRAL' %}
+                                    <span class="badge tb-trans">
+                                        <i class='bx bx-undo'></i>
+                                        Retorno a central
+                                    </span>
+                                    <span class="ref-sub">
+                                        {% if item.recibido %}Recibido{% else %}En tránsito{% endif %}
+                                    </span>
                                 {% elif item.tipo_movimiento == 'SALIDA_OBRA' %}
                                     <span class="badge tb-obra">
                                         <i class='bx bx-package'></i>
@@ -780,6 +788,15 @@
                                 {% if item.tipo_movimiento == 'CIERRE_OBRA' %}
                                     <span class="ref-main">{{ item.codigo }}</span>
                                     <span class="ref-sub">{{ item.nombre }}</span>
+
+                                {% elif item.tipo_movimiento == 'RETORNO_CENTRAL' %}
+                                    <span class="ref-main">{{ item.numero }}</span>
+                                    {% if item.ingreso_retorno_numero %}
+                                        <span class="ref-sub">Ingreso: {{ item.ingreso_retorno_numero }}</span>
+                                    {% endif %}
+                                    {% if item.recibido %}
+                                        <span class="ref-sub">Recepción: {{ item.recibido_en|date:"d/m/Y H:i" }}</span>
+                                    {% endif %}
 
                                 {% elif item.tipo_movimiento == 'REQ_ANULADO' %}
                                     <span class="ref-main">{{ item.numero|default:"REQ anulado" }}</span>
@@ -808,7 +825,7 @@
                                     <div class="user-avatar">
                                         {% if item.tipo_movimiento == 'COMPRA' %}
                                             <i class='bx bxs-truck'></i>
-                                        {% elif item.tipo_movimiento == 'TRANSFERENCIA' %}
+                                        {% elif item.tipo_movimiento == 'TRANSFERENCIA' or item.tipo_movimiento == 'RETORNO_CENTRAL' %}
                                             <i class='bx bxs-store-alt'></i>
                                         {% else %}
                                             <i class='bx bxs-user'></i>
@@ -831,6 +848,15 @@
                                     <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">
                                         <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
                                         Guía Salida
+                                    </a>
+                                {% elif item.tipo_movimiento == 'RETORNO_CENTRAL' %}
+                                    <a href="{% url 'sal_detail' item.id %}" class="btn-action-table">
+                                        <i class='bx bx-show'></i>
+                                        Ver retorno
+                                    </a>
+                                    <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">
+                                        <i class='bx bxs-file-pdf' style="color: #dc2626;"></i>
+                                        Vale de retorno
                                     </a>
                                 {% elif item.tipo_movimiento == 'SALIDA_OBRA' or item.tipo_movimiento == 'SALIDA_TECNICO' %}
                                     <a href="{% url 'sal_print' item.id %}" target="_blank" class="btn-action-table">

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Devolver a central | Telecable{% endblock %}
+{% block content %}
+<style>
+  .retorno { max-width: 960px; margin: 0 auto; display: grid; gap: 20px; }
+  .retorno .panel { padding: 24px; background: var(--bg-card, #fff); border: 1px solid var(--border-light, #ddd); border-radius: 14px; }
+  .retorno h1 { margin: 6px 0 12px; font-size: 26px; }
+  .retorno h2 { margin: 0 0 14px; font-size: 19px; }
+  .retorno p { line-height: 1.5; }
+  .retorno .muted { color: var(--text-secondary, #555); }
+  .retorno .route { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-weight: 600; }
+  .retorno .route span { padding: 8px 12px; border-radius: 8px; background: var(--bg-hover, #eef2f7); }
+  .retorno .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .retorno .field { display: grid; gap: 8px; }
+  .retorno [hidden] { display: none !important; }
+  .retorno .full { grid-column: 1 / -1; }
+  .retorno label { font-weight: 600; }
+  .retorno input, .retorno select, .retorno textarea { box-sizing: border-box; width: 100%; padding: 11px; border: 1px solid var(--border-light, #bbb); border-radius: 8px; background: var(--bg-body, #fff); color: var(--text-main, #222); font: inherit; }
+  .retorno input[type=checkbox] { width: auto; margin-right: 8px; }
+  .retorno .notice { padding: 14px; border-radius: 8px; border: 1px solid var(--border-light, #bbb); background: var(--bg-hover, #f3f5f8); }
+  .retorno .error, .retorno .errorlist { color: var(--danger, #b42318); }
+  .retorno .errorlist { margin: 0; padding-left: 20px; }
+  .retorno .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 22px; }
+  .retorno .button { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light, #ccc); text-decoration: none; font: inherit; cursor: pointer; background: var(--bg-card, #fff); color: var(--text-main, #222); }
+  .retorno .primary { background: #2457c5; border-color: #2457c5; color: white; }
+  .retorno button:disabled { opacity: .6; cursor: wait; }
+  .retorno .table-wrap { overflow-x: auto; }
+  .retorno table { width: 100%; border-collapse: collapse; }
+  .retorno th, .retorno td { padding: 14px 10px; text-align: left; border-bottom: 1px solid var(--border-light, #ddd); vertical-align: top; }
+  .retorno .motivo { white-space: pre-wrap; overflow-wrap: anywhere; }
+  @media (max-width: 650px) { .retorno .fields { grid-template-columns: 1fr; } .retorno .panel { padding: 18px; } }
+</style>
+<div class="retorno">
+  <header class="panel">
+    <a href="{% url 'dash_almacen' %}">Volver al almacén</a>
+    <h1>Devolver a central</h1>
+    {% if sede_origen and sede_destino %}
+    <div class="route"><span>{{ sede_origen.nombre }}</span><b aria-label="hacia">→</b><span>{{ sede_destino.nombre }}</span></div>
+    {% endif %}
+    {% block retorno_intro %}{% endblock %}
+  </header>
+  {% block retorno_content %}{% endblock %}
+</div>
+{% endblock %}
